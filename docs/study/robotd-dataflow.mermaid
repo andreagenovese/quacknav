@@ -1,0 +1,122 @@
+flowchart LR
+    %% ───────────── INPUTS ─────────────
+    subgraph IN["📥 INPUT CHANNELS"]
+        direction TB
+        PADD["padd — gamepad<br/>robot.move / robot.head (50 Hz notifications)<br/>robot.stop / enable / skill (requests)"]
+        RCTL["robotctl — CLI/monitor<br/>robot.subscribe · init · relax · skill"]
+        MEDIAD["mediad — WebRTC relay<br/>teleop (unreliable) · control (reliable)<br/>phone · browser · LLM agents"]
+        BTD["btd — BLE<br/>API subset (no init/relax)"]
+        UPD["updaterd<br/>robot.health · safeToRestart · modelApi"]
+        PARAMS["/etc/robot/robotd.toml<br/>gain · scale · alphas · deadman<br/>policy path · policy.mode"]
+        ONNX["policy *.onnx<br/>obs[1,61] → act[1,14]"]
+        BUS_IN["🔌 Dynamixel bus /dev/ttyS2<br/>sync_read reg 124–136<br/>IMU id200 + 15 servos"]
+        SLOW["bus — 1×/s<br/>reg 144–146<br/>voltage + temperature"]
+        SOC["sysfs<br/>SoC thermal zones"]
+        TOF["tofd — 15 Hz<br/>8×8 depth"]
+        MIC["🎤 onboard mic<br/>40-band log-mel"]
+    end
+
+    %% ───────────── IPC ─────────────
+    subgraph IPC["IPC thread (tokio multi-thread)"]
+        direction TB
+        SLOTS["intent slots — ArcSwap stamped<br/>twist · head (last-writer-wins)"]
+        PREQ["power req.<br/>init / relax (last wins)"]
+        SKILL["skill flags<br/>(booleans, one per skill)"]
+        HEALTH_CALC["health computation<br/>from atomics, never asks the loop"]
+    end
+
+    PADD --> SLOTS
+    PADD --> SKILL
+    MEDIAD --> SLOTS
+    MEDIAD --> SKILL
+    BTD --> SLOTS
+    RCTL --> PREQ
+    RCTL --> SKILL
+    UPD --> HEALTH_CALC
+
+    %% ───────────── LOOP ─────────────
+    subgraph LOOP["Control thread — 50 Hz, dedicated runtime, MissedTick::Skip"]
+        direction TB
+        READ["read()<br/>1 sync_read all-or-nothing<br/>error → sensors=None, the tick still runs"]
+        OBSERVE["safety.observe<br/>fallen? (projected gravity, 0.2 s debounce)<br/>→ report only, gates nothing"]
+        LIMP["duck_control::fall<br/>predictor ġ = −ω×g<br/>~26° while tipping over, 3 ticks"]
+        GATE["gate(deadman)<br/>stale intents → velocity 0<br/>(stop, not limp)"]
+        OBS["Observation::build [f32;61]<br/>gyro·grav·pos·vel·last_action·command"]
+        DRIVING{"driving?<br/>enabled ∧ policy ∧<br/>sensors ∧ ¬limp-fall"}
+        POLICY["Policy::infer (ONNX)<br/>chain: roulade>kick>pick>sit/rise>stand>walk<br/>→ [f32;14]"]
+        SCALE["home + action_scale × action<br/>low-pass head and legs"]
+        HOLD["hold = captured pose<br/>once on leaving driving"]
+        SEQ["limp-fall sequence<br/>limp → gyro quiet → 1 s ramp → standing"]
+        BRINGUP["bring-up<br/>Limp → Homing (torque, 2 s ramp) → Ready"]
+        SAFETY["🛡️ safety.apply — the ONLY RobotIo<br/>rejects NaN · clamps to actuator range"]
+        WRITE["write()<br/>1 sync_write goal positions"]
+        ODOM["odometry (per tick)<br/>sole contact + FK + IMU yaw"]
+        BATT["voltage EMA ~10 s<br/>≤ 6.6 V → sit down + poweroff"]
+        STALE["IMU stale counter<br/>identical blocks > 0.5 s"]
+    end
+
+    BUS_IN --> READ
+    SLOW --> BATT
+    SOC --> HEALTH_CALC
+    PARAMS --> SCALE
+    PARAMS --> GATE
+    ONNX --> POLICY
+    SLOTS -- "atomic load 1×/tick" --> GATE
+    PREQ -- "taken 1×/tick" --> BRINGUP
+    SKILL --> POLICY
+    READ --> OBSERVE
+    READ --> LIMP
+    READ --> STALE
+    READ --> ODOM
+    OBSERVE --> OBS
+    GATE --> OBS
+    OBS --> DRIVING
+    DRIVING -- "yes" --> POLICY
+    DRIVING -- "no" --> HOLD
+    LIMP -- "fall predicted" --> SEQ
+    POLICY --> SCALE
+    SCALE --> SAFETY
+    HOLD --> SAFETY
+    SEQ --> SAFETY
+    BRINGUP --> SAFETY
+    SAFETY --> WRITE
+
+    %% ───────────── OFF-LOOP SUBSYSTEMS ─────────────
+    subgraph SIDE["Hanging off the tick, never blocking"]
+        direction TB
+        THEREMIN["theremin.rs<br/>ToF → note + mouth opening"]
+        PET["pet-detect<br/>~20 KB CNN, own worker"]
+        SOUND["sound.rs<br/>1 aplay child, exclusive PCM"]
+        CHORALE["chorale.rs<br/>conductor = lowest id"]
+    end
+    TOF --> THEREMIN
+    MIC --> PET
+    THEREMIN --> SLOTS
+    THEREMIN --> SOUND
+    PET -- "event" --> SOUND
+    CHORALE --> SOUND
+
+    %% ───────────── OUTPUTS ─────────────
+    subgraph OUT["📤 OUTPUT CHANNELS"]
+        direction TB
+        BUS_OUT["🔌 15 servos<br/>goal positions (sync_write)"]
+        ATOM["atomics → robot.health<br/>hz · missed · fallen · moving<br/>+ battery V/% · hottest joint temp · SoC"]
+        STATE["robot.state (bounded broadcast, drop-on-lag)<br/>requested vs applied · limited_by<br/>policy · safety · loop · battery · odom<br/>only if someone is subscribed, decimated"]
+        SPK["🔊 speaker (aplay)"]
+        JOURNAL["journald<br/>debug heartbeat · 5 min info summary<br/>rate-limited IMU stale warn"]
+        POWER["⏻ board poweroff<br/>(battery empty)"]
+    end
+
+    WRITE --> BUS_OUT
+    WRITE --> ATOM
+    ATOM --> HEALTH_CALC
+    HEALTH_CALC --> UPD
+    WRITE --> STATE
+    ODOM --> STATE
+    STATE --> RCTL
+    STATE --> MEDIAD
+    SOUND --> SPK
+    STALE --> JOURNAL
+    WRITE --> JOURNAL
+    BATT --> POWER
+    BATT --> ATOM

@@ -1,0 +1,47 @@
+flowchart LR
+    subgraph DUCK["🦆 Microduck — quacksat (uguale nei tre casi)"]
+        direction TB
+        MIC["🎤 mic"] --> WW["wake word locale<br/>+ VAD"]
+        WW --> TX["trasporto<br/>(backend intercambiabile)"]
+        RX["audio di ritorno"] --> SPK["🔊 speaker via sound.rs"]
+        TOOLS["tool locali<br/>quack · testa · intenti → robotd"]
+    end
+
+    TX -- "A: Wyoming/ESPHome" --> HA
+    TX -- "B: WebSocket" --> BRIDGE_B
+    TX -- "C: WebSocket" --> BRIDGE_C
+
+    subgraph A["A — Pipeline Home Assistant"]
+        direction LR
+        HA["HA Assist<br/>pipeline"] --> STT_A["STT<br/>Speech-to-Phrase / Whisper"]
+        STT_A --> INT{"intent<br/>locale?"}
+        INT -- "sì (0,17 s)" --> ACT_A["azione HA"]
+        INT -- "no" --> SHIM["shim OpenAI<br/>→ Arkimede"]
+        SHIM --> MCP_A["MCP → HA"]
+        ACT_A --> TTS_A["TTS Piper"]
+        SHIM --> TTS_A
+    end
+    TTS_A --> RX
+
+    subgraph B["B — Agente diretto, a cascata"]
+        direction LR
+        BRIDGE_B["bridge quacksat<br/>(sul server)"] --> STT_B["STT streaming<br/>faster-whisper"]
+        STT_B --> AGENT["Arkimede / Claude<br/>LLM + tool calling"]
+        AGENT --> T_HA["tool: HA via MCP"]
+        AGENT --> T_ROBOT["tool: robotd<br/>move · head · skill"]
+        AGENT --> TTS_B["TTS streaming<br/>Piper / Kokoro / cloud"]
+    end
+    TTS_B --> RX
+    T_ROBOT -.-> TOOLS
+
+    subgraph C["C — Agente diretto, speech-to-speech"]
+        direction LR
+        BRIDGE_C["bridge sottile"] --> RT["API realtime<br/>audio ↔ audio<br/>(OpenAI Realtime, Gemini Live)"]
+        RT --> T_RT["tool calling<br/>→ HA / robotd"]
+    end
+    RT --> RX
+
+    classDef local fill:#e8f5e9,stroke:#2e7d32
+    classDef cloud fill:#fff3e0,stroke:#ef6c00
+    class HA,STT_A,INT,ACT_A,SHIM,MCP_A,TTS_A,BRIDGE_B,STT_B,AGENT,T_HA,T_ROBOT,TTS_B local
+    class RT,T_RT cloud

@@ -1,0 +1,26 @@
+flowchart TD
+    GP["🎮 Gamepad (BLE/USB)"] --> PADD["padd — gamepad transport<br/>(intents like an app)"]
+    PHONE["📱 Smartphone app (BLE)"] --> BTD["btd — GATT server<br/>subset of the API"]
+    SSH["💻 Laptop (ssh)"] --> RCTL["robotctl — CLI<br/>works even with a broken robot"]
+    PEER["🌐 Remote peer (WebRTC)"] --> MEDIAD
+    GH["GitHub release (https)"] --> UPDATERD
+
+    CAM["📷 Camera + 🎤 Mic<br/>(audio codec on I²C bus)"] --> MEDIAD["mediad — camera/audio pipeline<br/>encode, perception,<br/>WebRTC remote gateway :8080/:8443"]
+    TOFD["tofd — head ToF sensor<br/>8×8 depth matrix"] -- "tof.stream" --> MEDIAD
+
+    PADD --> IPC
+    BTD --> IPC
+    RCTL --> IPC
+    MEDIAD --> IPC
+
+    IPC[["Control plane<br/>JSON-RPC 2.0 / NDJSON<br/>one unix socket per service<br/>(mode 0660 + SO_PEERCRED)"]]
+
+    IPC --> ROBOTD["robotd — the ONLY one touching the robot<br/>50 Hz loop · ONNX policy<br/>safety layer · robot.health"]
+    IPC --> CONFIGD["configd — wifi, identity,<br/>PIN pairing, gamepad bonding"]
+    IPC --> UPDATERD["updaterd — signature verify,<br/>atomic swap, health gate,<br/>automatic rollback"]
+
+    TOFD -. "last-value cache<br/>(never a synchronous RPC)" .-> ROBOTD
+
+    ROBOTD -- "UART Dynamixel<br/>(intents → motor commands)" --> HW["15 servos + IMU board<br/>on a single serial bus"]
+    CONFIGD -- "D-Bus" --> OS["BlueZ · NetworkManager"]
+    UPDATERD -- "systemctl restart<br/>then asks robot.health" --> REL["/opt/robot/daemon/current<br/>(symlink → signed release)"]
