@@ -55,7 +55,7 @@ ToF; il server ricostruisce, localizza e ragiona. A bordo solo intenti.
 ## 5. Fase D — Semantica e agente
 - [ ] Grafo di scena 3D open-vocabulary: stanze, oggetti, relazioni,
       coordinate.
-- [ ] Tool per [Arkimede](https://github.com/andreagenovese/yesSir): `where_is(object)`, `go_to(place)`, `look_at(x)`,
+- [ ] Tool per [Arkimede](https://arkimede.ai/): `where_is(object)`, `go_to(place)`, `look_at(x)`,
       `describe_surroundings()`; pianificazione waypoint sul server.
 - [ ] Ciclo chiuso: obiettivo dall'agente → waypoint → intenti → posa
       aggiornata → verifica visiva → risposta all'utente.

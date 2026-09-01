@@ -1,7 +1,7 @@
 # quacksat — pipeline HA vs agente diretto
 
 Domanda: il satellite vocale sull'anatra deve parlare con Home Assistant
-(pipeline Assist) o direttamente con un agente (Claude / [Arkimede](https://github.com/andreagenovese/yesSir))?
+(pipeline Assist) o direttamente con un agente (Claude / [Arkimede](https://arkimede.ai/))?
 
 ## Le tre strade
 
