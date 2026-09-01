@@ -55,7 +55,7 @@ ToF; the server reconstructs, localizes and reasons. On board, intents only.
 ## 5. Phase D — Semantics and agent
 - [ ] Open-vocabulary 3D scene graph: rooms, objects, relationships,
       coordinates.
-- [ ] Tools for Arkimede: `where_is(object)`, `go_to(place)`, `look_at(x)`,
+- [ ] Tools for [Arkimede](https://github.com/andreagenovese/yesSir): `where_is(object)`, `go_to(place)`, `look_at(x)`,
       `describe_surroundings()`; waypoint planning on the server.
 - [ ] Closed loop: goal from the agent → waypoints → intents → updated
       pose → visual verification → answer to the user.

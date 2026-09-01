@@ -1,7 +1,7 @@
 # quacksat — HA pipeline vs direct agent
 
 Question: should the voice satellite on the duck talk to Home Assistant
-(Assist pipeline) or directly to an agent (Claude / Arkimede)?
+(Assist pipeline) or directly to an agent (Claude / [Arkimede](https://github.com/andreagenovese/yesSir))?
 
 ## The three paths
 
