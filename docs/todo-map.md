@@ -34,8 +34,12 @@ optional last phase; see ADR 0005 for why.
 - [x] Detailed study of the maploc data flow (what enters robotd, how it
       is processed, what comes out) → `docs/study/maploc-dataflow.md` +
       `.mermaid` (2026-09-04).
-- [ ] Reproduce the offline bench on the Mac: `maploc` `evaluate`/`replay`
-      examples on the committed `.mdlg` recordings.
+- [x] Reproduce the offline bench on the Mac: `maploc` `evaluate`/`replay`
+      examples on the committed `.mdlg` recordings (2026-09-04: builds in
+      seconds, pure Rust; all four rows of PR 202's table reproduced to
+      the millimetre; clean run 0.031 m mean wall error, 8 submaps,
+      0 loops; mirrored run replayed with `MAPLOC_MIRROR_COLS=1` closes
+      3 loops).
 - [ ] Try the MuJoCo twin path (`scripts/duck-sim` + `sim-maploc/`) on the
       Mac: the only pre-December way to see a map being built live.
 

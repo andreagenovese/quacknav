@@ -36,8 +36,12 @@ finale opzionale; il perché è nell'ADR 0005.
 - [x] Studio dettagliato del flusso dati di maploc (cosa entra in robotd,
       come viene elaborato, cosa esce) → `docs/study/maploc-dataflow.md`
       + `.mermaid` (2026-09-04).
-- [ ] Riprodurre il bench offline sul Mac: esempi `evaluate`/`replay` di
-      `maploc` sulle registrazioni `.mdlg` committate.
+- [x] Riprodurre il bench offline sul Mac: esempi `evaluate`/`replay` di
+      `maploc` sulle registrazioni `.mdlg` committate (2026-09-04: compila
+      in secondi, Rust puro; tutte e quattro le righe della tabella della
+      PR 202 riprodotte al millimetro; giro pulito 0,031 m di errore medio
+      sui muri, 8 submap, 0 loop; il giro specchiato riprodotto con
+      `MAPLOC_MIRROR_COLS=1` chiude 3 loop).
 - [ ] Provare il percorso del gemello MuJoCo (`scripts/duck-sim` +
       `sim-maploc/`) sul Mac: l'unico modo, prima di dicembre, di vedere
       una mappa costruirsi dal vivo.
