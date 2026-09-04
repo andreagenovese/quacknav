@@ -70,21 +70,36 @@ finale opzionale; il perché è nell'ADR 0005.
       anche un riavvio che ripristina la sessione lo incrementa).
 
 ## 2. Luoghi e `where_am_i` (senza telecamera, senza server)
-- [ ] Registro dei luoghi: pose con nome nel frame mappa, indicizzate
+- [x] Registro dei luoghi: pose con nome nel frame mappa, indicizzate
       per identità della sessione di mappa, salvate nella directory di
       stato di quacksat. Insegnate a voce ("questa è la cucina") o
-      dall'agente.
-- [ ] Strumenti per l'agente: `where_am_i()` → luogo più vicino +
+      dall'agente (2026-09-04: `quacksat-core/src/places.rs`, JSON in
+      `[map] places_path`, più ancore per nome, una generazione
+      persistita che diventa stantia a un reset della mappa — l'epoca
+      della lane mappa o un numero di submap sotto il massimo visto dal
+      registro).
+- [x] Strumenti per l'agente: `where_am_i()` → luogo più vicino +
       distanza + confidenza del tracking; `list_places()`,
       `remember_place(name)`, `forget_place(name)`. Esporli nella
       allowlist del bridge, nel server MCP lato anatra e nel backend
-      `direct`.
+      `direct` (2026-09-04: nell'unico catalogo servito da ogni percorso —
+      bridge via session.start, MCP lato anatra, direct; gli strumenti
+      agiscono su un `tools::Robot` che possiede la lane robotd, la lane
+      mappa e il registro. Verificato dal vivo via MCP contro il gemello
+      MuJoCo: insegna, riconosce, si allontana, wipe → stantio,
+      reinsegna).
 - [ ] Passeggiata di mappatura come comportamento guidato: l'agente (o
       l'utente) conduce un giro stop-and-scan; quacksat riferisce a
       parole il progresso di `windows`/`n_submaps`. Richiede
       `[maploc] enabled = true` sul robot.
-- [ ] Gestire con onestà `seated`/`tracking = false` nelle risposte
-      ("non sono sicura di dove sono, devo alzarmi e guardarmi intorno").
+- [x] Gestire con onestà `seated`/`tracking = false` nelle risposte
+      ("non sono sicura di dove sono, devo alzarmi e guardarmi intorno")
+      (2026-09-04: `where_am_i` risponde `known: false` con il motivo;
+      l'insegnamento viene rifiutato. Dettaglio visto sul gemello: prima
+      di `robot.enable` robotd riferisce `seated = false` anche con
+      l'anatra seduta — il flag viene dal controller, che esiste solo
+      dopo l'enable — quindi la posa di una mappa nuova è "fidata" al
+      boot; il flag driving di `robot.state` potrà filtrarla in seguito).
 
 ## 3. `go_to` (serve un RPC di goal upstream)
 - [ ] Seguire upstream per un RPC tipo `robot.goto` (pianificatore e

@@ -65,18 +65,33 @@ optional last phase; see ADR 0005 for why.
       bumps it).
 
 ## 2. Places and `where_am_i` (no camera, no server)
-- [ ] Places registry: named poses in the map frame, keyed by map session
+- [x] Places registry: named poses in the map frame, keyed by map session
       identity, stored under quacksat's own state dir. Taught by voice
-      ("this is the kitchen") or by the agent.
-- [ ] Agent tools: `where_am_i()` → nearest place + distance + tracking
+      ("this is the kitchen") or by the agent (2026-09-04:
+      `quacksat-core/src/places.rs`, JSON at `[map] places_path`, several
+      anchors per name, a persisted generation that goes stale on a map
+      reset — the map lane's epoch or a submap count below the registry's
+      high-water mark).
+- [x] Agent tools: `where_am_i()` → nearest place + distance + tracking
       confidence; `list_places()`, `remember_place(name)`,
       `forget_place(name)`. Expose them in the bridge allowlist, the
-      duck-side MCP server and the `direct` backend.
+      duck-side MCP server and the `direct` backend (2026-09-04: in the
+      one catalog every path serves — bridge via session.start, duck-side
+      MCP, direct; tools act on a `tools::Robot` that owns the robotd
+      lane, the map lane and the registry. Checked live over MCP against
+      the MuJoCo twin: teach, recognize, walk away, wipe → stale,
+      re-teach).
 - [ ] Mapping walk as a guided behavior: the agent (or the user) drives a
       stop-and-scan tour; quacksat reports `windows`/`n_submaps` progress
       in words. Needs `[maploc] enabled = true` on the robot.
-- [ ] Handle `seated`/`tracking = false` honestly in the answers ("I am
-      not sure where I am, I need to stand and look around").
+- [x] Handle `seated`/`tracking = false` honestly in the answers ("I am
+      not sure where I am, I need to stand and look around") (2026-09-04:
+      `where_am_i` answers `known: false` with the reason; teaching is
+      refused. Caveat seen on the twin: before `robot.enable` robotd
+      reports `seated = false` even on a seated duck — the flag comes from
+      the controller, which exists only once enabled — so a fresh map's
+      pose is "trusted" at boot; `robot.state`'s driving flag could gate
+      it later).
 
 ## 3. `go_to` (needs an upstream goal RPC)
 - [ ] Follow upstream for a `robot.goto`-style RPC (planner + follower
