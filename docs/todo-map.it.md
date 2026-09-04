@@ -33,9 +33,9 @@ finale opzionale; il perché è nell'ADR 0005.
 ## 0. Seguire upstream
 - [ ] Seguire le PR 127 e 202 fino al merge; annotare la versione API
       finale e ogni modifica a `MapFrame`/`MapStreamResult`.
-- [ ] Studio dettagliato del flusso dati di maploc (cosa entra in robotd,
+- [x] Studio dettagliato del flusso dati di maploc (cosa entra in robotd,
       come viene elaborato, cosa esce) → `docs/study/maploc-dataflow.md`
-      + `.mermaid`.
+      + `.mermaid` (2026-09-04).
 - [ ] Riprodurre il bench offline sul Mac: esempi `evaluate`/`replay` di
       `maploc` sulle registrazioni `.mdlg` committate.
 - [ ] Provare il percorso del gemello MuJoCo (`scripts/duck-sim` +

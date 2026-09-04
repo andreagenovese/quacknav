@@ -1,0 +1,133 @@
+flowchart LR
+    %% maploc data flow inside robotd — upstream PR 127 as of 2026-09-04.
+    %% Read with docs/study/maploc-dataflow.md. The flow is cyclic: the
+    %% mapper's "searching" state moves the head, the head moves the ToF,
+    %% the ToF feeds the mapper.
+
+    %% ───────────── BODY ─────────────
+    subgraph BODY["🦆 the robot's body"]
+        direction TB
+        BUS["Dynamixel bus /dev/ttyS2 — 50 Hz sync_read<br/>15 servo positions + trunk IMU (quaternion, gravity)"]
+        TOFHW["head ToF VL53L5CX/L8CX — I²C, bus shared with the audio codec<br/>8×8 zones · 45°×45° FOV · 15 Hz"]
+        CAM["camera → mediad (WebRTC)<br/>NOT an input to maploc"]
+    end
+
+    %% ───────────── TOFD ─────────────
+    subgraph TOFD["tofd — its own daemon"]
+        TSTREAM["tof.stream on /run/tofd/tof.sock<br/>TofFrame{seq, at_us, distance_mm[64], status[64]}"]
+    end
+
+    %% ───────────── CONTROL LOOP ─────────────
+    subgraph LOOP["robotd control loop — 50 Hz thread"]
+        direction TB
+        ODOM["contact odometry<br/>foot FK on the MJCF model + IMU yaw<br/>→ (x, y, yaw) odometry frame, trunk z"]
+        HEAD["measured head joints<br/>neck_pitch · head_pitch · head_yaw · head_roll"]
+        FLAGS["verdicts<br/>moving (policy label 'walk' / scripted busy)<br/>sitting (controller) · fallen (safety)"]
+        SAMPLE["OdomSample per tick<br/>try_send — drops when full, never blocks"]
+        SWEEP["head-yaw override<br/>while searching, or at every stop in stop_and_scan<br/>triangle ±0.9 rad over 6 s (search_sweep)"]
+    end
+
+    %% ───────────── FEED ─────────────
+    subgraph FEED["maploc-tof thread — niced +10"]
+        SUB["subscribes tofd like any client<br/>hello + tof.stream · reconnect with backoff"]
+    end
+
+    %% ───────────── WORKER ─────────────
+    subgraph WORKER["maploc worker thread — niced +10 — robotd/src/maploc.rs"]
+        direction TB
+        CH["mpsc channel · 128 events<br/>Odom · Frame · Wipe · Shutdown"]
+        REC["recorder (record_dir)<br/>.mdlg ground truth ~6 KB/s"]
+        DECODE["decode_ranges<br/>status ∈ {5, 9} and mm > 0 → metres"]
+        REPROJ["kinematics::tof::Reprojector::flatten<br/>beam table × head FK per frame · floor filter ×0.85 · min range 0.10 m<br/>gravity-levelled body frame → FlatScan(angles, ranges from sensor, sensor_xy)"]
+
+        subgraph MAPPER["maploc::mapper — the decisions"]
+            direction TB
+            OBS["observe()<br/>compose odom delta onto tracked pose (MAP frame)<br/>still? 0.5 s window · <1 cm · <0.05 rad · not moving/sitting/fallen"]
+            SUSP["sit or fall → pose suspect<br/>soft seed 'I was not moved'"]
+            ACC["still-window accumulator<br/>endpoint vote per 5 cm cell · ≥3 distinct frames · range ≤ 2 m<br/>flush on stand end or after 3 s → one composite"]
+            THIN{"≥ 60 beams?"}
+            LOST{"tracking?"}
+            WD["watchdog vs stand_grid<br/>≥100 judged beams and ≥5 % · mean residual > 0.25 m → quarantine<br/>2 consecutive → LOST"]
+            RELOC["relocalize while lost<br/>soft seed (2 agreeing windows) → pending candidate (confirm ≤ 0.10 m, ≥30 % beams)<br/>→ brute-force search on ≤256 beams → new candidate · give up after 10 unjudgeable"]
+            INK["ink ×2 passes into the current submap<br/>+85 log-odds per pass, wall at 150 · windows++"]
+        end
+
+        subgraph SLAM["maploc::pipeline::Slam"]
+            direction TB
+            SM["submap manager<br/>4×4 m local grid · 5 cm cells<br/>freeze on age 8 s (moved ≥ 15 cm) or travel 0.8 m"]
+            LC["loop closer on freeze<br/>coarse correlative ±0.5 m ±20° + Gauss-Newton<br/>two agreeing strong witnesses (≥150 beams)"]
+            OPT["pose-graph optimizer<br/>dense GN over SE(2) → re-anchor every submap + the tracked pose"]
+            RENDER["global render when dirty<br/>composite → trinary: log-odds > 150 wall · < −50 free"]
+        end
+
+        SESSION["session file /var/lib/robot/maploc.session<br/>bincode, atomic · autosave 60 s + shutdown · restored on boot (suspect)"]
+        DORMANT["dormant: A* planner + turn-then-go follower (vx, wz)<br/>no goal RPC yet"]
+    end
+
+    %% ───────────── IPC ─────────────
+    subgraph IPC["robotd IPC — /run/robotd.sock — API v17"]
+        direction TB
+        MAP["robot.map → MapStreamResult{accepted, enabled, mode}<br/>then map.frame @ 1 Hz while subscribed:<br/>x y yaw · tracking · x_min y_min cell_m rows cols · cells (b64: 0 unknown 1 free 2 wall)<br/>n_submaps · n_loops · windows · still · seated"]
+        WIPE["robot.map_wipe<br/>accepted / refused"]
+    end
+
+    %% ───────────── CONSUMERS ─────────────
+    subgraph OUT["consumers"]
+        direction TB
+        MON["robotctl monitor<br/>map panel · m = fullscreen"]
+        QS["quacksat (planned)<br/>places registry · where_am_i"]
+        LOG["journal<br/>status every 5 s + notes"]
+    end
+
+    %% inputs
+    BUS --> ODOM
+    BUS --> HEAD
+    BUS --> FLAGS
+    TOFHW --> TSTREAM
+    CAM -.-x WORKER
+
+    %% loop → worker
+    ODOM --> SAMPLE
+    HEAD --> SAMPLE
+    FLAGS --> SAMPLE
+    SAMPLE -->|"Event::Odom · 50 Hz"| CH
+
+    %% tofd → worker
+    TSTREAM --> SUB
+    SUB -->|"Event::Frame · 15 Hz"| CH
+
+    %% worker internals
+    CH --> REC
+    CH -->|"Odom"| OBS
+    CH -->|"Frame + latest OdomSample"| DECODE
+    DECODE --> REPROJ
+    REPROJ -->|"Scan (only while still)"| ACC
+    OBS --> SUSP
+    OBS -->|"stand ended / 3 s"| ACC
+    OBS -->|"tracking"| SM
+    ACC --> THIN
+    THIN -->|"no → discard"| LOG
+    THIN -->|"yes"| LOST
+    LOST -->|"yes"| WD
+    LOST -->|"no"| RELOC
+    WD -->|"agrees"| INK
+    WD -->|"contradicts"| RELOC
+    RELOC -->|"confirmed → resume"| INK
+    INK --> SM
+    SM -->|"freeze"| LC
+    LC -->|"closures"| OPT
+    OPT -->|"corrected tracked pose"| OBS
+    SM --> RENDER
+    SM --> SESSION
+    SESSION -.->|"boot"| SM
+
+    %% outputs
+    RENDER -->|"1 Hz"| MAP
+    MAP --> MON
+    MAP --> QS
+    WORKER --> LOG
+    WIPE -->|"Event::Wipe"| CH
+
+    %% the feedback edge: the cycle
+    RELOC -.->|"searching flag"| SWEEP
+    SWEEP -->|"head yaw target"| BUS

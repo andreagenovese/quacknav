@@ -31,9 +31,9 @@ optional last phase; see ADR 0005 for why.
 ## 0. Track upstream
 - [ ] Watch PR 127 and PR 202 until merged; note the final API version
       and any change to `MapFrame`/`MapStreamResult`.
-- [ ] Detailed study of the maploc data flow (what enters robotd, how it
+- [x] Detailed study of the maploc data flow (what enters robotd, how it
       is processed, what comes out) → `docs/study/maploc-dataflow.md` +
-      `.mermaid`.
+      `.mermaid` (2026-09-04).
 - [ ] Reproduce the offline bench on the Mac: `maploc` `evaluate`/`replay`
       examples on the committed `.mdlg` recordings.
 - [ ] Try the MuJoCo twin path (`scripts/duck-sim` + `sim-maploc/`) on the
