@@ -48,14 +48,21 @@ optional last phase; see ADR 0005 for why.
       live `map.frame` stream was read from a plain socket client).
 
 ## 1. quacksat consumes the map
-- [ ] `robot.map` subscription in quacksat-core (robotd client): decode
+- [x] `robot.map` subscription in quacksat-core (robotd client): decode
       `map.frame`, keep the latest frame, expose pose + tracking + grid.
       Gate on API version; a robotd without `robot.map` answers
-      METHOD_NOT_FOUND and the feature stays silently off.
+      METHOD_NOT_FOUND and the feature stays silently off
+      (2026-09-04: `quacksat-core/src/map.rs`, `[map]` config, wired in
+      the binary, `map_watch` example; both paths checked live against
+      the MuJoCo twin and a main-branch `robotd --fake`).
 - [ ] `robotd --fake` support: check whether the fake serves `robot.map`;
       if not, a fixture that replays a recorded frame sequence.
-- [ ] Detect "map frame changed" (wipe, restore failure, relocalization
-      after a session reset) and invalidate anything anchored to it.
+- [x] Detect "map frame changed" (wipe, restore failure, relocalization
+      after a session reset) and invalidate anything anchored to it
+      (2026-09-04: `MapStatus::epoch`, bumped on a `seq` regression or
+      the submap count falling to zero — conservative, since the wire
+      carries no session id; a restart that restores a session also
+      bumps it).
 
 ## 2. Places and `where_am_i` (no camera, no server)
 - [ ] Places registry: named poses in the map frame, keyed by map session

@@ -51,17 +51,23 @@ finale opzionale; il perché è nell'ADR 0005.
       vivo letto da un semplice client socket).
 
 ## 1. quacksat consuma la mappa
-- [ ] Sottoscrizione `robot.map` in quacksat-core (client robotd):
+- [x] Sottoscrizione `robot.map` in quacksat-core (client robotd):
       decodificare `map.frame`, tenere l'ultimo frame, esporre posa +
       tracking + griglia. Controllare la versione API; un robotd senza
       `robot.map` risponde METHOD_NOT_FOUND e la funzione resta spenta in
-      silenzio.
+      silenzio (2026-09-04: `quacksat-core/src/map.rs`, config `[map]`,
+      cablato nel binario, esempio `map_watch`; entrambi i percorsi
+      verificati dal vivo contro il gemello MuJoCo e un `robotd --fake`
+      di main).
 - [ ] Supporto `robotd --fake`: verificare se il finto serve `robot.map`;
       altrimenti una fixture che riproduce una sequenza di frame
       registrata.
-- [ ] Rilevare "il frame mappa è cambiato" (wipe, ripristino fallito,
+- [x] Rilevare "il frame mappa è cambiato" (wipe, ripristino fallito,
       rilocalizzazione dopo un reset di sessione) e invalidare tutto ciò
-      che vi è ancorato.
+      che vi è ancorato (2026-09-04: `MapStatus::epoch`, incrementato su
+      una regressione di `seq` o sul conteggio delle submap che scende a
+      zero — conservativo, perché il filo non porta un id di sessione;
+      anche un riavvio che ripristina la sessione lo incrementa).
 
 ## 2. Luoghi e `where_am_i` (senza telecamera, senza server)
 - [ ] Registro dei luoghi: pose con nome nel frame mappa, indicizzate
