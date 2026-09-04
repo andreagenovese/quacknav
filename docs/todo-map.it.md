@@ -141,6 +141,48 @@ finale opzionale; il perché è nell'ADR 0005.
       dopo l'enable — quindi la posa di una mappa nuova è "fidata" al
       boot; il flag driving di `robot.state` potrà filtrarla in seguito).
 
+- [x] Mappa tutto (2026-09-04): `robot.map_explore` — esplorazione a
+      frontiere in `quack-places/src/frontier.rs` (gruppi di frontiera,
+      percorsi BFS con muri gonfiati, un waypoint per tappa) guidata da
+      un lavoro in background in `quacksat-core/src/explore.rs` che
+      cammina con `map_step` (quindi con tutti i guardiani) su una sua
+      lane robotd, blocca le frontiere che non riesce a raggiungere,
+      arretra dai dislivelli, e si ferma quando non resta nulla di
+      raggiungibile. Raggiunta una zona senza nome lascia una domanda; il
+      backend `direct` la pronuncia (`ask_phrase`) e la risposta finisce
+      in `remember_place`. Il backend `agent` ha bisogno di un evento di
+      protocollo per lo stesso — ancora da fare.
+- [x] Esploratore messo a punto sul gemello (2026-09-04, corse 22–26):
+      tre strati, come i robot lavapavimenti. La mappa pianifica
+      (Dijkstra su una costmap con muri gonfiati di 0,15 m, pavimento
+      ignoto più caro del noto); il sensore risponde solo per ciò che la
+      mappa non sa (un rilevamento diventa un ostacolo locale di 0,05 m
+      più gonfiaggio — con 0,10 sigillava un corridoio da 0,4 m accanto
+      a un mobiletto); una sosta rimappa l'ignoto. La tappa è
+      dimensionata sul pavimento davanti: margine frontale 0,25 m più
+      0,10 m di tolleranza dell'andatura, e un *test di corridoio* — il
+      corpo è largo 0,19 m (scafo del gemello), con 0,06 m di aria per
+      lato un corridoio deve essere largo 0,31 m — che gira verso il lato
+      più largo invece di rifiutare. `map_step` stesso ora *accorcia* il
+      passo al pavimento che ha davanti (campo `shortened` nel risultato)
+      e rifiuta solo quando ci sta meno di un secondo di cammino — le
+      tappe fisse da 3 s del giro guidato avevano cominciato a fallire
+      sugli oggetti visti dal sensore. Recuperi: becco contro qualcosa per
+      la mappa *o* per il sensore → un passo indietro limitato; sei
+      rifiuti senza tappe in mezzo, oppure "niente di raggiungibile da
+      qui" con frontiere ancora aperte → dimentica gli ostacoli locali
+      entro 0,6 m, mette da parte quella frontiera, esce in retromarcia,
+      sosta (tre volte, poi si arrende onestamente). Il passo indietro usa
+      sempre una rotazione positiva: l'andatura del gemello indietreggia
+      solo così (misurato due volte; con rotazione negativa il corpo
+      resta dov'è). Corse di dodici minuti da avvio pulito: 84–94 tappe,
+      14–16 m di percorso reale, ~80 sottomappe, 24–58 chiusure d'anello,
+      nessuna caduta, i bordi del vano scale registrati come dislivelli.
+      Ancora aperto: gira per minuti su piccole frontiere dietro oggetti
+      bassi vicino alla partenza; la posa di maploc scivola fino a 0,5 m
+      nella stanza a nord-est (upstream); la domanda "che stanza è?" ha
+      bisogno del suo evento di protocollo per l'agente.
+
 ## 3. `go_to` (serve un RPC di goal upstream)
 - [ ] Seguire upstream per un RPC tipo `robot.goto` (pianificatore e
       follower esistono nel crate, non sono cablati). Se entro dicembre

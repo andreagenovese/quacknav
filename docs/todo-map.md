@@ -129,6 +129,44 @@ optional last phase; see ADR 0005 for why.
       pose is "trusted" at boot; `robot.state`'s driving flag could gate
       it later).
 
+- [x] Map everything (2026-09-04): `robot.map_explore` — frontier
+      exploration in `quack-places/src/frontier.rs` (frontier groups,
+      wall-inflated BFS paths, a waypoint per leg) driven by a background
+      job in `quacksat-core/src/explore.rs` that walks with `map_step`
+      (so every guard applies) on its own robotd lane, blocks frontiers
+      it could not reach, backs off from drops, and stops when nothing
+      reachable is left. When it reaches a nameless area it leaves a
+      question; the `direct` backend asks it out loud (`ask_phrase`) and
+      the answer flows into `remember_place`. The `agent` backend needs a
+      protocol event for the same — still to do.
+- [x] Explorer tuned on the twin (2026-09-04, runs 22–26): three layers,
+      the way robot vacuums do it. The map plans (Dijkstra over a costmap
+      with walls inflated 0.15 m, unknown floor dearer than known); the
+      sensor answers only for what the map does not know (a hit becomes a
+      local obstacle of 0.05 m plus inflation — 0.10 sealed a 0.4 m
+      corridor beside a console); a stand re-maps the unknown. A leg is
+      sized to the floor ahead: frontal margin 0.25 m plus 0.10 m of
+      gait slack, and a *corridor test* — the body is 0.19 m wide (twin
+      hull), with 0.06 m to spare per side a corridor must be 0.31 m —
+      that turns toward the wider side instead of refusing. `map_step`
+      itself now *shortens* a step to the floor in front of it (result
+      `shortened`) and refuses only when less than a second of walking
+      fits — the guided tour's fixed 3 s legs had started failing on the
+      sensor's objects. Recoveries:
+      nose against something by the map *or* the sensor → a bounded step
+      back; six refusals with no leg between, or "nothing reachable from
+      here" while frontiers remain → forget the local obstacles within
+      0.6 m, set that frontier aside, back out, stand (three times, then
+      give up honestly). The step back always uses a positive yaw: the
+      twin's gait backs up only that way (measured twice; negative yaw
+      leaves the body where it is). Twelve-minute runs from a clean boot:
+      84–94 legs, 14–16 m of true travel, ~80 submaps, 24–58 loop
+      closures, no falls, the stairwell edges recorded as drops. Still
+      open: it circles for minutes on small frontiers behind low objects
+      near the start; maploc's pose drifts up to 0.5 m in the north-east
+      room (upstream); the "which room?" question needs its agent-protocol
+      event.
+
 ## 3. `go_to` (needs an upstream goal RPC)
 - [ ] Follow upstream for a `robot.goto`-style RPC (planner + follower
       exist in the crate, not wired). If nothing appears by December,
