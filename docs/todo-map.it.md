@@ -42,9 +42,13 @@ finale opzionale; il perché è nell'ADR 0005.
       PR 202 riprodotte al millimetro; giro pulito 0,031 m di errore medio
       sui muri, 8 submap, 0 loop; il giro specchiato riprodotto con
       `MAPLOC_MIRROR_COLS=1` chiude 3 loop).
-- [ ] Provare il percorso del gemello MuJoCo (`scripts/duck-sim` +
+- [x] Provare il percorso del gemello MuJoCo (`scripts/duck-sim` +
       `sim-maploc/`) sul Mac: l'unico modo, prima di dicembre, di vedere
-      una mappa costruirsi dal vivo.
+      una mappa costruirsi dal vivo (2026-09-04: funziona — `robotd --sim`
+      e `tofd --sim` veri + corpo MuJoCo, giro stop-and-scan di 245 s,
+      59 finestre, 7 submap, posa tracciata a ~4 cm dalla verità al
+      ritorno, 0,035 m di errore medio sui muri; lo stream `map.frame` dal
+      vivo letto da un semplice client socket).
 
 ## 1. quacksat consuma la mappa
 - [ ] Sottoscrizione `robot.map` in quacksat-core (client robotd):

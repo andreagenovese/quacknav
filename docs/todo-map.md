@@ -40,8 +40,12 @@ optional last phase; see ADR 0005 for why.
       the millimetre; clean run 0.031 m mean wall error, 8 submaps,
       0 loops; mirrored run replayed with `MAPLOC_MIRROR_COLS=1` closes
       3 loops).
-- [ ] Try the MuJoCo twin path (`scripts/duck-sim` + `sim-maploc/`) on the
-      Mac: the only pre-December way to see a map being built live.
+- [x] Try the MuJoCo twin path (`scripts/duck-sim` + `sim-maploc/`) on the
+      Mac: the only pre-December way to see a map being built live
+      (2026-09-04: works — real `robotd --sim` + `tofd --sim` + MuJoCo
+      body, stop-and-scan route of 245 s, 59 windows, 7 submaps, tracked
+      pose ~4 cm from truth at the return, 0.035 m mean wall error; the
+      live `map.frame` stream was read from a plain socket client).
 
 ## 1. quacksat consumes the map
 - [ ] `robot.map` subscription in quacksat-core (robotd client): decode
