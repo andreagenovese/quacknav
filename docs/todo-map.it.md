@@ -98,10 +98,25 @@ finale opzionale; il perché è nell'ADR 0005.
       mappa e il registro. Verificato dal vivo via MCP contro il gemello
       MuJoCo: insegna, riconosce, si allontana, wipe → stantio,
       reinsegna).
-- [ ] Passeggiata di mappatura come comportamento guidato: l'agente (o
+- [x] Passeggiata di mappatura come comportamento guidato: l'agente (o
       l'utente) conduce un giro stop-and-scan; quacksat riferisce a
       parole il progresso di `windows`/`n_submaps`. Richiede
-      `[maploc] enabled = true` sul robot.
+      `[maploc] enabled = true` sul robot (2026-09-04: `robot.map_status`
+      in quack-places — numeri più un suggerimento — e `robot.map_step`
+      in quacksat-core — una camminata a tempo poi una sosta di 6 s di
+      default, che riferisce `new_windows`; l'agente concatena le tappe
+      e racconta. La sosta sta dentro lo strumento così la fermezza è
+      garantita a prescindere dalla latenza dell'LLM; una tappa sta nei
+      30 s di timeout del bridge. Verificato dal vivo sul gemello
+      MuJoCo, che ha insegnato due cose: la policy di cammino non fa
+      passi sotto circa 0,25 m/s comandati, quindi il tetto del movimento
+      è passato da 0,2 al valore del gamepad di Pollen, 0,3; e un passo
+      alla cieca contro un muro non ancora inchiostrato ha ribaltato
+      l'anatra — ora `map_status`/`map_step` riferiscono lo spazio libero
+      nelle quattro direzioni dalla griglia, e `map_step` rifiuta di
+      camminare contro un muro mappato o in spazio non mappato a un palmo
+      dal becco. L'anatra si è rialzata da sola e maploc si è
+      rilocalizzato).
 - [x] Gestire con onestà `seated`/`tracking = false` nelle risposte
       ("non sono sicura di dove sono, devo alzarmi e guardarmi intorno")
       (2026-09-04: `where_am_i` risponde `known: false` con il motivo;

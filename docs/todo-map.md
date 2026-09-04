@@ -90,9 +90,22 @@ optional last phase; see ADR 0005 for why.
       lane, the map lane and the registry. Checked live over MCP against
       the MuJoCo twin: teach, recognize, walk away, wipe → stale,
       re-teach).
-- [ ] Mapping walk as a guided behavior: the agent (or the user) drives a
+- [x] Mapping walk as a guided behavior: the agent (or the user) drives a
       stop-and-scan tour; quacksat reports `windows`/`n_submaps` progress
-      in words. Needs `[maploc] enabled = true` on the robot.
+      in words. Needs `[maploc] enabled = true` on the robot (2026-09-04:
+      `robot.map_status` in quack-places — numbers plus a hint — and
+      `robot.map_step` in quacksat-core — a timed walk then a stand of
+      6 s by default, reporting `new_windows`; the agent chains steps
+      and narrates. The stand is inside the tool so stillness is
+      guaranteed regardless of LLM latency; a step fits the bridge's
+      30 s tool timeout. Checked live on the MuJoCo twin, which also
+      taught two things: the walking policy does not step below about
+      0.25 m/s commanded, so the move cap went from 0.2 to Pollen's own
+      gamepad value of 0.3; and a blind step into a wall the map had not
+      inked toppled the duck — now `map_status`/`map_step` report the
+      clearance in four directions from the grid, and `map_step` refuses
+      to walk into a mapped wall or into unmapped space right at the
+      beak. The duck stood back up by itself and maploc relocalized).
 - [x] Handle `seated`/`tracking = false` honestly in the answers ("I am
       not sure where I am, I need to stand and look around") (2026-09-04:
       `where_am_i` answers `known: false` with the reason; teaching is
