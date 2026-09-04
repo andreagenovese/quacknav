@@ -148,7 +148,14 @@ optional last phase; see ADR 0005 for why.
       sized to the floor ahead: frontal margin 0.25 m plus 0.10 m of
       gait slack, and a *corridor test* — the body is 0.19 m wide (twin
       hull), with 0.06 m to spare per side a corridor must be 0.31 m —
-      that turns toward the wider side instead of refusing. `map_step`
+      that turns toward the wider side instead of refusing. Frontiers
+      are ranked by path cost per frontier cell (capped at 40 cells),
+      not by distance alone: nearest-first spent 40 % of a run on the
+      slivers around the start and reached four of six rooms in twelve
+      minutes; the default budget is now thirty (run 28, 30 min: 39 m of
+      true travel, 25 % of the flat's floor against 20 %, still four rooms
+      of six — and maploc's pose drifted up to 1.9 m for five minutes with
+      `tracking` still true, until a loop closure snapped it back). `map_step`
       itself now *shortens* a step to the floor in front of it (result
       `shortened`) and refuses only when less than a second of walking
       fits — the guided tour's fixed 3 s legs had started failing on the

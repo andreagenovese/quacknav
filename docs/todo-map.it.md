@@ -163,7 +163,16 @@ finale opzionale; il perché è nell'ADR 0005.
       0,10 m di tolleranza dell'andatura, e un *test di corridoio* — il
       corpo è largo 0,19 m (scafo del gemello), con 0,06 m di aria per
       lato un corridoio deve essere largo 0,31 m — che gira verso il lato
-      più largo invece di rifiutare. `map_step` stesso ora *accorcia* il
+      più largo invece di rifiutare. Le frontiere sono ordinate per costo
+      del percorso per cella di frontiera (al massimo 40 celle), non per
+      sola distanza: la più vicina prima spendeva il 40 % di una corsa
+      sui ritagli intorno alla partenza e toccava quattro stanze su sei
+      in dodici minuti; il budget predefinito ora è di trenta (corsa 28,
+      30 min: 39 m di percorso reale, 25 % del pavimento contro 20 %,
+      sempre quattro stanze su sei — e la posa di maploc è scivolata fino
+      a 1,9 m per cinque minuti con `tracking` ancora vero, finché una
+      chiusura d'anello l'ha riportata a posto). `map_step`
+      stesso ora *accorcia* il
       passo al pavimento che ha davanti (campo `shortened` nel risultato)
       e rifiuta solo quando ci sta meno di un secondo di cammino — le
       tappe fisse da 3 s del giro guidato avevano cominciato a fallire
