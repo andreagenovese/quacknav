@@ -64,6 +64,15 @@ optional last phase; see ADR 0005 for why.
       carries no session id; a restart that restores a session also
       bumps it).
 
+- [x] Operational independence from the voice satellite: the map lane,
+      the registry and the four tools live in the `quack-places` crate
+      (2026-09-04), with no dependency on quacksat-core — hostable by a
+      daemon of its own or moved to its own repository unchanged. The
+      transports (bridge, MCP server) stay in quacksat; extracting the MCP
+      server into a shared crate is the one step a standalone daemon
+      still needs. The systemd unit fences resources (Nice, CPUWeight,
+      memory caps) so the satellite never costs robotd its loop.
+
 ## 2. Places and `where_am_i` (no camera, no server)
 - [x] Places registry: named poses in the map frame, keyed by map session
       identity, stored under quacksat's own state dir. Taught by voice

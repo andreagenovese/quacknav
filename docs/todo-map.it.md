@@ -69,6 +69,16 @@ finale opzionale; il perché è nell'ADR 0005.
       zero — conservativo, perché il filo non porta un id di sessione;
       anche un riavvio che ripristina la sessione lo incrementa).
 
+- [x] Indipendenza operativa dal satellite vocale: la lane mappa, il
+      registro e i quattro strumenti vivono nel crate `quack-places`
+      (2026-09-04), senza dipendenza da quacksat-core — ospitabile da un
+      demone proprio o spostabile in un repository a sé senza modifiche.
+      I trasporti (bridge, server MCP) restano in quacksat; estrarre il
+      server MCP in un crate condiviso è l'unico passo che manca a un
+      demone autonomo. La unit systemd recinta le risorse (Nice,
+      CPUWeight, limiti di memoria) così il satellite non costa mai a
+      robotd il suo loop.
+
 ## 2. Luoghi e `where_am_i` (senza telecamera, senza server)
 - [x] Registro dei luoghi: pose con nome nel frame mappa, indicizzate
       per identità della sessione di mappa, salvate nella directory di
