@@ -116,7 +116,22 @@ finale opzionale; il perché è nell'ADR 0005.
       nelle quattro direzioni dalla griglia, e `map_step` rifiuta di
       camminare contro un muro mappato o in spazio non mappato a un palmo
       dal becco. L'anatra si è rialzata da sola e maploc si è
-      rilocalizzato).
+      rilocalizzato. Poi un giro di due stanze sul gemello — corridoio,
+      cucina e ritorno, 26 tappe, un rifiuto, nessuna caduta, "ingresso"
+      riconosciuto a 26 cm al ritorno — e il vano scala: la mappa ha
+      fermato l'anatra a 36 cm dal bordo solo perché il pavimento sopra
+      la buca era *ignoto*; visto un muro al di là, i raggi che
+      attraversano la buca la segnano libera. I frame di profondità
+      invece la vedono (riga bassa 43–47 cm sul pavimento, 100–119 cm o
+      nulla sopra la buca, 44 cm attesi), quindi `quack-places` ha un
+      **guardiano del vuoto** (`cliff.rs`): legge lo stream di tofd e la
+      posa della testa, riproietta con il crate `kinematics` di Pollen, e
+      chiama dislivello un ritorno mancante o lungo 1,5× dove dovrebbe
+      esserci il pavimento; `map_status` lo riferisce e `map_step`
+      rifiuta di camminarci verso. Inoltre: margine di 25 cm dai muri, e
+      un muro a meno di 20 cm su un lato fa sterzare la tappa.
+      `robot.move` resta senza margine apposta: per avvicinarsi a qualcosa
+      e prenderla bisogna arrivarci accanto).
 - [x] Gestire con onestà `seated`/`tracking = false` nelle risposte
       ("non sono sicura di dove sono, devo alzarmi e guardarmi intorno")
       (2026-09-04: `where_am_i` risponde `known: false` con il motivo;

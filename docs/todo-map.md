@@ -105,7 +105,21 @@ optional last phase; see ADR 0005 for why.
       inked toppled the duck — now `map_status`/`map_step` report the
       clearance in four directions from the grid, and `map_step` refuses
       to walk into a mapped wall or into unmapped space right at the
-      beak. The duck stood back up by itself and maploc relocalized).
+      beak. The duck stood back up by itself and maploc relocalized.
+      Then a two-room tour on the twin — corridor, kitchen and back, 26
+      steps, one refusal, no falls, "ingresso" recognized at 26 cm on
+      return — and the stairwell: the map stopped the duck 36 cm short
+      only because the floor over the hole was *unknown*; once a wall
+      beyond it is seen, the rays crossing the hole mark it free. The
+      depth frames do see it (bottom row 43–47 cm on floor, 100–119 cm
+      or nothing over the hole, 44 cm expected), so `quack-places` grew a
+      **cliff guard** (`cliff.rs`): it reads tofd's stream and the head
+      pose, reprojects with Pollen's `kinematics` crate, and calls a
+      missing or 1.5×-long return where the floor should be a drop;
+      `map_status` reports it and `map_step` refuses to walk toward it.
+      Also: a 25 cm wall margin, and a wall within 20 cm on one side
+      steers the step away. `robot.move` keeps no margin on purpose:
+      approaching something to pick it up must get right next to it).
 - [x] Handle `seated`/`tracking = false` honestly in the answers ("I am
       not sure where I am, I need to stand and look around") (2026-09-04:
       `where_am_i` answers `known: false` with the reason; teaching is
