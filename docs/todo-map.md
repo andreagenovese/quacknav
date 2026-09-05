@@ -283,6 +283,25 @@ optional last phase; see ADR 0005 for why.
       steer, and every small steer summed to a duck turning on the spot —
       only when something is in the way. Heading corrections start at 15°
       (dead band 0.25 rad, gain 0.6, at most 0.2 rad/s).
+      (7) Head for space (user's rule, run 49): after a panorama and
+      after a step back the duck turns toward the heading with the
+      longest run of known free floor on the map (24 samples, at least
+      0.6 m) and takes one guarded straight leg there before the planner
+      has its say — where a step back's 40° swing left the beak was
+      chance.
+      (8) Map-versus-sensor agreement (runs 50–51): at every stand the
+      sensor's obstacles within 1.5 m, in directions where the map has a
+      wall, either sit on it (within 0.35 m: agree) or lie beyond it
+      (disagree) — seeing through a mapped wall is the one thing a true
+      pose cannot do. Floor the map shows beyond an obstacle is not
+      evidence: a map under construction misses every low piece of
+      furniture, and counting it (run 50) gave 40 false alarms and 15
+      panoramas in half an hour. Ten or more beyond, and three times those
+      on the wall (three-and-half gave nine false alarms in run 51, the
+      pose being right), make a doubtful stand; two in a row earn a panorama so the
+      mapper can close a loop, six in a row end the job as "position
+      lost" instead of mapping on a false pose (run 49 spent fifteen
+      minutes 3–5 m off, "tracked").
 
 ## 3. `go_to` (needs an upstream goal RPC)
 - [ ] Follow upstream for a `robot.goto`-style RPC (planner + follower
@@ -313,7 +332,14 @@ optional last phase; see ADR 0005 for why.
   (`private/drives/replay-1788604159.txt`) are the evidence to hand
   upstream. Until it is understood, exploring on a large inherited map is
   unreliable on the twin; from-scratch runs (small maps) stayed within
-  0.5 m.
+  0.5 m. Third case, same evening: run 49 from scratch, 5000 cells, Mac
+  idle — live pose 0.6–0.8 m off from minute 10, tracking dropped at
+  minute 15, then relocalized 3–5 m wrong and stayed there "tracked";
+  the replay of that recording (`1788627740.mdlg`) tracked throughout,
+  0.49 m worst. So neither load nor map size: robotd's live maploc
+  differs from its bench. Our defence is a map-versus-sensor agreement
+  check at stands (a false pose has the sensor seeing walls where the
+  map shows floor) — see the explorer.
 - PR 127 is unreviewed and conflicting with main: the IPC shape may
   still change. Build against a pinned API version, expect a bump.
 - Boot relocalization is not wired in robotd yet: place labels survive

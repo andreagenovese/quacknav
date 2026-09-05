@@ -312,6 +312,25 @@ finale opzionale; il perché è nell'ADR 0005.
       e la somma delle piccole sterzate era una papera che gira sul posto —
       solo quando qualcosa è in mezzo. Le correzioni di rotta partono da
       15° (banda morta 0,25 rad, guadagno 0,6, al massimo 0,2 rad/s).
+      (7) Verso lo spazio (regola dell'utente, corsa 49): dopo una
+      panoramica e dopo un passo indietro la papera si gira verso la
+      direzione con la corsa più lunga di pavimento libero noto sulla
+      mappa (24 campioni, almeno 0,6 m) e fa una tappa dritta guardata
+      prima che il pianificatore decida — dove i 40° di rotazione del
+      passo indietro lasciavano il becco era il caso.
+      (8) Accordo mappa-sensore (corse 50–51): a ogni sosta gli ostacoli
+      del sensore entro 1,5 m, nelle direzioni in cui la mappa ha un muro,
+      o stanno su di esso (entro 0,35 m: accordo) o oltre (disaccordo) —
+      vedere attraverso un muro mappato è l'unica cosa che una posa vera
+      non può fare. Il pavimento che la mappa mostra oltre un ostacolo non
+      è una prova: una mappa in costruzione manca ogni mobile basso, e
+      contarlo (corsa 50) ha dato 40 falsi allarmi e 15 panoramiche in
+      mezz'ora. Dieci o più oltre, e il triplo di quelli sul muro (tre e
+      metà davano nove falsi allarmi nella corsa 51, con la posa giusta),
+      fanno una sosta dubbia; due di fila valgono una panoramica perché il mappatore
+      chiuda un anello, sei di fila chiudono il lavoro come "posizione
+      persa" invece di mappare su una posa falsa (la corsa 49 ha passato
+      quindici minuti 3–5 m fuori posto, "tracciata").
 
 ## 3. `go_to` (serve un RPC di goal upstream)
 - [ ] Seguire upstream per un RPC tipo `robot.goto` (pianificatore e
@@ -346,7 +365,16 @@ finale opzionale; il perché è nell'ADR 0005.
   (`private/drives/replay-1788604159.txt`) sono la prova da portare
   upstream. Finché non si capisce, esplorare su una grande mappa ereditata
   è inaffidabile sul gemello; le corse da zero (mappe piccole) sono rimaste
-  entro 0,5 m.
+  entro 0,5 m. Terzo caso, la stessa sera: corsa 49 da zero, 5000 celle,
+  Mac scarico — posa dal vivo sbagliata di 0,6–0,8 m dal minuto 10,
+  tracciamento perso al minuto 15, poi rilocalizzata 3–5 m fuori posto e
+  rimasta lì "tracciata"; il replay di quella registrazione
+  (`1788627740.mdlg`) ha tracciato per tutta la sessione, 0,49 m nel
+  peggiore dei casi. Quindi né il carico né la dimensione della mappa: il
+  maploc dal vivo di robotd differisce dal suo banco. La nostra difesa è
+  un controllo di accordo mappa-sensore alle soste (una posa falsa fa
+  vedere al sensore muri dove la mappa mostra pavimento) — vedi
+  l'esploratore.
 - La PR 127 è senza review e in conflitto con main: la forma dell'IPC
   può ancora cambiare. Costruire contro una versione API fissata,
   aspettarsi un bump.
