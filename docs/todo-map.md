@@ -173,6 +173,116 @@ optional last phase; see ADR 0005 for why.
       near the start; maploc's pose drifts up to 0.5 m in the north-east
       room (upstream); the "which room?" question needs its agent-protocol
       event.
+- [x] Right-hand rule (2026-09-05, user's idea, on trial): walk straight
+      and keep to the middle between mapped walls (`map_step` steers
+      toward the centre line when both walls are within 1.2 m, dead band
+      5 cm); when the way on is blocked, turn to the same hand every time
+      (`[map] explore_turn`, right by default) unless the body has no room
+      to swing there. "The wider side" changed its mind at every leg and
+      oscillated in tight spots; one hand gets around an obstacle and
+      along a wall to the next doorway. The frontier planner stays on top
+      to choose where to go, to see doors on the other hand, islands, and
+      the end. Caveat: on the twin right turns are the weak side (a right
+      arc turns a third of a left one), so the hand is a config knob.
+      Committed separately for an easy revert.
+- [x] `[gait]` corrections (2026-09-05, user's idea): `yaw_trim` and
+      `yaw_gain_left/right`, applied last to every walking command the
+      satellite sends while going forward; defaults off (0, 1, 1). Why:
+      measured on the twin, a straight 3 s leg veers about 20° right every
+      time (six legs: -9° to -24°, one outlier), while the turning
+      response is noisy but not one-sided (±0.7 turn alike; ±0.3 nearly).
+      So what looked like "always steering right" is the gait itself
+      veering when told to go straight; `yaw_trim = 0.2` on the twin. Zero
+      on hardware until measured there. If the knobs prove brittle, the
+      next step is self-calibration: the achieved yaw per commanded yaw,
+      leg by leg, from the map pose.
+- [x] Back and turn, and a lesson about blind manoeuvres (2026-09-05,
+      user's observation): "back off and replan" closed a circle — the
+      step back swings the tail one way, the gait veers the other on the
+      way back to the same target — so the step back is now followed by a
+      quarter turn to the configured hand, then a full mapping stand. The
+      stand matters: run 31, with back-and-turn and only a second's stop,
+      lost the map in two minutes (a wall inked 40 cm off, the pose in
+      unknown, a false "no frontier left"); runs with few spins kept the
+      pose within 0.5 m. maploc maps at stands and trusts odometry in
+      between, and a bipedal gait's odometry is worst in tight arcs. Also:
+      "done" now needs the map to have no frontier cells at all — else it
+      is "sealed in" and, from the second attempt, the planner squeezes
+      with the body's own half-width (0.10 m) instead of the 0.15 m
+      margin, which is how the duck gets out of the bedroom pocket between
+      bed, nightstand and wardrobe it kept ending run 29 and 30 in.
+- [x] Gait calibration from a human drive (2026-09-05, user's idea): the
+      user drove the twin with the arrow keys for 21 minutes (a curses
+      teleop that records command and true pose at 10 Hz, six spots
+      named), 85 m, no falls, all six zones, 57 % of the floor mapped in
+      one go against the explorer's best 25 %. The gait, measured on 178 s
+      of straight walking: 0.114 m/s and a right veer of 2.9 ± 2.5 °/s —
+      real but a third of what scripted 3 s legs from a standstill showed;
+      turns ±0.7 with vx 0.3 give 25.5 and 26.5 °/s, so no side asymmetry
+      (the factory calibration holds; `yaw_gain` stays 1/1, `yaw_trim`
+      0.08 not 0.2); turning in place (vx 0, vyaw 0.7) does work at about
+      17 °/s, noisily; backing straight works at 0.08 m/s when the gait
+      is already stepping, where from a standstill it needs a yaw. The
+      driver kept a median 0.38 m from the nearest obstacle while
+      advancing, 10th percentile 0.19 m — our 0.25 m frontal margin and
+      0.15 m inflation are in the human's range. Data under
+      `private/drives/`.
+
+- [ ] Map memory and relocalization on our side (2026-09-05, user's ask):
+      even before Pollen wires boot relocalization, the duck should not
+      lose its map and its place names at every power cycle. To study:
+      what `robot.map` exposes that could be saved (the grid and pose are
+      published; the submap graph is not), whether robotd's maploc can be
+      handed a saved session (PR 127's `wipe_on_boot` suggests a session
+      file exists), and failing that a quacksat-side fallback — keep the
+      last grid, match the fresh map against it (2D scan-to-map or
+      grid-to-grid alignment) once a few submaps exist, and re-anchor the
+      places registry to the new frame. Talk to upstream first.
+- [ ] Iteration after the human drive (2026-09-05, on trial in run 39):
+      (1) the frontier is the target, the *standing point* is 0.5 m
+      short of it along the path (`Frontier::stand`) — a frontier sits by
+      definition against walls and furniture, walking onto it put the
+      beak on them every time; a stand short of it maps it as well.
+      (2) Back off, then straight on: the yaw a step back needs is already
+      a 40° correction (measured); the quarter turn after it faced the
+      side wall and the next leg curved back — gone. (3) Centring in
+      `map_step` is relative to the passage width: full correction against
+      one wall of a 0.4 m corridor, where the old gain gave a tenth of it.
+      Only on the explorer's own legs (`centre: true`): on top of an
+      outside driver's steering it read as a stranger's hand on the wheel
+      and broke the guided tour's return leg twice (5 and 6 of 9).
+      Also: frontier cells within 0.3 m of a sensor-seen obstacle are not
+      frontiers (the map's un-inked wall gaps made false frontiers along
+      the east wall), groups need 8 cells, arrival is 0.3 m from the
+      standing point. (4) The sensor's obstacle test is a *lane* the
+      body's width (±0.16 m of the line the duck would walk), not a ±23°
+      cone: from half a metre the cone held the posts of a 0.4 m doorway
+      and the duck never tried a narrow passage (user's observation).
+      (5) The panorama (user's idea): the sensor sees the front hemisphere
+      at a stand, so at the start and on arriving where more than half of
+      the floor within 1.5 m is unknown the duck turns in place in four
+      80° steps, closed on the map's own yaw, standing at each — the
+      whole circle seen before choosing; never twice within a metre.
+      Tuned on runs 43–47: the gait does not turn in place from a
+      standstill at all, so each step is a one-second walking kick then
+      yaw only (~30°/s, 15 cm of drift); closing the step on the 1 Hz map
+      yaw overshot 30°, on the state stream's odometry yaw with a 20°
+      early stop the 45° steps come out at 48–54° (eight steps, 401°);
+      stands of 8 s, six left sectors half-swept. Measured by 30° sector
+      after the panorama: the inner ring (to 0.8 m) known 74–100 % in
+      eleven sectors of twelve, the twelfth being the stairwell; the outer
+      gaps sit behind the wall stubs. Cost: 1.5 min per panorama, a third
+      less map in ten minutes when taken at every unknown spot (3040 vs
+      4440 cells), refusals down from 32 to 8; so it is taken only at the
+      start and where more than half the floor ahead within 1.5 m is
+      unknown, never twice within 2.5 m (user's choice).
+      (6) Straight when clear (user's rule): the leg aims at the standing
+      point itself whenever the straight line to it, up to 2 m, has no
+      mapped wall within the body's lane, and follows the grid path — a
+      zigzag by nature, whose 0.4 m look-ahead gave every leg a small
+      steer, and every small steer summed to a duck turning on the spot —
+      only when something is in the way. Heading corrections start at 15°
+      (dead band 0.25 rad, gain 0.6, at most 0.2 rad/s).
 
 ## 3. `go_to` (needs an upstream goal RPC)
 - [ ] Follow upstream for a `robot.goto`-style RPC (planner + follower
@@ -191,6 +301,19 @@ optional last phase; see ADR 0005 for why.
       `describe_surroundings()` stay in this phase.
 
 ## Risks and open questions
+- **Live maploc drifts where its own replay does not (2026-09-05).** On the
+  twin, with a 94-submap map inherited from a human tour, the live
+  `robot.map` pose jumped by up to 4.6 m and `tracking` flipped, while
+  `maploc/examples/evaluate` replaying the same `.mdlg` recording tracked
+  the whole session within 4 cm median, 0.29 m max in that very window,
+  never lost. CPU load was ruled out (release build, paced mic, idle Mac).
+  So robotd's live pipeline — frame timing, the still gate, the search
+  sweep, or dropped frames — differs from the bench. Recording
+  `microduck-pr202/recordings/1788604159.mdlg` (79 min) and the replay log
+  (`private/drives/replay-1788604159.txt`) are the evidence to hand
+  upstream. Until it is understood, exploring on a large inherited map is
+  unreliable on the twin; from-scratch runs (small maps) stayed within
+  0.5 m.
 - PR 127 is unreviewed and conflicting with main: the IPC shape may
   still change. Build against a pinned API version, expect a bump.
 - Boot relocalization is not wired in robotd yet: place labels survive

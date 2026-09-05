@@ -191,6 +191,127 @@ finale opzionale; il perché è nell'ADR 0005.
       bassi vicino alla partenza; la posa di maploc scivola fino a 0,5 m
       nella stanza a nord-est (upstream); la domanda "che stanza è?" ha
       bisogno del suo evento di protocollo per l'agente.
+- [x] Regola della mano destra (2026-09-05, idea dell'utente, in prova):
+      camminare dritto e tenersi al centro tra i muri mappati (`map_step`
+      sterza verso la mezzeria quando entrambi i muri sono entro 1,2 m,
+      banda morta 5 cm); quando la via è chiusa, girare sempre dallo
+      stesso lato (`[map] explore_turn`, destra di default) salvo che il
+      corpo non abbia spazio per ruotare da quella parte. "Il lato più
+      largo" cambiava idea a ogni tappa e oscillava nei punti stretti; una
+      mano sola aggira l'ostacolo e segue il muro fino alla porta
+      successiva. Il pianificatore a frontiere resta sopra a scegliere
+      dove andare, a vedere le porte dall'altra parte, le isole e la fine.
+      Avvertenza: sul gemello la destra è il lato debole (un arco a destra
+      gira un terzo di uno a sinistra), perciò il lato è un parametro.
+      Commit separato per un revert facile.
+- [x] Correzioni `[gait]` (2026-09-05, idea dell'utente): `yaw_trim` e
+      `yaw_gain_left/right`, applicate per ultime a ogni comando di
+      camminata che il satellite invia andando avanti; default spente
+      (0, 1, 1). Perché: misurato sul gemello, una tappa dritta da 3 s
+      vira ogni volta di circa 20° a destra (sei tappe: da -9° a -24°, un
+      fuori scala), mentre la risposta in rotazione è rumorosa ma non
+      sbilanciata (±0,7 girano uguale; ±0,3 quasi). Quindi quel "sterza
+      sempre a destra" è l'andatura stessa che vira quando le si chiede di
+      andare dritto; `yaw_trim = 0.2` sul gemello. Zero sull'hardware
+      finché non lo si misura lì. Se le manopole si rivelano fragili, il
+      passo successivo è l'autotaratura: rotazione ottenuta per rotazione
+      comandata, tappa dopo tappa, dalla posa della mappa.
+- [x] Indietro e gira, e una lezione sulle manovre cieche (2026-09-05,
+      osservazione dell'utente): "indietro e ripianifica" chiudeva un
+      cerchio — il passo indietro fa scivolare la coda da un lato,
+      l'andatura vira dall'altro tornando verso lo stesso obiettivo — così
+      ora al passo indietro segue un quarto di giro nel verso configurato,
+      poi una sosta di mappatura piena. La sosta è decisiva: la corsa 31,
+      con indietro-e-gira e un solo secondo di fermata, ha perso la mappa
+      in due minuti (un muro inchiostrato 40 cm fuori posto, la posa
+      nell'ignoto, un falso "nessuna frontiera rimasta"); le corse con
+      poche giravolte tenevano la posa entro 0,5 m. maploc mappa alle
+      soste e tra una sosta e l'altra si fida dell'odometria, e
+      l'odometria di un'andatura bipede è pessima negli archi stretti.
+      Inoltre: "finito" ora richiede che la mappa non abbia più celle di
+      frontiera — altrimenti è "sigillata" e, dal secondo tentativo, il
+      pianificatore si stringe alla mezza larghezza del corpo (0,10 m)
+      invece del margine di 0,15, che è come la papera esce dalla tasca
+      della camera tra letto, comodino e armadio dove finivano le corse
+      29 e 30.
+- [x] Calibrazione dell'andatura da un giro umano (2026-09-05, idea
+      dell'utente): l'utente ha guidato il gemello con le frecce per 21
+      minuti (un telecomando curses che registra comando e posa vera a
+      10 Hz, sei luoghi nominati), 85 m, nessuna caduta, tutte e sei le
+      zone, 57 % del pavimento mappato in una volta contro il 25 % migliore
+      dell'esploratore. L'andatura, misurata su 178 s di marcia dritta:
+      0,114 m/s e una virata a destra di 2,9 ± 2,5 °/s — reale ma un terzo
+      di quella mostrata dalle tappe da 3 s comandate da fermo; le svolte
+      ±0,7 con vx 0,3 danno 25,5 e 26,5 °/s, quindi nessuna asimmetria
+      di lato (la calibrazione di fabbrica regge; `yaw_gain` resta 1/1,
+      `yaw_trim` 0,08 e non 0,2); la rotazione sul posto (vx 0, vyaw 0,7)
+      funziona, a circa 17 °/s, rumorosa; la retromarcia dritta va a
+      0,08 m/s quando l'andatura è già in passo, mentre da fermo serve una
+      rotazione. Chi guidava teneva una mediana di 0,38 m dall'ostacolo
+      più vicino avanzando, 10° percentile 0,19 m — il nostro margine
+      frontale di 0,25 e il gonfiaggio di 0,15 sono nel suo intervallo.
+      Dati in `private/drives/`.
+
+- [ ] Memoria della mappa e rilocalizzazione dalla nostra parte
+      (2026-09-05, richiesta dell'utente): anche prima che Pollen cabli la
+      rilocalizzazione all'avvio, la papera non deve perdere mappa e nomi
+      dei luoghi a ogni accensione. Da studiare: cosa espone `robot.map`
+      che si possa salvare (griglia e posa sono pubblicate; il grafo delle
+      sottomappe no), se al maploc di robotd si possa passare una sessione
+      salvata (il `wipe_on_boot` della PR 127 suggerisce che un file di
+      sessione esista), e altrimenti un ripiego lato quacksat — conservare
+      l'ultima griglia, allineare la mappa fresca a quella (scan-to-map o
+      griglia-su-griglia in 2D) appena esistono alcune sottomappe, e
+      riancorare il registro dei luoghi al nuovo riferimento. Prima
+      parlarne con upstream.
+- [ ] Iterazione dopo il giro umano (2026-09-05, in prova nella corsa
+      39): (1) la frontiera è il bersaglio, il *punto di sosta* sta 0,5 m
+      prima lungo il percorso (`Frontier::stand`) — una frontiera sta per
+      definizione contro muri e mobili, andarci sopra metteva il becco
+      addosso ogni volta; una sosta poco prima la mappa altrettanto bene.
+      (2) Indietro e poi dritto: la rotazione che un passo indietro
+      richiede è già una correzione di 40° (misurata); il quarto di giro
+      che seguiva puntava la parete di fianco e la tappa dopo curvava
+      indietro — tolto. (3) Il centraggio in `map_step` è relativo alla
+      larghezza del passaggio: correzione piena contro un muro di un
+      corridoio da 0,4 m, dove il vecchio guadagno ne dava un decimo. Solo
+      sulle tappe dell'esploratore (`centre: true`): sopra lo sterzo di chi
+      guida da fuori era una mano estranea sul volante e ha rotto due volte
+      il ritorno del giro guidato (5 e 6 su 9).
+      Inoltre: le celle di frontiera entro 0,3 m da un ostacolo visto dal
+      sensore non sono frontiere (i varchi non inchiostrati del muro est
+      creavano frontiere false), i gruppi richiedono 8 celle, l'arrivo è a
+      0,3 m dal punto di sosta. (4) Il test sugli ostacoli del sensore è
+      una *corsia* larga quanto il corpo (±0,16 m dalla linea di marcia),
+      non un cono di ±23°: da mezzo metro il cono conteneva gli stipiti
+      di una porta da 0,4 m e la papera non provava mai un passaggio
+      stretto (osservazione dell'utente). (5) La panoramica (idea
+      dell'utente): a una sosta il sensore vede l'emisfero davanti, quindi
+      all'avvio e all'arrivo dove più di metà del pavimento entro 1,5 m è
+      ignoto la papera ruota sul posto in quattro passi da 80°, chiusi
+      sulla rotta della mappa, con una sosta a ognuno — il giro completo
+      visto prima di scegliere; mai due volte entro un metro. Messa a
+      punto nelle corse 43–47: da ferma l'andatura non ruota affatto sul
+      posto, quindi ogni passo è un secondo di camminata d'avvio e poi
+      solo rotazione (~30 °/s, 15 cm di deriva); chiudere il passo sulla
+      rotta della mappa a 1 Hz sovraccorreva di 30°, sull'odometria del
+      flusso di stato con uno stop anticipato di 20° i passi da 45° escono
+      tra 48 e 54° (otto passi, 401°); soste da 8 s, con sei restavano
+      settori a metà. Misurato per settori di 30° dopo la panoramica:
+      l'anello interno (fino a 0,8 m) noto al 74–100 % in undici settori
+      su dodici, il dodicesimo è il vano scale; i buchi esterni stanno
+      dietro i muretti. Costo: 1,5 min a panoramica, un terzo di mappa in
+      meno in dieci minuti se fatta a ogni punto ignoto (3040 contro 4440
+      celle), rifiuti da 32 a 8; perciò si fa solo all'avvio e dove più di
+      metà del pavimento davanti entro 1,5 m è ignoto, mai due volte entro
+      2,5 m (scelta dell'utente). (6) Dritto se libero (regola
+      dell'utente): la tappa punta il punto di sosta stesso quando la
+      retta fino a lì, fino a 2 m, non incontra muri mappati nella corsia
+      del corpo, e segue il percorso della griglia — a zig-zag per natura,
+      con un anticipo di 0,4 m che dava a ogni tappa una piccola sterzata,
+      e la somma delle piccole sterzate era una papera che gira sul posto —
+      solo quando qualcosa è in mezzo. Le correzioni di rotta partono da
+      15° (banda morta 0,25 rad, guadagno 0,6, al massimo 0,2 rad/s).
 
 ## 3. `go_to` (serve un RPC di goal upstream)
 - [ ] Seguire upstream per un RPC tipo `robot.goto` (pianificatore e
@@ -211,6 +332,21 @@ finale opzionale; il perché è nell'ADR 0005.
       `describe_surroundings()` restano in questa fase.
 
 ## Rischi e domande aperte
+- **Il maploc dal vivo scivola dove il suo stesso replay non scivola
+  (2026-09-05).** Sul gemello, con una mappa da 94 sottomappe ereditata da
+  un giro umano, la posa `robot.map` dal vivo è saltata fino a 4,6 m e
+  `tracking` è caduto, mentre `maploc/examples/evaluate`, rigiocando la
+  stessa registrazione `.mdlg`, ha tracciato l'intera sessione entro 4 cm
+  di mediana e 0,29 m di massimo proprio in quella finestra, senza mai
+  perdersi. Il carico CPU è escluso (build release, microfono cadenzato,
+  Mac scarico). Quindi la pipeline dal vivo di robotd — tempi dei
+  fotogrammi, il gate di immobilità, la spazzata di ricerca, o fotogrammi
+  persi — differisce dal banco. La registrazione
+  `microduck-pr202/recordings/1788604159.mdlg` (79 min) e il log del replay
+  (`private/drives/replay-1788604159.txt`) sono la prova da portare
+  upstream. Finché non si capisce, esplorare su una grande mappa ereditata
+  è inaffidabile sul gemello; le corse da zero (mappe piccole) sono rimaste
+  entro 0,5 m.
 - La PR 127 è senza review e in conflitto con main: la forma dell'IPC
   può ancora cambiare. Costruire contro una versione API fissata,
   aspettarsi un bump.
