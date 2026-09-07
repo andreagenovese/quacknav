@@ -552,6 +552,27 @@ optional last phase; see ADR 0005 for why.
       build (tour72) reached 6/9, 0 lost, 0 falls — run 69's was 8/9; the
       three misses are the return legs south of the kitchen, steered by
       the script's straight lines.
+- [ ] A learned leg (2026-09-07 night, user's question: could the duck
+      be trained to explore instead of following rules?). What we have is
+      a rule explorer: frontier planner, leg planner, guards. The learning
+      that fits is hybrid: keep the planner and the guards (a fall is
+      forbidden, not learned), learn only the choice of the leg — the
+      part tuned by hand with switches tonight. The paper twin is the
+      gym: 30 runs of 90 minutes in 15 s, ~2500× real time. Steps: (a)
+      an automatic search over the ten leg parameters (reserves, arc and
+      spin thresholds, the trail leg) with the thirty-seed ladder as the
+      score — no network yet; (b) human drives recorded with the duck's
+      own observations (the 8×8 ToF, not the truth); (c) a small policy
+      (state: a local map window, sensed obstacles and drops, bearing to
+      the frontier; action: the leg) trained by imitation and refined by
+      reinforcement on the paper twin, behind the guards as an
+      alternative `leg()`, then MuJoCo, then hardware. Caveats: the
+      paper twin does not price bumps and has no doorposts, so a policy
+      trained there learns its gaps (three "right" fixes lost there
+      tonight); the map and pose stay maploc's; a policy's failures are
+      not legible. microduck-lab (jonathanhawkins, Apache-2.0) trains the
+      gait (61 obs → 14 actuators, PPO on a Mac) — the layer below ours,
+      and a sign the pipeline is Mac-feasible.
 - [ ] Route memory, three levels (2026-09-07, user's direction): the
       trail (above, per job); a persistent route graph on quack-places —
       places joined by walked legs with their statistics (times walked,

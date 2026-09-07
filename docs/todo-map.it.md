@@ -607,6 +607,29 @@ finale opzionale; il perché è nell'ADR 0005.
       (tour72) ha raggiunto 6/9, 0 perdite, 0 cadute — quello del run 69
       era 8/9; i tre mancati sono le tappe di ritorno a sud della cucina,
       guidate dalle linee rette dello script.
+- [ ] Una tappa appresa (notte del 2026-09-07, domanda dell'utente: si
+      può addestrare la papera a esplorare invece di darle regole?).
+      Quello che abbiamo è un esploratore a regole: pianificatore sulle
+      frontiere, pianificatore della tappa, guardie. L'apprendimento che
+      ci sta è ibrido: tenere pianificatore e guardie (una caduta si
+      vieta, non si impara), imparare solo la scelta della tappa — la
+      parte regolata a mano con gli interruttori stanotte. Il gemello di
+      carta è la palestra: 30 corse da 90 minuti in 15 s, ~2500 volte il
+      tempo reale. Passi: (a) una ricerca automatica sui dieci parametri
+      della tappa (riserve, soglie di arco e giro, tappa sulla scia) con
+      la scala dei trenta semi come punteggio — ancora nessuna rete; (b)
+      guide umane registrate con le osservazioni della papera (il ToF
+      8×8, non la verità); (c) una piccola policy (stato: finestra locale
+      di mappa, ostacoli e drop visti, direzione della frontiera; azione:
+      la tappa) addestrata per imitazione e rifinita per rinforzo sul
+      gemello di carta, dietro le guardie come `leg()` alternativa, poi
+      MuJoCo, poi hardware. Cautele: la carta non prezza gli urti e non ha
+      gli stipiti, quindi una policy addestrata lì impara i suoi buchi
+      (tre correzioni "giuste" hanno perso lì stanotte); mappa e posa
+      restano di maploc; gli errori di una policy non si spiegano.
+      microduck-lab (jonathanhawkins, Apache-2.0) allena la camminata (61
+      osservazioni → 14 attuatori, PPO su Mac) — lo strato sotto il
+      nostro, e la prova che la pipeline è fattibile su Mac.
 - [ ] Memoria dei percorsi, tre livelli (2026-09-07, indicazione
       dell'utente): la scia (sopra, per lavoro); un grafo dei percorsi
       persistente in quack-places — luoghi uniti da tratte camminate con
