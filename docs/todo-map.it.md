@@ -36,6 +36,121 @@ finale opzionale; il perché è nell'ADR 0005.
 - [x] Studio dettagliato del flusso dati di maploc (cosa entra in robotd,
       come viene elaborato, cosa esce) → `docs/study/maploc-dataflow.md`
       + `.mermaid` (2026-09-04).
+- [x] Audit delle perdite di posa sul twin → `docs/study/maploc-audit.it.md`
+      (2026-09-06): l'odometria del twin è quasi verità, maploc traccia in
+      dead reckoning e le sue chiusure di loop spostano la posa al livello
+      del rumore di mappa finché il watchdog non grida al rapimento; una
+      matrice di bench su cinque registrazioni e una correzione scan-to-map
+      della posa (opt-in) sul branch `maploc-study` del worktree. Prossimo
+      passo: ricompilare robotd con l'allowance stretto per le chiusure,
+      rifare le due regressioni, segnalare a Pollen.
+- [x] robotd ricompilato da `maploc-study` con l'allowance stretto per le
+      chiusure (0.03 m per submap, tetto 0.30) e le due regressioni rifatte
+      (2026-09-06, run 57): 30 min, 37 m, zero tracking lost, zero cadute,
+      errore di posa rispetto alla verità mediano 0.12 m / massimo 0.28 (run
+      49 su upstream: 0.3–0.5 m dal minuto 5, lost al 15); giro 7/9, zero
+      lost, "ingresso" riconosciuto a 0.29 m. Le manovre sul posto coniano
+      ancora submap nello stesso punto (86 submap, 189 chiusure nel giro di
+      12 minuti, posa mediana 0.23 m): prossimo passo, legare la
+      plausibilità di una chiusura alla distanza realmente percorsa fra le
+      due submap, non all'indice di submap.
+- [x] Esploratore: i tre difetti dietro il sud inesplorato (2026-09-06,
+      diagnosticati sul paper twin con le decisioni dell'esploratore
+      registrate per stanza del bersaglio): (1) "dritto se libero" guardava
+      solo i muri mappati, quindi puntava attraverso la scala e la guardia
+      del dislivello rifiutava; ora la corsia dritta evita anche ogni
+      dislivello e ostacolo locale registrato. (2) Con il bersaglio dietro e
+      senza spazio per un arco (il varco est contro il mobiletto: 84 rifiuti
+      in un punto) l'esploratore non aveva una rotazione sul posto; ora un
+      kick-then-spin chiuso sullo yaw, tre per punto prima che conti come
+      rifiuto. (3) La corsia del dislivello (±0.30 m) non entrava in nessuno
+      dei due passaggi accanto alla scala (0.44 e 0.54 m); ora ±0.22, e un
+      dislivello registrato occupa 0.10 m nel costmap invece di 0.20. Trovati
+      strada facendo: una tappa accettata che non muove il duck (fianco
+      contro qualcosa sotto la portata minima del sensore) ora è un rifiuto,
+      non una tappa ripetuta 270 volte; un dislivello registrato non viene
+      mai dimenticato dal recupero "unseal"; nessuna retromarcia cieca con un
+      dislivello a fianco o dietro; il guard del passo giudica un arco anche
+      lungo il rumbo di partenza (la caduta del run 58: un arco il cui rumbo
+      finale il sensore non aveva mai spazzato è finito nella scala); e ogni
+      tappa, compresi i kick di head-for-space e della rotazione, viene prima
+      simulata col modello dell'andatura contro i dislivelli registrati
+      (margine 0.15 m). Paper twin, 30 semi: rifiuti mediani 184 → 41,
+      copertura 29.6 → 32.7 %, cucina 39 → 60 %, urti 27 → 20, bagno
+      raggiunto in 2 run e corridoio sud in 4 (mai prima), zero cadute.
+      MuJoCo run 59: copertura 33 % (run 57: 26 %), 2 rifiuti in 28 min
+      (87), zero cadute, un lost recuperato in 6 s; giro 6/9 con zero lost e
+      zero cadute, i tre mancati alla porta della cucina al ritorno (la
+      guida in linea retta dello script del giro, non l'esploratore).
+      Ancora chiuso: il sud dietro la scala su MuJoCo.
+- [x] Il passaggio accanto alla scala, secondo giro (2026-09-06 pomeriggio):
+      il paper twin ha mostrato un dislivello fantasma registrato 17 cm
+      fuori dal buco (il gestore del rifiuto registrava il dislivello *più
+      vicino* a qualunque angolo, un avvistamento stantio di una sosta,
+      alla posa corrente) — ora si registra quello nella corsia davanti; la
+      regola grossolana "nessuna retromarcia cieca con un dislivello a
+      fianco" lasciava un twin fermo 25 minuti nel passaggio ovest (muro
+      davanti, buco a fianco, nessuna uscita) — ora la retromarcia viene
+      simulata col modello dell'andatura contro i dislivelli registrati,
+      come una tappa; e il "frontiere rimaste ma nessuna raggiungibile" del
+      run 59 erano due punti del sensore alla porta est (montante, spigolo
+      del mobiletto) che sigillavano un varco di 0.42 m da 2.4 m di
+      distanza — gli ostacoli registrati a più di 1 m ora possono essere
+      dimenticati quando sono loro, e non la mappa, a sigillare il resto
+      (tre volte per run). Bloccare le celle di frontiera vicine ai
+      dislivelli è stato provato e scartato: mandava il duck prima a sud e
+      costava la cucina. Paper twin, 30 semi: copertura e rifiuti come
+      prima (33 %, 42), corridoio sud oltre metà in 10 run (5), bagno in 3
+      (2), zero cadute. MuJoCo run 60: 27 % in 30 min, 10 rifiuti, zero
+      cadute, zero lost, posa mediana 0.10 m; l'unica tappa verso il
+      passaggio ovest è stata rifiutata dalla guardia sul percorso (una
+      tappa curva che piegava verso il bordo registrato) e il sud è rimasto
+      chiuso. Punto di ritorno dello stato del mattino in
+      `private/drives/savepoints/explorer-ok-2026-09-06/`.
+- [x] Passaggio accanto a un dislivello (2026-09-06 pomeriggio, via
+      dell'utente): con un dislivello registrato entro 1 m e il percorso
+      pianificato che passa in un varco di 0.43–0.9 m fra un muro mappato e
+      i dislivelli, l'esploratore gira sul posto fino all'asse del passaggio
+      (direzione del percorso 0.4–1.0 m avanti, tenuta finché i dislivelli
+      restano vicini), poi tappe dritte di 1.5 s con una centratura dolce
+      fra muro e dislivelli (`steer: false` sul passo, così lo "scosta dal
+      muro" del guard non piega la tappa nel buco, come faceva). Per il
+      pianificatore un dislivello vale 0.17 m di raggio (più i 0.15 del
+      costmap), così il passaggio est di 0.44 m non viene più pianificato;
+      il margine della guardia sul percorso è 0.10 m più i 0.10 del
+      dislivello (lo 0.20 dell'utente). La rotazione conta un giro a destra
+      come un giro a sinistra per il resto del cerchio (l'andatura gira a
+      sinistra qualunque sia il segno): chiusa sullo yaw nell'altro verso
+      si fermava rivolta al muro sbagliato con il buco alle spalle. Provati
+      e scartati: corsia del dislivello più stretta (0.18: il twin urta
+      ovunque), ricerca dell'asse per spazio libero (una caduta), blocco
+      delle frontiere vicino ai dislivelli. Paper twin, 30 semi: mediana
+      33 % come prima, terzo quartile 41 (34), rifiuti 48 (43), urti 15
+      (24), corridoio sud oltre metà in 21 run (10), bagno in 8 (4), zero
+      cadute, ma 7 run sotto il 25 % (3): l'asse preso dal percorso che
+      piega verso il buco nel passaggio, e un avvistamento stantio di
+      dislivello prodotto dai frame sempre freschi del twin (artefatto del
+      twin). MuJoCo run 63: 42 % in 30 min (record; 62: 34, 59: 33), bagno
+      68 %, corridoio sud 94 %, soggiorno 53 %, zero cadute, zero lost,
+      posa mediana 0.08 m.
+- [x] Sera (2026-09-06): allineamento chiuso sullo yaw per l'ingresso nel
+      passaggio, dopo una sonda della rotazione sul twin (i comandi a tempo
+      variano del triplo, le rotazioni a destra funzionano, coda 5–10°);
+      ogni dislivello visto dal sensore va nei registri dopo una sosta (da
+      frame di ≤ 2 s); per il pianificatore un dislivello vale 0.12 m.
+      maploc (`maploc-study`): test di unicità nella ricerca di
+      relocalizzazione (secondo bacino), accordo fra due ricerche, e resa
+      dopo 8 finestre persi con ripresa dall'odometria — i replay dei run
+      64 e 65 non si relocalizzano più a 3 m. Paper twin: il modello del
+      sensore ora data i frame alla sosta e aggiunge un frame centrato
+      fresco (i frame sempre freschi producevano dislivelli fantasma). Nuova
+      metrica: budget 90 minuti, completo = ogni stanza ≥ 80 % del suo
+      tetto, tempo di completamento, zero cadute → 20/30 completi,
+      copertura al tetto (55 %), corridoio sud 30/30, bagno 24/30, zero
+      cadute; ma il tempo di completamento è il budget: le fessure tengono
+      il duck a girare (147 m). Prossimi: rimandare le frontiere piccole e
+      finire quando restano solo quelle; i 6 semi che non vanno a sud e i 4
+      sigillati a nord; `robot.go_to` sulla mappa finita.
 - [x] Riprodurre il bench offline sul Mac: esempi `evaluate`/`replay` di
       `maploc` sulle registrazioni `.mdlg` committate (2026-09-04: compila
       in secondi, Rust puro; tutte e quattro le righe della tabella della
@@ -331,6 +446,55 @@ finale opzionale; il perché è nell'ADR 0005.
       chiuda un anello, sei di fila chiudono il lavoro come "posizione
       persa" invece di mappare su una posa falsa (la corsa 49 ha passato
       quindici minuti 3–5 m fuori posto, "tracciata").
+      (9) Prima finire la stanza (corsa 52): oltre 2,5 m il punteggio di
+      una frontiera cresce con la distanza, così un ritaglio a portata
+      batte un'apertura larga due stanze più in là — il criss-cross
+      dell'appartamento visto in ogni immagine di mappa finora.
+      explore_lite, lo standard ROS, ordina per distanza meno dimensione e
+      mette in lista nera una frontiera dopo 30 s senza progresso; il
+      nostro è costo per cella con questo fattore di località e la lista
+      dei rifiuti. (10) Modalità varco (corsa 52): un passaggio tra la
+      larghezza del corpo e 0,6 m è una porta — la tappa sterza sul suo
+      asse, fa passi da 1,5 s e chiede a `map_step` i margini da porta
+      (`gap`: frontale 0,15 m, tolleranza 0,05, corsia ±0,115 m; anche il
+      test di spazio della tappa usa quella corsia e una riserva di 0,20 m
+      — con quelli del corridoio non proponeva nemmeno un passo dentro,
+      corsa 53). La porta
+      da 0,42 m verso lo studio non ha mai lasciato passare la papera con
+      i margini del corridoio (una guida da script: 17 retromarce, mai
+      oltre la soglia), dove una persona l'ha portata dentro subito. La
+      porta è riconosciuta anche dal sensore (qualcosa su entrambi i lati
+      entro 0,6 m l'uno dall'altro, davanti e vicino): un mobiletto basso
+      che la mappa non ha inchiostrato è uno stipite lo stesso. Corsa 55:
+      la papera ha passato da sola la porta da 0,42 m per la prima volta,
+      28 % dell'appartamento in trenta minuti (record), 122 tappe, 79
+      rifiuti, cucina 49 %, camera 37 %, bagno sfiorato. (11) Anche il
+      guardiano del vuoto giudica un dislivello in corsia (±0,30 m dalla
+      linea di marcia; un arco lungo la rotta su cui finisce), non nel
+      mezzo cerchio davanti: il vano scale di fianco al percorso rendeva
+      impraticabile il passaggio da 0,54 m tra esso e il muro, e un bordo
+      di dislivello registrato aveva raggio 0,45 m — 0,6 col gonfiaggio —
+      che sigillava lo stesso passaggio sulla mappa; ora 0,20 m
+      (osservazione dell'utente, corsa 56).
+- [x] Il gemello di carta (2026-09-06, idea dell'utente):
+      `quacksat-core/examples/paper_twin.rs` fa girare l'esploratore vero
+      (`explore.rs`, `frontier.rs`, `tools::plan_step` — i guardiani di
+      `map_step`, ora funzione pura) contro un modello cinematico della
+      papera nelle scatole dell'appartamento (`apartment.world.json`, dalla
+      scena di Pollen): l'andatura misurata (0,114 m/s, 0,65 rad/s per unità
+      di rotazione, virata a destra, niente rotazione da ferma, retromarcia
+      solo con rotazione positiva), il sensore a raggi con la spazzata della
+      testa, la mappa che cresce alle soste, la posa come verità più un
+      random walk che le soste riassorbono, un rapimento opzionale.
+      L'esploratore ci arriva attraverso il tratto `Body` (anche il `Robot`
+      vero lo implementa), con orologio virtuale. Trenta corse da trenta
+      minuti simulati in tredici secondi: copertura mediana 29,6 % (18–36),
+      114 tappe, 184 rifiuti, 47 m — la fascia del gemello MuJoCo (26–28 %,
+      ~110 tappe, 80–170 rifiuti, 30–35 m). Per corsa un log in formato
+      watch e un `map.frame`, così `mapshot.py` lo disegna e `mosaic.py`
+      affianca le corse; l'utente vuole *vedere* le migliaia di
+      simulazioni. Selezionare qui, confermare su MuJoCo, validare
+      sull'hardware.
 
 ## 3. `go_to` (serve un RPC di goal upstream)
 - [ ] Seguire upstream per un RPC tipo `robot.goto` (pianificatore e

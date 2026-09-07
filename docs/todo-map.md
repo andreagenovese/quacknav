@@ -34,6 +34,111 @@ optional last phase; see ADR 0005 for why.
 - [x] Detailed study of the maploc data flow (what enters robotd, how it
       is processed, what comes out) → `docs/study/maploc-dataflow.md` +
       `.mermaid` (2026-09-04).
+- [x] Audit of the pose losses on the twin → `docs/study/maploc-audit.md`
+      (2026-09-06): the twin's odometry is near truth, maploc tracks by
+      dead reckoning and its loop closures walk the pose off at map-noise
+      level until the watchdog calls a kidnap; a bench matrix on five
+      recordings and a scan-to-map tracking correction (opt-in) on the
+      worktree branch `maploc-study`. Next: rebuild robotd with the tight
+      closure allowance, rerun both regressions, report to Pollen.
+- [x] Rebuilt robotd from `maploc-study` with the tight closure allowance
+      (0.03 m per submap, cap 0.30) and reran both regressions (2026-09-06,
+      run 57): 30 min, 37 m, zero tracking lost, zero falls, pose error
+      against truth median 0.12 m / max 0.28 (run 49 on upstream: 0.3–0.5 m
+      from minute 5, lost at 15); tour 7/9, zero lost, "ingresso" recognized
+      at 0.29 m. Spot manoeuvres still mint same-place submaps (86 submaps,
+      189 closures in the 12-minute tour, pose median 0.23 m): next, tie a
+      closure's plausibility to the distance actually travelled between the
+      two submaps, not to the submap index gap.
+- [x] Explorer: the three defects behind the unexplored south (2026-09-06,
+      diagnosed on the paper twin with the explorer's own decisions logged
+      by target room): (1) "straight when clear" only checked mapped walls,
+      so it aimed across the stairwell and the cliff guard refused; now the
+      straight lane also keeps clear of every drop and local obstacle on the
+      books. (2) With the target behind and no room for an arc (the east
+      doorway against the cabinet: 84 refusals in one spot), the explorer
+      had no in-place turn; now a kick-then-spin closed on the yaw, three
+      per spot before it counts as a refusal. (3) The cliff lane (±0.30 m)
+      fitted neither passage beside the stairwell (0.44 and 0.54 m); now
+      ±0.22, and a recorded drop occupies 0.10 m in the costmap instead of
+      0.20. Also found on the way: an accepted leg that moves the duck
+      nothing (flank against something under the sensor's minimum range)
+      is now a refusal, not a leg repeated 270 times; a drop on the books
+      is never forgotten by the unseal recovery; no blind step back with a
+      drop beside or behind; the step guard judges an arc along its
+      starting heading too (the fall of run 58: an arc whose end heading
+      the sensor never swept turned into the stairwell); and every leg,
+      including the head-for-space and spin kicks, is played through the
+      gait model against the drops on the books first (margin 0.15 m).
+      Paper twin, 30 seeds: refusals median 184 → 41, coverage 29.6 →
+      32.7 %, kitchen 39 → 60 %, bumps 27 → 20, bath reached in 2 runs and
+      corridor S in 4 (never before), zero falls. MuJoCo run 59: coverage
+      33 % (run 57: 26 %), 2 refusals in 28 min (87), zero falls, one lost
+      recovered in 6 s; tour 6/9 with zero lost and zero falls, the three
+      misses at the kitchen door on the way back (the tour script's
+      straight-line steering, not the explorer). Still closed: the south
+      behind the stairwell on MuJoCo.
+- [x] The passage beside the stairwell, second pass (2026-09-06 afternoon):
+      the paper twin showed a phantom drop recorded 17 cm outside the hole
+      (the refusal handler recorded the *nearest* drop of any bearing, a
+      stale sighting from a stand, at the current pose) — now the drop in
+      the lane ahead is recorded; the blunt "no blind step back with a drop
+      beside" rule left a twin standing 25 minutes in the west passage
+      (wall ahead, hole beside, no escape) — now the step back is played
+      through the gait model against the drops on the books, like a leg;
+      and run 59's "frontiers remain but none reachable" was two sensor
+      points at the east door (doorpost, cabinet corner) sealing a 0.42 m
+      gap from 2.4 m away — obstacles recorded farther than 1 m may now be
+      forgotten when they, not the map, seal the rest of the flat (three
+      times per run). Blocking frontier cells near drops was tried and
+      dropped: it sent the duck south first and cost the kitchen. Paper
+      twin, 30 seeds: same coverage and refusals as before (33 %, 42),
+      corridor S over half in 10 runs (5), bath in 3 (2), zero falls.
+      MuJoCo run 60: 27 % in 30 min, 10 refusals, zero falls, zero lost,
+      pose median 0.10 m; the one leg toward the west passage was refused
+      by the drop-path guard (a curved leg bending toward the recorded
+      edge) and the south stayed closed. Restore point of the morning's
+      state in `private/drives/savepoints/explorer-ok-2026-09-06/`.
+- [x] Passage beside a drop (2026-09-06 afternoon, user's go): with a drop on
+      the books within 1 m and the planned path running through a gap of
+      0.43–0.9 m between a mapped wall and the drops, the explorer turns in
+      place onto the passage's axis (the path's direction 0.4–1.0 m ahead,
+      kept while drops stay near), then takes 1.5 s straight legs with a
+      gentle centring between wall and drops (`steer: false` on the step,
+      so the guard's wall-hug does not peel the leg into the hole — it
+      did). For the planner a drop is worth 0.17 m of radius (plus the
+      costmap's 0.15), so the 0.44 m passage east of the stairwell is not
+      routed through any more; the guard's drop-path margin is 0.10 m plus
+      the drop's 0.10 (the user's 0.20). The spin counts a right turn as a
+      left turn by the rest of the circle (the gait spins left whatever
+      the sign): closed on the yaw the other way it stopped facing the
+      wrong wall with the hole behind. Tried and dropped: a narrower cliff
+      lane (0.18: the twin bumps everywhere), an axis search by clearance
+      (a fall), blocking frontiers near drops. Paper twin, 30 seeds:
+      median 33 % as before, third quartile 41 (34), refusals 48 (43),
+      bumps 15 (24), corridor S over half in 21 runs (10), bath in 8 (4),
+      zero falls, but 7 runs under 25 % (3) — traced to the path-derived
+      axis bending toward the hole in the passage, and to a stale drop
+      sighting the twin's always-fresh frames produce (a twin artefact).
+      MuJoCo run 63: 42 % in 30 min (best ever; 62: 34, 59: 33), bath 68 %,
+      corridor S 94 %, living room 53 %, zero falls, zero lost, pose
+      median 0.08 m.
+- [x] Evening (2026-09-06): closed-loop alignment for passage entry after a
+      turn-in-place probe on the twin (timed commands vary threefold, right
+      turns work, coast 5–10°); every drop the sensor saw goes on the books
+      after a stand (from frames ≤ 2 s old); drops are worth 0.12 m to the
+      planner. maploc (`maploc-study`): a uniqueness test on the relocalize
+      search (runner-up basin), a two-search agreement gate, and a give-up
+      after 8 windows lost that resumes on odometry — the bench replays of
+      runs 64 and 65 no longer relocalize 3 m away. Paper twin: the sensor
+      model now ages stand frames and adds a fresh centred frame (the
+      always-fresh frames produced phantom drops). New metric: 90-minute
+      budget, complete = every room at ≥ 80 % of its ceiling, completion
+      time, zero falls → 20/30 complete, coverage at the ceiling (55 %),
+      corridor S 30/30, bath 24/30, zero falls; but completion time is the
+      budget: slivers keep the duck wandering (147 m). Next: defer small
+      frontiers and finish when only slivers remain; the 6 seeds that never
+      go south and the 4 sealed north; `robot.go_to` on the finished map.
 - [x] Reproduce the offline bench on the Mac: `maploc` `evaluate`/`replay`
       examples on the committed `.mdlg` recordings (2026-09-04: builds in
       seconds, pure Rust; all four rows of PR 202's table reproduced to
@@ -302,6 +407,49 @@ optional last phase; see ADR 0005 for why.
       mapper can close a loop, six in a row end the job as "position
       lost" instead of mapping on a false pose (run 49 spent fifteen
       minutes 3–5 m off, "tracked").
+      (9) Finish the room first (run 52): beyond 2.5 m a frontier's score
+      grows with its distance, so a sliver at hand beats a wide opening
+      two rooms away — the criss-crossing of the flat seen in every map
+      picture so far. explore_lite, the ROS standard, ranks by distance
+      minus size and blacklists a frontier after 30 s without progress;
+      ours is cost per cell with this locality factor and the refused
+      list. (10) Doorway mode (run 52): a passage between the body's
+      width and 0.6 m is a doorway — the leg steers onto its axis, takes
+      1.5 s steps and asks `map_step` for doorway margins (`gap`: frontal
+      0.15 m, slack 0.05, lane ±0.115 m; the leg's own room test uses the
+      same lane and a 0.20 m reserve — with the corridor's it never even
+      proposed a step through, run 53). The 0.42 m door to the study
+      never let the duck through with the corridor's margins (a scripted
+      drive: 17 steps back, never past the threshold), where a person drove
+      it through at once. The doorway is also recognised by the sensor
+      (something on both sides within 0.6 m of each other, ahead and
+      near): a low cabinet the map has not inked is a doorpost all the
+      same. Run 55: the duck went through the 0.42 m door on its own for
+      the first time, 28 % of the flat in thirty minutes (record), 122
+      legs, 79 refusals, kitchen 49 %, bedroom 37 %, bathroom touched.
+      (11) The cliff guard judges a drop in a lane too (±0.30 m of the
+      line walked; an arc along the heading it ends on), not the front
+      half: the stairwell beside the path made the 0.54 m passage between
+      it and the wall impassable, and a drop edge on the books had a
+      0.45 m radius — 0.6 m with inflation — sealing the same passage on
+      the map; now 0.20 m (user's observation, run 56).
+- [x] The paper twin (2026-09-06, user's idea): `quacksat-core/examples/
+      paper_twin.rs` runs the real explorer (`explore.rs`, `frontier.rs`,
+      `tools::plan_step` — the guards of `map_step`, now a pure function)
+      against a kinematic model of the duck in the apartment's boxes
+      (`apartment.world.json`, from Pollen's sim scene): the gait as
+      measured (0.114 m/s, 0.65 rad/s per unit of yaw, right veer, no
+      turning in place from a standstill, backing only with +yaw), the
+      sensor as rays with the head sweep, the map grown at stands, the
+      pose as truth plus a random walk the stands pull back, an optional
+      kidnap. The explorer reaches it through the `Body` trait (the real
+      `Robot` implements it too), with a virtual clock. Thirty runs of
+      thirty simulated minutes take thirteen seconds: median coverage
+      29.6 % (18–36), 114 legs, 184 refusals, 47 m — the MuJoCo twin's
+      band (26–28 %, ~110 legs, 80–170 refusals, 30–35 m). Output per run:
+      a watch-format log and a `map.frame`, so `mapshot.py` draws it and
+      `mosaic.py` tiles the runs; the user wants to *see* the thousands of
+      simulations. Select here, confirm on MuJoCo, validate on hardware.
 
 ## 3. `go_to` (needs an upstream goal RPC)
 - [ ] Follow upstream for a `robot.goto`-style RPC (planner + follower
