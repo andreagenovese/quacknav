@@ -526,6 +526,32 @@ optional last phase; see ADR 0005 for why.
       to test there: when spins alternate sign with no leg between, take
       the planned path's first cells as the heading (they are free by the
       map) and allow a shorter leg (0.6 s) through a sensed gap.
+- [x] The trail as evidence for the guards, the arc's true advance, the
+      turn in place in tight quarters (2026-09-07 late night, all measured
+      on the full flat with phantoms, thirty seeds, ninety minutes; base
+      55 %, 21/30 complete, 126 refusals, 43 bumps, longest stay 41 min):
+      (1) **a leg whose first 0.30 m lies on the trail is judged with the
+      doorway's reserve** (0.20 m, not the corridor's 0.35) — the body was
+      there at its own width; the cliff guard and the sensor's obstacle in
+      the narrow lane still have their say. 26/30 complete, 104 refusals,
+      34 bumps, longest stay 31 min; kept, on by default. (2) The arc's
+      advance, measured on the human drive: 0.110 m/s forward at vyaw 0.7
+      against 0.121 straight — not the quarter the explorer and the
+      mapping-step guard assumed, which is why the duck ended against
+      walls when turning (the user's observation). Judging arcs with the
+      true advance is right and loses badly on the paper twin, where a
+      bump costs nothing: explorer 55 → 38 %, 10/30; guard 55 → 40 %.
+      Both behind switches (`QUACKSAT_ARC_FULL`, `QUACKSAT_GUARD_ARC_FULL`),
+      off, a debt to settle on MuJoCo where a bump has a price. (3) The
+      user's rule — in tight quarters a heading change beyond 35° is a
+      turn in place (kick, then spin), not an arc: halves the longest
+      stays (31 → 18 min, doorways only) but costs completes (26 → 20) and
+      refusals (104 → 182); tighter triggers cost more (14/30). Behind
+      `QUACKSAT_SPIN_TIGHT=1` (doorways only), off, to be measured on
+      MuJoCo with the dwell metric. Also: the tour from the dock on this
+      build (tour72) reached 6/9, 0 lost, 0 falls — run 69's was 8/9; the
+      three misses are the return legs south of the kitchen, steered by
+      the script's straight lines.
 - [ ] Route memory, three levels (2026-09-07, user's direction): the
       trail (above, per job); a persistent route graph on quack-places —
       places joined by walked legs with their statistics (times walked,

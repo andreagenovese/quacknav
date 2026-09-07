@@ -579,6 +579,34 @@ finale opzionale; il perché è nell'ADR 0005.
       prime celle del percorso pianificato (libere per la mappa) e
       permettere una tappa più corta (0,6 s) attraverso un varco visto dal
       sensore.
+- [x] La scia come prova per le guardie, l'avanzamento vero dell'arco, il
+      giro sul posto negli spazi stretti (notte del 2026-09-07, tutto
+      misurato sulla casa completa con i fantasmi, trenta semi, novanta
+      minuti; base 55 %, 21/30 complete, 126 rifiuti, 43 urti, sosta più
+      lunga 41 min): (1) **una tappa i cui primi 30 cm giacciono sulla
+      scia è giudicata con la riserva della porta** (0,20 m, non i 0,35
+      del corridoio) — il corpo c'è già stato alla sua larghezza; la
+      guardia dei dislivelli e l'ostacolo visto dal sensore nella corsia
+      stretta hanno ancora voce. 26/30 complete, 104 rifiuti, 34 urti,
+      sosta più lunga 31 min; tenuta, attiva di default. (2) L'avanzamento
+      dell'arco, misurato sulla guida umana: 0,110 m/s in avanti a vyaw
+      0,7 contro 0,121 dritto — non il quarto che esploratore e guardia
+      del passo assumevano, ed è per questo che la papera finiva contro i
+      muri girando (osservazione dell'utente). Giudicare gli archi con
+      l'avanzamento vero è giusto e perde male sul gemello di carta, dove
+      un urto non costa nulla: esploratore 55 → 38 %, 10/30; guardia 55 →
+      40 %. Entrambi dietro interruttore (`QUACKSAT_ARC_FULL`,
+      `QUACKSAT_GUARD_ARC_FULL`), spenti, un debito da saldare su MuJoCo
+      dove un urto ha un prezzo. (3) La regola dell'utente — negli spazi
+      stretti una correzione oltre i 35° è un giro sul posto (calcio, poi
+      rotazione), non un arco: dimezza le soste più lunghe (31 → 18 min,
+      solo nei varchi) ma costa complete (26 → 20) e rifiuti (104 → 182);
+      criteri più larghi costano di più (14/30). Dietro
+      `QUACKSAT_SPIN_TIGHT=1` (solo varchi), spenta, da misurare su MuJoCo
+      con la permanenza. Inoltre: il giro dal dock su questa build
+      (tour72) ha raggiunto 6/9, 0 perdite, 0 cadute — quello del run 69
+      era 8/9; i tre mancati sono le tappe di ritorno a sud della cucina,
+      guidate dalle linee rette dello script.
 - [ ] Memoria dei percorsi, tre livelli (2026-09-07, indicazione
       dell'utente): la scia (sopra, per lavoro); un grafo dei percorsi
       persistente in quack-places — luoghi uniti da tratte camminate con
