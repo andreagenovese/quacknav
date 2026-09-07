@@ -630,6 +630,21 @@ finale opzionale; il perché è nell'ADR 0005.
       microduck-lab (jonathanhawkins, Apache-2.0) allena la camminata (61
       osservazioni → 14 attuatori, PPO su Mac) — lo strato sotto il
       nostro, e la prova che la pipeline è fattibile su Mac.
+- [ ] Un'andatura più ferma da provare (notte del 2026-09-07, trovata
+      dall'utente): alertform/microduck-walking, fork di microduck_rl con
+      una sola modifica di ricompensa (penalità sulla velocità angolare
+      del corpo −0,05 → −0,3): 18 % in meno di oscillazione d'imbardata,
+      26 % meglio della policy ufficiale su stabilità di rotta e
+      inseguimento della velocità, meno cadute, ONNX per lo stack
+      ufficiale, Apache-2.0, CUDA per riaddestrare. I nostri tre guai
+      d'andatura misurati sono tutti d'imbardata: la deriva a destra (2,9
+      °/s), i giri a tempo che variano del triplo con la fase del passo,
+      gli archi che avanzano come tappe dritte. Prova economica: caricare
+      il loro ONNX nel body server del gemello, ripetere la sonda di
+      rotazione e una guida umana breve (deriva, avanzamento in arco), poi
+      un run da 60 minuti contro il run 73. Non dà la rotazione sul posto
+      da fermo. Una policy non ufficiale sulla papera vera è una scelta a
+      parte, da fare con calma.
 - [ ] Memoria dei percorsi, tre livelli (2026-09-07, indicazione
       dell'utente): la scia (sopra, per lavoro); un grafo dei percorsi
       persistente in quack-places — luoghi uniti da tratte camminate con

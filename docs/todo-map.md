@@ -573,6 +573,18 @@ optional last phase; see ADR 0005 for why.
       not legible. microduck-lab (jonathanhawkins, Apache-2.0) trains the
       gait (61 obs → 14 actuators, PPO on a Mac) — the layer below ours,
       and a sign the pipeline is Mac-feasible.
+- [ ] A steadier gait to try (2026-09-07 night, user's find):
+      alertform/microduck-walking, a fork of microduck_rl with one reward
+      change (body angular-velocity penalty −0.05 → −0.3): 18 % less yaw
+      wobble, 26 % better yaw stability and velocity tracking than the
+      official policy, fewer falls, ONNX for the official stack, Apache-
+      2.0, CUDA to retrain. Our three measured gait troubles are all yaw:
+      the right veer (2.9 °/s), timed turns varying threefold with the
+      step phase, arcs advancing like straight legs. Cheap trial: load
+      their ONNX in the twin's body server, repeat the spin probe and a
+      short human drive (veer, arc advance), then one 60-minute run
+      against run 73. It does not give a turn in place from a standstill.
+      A non-official policy on the real duck is a separate, careful call.
 - [ ] Route memory, three levels (2026-09-07, user's direction): the
       trail (above, per job); a persistent route graph on quack-places —
       places joined by walked legs with their statistics (times walked,
