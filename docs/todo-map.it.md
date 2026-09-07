@@ -602,8 +602,20 @@ finale opzionale; il perché è nell'ADR 0005.
       rotazione), non un arco: dimezza le soste più lunghe (31 → 18 min,
       solo nei varchi) ma costa complete (26 → 20) e rifiuti (104 → 182);
       criteri più larghi costano di più (14/30). Dietro
-      `QUACKSAT_SPIN_TIGHT=1` (solo varchi), spenta, da misurare su MuJoCo
-      con la permanenza. Inoltre: il giro dal dock su questa build
+      `QUACKSAT_SPIN_TIGHT=1` (solo varchi), spenta. **Misurato su MuJoCo
+      nella notte (run 73–76b, 60 min ciascuno da boot pulito):**
+      controllo 53 % (bagno 81 % al minuto 49, la prima volta su MuJoCo;
+      ogni stanza all'80 % del suo tetto a quel punto; una perdita di posa
+      al minuto 58, ripresa non verificata con 0,8 m di errore), 42
+      rifiuti, 69 giri, 0 stalli; arco vero nell'esploratore 34 %, 114
+      giri, 21 stalli, sud mai tentato; arco vero nella guardia 34 %, 77
+      rifiuti, 4 perdite di posa; giro sul posto nei varchi 31 %, 140
+      giri, 19 stalli, una sosta di 28 minuti nella camera. Nessuna caduta
+      in nessuno. Il verdetto della carta regge su MuJoCo: tutti e tre
+      restano spenti. Il primo tentativo del run 76 è finito dopo cinque
+      minuti nel passaggio accanto alle scale — tre "chiusa" in trenta
+      secondi raggiungono STUCK_MAX e chiudono il lavoro: fine troppo
+      frettolosa lì, da correggere. Inoltre: il giro dal dock su questa build
       (tour72) ha raggiunto 6/9, 0 perdite, 0 cadute — quello del run 69
       era 8/9; i tre mancati sono le tappe di ritorno a sud della cucina,
       guidate dalle linee rette dello script.

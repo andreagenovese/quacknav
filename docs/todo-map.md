@@ -547,8 +547,19 @@ optional last phase; see ADR 0005 for why.
       turn in place (kick, then spin), not an arc: halves the longest
       stays (31 → 18 min, doorways only) but costs completes (26 → 20) and
       refusals (104 → 182); tighter triggers cost more (14/30). Behind
-      `QUACKSAT_SPIN_TIGHT=1` (doorways only), off, to be measured on
-      MuJoCo with the dwell metric. Also: the tour from the dock on this
+      `QUACKSAT_SPIN_TIGHT=1` (doorways only), off. **Measured on MuJoCo
+      overnight (runs 73–76b, 60 min each from a clean boot):** control
+      53 % (bath 81 % at minute 49, the first time on MuJoCo; every room
+      at 80 % of its ceiling by then; a pose loss at minute 58, resumed
+      unverified 0.8 m off), 42 refusals, 69 spins, 0 stalls; explorer arc
+      at the true advance 34 %, 114 spins, 21 stalls, south never tried;
+      guard at the true advance 34 %, 77 refusals, 4 pose losses; turn in
+      place in doorways 31 %, 140 spins, 19 stalls, a 28-minute stay in
+      the bedroom. No falls in any. The paper twin's verdict holds on
+      MuJoCo: all three stay off. Run 76's first attempt ended after five
+      minutes in the stairwell passage — three "sealed in" attempts within
+      thirty seconds reach STUCK_MAX and end the job: the finish is too
+      hasty there, to fix. Also: the tour from the dock on this
       build (tour72) reached 6/9, 0 lost, 0 falls — run 69's was 8/9; the
       three misses are the return legs south of the kitchen, steered by
       the script's straight lines.
