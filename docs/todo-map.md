@@ -510,6 +510,22 @@ optional last phase; see ADR 0005 for why.
       flat 12). Default now: clear again after a metre (`REARM_DIST_M`;
       `QUACKSAT_REFUSED_REARM` 0/1 for measuring). MuJoCo's doorway
       stalls ("no room ahead" at the posts) remain the open cost.
+- [ ] Doorway exits (2026-09-07 night, open). The trail now outlives a
+      job like the drops do (the second segment of a run inherits it).
+      The obvious fix for the doorway spins — turn toward the aim instead
+      of the configured hand when there is no room — lost on the paper
+      twin (full flat 21/30 → 16/30 complete, refusals 126 → 150; walls +
+      stairwell refusals 9 → 31, a 26-minute stay) and stays behind
+      `QUACKSAT_TURN_AIM=1`. A cheap MuJoCo probe (`private/drives/
+      exit_test.py`: drive into the NE bedroom from a clean boot, explore,
+      time the exit) does not reproduce run 71 either: on a fresh map the
+      duck leaves in 30–100 s, because the frontier is just outside the
+      door; the run-71 case is a mapped north half, a far target and
+      fifty entries on the books after fifteen minutes. So the doorway
+      cost is measured only by the dwell metric on full runs. Next idea
+      to test there: when spins alternate sign with no leg between, take
+      the planned path's first cells as the heading (they are free by the
+      map) and allow a shorter leg (0.6 s) through a sensed gap.
 - [ ] Route memory, three levels (2026-09-07, user's direction): the
       trail (above, per job); a persistent route graph on quack-places —
       places joined by walked legs with their statistics (times walked,

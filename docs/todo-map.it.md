@@ -561,6 +561,24 @@ finale opzionale; il perché è nell'ADR 0005.
       `QUACKSAT_REFUSED_REARM` 0/1 per misurare). Gli stalli sulle porte di
       MuJoCo ("nessuno spazio davanti" sugli stipiti) restano il costo
       aperto.
+- [ ] Uscite dalle porte (notte del 2026-09-07, aperto). La scia ora
+      sopravvive al lavoro come i drop (la seconda tranche di un run la
+      eredita). La correzione ovvia per i giri sulla porta — girare verso
+      la meta invece che verso la mano quando non c'è spazio — ha perso
+      sul gemello di carta (casa completa 21/30 → 16/30 complete, rifiuti
+      126 → 150; muri + tromba rifiuti 9 → 31, una sosta da 26 minuti) e
+      resta dietro `QUACKSAT_TURN_AIM=1`. Nemmeno una sonda economica su
+      MuJoCo (`private/drives/exit_test.py`: guida nella camera NE da boot
+      pulito, esplora, cronometra l'uscita) riproduce il run 71: su una
+      mappa vuota la papera esce in 30–100 s, perché la frontiera è subito
+      fuori dalla porta; il caso del run 71 è una metà nord mappata, un
+      obiettivo lontano e cinquanta voci nei libri dopo quindici minuti.
+      Quindi il costo delle porte si misura solo con la permanenza sui run
+      interi. Prossima idea da provare lì: quando i giri sul posto si
+      alternano di segno senza una tappa in mezzo, prendere come rotta le
+      prime celle del percorso pianificato (libere per la mappa) e
+      permettere una tappa più corta (0,6 s) attraverso un varco visto dal
+      sensore.
 - [ ] Memoria dei percorsi, tre livelli (2026-09-07, indicazione
       dell'utente): la scia (sopra, per lavoro); un grafo dei percorsi
       persistente in quack-places — luoghi uniti da tratte camminate con
