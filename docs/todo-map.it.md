@@ -544,6 +544,23 @@ finale opzionale; il perché è nell'ADR 0005.
       senza fantasmi); copertura minima 26 → 36 %; livelli muri e tromba
       invariati; nessuna caduta su 240 corse. Offline, la mappa del run
       70 mostra ora la frontiera del sud raggiungibile con i libri.
+- [x] Le soste nelle stanze, misurate (sera del 2026-09-07, l'occhio
+      dell'utente): dalle tracce vere la sosta più lunga in una stanza era
+      di 5–11 minuti nei run 59–67 e di 15–32 dal run 69 in poi. Il
+      gemello di carta ora la riporta (`stay_max`, `stays5`, `end_s` nel
+      riepilogo; `private/drives/dwell.py` per i log MuJoCo, mostrata a
+      ogni snapshot). Il sospetto — la lista dei rifiutati riazzerata dopo
+      ogni tappa camminata — è stato misurato in tre modi sulla casa
+      completa con i fantasmi: dopo ogni tappa 23/30 complete, 76 min, 168
+      rifiuti; una volta per lavoro 18/30, 61 min, 114; dopo un metro dal
+      punto dell'ultimo azzeramento 21/30, 66 min, 126. La sosta mediana è
+      di 12 minuti in tutti e tre: sul gemello di carta non è il
+      riazzeramento a trattenere la papera in una stanza, sono i mobili
+      (muri + tromba 5 min, + mobili grandi 10, casa completa 12). Nuovo
+      default: riazzeramento dopo un metro (`REARM_DIST_M`;
+      `QUACKSAT_REFUSED_REARM` 0/1 per misurare). Gli stalli sulle porte di
+      MuJoCo ("nessuno spazio davanti" sugli stipiti) restano il costo
+      aperto.
 - [ ] Memoria dei percorsi, tre livelli (2026-09-07, indicazione
       dell'utente): la scia (sopra, per lavoro); un grafo dei percorsi
       persistente in quack-places — luoghi uniti da tratte camminate con

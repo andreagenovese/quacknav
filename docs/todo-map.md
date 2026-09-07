@@ -495,6 +495,21 @@ optional last phase; see ADR 0005 for why.
       kill too (from 22 without phantoms); min coverage 26 → 36 %; walls
       and stairwell levels unchanged; no falls in 240 runs. Offline, the
       run-70 map now shows the south frontier reachable with the books.
+- [x] Room stays, measured (2026-09-07 evening, the user's eye): from
+      the truth trails the longest stay in one room was 5–11 minutes on
+      runs 59–67 and 15–32 from run 69 on. The paper twin now reports it
+      (`stay_max`, `stays5`, `end_s` in the summary; `private/drives/
+      dwell.py` for the MuJoCo logs, shown at every snapshot). The
+      suspect — the refused list cleared again after every walked leg —
+      was measured three ways on the full flat with phantoms: after every
+      leg 23/30 complete, 76 min, 168 refusals; once per job 18/30, 61
+      min, 114; once the body has moved a metre from the last clearing
+      21/30, 66 min, 126. The median stay is 12 minutes in all three: on
+      the paper twin the re-arm is not what keeps the duck in a room —
+      furniture is (walls + stairwell 5 min, + big furniture 10, full
+      flat 12). Default now: clear again after a metre (`REARM_DIST_M`;
+      `QUACKSAT_REFUSED_REARM` 0/1 for measuring). MuJoCo's doorway
+      stalls ("no room ahead" at the posts) remain the open cost.
 - [ ] Route memory, three levels (2026-09-07, user's direction): the
       trail (above, per job); a persistent route graph on quack-places —
       places joined by walked legs with their statistics (times walked,
