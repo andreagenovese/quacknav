@@ -495,6 +495,80 @@ finale opzionale; il perché è nell'ADR 0005.
       affianca le corse; l'utente vuole *vedere* le migliaia di
       simulazioni. Selezionare qui, confermare su MuJoCo, validare
       sull'hardware.
+- [x] La scala degli ostacoli (2026-09-07, idea dell'utente): la stessa
+      casa con i soli muri, più la tromba delle scale, più i mobili
+      grandi, poi completa — trenta semi ciascuna con budget di novanta
+      minuti, per vedere quanto costa ogni classe di ostacolo. Soli muri:
+      70 % (il tetto), 17 min, un rifiuto — ma dodici su trenta hanno
+      camminato fino al budget su una mappa finita, inseguendo schegge.
+      La sola tromba: 120 rifiuti, tutti sul suo bordo. Due correzioni
+      misurate sulla scala: (1) prima le frontiere grandi (≥ 20 celle,
+      ovunque siano) e un criterio di fine — nessun gruppo di quella
+      taglia in tutta la mappa, raggiungibile o no, senza contare l'anello
+      attorno a un drop, e dodici giri senza trenta celle libere nuove
+      chiudono il lavoro; (2) la via d'uscita dall'angolo della tromba: il
+      passo indietro si prova intero, a metà e da 0,8 s (il più corto con
+      metà del margine sui drop) prima di rinunciare, perché quello intero
+      portava il percorso simulato sull'angolo e, non facendone nessuno,
+      la papera restava a rifiutare la stessa tappa fino al budget (131
+      rifiuti, seme 3). Dopo: muri 30/30 finiti, mediana 16,5 min; muri +
+      tromba 30/30, 17 min, 8 rifiuti (da 89), 70 %; + mobili 27/30, 42
+      min; casa completa 22/30 complete (da 20), mediana 76 min, 100
+      rifiuti (da 134), copertura al tetto, nessuna caduta su 120 corse.
+      Restano: il costo dei mobili (copertura minima 28 % su un seme del
+      livello 3), gli otto semi incompleti della casa completa (cucina o
+      stanza ovest).
+- [x] Il run 70 e cosa ha insegnato (pomeriggio del 2026-09-07): il gate
+      MuJoCo sulla build della scala, da boot pulito — 73 minuti, 34 %,
+      posa entro 5–25 cm per tutto il run, nessuna perdita, nessuna
+      caduta, ma un quarto d'ora "chiusa dagli ostacoli locali" nella
+      camera e il sud mai tentato. Due cause, trovate ripianificando
+      offline sulla mappa del run (`quack-places/examples/replan.rs`: un
+      frame salvato, una posa, i libri, una scia): (1) cinque drop
+      fantasma sul letto (le righe del ToF che guardano il pavimento
+      leggono il mobile basso come un dislivello; il meccanismo nel
+      simulatore non è stato inchiodato) più i margini hanno sigillato la
+      porta da cui la papera era entrata; (2) i venticinque drop attorno
+      alla tromba uccidevano le frontiere entro 0,42 m ciascuno e
+      cancellavano l'ingresso del passaggio largo 0,54 m: la frontiera del
+      sud (112 celle) sparisce con i libri, c'è senza. Correzioni: **la
+      scia** — il percorso del corpo, un punto ogni 5 cm, è una corsia che
+      il pianificatore può sempre usare, qualunque cosa dicano gonfiaggio
+      e libri (il corpo c'è stato, alla larghezza del corpo); un drop
+      uccide le frontiere entro 0,08 m oltre il suo raggio, un ostacolo
+      ancora entro 0,30. Il gemello di carta ora mette drop fantasma sui
+      mobili bassi (`low` nel file del mondo, un decimo dei fasci da
+      pavimento che cadono sul mobile entro mezzo metro dalla sua faccia).
+      Casa completa con i fantasmi, trenta semi: 17/30 complete senza
+      scia, 21/30 con la scia, 23/30 anche con il raggio dei drop (da 22
+      senza fantasmi); copertura minima 26 → 36 %; livelli muri e tromba
+      invariati; nessuna caduta su 240 corse. Offline, la mappa del run
+      70 mostra ora la frontiera del sud raggiungibile con i libri.
+- [ ] Memoria dei percorsi, tre livelli (2026-09-07, indicazione
+      dell'utente): la scia (sopra, per lavoro); un grafo dei percorsi
+      persistente in quack-places — luoghi uniti da tratte camminate con
+      le loro statistiche (percorrenze, durata, rifiuti, retromarce, drop
+      visti, salti di posa), la tratta migliore prima per sicurezza poi
+      per tempo, messa alla prova ogni tanto contro la proposta più corta
+      della mappa e tenuta solo se ha camminato più pulita, una tratta
+      fallita penalizzata e non cancellata; e la mappa metrica sotto
+      entrambi. Tratte ancorate ai luoghi, non alle coordinate, e
+      verificate mentre si percorrono con il controllo mappa/sensore: la
+      posa di maploc è quella che è, e la sessione si azzera al boot.
+- [ ] Libreria di mappe e rilocalizzazione al boot (2026-09-07,
+      indicazione dell'utente): più mappe salvate; al boot la papera fa
+      il panorama (un giro intero se serve), prova ogni mappa con la
+      ricerca globale sotto le guardie di unicità e accordo, prende
+      l'unica corrispondenza convinta, altrimenti mappa nuova e la domanda
+      "Qui dove siamo?". Upstream oggi: un solo file di sessione, ripreso
+      fidandosi dell'ultima posa, nessuna ricerca al boot, solo
+      `robot.map` e `robot.map_wipe`. Serve upstream (prototipo su
+      `maploc-study`): `robot.map_list/load/save`, caricare = partire
+      "persa dura" e cercare; misurarlo al banco con una sessione salvata
+      e una registrazione che parte altrove (il test di rapimento).
+      Cautele: la firma di una stanza col ToF 8×8 è povera (la guardia di
+      unicità è la difesa); la sessione è bincode senza schema, le mappe
+      salvate muoiono a ogni cambio di formato.
 
 ## 3. `go_to` (serve un RPC di goal upstream)
 - [ ] Seguire upstream per un RPC tipo `robot.goto` (pianificatore e

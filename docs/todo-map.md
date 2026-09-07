@@ -450,6 +450,73 @@ optional last phase; see ADR 0005 for why.
       a watch-format log and a `map.frame`, so `mapshot.py` draws it and
       `mosaic.py` tiles the runs; the user wants to *see* the thousands of
       simulations. Select here, confirm on MuJoCo, validate on hardware.
+- [x] The obstacle ladder (2026-09-07, user's idea): the same flat as
+      bare walls, plus the stairwell, plus the big furniture, then full —
+      thirty seeds each at a ninety-minute budget, to see what each class
+      of obstacle costs. Walls alone: 70 % (the ceiling), 17 min, one
+      refusal — but twelve of thirty walked to the budget on a finished
+      map, chasing slivers. The stairwell alone: 120 refusals, all at its
+      edge. Two fixes measured on the ladder: (1) big frontiers first
+      (≥ 20 cells, wherever they are) and a finish criterion — no group
+      of that size left anywhere on the map, reachable or not, the ring
+      around a drop not counted, and twelve rounds without thirty new
+      free cells end the job; (2) the escape from the stairwell's corner:
+      a step back is tried at full, half and 0.8 s (the shortest with half
+      the drop margin) before it is given up, since a full one swung the
+      simulated path onto the corner and, with none taken, the duck stood
+      refusing the same leg to the budget (131 refusals, seed 3). After:
+      walls 30/30 finished, 16.5 min median; walls + stairwell 30/30, 17
+      min, 8 refusals (from 89), 70 %; + furniture 27/30, 42 min; full
+      flat 22/30 complete (from 20), 76 min median, 100 refusals (from
+      134), coverage at the ceiling, no falls on 120 runs. Left: the
+      furniture's cost (min coverage 28 % on one seed at level 3), the
+      eight incomplete seeds of the full flat (kitchen or west room).
+- [x] Run 70 and what it taught (2026-09-07 afternoon): the MuJoCo gate
+      on the ladder build, from a clean boot — 73 minutes, 34 %, pose
+      within 5–25 cm throughout, no loss, no fall, but a quarter of an
+      hour "sealed in by local obstacles" in the bedroom and the south
+      never tried. Two causes, found by replanning offline on the run's
+      own map (`quack-places/examples/replan.rs`: a saved frame, a pose,
+      the books, a trail): (1) five phantom drops on the bed (the ToF's
+      floor rows read the low box as a drop; the mechanism in the
+      simulator is not pinned down) plus the margins sealed the door the
+      duck had walked in through; (2) the twenty-five drops around the
+      stairwell each killed frontier cells within 0.42 m and erased the
+      entrance of the 0.54 m passage: the south's 112-cell frontier was
+      gone with the books, there without them. Fixes: **the trail** — the
+      body's own path, a point every 5 cm, is a lane the planner may
+      always use, whatever the inflation and the books say (the body was
+      there, at the body's width); a drop kills frontiers within 0.08 m
+      of its radius, an obstacle still within 0.30. The paper twin now
+      puts phantom drops on low furniture (`low` in the world file, a
+      tenth of the floor beams that land on the box within half a metre
+      past its face). Full flat with phantoms, thirty seeds: 17/30
+      complete without the trail, 21/30 with it, 23/30 with the drop
+      kill too (from 22 without phantoms); min coverage 26 → 36 %; walls
+      and stairwell levels unchanged; no falls in 240 runs. Offline, the
+      run-70 map now shows the south frontier reachable with the books.
+- [ ] Route memory, three levels (2026-09-07, user's direction): the
+      trail (above, per job); a persistent route graph on quack-places —
+      places joined by walked legs with their statistics (times walked,
+      duration, refusals, back-offs, drops seen, pose jumps), the best
+      route by safety first and time second, tried against the map's
+      shorter proposal now and then and kept only if it walked cleaner, a
+      failed route penalised, not deleted; and the metric map under both.
+      Routes anchored to places, not to coordinates, and verified while
+      walked with the map-versus-sensor check: maploc's pose is what it
+      is, and the session resets at boot.
+- [ ] A map library and boot relocalization (2026-09-07, user's
+      direction): several saved maps; at boot the duck sweeps (panorama,
+      a full turn if needed), tries each map with the global search under
+      the uniqueness and agreement gates, takes the one confident match,
+      else starts a new map and asks "Qui dove siamo?". Upstream today:
+      one session file, resumed trusting the last pose, no boot search,
+      `robot.map` and `robot.map_wipe` only. Needed upstream (prototype on
+      `maploc-study`): `robot.map_list/load/save`, load = start hard-lost
+      and search; bench it with a saved session and a recording that
+      starts elsewhere (the kidnap test). Caveats: the 8×8 ToF's signature
+      of a room is poor (the uniqueness gate is the defence); the session
+      is schema-less bincode, so saved maps die with a format bump.
 
 ## 3. `go_to` (needs an upstream goal RPC)
 - [ ] Follow upstream for a `robot.goto`-style RPC (planner + follower
