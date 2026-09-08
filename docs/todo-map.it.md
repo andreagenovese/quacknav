@@ -678,7 +678,27 @@ finale opzionale; il perché è nell'ADR 0005.
       nascere all'imbocco sud (`MICRODUCK_START` aggiunto al body server
       del gemello, `passage_test.py`) è scaduto due volte senza tentare il
       passaggio: su una mappa vuota l'esploratore ha preferito il bagno e
-      il soggiorno. Ridisegnato: nascita dentro l'imbocco. Inoltre: il giro dal dock su questa build
+      il soggiorno. Ridisegnato: nascita dentro l'imbocco. **Misurato dall'imbocco della fessura** (nascita a (−0,70, −1,10)
+      rivolta a nord, dove il muro ovest comincia e l'unica frontiera
+      vicina è l'atrio; sei tentativi per condizione, otto minuti
+      ciascuno): base 3 passati, 2 cadute, 1 scaduto, attraversamento
+      211 s; centratura sul sensore + filo muro 5 passati, 1 caduta, 0
+      scaduti, 202 s. Ogni caduta ha la stessa firma — una tappa rifiutata
+      per il dislivello, poi una retromarcia cieca di tre secondi fuori
+      dalla scia, e il corpo nel buco pochi secondi dopo: non è la
+      primitiva a cadere, è il passo indietro cieco accanto al buco. La
+      prima versione della regola ("vicino a un drop, indietro solo sopra
+      la scia") ha bloccato la papera all'imbocco: 5 tentativi su 6 hanno
+      speso il budget rifiutando, 112 "un dislivello sta dove andrebbe il
+      passo indietro" in una sola corsa, perché la papera non aveva ancora
+      una scia e ogni direzione aveva un drop. Raffinata e in misura:
+      fuori dalla scia vicino a un drop, solo il passo indietro da 0,8 s,
+      e solo quando il drop è DAVANTI (un drop di fianco è il caso che
+      cadeva). Geometria da ricordare: il muro ovest della tromba comincia
+      a y = −1,0 mentre il buco arriva a y = −1,4, quindi il "passaggio" è
+      una fessura di 30 cm all'estremità nord del buco; a sud di quella il
+      lato ovest si apre sul soggiorno, ed è per questo che una papera
+      nata a y = −1,6 sceglieva sempre il soggiorno. Inoltre: il giro dal dock su questa build
       (tour72) ha raggiunto 6/9, 0 perdite, 0 cadute — quello del run 69
       era 8/9; i tre mancati sono le tappe di ritorno a sud della cucina,
       guidate dalle linee rette dello script.

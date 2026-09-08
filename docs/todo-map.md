@@ -618,7 +618,25 @@ optional last phase; see ADR 0005 for why.
       first passage test from a spawn at the south mouth (`MICRODUCK_START`
       added to the twin's body server, `passage_test.py`) timed out twice
       without trying the passage: on an empty map the explorer preferred
-      the bath and the living room. Redesigned: spawn inside the mouth. Also: the tour from the dock on this
+      the bath and the living room. Redesigned: spawn inside the mouth. **Measured from the slot's mouth** (spawn (−0.70, −1.10) facing
+      north, where the west wall starts and the only near frontier is the
+      hall; six attempts per condition, eight minutes each): baseline 3
+      passed, 2 fell, 1 timed out, crossing 211 s; sensor centring + wall
+      hug 5 passed, 1 fell, 0 timed out, 202 s. Every fall has the same
+      signature — a leg refused for the drop, then a blind three-second
+      step back off the trail, and the body in the hole seconds later:
+      the primitive is not what falls, the blind step back beside the
+      hole is. First cut of the rule ("near a drop, back up only over the
+      trail") deadlocked at the mouth: 5 of 6 attempts spent the budget
+      refusing, 112 "a drop lies where a step back would go" in one run,
+      because the duck had no trail yet and every heading held a drop.
+      Refined and being measured: off the trail near a drop, only the
+      0.8 s step back, and only when the drop is AHEAD (a drop beside the
+      body is the case that fell). Geometry to remember: the west wall of
+      the stairwell starts at y = −1.0 while the hole runs to y = −1.4, so
+      the "passage" is a 30 cm slot at the hole's north end; south of it
+      the west side opens into the living room, which is why a duck
+      spawned at y = −1.6 always chose the living room instead. Also: the tour from the dock on this
       build (tour72) reached 6/9, 0 lost, 0 falls — run 69's was 8/9; the
       three misses are the return legs south of the kitchen, steered by
       the script's straight lines.
