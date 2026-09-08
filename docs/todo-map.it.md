@@ -631,7 +631,21 @@ finale opzionale; il perché è nell'ADR 0005.
       guida umana derivava di 13 cm), e le chiusure d'anello nel soggiorno
       spostano la posa di 10–24 cm l'una a raffica. Il log vivo di robotd
       del run 73 non era stato archiviato (sovrascritto dai run
-      successivi); `mujoco_run.sh` ora lo conserva a ogni run. Inoltre: il giro dal dock su questa build
+      successivi); `mujoco_run.sh` ora lo conserva a ogni run. **Panorama e porta del bagno** (2026-09-08): la sosta di due minuti
+      che l'utente ha visto nel run 73 era un panorama (otto soste da 8 s
+      con un giro tra l'una e l'altra) innescato dalla guardia
+      mappa/sensore nel soggiorno; dopo, l'obiettivo è cambiato perché la
+      mappa era cambiata e la vecchia frontiera non c'era più — `pick()`
+      tiene un obiettivo solo finché è vivo, ed è giusto così. Le soste da
+      sei secondi sono state provate e rimesse a otto: una misura
+      precedente per settore le trovava spazzate a metà, e il gemello di
+      carta non vede la differenza (la sua scansione alla sosta è
+      istantanea). Il bagno non ha porta verso lo studio: il muro wG corre
+      intero da x 0,5 a 4,0 a y −1, quindi l'unica uscita del bagno è il
+      suo varco a x 0,5 (y −2,5..−1,7) e l'unico ingresso dello studio è
+      il varco dell'atrio (y −0,2..0,6) — ogni via tra i due passa dalla
+      tromba, lato ovest (0,54 m) o striscia est tra il buco e il muro wC
+      (0,44 m). Il "giro lungo" del run 73 era l'unico. Inoltre: il giro dal dock su questa build
       (tour72) ha raggiunto 6/9, 0 perdite, 0 cadute — quello del run 69
       era 8/9; i tre mancati sono le tappe di ritorno a sud della cucina,
       guidate dalle linee rette dello script.

@@ -574,7 +574,20 @@ optional last phase; see ADR 0005 for why.
       m (spins and back-offs; the human drive drifted 13 cm), and loop
       closures in the living room move the pose 10–24 cm each in bursts.
       robotd's live log was not archived for run 73 (overwritten by the
-      later runs); `mujoco_run.sh` now keeps it with every run. Also: the tour from the dock on this
+      later runs); `mujoco_run.sh` now keeps it with every run. **Panorama and the bath door** (2026-09-08): the two-minute stop the
+      user saw in run 73 was a panorama (eight stands of 8 s with a turn
+      between) triggered by the map-versus-sensor guard in the living
+      room; after it the target changed because the map had changed and
+      the old frontier was gone — `pick()` keeps a target only while it
+      is alive, which is right. Six-second stands were tried and put
+      back: an earlier sector measurement found them half-swept, and the
+      paper twin cannot see the difference (its stand scan is instant).
+      The bath has no door to the office: wall wG runs unbroken from x
+      0.5 to 4.0 at y −1, so the bath's only exit is its gap at x 0.5 (y
+      −2.5..−1.7) and the office's only entrance is the hall's gap (y
+      −0.2..0.6) — every route between them passes the stairwell, west
+      side (0.54 m) or the east strip between the hole and wall wC (0.44
+      m). Run 73's "long way round" was the only way. Also: the tour from the dock on this
       build (tour72) reached 6/9, 0 lost, 0 falls — run 69's was 8/9; the
       three misses are the return legs south of the kitchen, steered by
       the script's straight lines.
