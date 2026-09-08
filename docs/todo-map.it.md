@@ -656,7 +656,24 @@ finale opzionale; il perché è nell'ADR 0005.
       rotazione e una guida umana breve (deriva, avanzamento in arco), poi
       un run da 60 minuti contro il run 73. Non dà la rotazione sul posto
       da fermo. Una policy non ufficiale sulla papera vera è una scelta a
-      parte, da fare con calma.
+      parte, da fare con calma. **Provato la notte del 2026-09-08:** il fork non contiene l'ONNX
+      (solo la ricetta e un checkpoint rimasto sulla macchina dell'autore),
+      quindi l'ablazione è stata riprodotta in microduck-lab sul Mac: due
+      camminatori, stesso seme, 3 milioni di passi l'uno (3 min),
+      `W_ANG_VEL_XY` 0,05 e 0,3. Entrambi hanno imparato a stare fermi —
+      0,000 m/s a comando 0,3 nel valutatore del laboratorio, e nemmeno un
+      passo nel gemello — che il README del laboratorio documenta come la
+      trappola del budget su CPU: "1,5 milioni di passi da zero comprano
+      'non cadere', nient'altro", il warm start distillato cammina ma
+      crolla entro un milione di passi di rifinitura, "nessuno ha ancora
+      mostrato quale budget lo sfrutti". La via del Mac non può produrre un
+      camminatore da confrontare; la via fedele è la pipeline GPU
+      (microduck_rl su Hugging Face Jobs, costo e via libera dell'utente).
+      Tenuti: `WALK_ONNX` sul lanciatore del gemello e `private/drives/
+      gaitprobe.py` (policy ufficiale sul gemello: 0,090 m/s dritto con
+      deriva −3,5 °/s, calcio e giro ±28–30 °/s in entrambi i versi,
+      retromarcia −0,135 m/s; un client che non scarica i push di robotd
+      smette di essere ascoltato dopo un minuto — la sonda ora li scarica).
 - [ ] Memoria dei percorsi, tre livelli (2026-09-07, indicazione
       dell'utente): la scia (sopra, per lavoro); un grafo dei percorsi
       persistente in quack-places — luoghi uniti da tratte camminate con

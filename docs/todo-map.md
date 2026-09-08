@@ -595,7 +595,23 @@ optional last phase; see ADR 0005 for why.
       their ONNX in the twin's body server, repeat the spin probe and a
       short human drive (veer, arc advance), then one 60-minute run
       against run 73. It does not give a turn in place from a standstill.
-      A non-official policy on the real duck is a separate, careful call.
+      A non-official policy on the real duck is a separate, careful call. **Tried on the night of 2026-09-08:** the fork ships no ONNX (only
+      the recipe and a checkpoint left on its author's machine), so the
+      ablation was reproduced in microduck-lab on the Mac: two walkers,
+      same seed, 3M steps each (3 min), `W_ANG_VEL_XY` 0.05 and 0.3.
+      Both learned to stand still — 0.000 m/s at a 0.3 command in the
+      lab's own evaluator, and not a step in the twin — which the lab's
+      README documents as the CPU-budget trap: "1.5M steps from scratch
+      buys 'do not fall', nothing more", the distilled warm start walks
+      but collapses under a million steps of fine-tuning, "nobody has yet
+      shown what budget exploits it". So the Mac route cannot produce a
+      walker to compare; the faithful route is the GPU pipeline
+      (microduck_rl on Hugging Face Jobs, the user's cost and go). Kept:
+      `WALK_ONNX` on the twin launcher and `private/drives/gaitprobe.py`
+      (official policy on the twin: 0.090 m/s straight with a −3.5 °/s
+      veer, kick-then-spin ±28–30 °/s both ways, backing −0.135 m/s; a
+      client that does not drain robotd's pushes stops being heard after
+      a minute — the probe drains now).
 - [ ] Route memory, three levels (2026-09-07, user's direction): the
       trail (above, per job); a persistent route graph on quack-places —
       places joined by walked legs with their statistics (times walked,
