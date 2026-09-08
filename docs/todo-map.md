@@ -693,7 +693,19 @@ optional last phase; see ADR 0005 for why.
       discriminator goes on by default. Still to confirm on MuJoCo, where
       it should also unseal the bedroom door that five phantom drops on
       the bed closed for a quarter of an hour in run 70: that needs a full
-      sixty-minute run. Also: the tour from the dock on this
+      sixty-minute run. **Run 77 and ninety paired seeds** (2026-09-08): on MuJoCo the
+      mechanism is fixed — the books end the run with 6 holes and 90
+      obstacles (run 70's were nearly all drops) and nothing at all beside
+      the bed, so the phantom drops seal no doorway now; no fall, no lost
+      pose. Coverage was 37 %, inside the 31–53 % band single runs wander
+      in, so it settles nothing. The paper twin settles it: ninety seeds
+      per condition, paired seed by seed, coverage better on 30, worse on
+      27, unchanged on 33, mean difference +0.6 points against a spread of
+      9.6 — indistinguishable from zero; complete 58/90 against 59/90;
+      finish time and refusals unchanged; no fall either way. So the
+      discriminator earns its place for what it fixes (a box edge no
+      longer closes a door, and the strict rules can be reserved for true
+      holes), not for coverage. Also: the tour from the dock on this
       build (tour72) reached 6/9, 0 lost, 0 falls — run 69's was 8/9; the
       three misses are the return legs south of the kitchen, steered by
       the script's straight lines.

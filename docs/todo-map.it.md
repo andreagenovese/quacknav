@@ -760,7 +760,21 @@ finale opzionale; il perché è nell'ADR 0005.
       discriminatore va attivo di default. Da confermare su MuJoCo, dove
       dovrebbe anche liberare la porta della camera che cinque drop
       fantasma sul letto avevano chiuso per un quarto d'ora nel run 70:
-      serve un run intero da sessanta minuti. Inoltre: il giro dal dock su questa build
+      serve un run intero da sessanta minuti. **Il run 77 e novanta semi appaiati** (2026-09-08): su MuJoCo il
+      meccanismo è risolto — i libri chiudono il run con 6 buchi e 90
+      ostacoli (quelli del run 70 erano quasi tutti dislivelli) e attorno
+      al letto non c'è più nulla, quindi i drop fantasma non sigillano
+      più alcuna porta; nessuna caduta, nessuna posa persa. La copertura è
+      stata del 37 %, dentro la banda 31–53 % in cui i singoli run
+      oscillano, quindi non decide niente. Decide il gemello di carta:
+      novanta semi per condizione, appaiati seme per seme, copertura
+      migliore su 30, peggiore su 27, invariata su 33, differenza media
+      +0,6 punti contro una dispersione di 9,6 — indistinguibile da zero;
+      complete 58/90 contro 59/90; tempo di fine e rifiuti invariati;
+      nessuna caduta da nessuna parte. Il discriminatore si guadagna il
+      posto per ciò che corregge (uno spigolo di mobile non chiude più una
+      porta, e le regole severe si possono riservare ai buchi veri), non
+      per la copertura. Inoltre: il giro dal dock su questa build
       (tour72) ha raggiunto 6/9, 0 perdite, 0 cadute — quello del run 69
       era 8/9; i tre mancati sono le tappe di ritorno a sud della cucina,
       guidate dalle linee rette dello script.
