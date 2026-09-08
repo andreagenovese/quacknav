@@ -698,7 +698,29 @@ finale opzionale; il perché è nell'ADR 0005.
       a y = −1,0 mentre il buco arriva a y = −1,4, quindi il "passaggio" è
       una fessura di 30 cm all'estremità nord del buco; a sud di quella il
       lato ovest si apre sul soggiorno, ed è per questo che una papera
-      nata a y = −1,6 sceglieva sempre il soggiorno. Inoltre: il giro dal dock su questa build
+      nata a y = −1,6 sceglieva sempre il soggiorno. **Cosa erano davvero le cadute, e la correzione** (2026-09-08): col
+      passo indietro corto la papera ha ripreso a camminare (15 tappe
+      contro 0) ma è caduta lo stesso — durante l'*allineamento* della
+      primitiva, non durante una tappa. Il meccanismo è dunque ogni
+      manovra cieca accanto al buco, giro sul posto compreso: procede a
+      chunk di un quarto di secondo senza guardare e deriva di circa 15
+      cm, che accanto alla tromba è tutto il margine. Due modifiche: il
+      giro sul posto legge il sensore di profondità tra un chunk e l'altro
+      e si ferma dov'è se un bordo sta entro 0,30 m dal becco (attivo di
+      default: può solo interrompere prima una manovra cieca); e vicino a
+      un dislivello, fuori dalla scia, il passo indietro è quello da 0,8 s
+      e solo con il dislivello DAVANTI. Cinque tentativi con tutto il
+      pacchetto: 5 passati, 0 cadute, 0 scaduti (contro 3/2/1 della base e
+      5/1/0 di sensore + filo muro). Da leggere con onestà: in quei cinque
+      la guardia del giro non è mai scattata, e quattro attraversamenti su
+      cinque hanno camminato ZERO tappe — la papera nasce in mezzo alla
+      fessura e 0,55 m di deriva dal panorama e da un passo indietro corto
+      bastano a "passare", quindi ciò che si misura è sopravvivere ai
+      primi due minuti accanto al buco, non percorrere la fessura. Il
+      passo indietro corto è la vittoria di sicurezza (sei passi corti,
+      nessuna caduta, contro tre cadute su dodici con quello da tre
+      secondi). Percorrere la fessura resta da provare: prossima nascita a
+      y = −1,45, a sud del buco, che obbliga a 0,9 m dentro. Inoltre: il giro dal dock su questa build
       (tour72) ha raggiunto 6/9, 0 perdite, 0 cadute — quello del run 69
       era 8/9; i tre mancati sono le tappe di ritorno a sud della cucina,
       guidate dalle linee rette dello script.

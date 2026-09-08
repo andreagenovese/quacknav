@@ -636,7 +636,27 @@ optional last phase; see ADR 0005 for why.
       the stairwell starts at y = −1.0 while the hole runs to y = −1.4, so
       the "passage" is a 30 cm slot at the hole's north end; south of it
       the west side opens into the living room, which is why a duck
-      spawned at y = −1.6 always chose the living room instead. Also: the tour from the dock on this
+      spawned at y = −1.6 always chose the living room instead. **What the falls actually were, and the fix** (2026-09-08): with the
+      short step back the duck walked again (15 legs against 0) but still
+      fell — during the passage's own *alignment*, not during a leg. So
+      the mechanism is every blind manoeuvre beside the hole, the turn in
+      place included: it runs in quarter-second chunks without looking and
+      drifts about 15 cm, which beside the stairwell is the whole margin.
+      Two changes: a turn in place now reads the depth sensor between
+      chunks and stops where it stands if an edge is within 0.30 m of the
+      beak (on by default — it can only end a blind manoeuvre earlier);
+      and near a drop, off the trail, the step back is the 0.8 s one and
+      only with the drop AHEAD. Five attempts with the whole package: 5
+      passed, 0 fell, 0 timed out (against 3/2/1 for the baseline and
+      5/1/0 for sensor + hug). Read honestly: the spin watch never fired
+      in those five, and four of the five crossings walked ZERO legs — the
+      duck spawns in the middle of the slot and 0.55 m of drift from the
+      panorama and one short step back is enough to "pass", so what this
+      measures is surviving the first two minutes beside the hole, not
+      walking the slot. The short step back is the safety win (six short
+      backs, no fall, against three falls in twelve with the three-second
+      one). Walking the slot is still untested: next spawn is y = −1.45,
+      south of the hole, which forces 0.9 m through it. Also: the tour from the dock on this
       build (tour72) reached 6/9, 0 lost, 0 falls — run 69's was 8/9; the
       three misses are the return legs south of the kitchen, steered by
       the script's straight lines.
