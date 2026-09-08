@@ -743,7 +743,24 @@ finale opzionale; il perché è nell'ADR 0005.
       buco e uno spigolo di mobile si distinguono — lo spigolo mostra un
       dislivello E un ostacolo alla stessa direzione, il buco mostra un
       dislivello con niente dietro. Da misurare: permetterebbe di
-      applicare le regole severe solo accanto ai buchi veri. Inoltre: il giro dal dock su questa build
+      applicare le regole severe solo accanto ai buchi veri. **Costruito e misurato lo stesso giorno**: `record_drops` ora chiede,
+      per ogni dislivello visto, se un ostacolo sta alla stessa direzione
+      (entro 0,12 rad) e a distanza simile (0,35 m) — in tal caso è lo
+      spigolo di quell'ostacolo e finisce sui libri come ostacolo, non
+      come buco. I rifiuti della guardia di profondità non cambiano: la
+      sicurezza non dipende mai da questo giudizio. Gemello di carta,
+      trenta semi: sulla casa completa chiama 1282 dislivelli spigoli e
+      392 buchi (tre quarti erano mobili) e copertura, rifiuti e metri
+      camminati restano uguali (55,2 %, 100, 120 m; 21/30 complete contro
+      24–26 della base, dentro la dispersione già vista); su muri + tromba
+      chiama ZERO spigoli — il buco vero non viene mai scambiato — e quel
+      livello è identico alla base. Con il pacchetto severo sopra, la casa
+      completa recupera parte di ciò che il pacchetto costa (16 → 19/30
+      complete) ma non tutto, quindi il pacchetto resta spento e il
+      discriminatore va attivo di default. Da confermare su MuJoCo, dove
+      dovrebbe anche liberare la porta della camera che cinque drop
+      fantasma sul letto avevano chiuso per un quarto d'ora nel run 70:
+      serve un run intero da sessanta minuti. Inoltre: il giro dal dock su questa build
       (tour72) ha raggiunto 6/9, 0 perdite, 0 cadute — quello del run 69
       era 8/9; i tre mancati sono le tappe di ritorno a sud della cucina,
       guidate dalle linee rette dello script.

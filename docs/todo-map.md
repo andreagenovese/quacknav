@@ -676,7 +676,24 @@ optional last phase; see ADR 0005 for why.
       and a furniture edge can be told apart — a box edge shows a drop AND
       an obstacle at the same bearing, a hole shows a drop with nothing
       behind it. Worth measuring: it would let the strict rules apply only
-      beside true holes. Also: the tour from the dock on this
+      beside true holes. **Built and measured the same day**: `record_drops` now asks, for
+      every sensed drop, whether an obstacle stands at the same bearing
+      (within 0.12 rad) and about the same distance (0.35 m) — if so it is
+      that obstacle's edge and goes on the books as an obstacle, not a
+      hole. The depth guard's refusals are untouched: safety never rests
+      on this judgement. Paper twin, thirty seeds: on the full flat it
+      calls 1282 drops edges and 392 holes (three quarters of them were
+      furniture) and coverage, refusals and metres walked are unchanged
+      (55.2 %, 100, 120 m; 21/30 complete against the baseline's 24–26,
+      inside the spread we have seen); on walls + stairwell it calls ZERO
+      edges — the true hole is never mistaken — and that level is
+      identical to the baseline. With the strict package on top, the
+      full flat recovers part of what the package costs (16 → 19/30
+      complete) but not all of it, so the package stays off and the
+      discriminator goes on by default. Still to confirm on MuJoCo, where
+      it should also unseal the bedroom door that five phantom drops on
+      the bed closed for a quarter of an hour in run 70: that needs a full
+      sixty-minute run. Also: the tour from the dock on this
       build (tour72) reached 6/9, 0 lost, 0 falls — run 69's was 8/9; the
       three misses are the return legs south of the kitchen, steered by
       the script's straight lines.
