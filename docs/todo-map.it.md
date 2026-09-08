@@ -788,7 +788,31 @@ riportare zero cadute prima di chiamare qualcosa un miglioramento.
       nessuna caduta da nessuna parte. Il discriminatore si guadagna il
       posto per ciò che corregge (uno spigolo di mobile non chiude più una
       porta, e le regole severe si possono riservare ai buchi veri), non
-      per la copertura. Inoltre: il giro dal dock su questa build
+      per la copertura. 
+- [x] La ricerca automatica sulle manopole della tappa (2026-09-08, primo
+      passo del filone della tappa appresa): dodici costanti del
+      pianificatore della tappa — la corsia, le riserve davanti per tappa
+      dritta, arco e porta, la corsia e la soglia di porta, le tre soglie
+      di rotta, il punto di mira, lo sguardo dritto e la durata della
+      tappa in porta — sono ora leggibili dall'ambiente (`QK_*`, ognuna
+      col valore misurato in precedenza come default, quindi nulla cambia
+      se una ricerca non la imposta), e `private/drives/legsearch.py` le
+      campiona a caso, sessanta tentativi da trenta semi, con punteggio
+      pari ai semi che finiscono la casa intera e una caduta ovunque che
+      squalifica il tentativo. Il tentativo migliore ha battuto i default
+      su tre gruppi di semi nuovi appaiati (91–180, 271–360, 361–450): 72
+      semi guadagnati contro 42 persi su 270 coppie, p ≈ 0,005, complete
+      175/270 → 205/270, nessuna caduta in 540 corse. **E poi non ha retto
+      sugli altri livelli.** Arrotondato e misurato su semi nuovi: la casa
+      completa non guadagna nulla di significativo (63 → 68, p = 0,53),
+      muri + tromba mantiene 90/90 ma impiega il 64 % in più (18,0 → 29,5
+      min) con quattro volte e mezzo i rifiuti (8 → 36), e i mobili grandi
+      peggiorano (67 → 62). La ricerca era valutata sulla sola casa
+      completa e vi si è sovradattata. Non è stato adottato nulla, i
+      default restano intatti. La prossima volta il punteggio dev'essere
+      i tre livelli insieme — per lo strumento è una riga — e il vincitore
+      va confermato su semi nuovi di ogni livello prima di crederci.
+ Inoltre: il giro dal dock su questa build
       (tour72) ha raggiunto 6/9, 0 perdite, 0 cadute — quello del run 69
       era 8/9; i tre mancati sono le tappe di ritorno a sud della cucina,
       guidate dalle linee rette dello script.
