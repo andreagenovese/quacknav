@@ -718,7 +718,30 @@ report zero falls before anything is called an improvement.
       finish time and refusals unchanged; no fall either way. So the
       discriminator earns its place for what it fixes (a box edge no
       longer closes a door, and the strict rules can be reserved for true
-      holes), not for coverage. Also: the tour from the dock on this
+      holes), not for coverage. 
+- [x] The automatic search on the leg's knobs (2026-09-08, first step of
+      the learned-leg track): twelve constants of the leg planner — the
+      lane, the reserves ahead for a straight leg, an arc and a doorway,
+      the doorway lane and width, the three heading thresholds, the aim
+      point, the straight look and the doorway leg's length — are now
+      readable from the environment (`QK_*`, each defaulting to the value
+      measured before, so nothing changes unless a search sets it), and
+      `private/drives/legsearch.py` samples them at random, sixty trials
+      of thirty seeds, scoring how many seeds finish the whole house with
+      a fall anywhere disqualifying the trial. The best trial beat the
+      defaults on three fresh paired batches (seeds 91–180, 271–360,
+      361–450): 72 seeds gained against 42 lost over 270 pairs, p ≈ 0.005,
+      complete 175/270 → 205/270, no fall in 540 runs. **And then it did
+      not survive the other levels.** Rounded and measured on fresh seeds:
+      the full flat gains nothing that reaches significance (63 → 68,
+      p = 0.53), walls + stairwell keeps its 90/90 but takes 64 % longer
+      (18.0 → 29.5 min) with four and a half times the refusals (8 → 36),
+      and big furniture loses (67 → 62). The search was scored on the full
+      flat alone and overfitted to it. Nothing adopted; the defaults stand
+      untouched. Next time the score must be the three levels together —
+      the tool takes it as a change of one line — and the winner must be
+      confirmed on fresh seeds of every level before it is believed.
+ Also: the tour from the dock on this
       build (tour72) reached 6/9, 0 lost, 0 falls — run 69's was 8/9; the
       three misses are the return legs south of the kitchen, steered by
       the script's straight lines.
