@@ -587,7 +587,38 @@ optional last phase; see ADR 0005 for why.
       −2.5..−1.7) and the office's only entrance is the hall's gap (y
       −0.2..0.6) — every route between them passes the stairwell, west
       side (0.54 m) or the east strip between the hole and wall wC (0.44
-      m). Run 73's "long way round" was the only way. Also: the tour from the dock on this
+      m). Run 73's "long way round" was the only way.
+- [x] The passage, three ways at once, and a step back with a side
+      (2026-09-08, the user's rules: "if it does not centre within those
+      5 cm it will never pass", "hug the wall — a bump is a bump, the hole
+      is not", "back up the other way too"). (1) The sides of the passage
+      are refined by what the sensor sees beside the body — the wall on
+      one side, the drop edge on the other — instead of the map's wall
+      and the drops on the books, both of which move with the pose error.
+      (2) With a drop on one side the line held is a body's half-width
+      and a little from the wall (`HUG_M` 0.16), not the middle: the drop
+      edge goes from 5 to ~18 cm outside the guard's lane. (3) A passage
+      leg carries `passage`, and the mapping step's cliff guard, when it
+      sees the wall at the body's side, judges a 0.17 m lane instead of
+      0.22 — the flag alone changes nothing. The passage's minimum width
+      rose to 0.50 m: at 0.43 the 0.44 m strip east of the stairwell
+      trapped two runs in thirty once the body hugged the wall. (4) A
+      step back has a side. Measured on the twin (`backprobe.py`): from a
+      standstill only a positive yaw moves the body, but half a second of
+      it gets the gait stepping and then −0.7 backs 0.23 m turning −87°,
+      and a zero yaw backs straight (−13°); the caller prefers a side
+      (tail away from a drop, the mirror of the arc that met the wall —
+      which retraces the way in), both phases are judged against the
+      drops, and among the clear sides the one whose path lies on the
+      trail wins; the paper twin models the same gait. Paper twin, thirty
+      seeds, ninety minutes, no fall in ninety runs: walls + stairwell
+      17.7 → 16.6 min, refusals 10 → 6; big furniture 51 → 37 min,
+      refusals 50 → 42, path 95 → 68 m; full flat 64 → 51 min, longest
+      stay 13 → 10 min, 24/30 complete (26 before, noise). On MuJoCo the
+      first passage test from a spawn at the south mouth (`MICRODUCK_START`
+      added to the twin's body server, `passage_test.py`) timed out twice
+      without trying the passage: on an empty map the explorer preferred
+      the bath and the living room. Redesigned: spawn inside the mouth. Also: the tour from the dock on this
       build (tour72) reached 6/9, 0 lost, 0 falls — run 69's was 8/9; the
       three misses are the return legs south of the kitchen, steered by
       the script's straight lines.

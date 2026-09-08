@@ -645,7 +645,40 @@ finale opzionale; il perché è nell'ADR 0005.
       suo varco a x 0,5 (y −2,5..−1,7) e l'unico ingresso dello studio è
       il varco dell'atrio (y −0,2..0,6) — ogni via tra i due passa dalla
       tromba, lato ovest (0,54 m) o striscia est tra il buco e il muro wC
-      (0,44 m). Il "giro lungo" del run 73 era l'unico. Inoltre: il giro dal dock su questa build
+      (0,44 m). Il "giro lungo" del run 73 era l'unico.
+- [x] Il passaggio, in tre modi insieme, e la retromarcia con un verso
+      (2026-09-08, le regole dell'utente: "se non centra quei 5 cm non
+      passerà mai", "filo muro — un urto è un urto, il buco no", "torni
+      indietro anche dall'altra parte"). (1) I lati del passaggio sono
+      affinati da ciò che il sensore vede accanto al corpo — il muro da un
+      lato, il bordo del dislivello dall'altro — invece del muro della
+      mappa e dei drop sui libri, che si muovono con l'errore di posa. (2)
+      Con un drop da un lato la linea tenuta è a mezza larghezza del corpo
+      e poco più dal muro (`HUG_M` 0,16), non al centro: il bordo del
+      buco passa da 5 a ~18 cm fuori dalla corsia della guardia. (3) Una
+      tappa del passaggio porta `passage`, e la guardia dei dislivelli del
+      passo di mappatura, quando vede il muro a fianco del corpo, giudica
+      una corsia di 0,17 m invece di 0,22 — il flag da solo non cambia
+      nulla. La larghezza minima del passaggio sale a 0,50 m: a 0,43 la
+      striscia di 0,44 m a est della tromba intrappolava due corse su
+      trenta una volta che il corpo stava filo muro. (4) La retromarcia
+      ha un verso. Misurato sul gemello (`backprobe.py`): da fermo muove
+      solo l'imbardata positiva, ma mezzo secondo di quella mette il passo
+      in moto e poi −0,7 arretra 0,23 m girando di −87°, e imbardata zero
+      arretra dritta (−13°); chi chiama preferisce un verso (coda lontano
+      dal drop, lo specchio dell'arco che ha incontrato il muro — che
+      ripercorre la via d'ingresso), entrambe le fasi sono giudicate sui
+      drop, e tra i versi liberi vince quello la cui traiettoria giace
+      sulla scia; il gemello di carta modella la stessa andatura. Gemello
+      di carta, trenta semi, novanta minuti, nessuna caduta su novanta
+      corse: muri + tromba 17,7 → 16,6 min, rifiuti 10 → 6; mobili grandi
+      51 → 37 min, rifiuti 50 → 42, cammino 95 → 68 m; casa completa 64 →
+      51 min, sosta più lunga 13 → 10 min, 24/30 complete (26 prima,
+      rumore). Su MuJoCo il primo test del passaggio con la papera fatta
+      nascere all'imbocco sud (`MICRODUCK_START` aggiunto al body server
+      del gemello, `passage_test.py`) è scaduto due volte senza tentare il
+      passaggio: su una mappa vuota l'esploratore ha preferito il bagno e
+      il soggiorno. Ridisegnato: nascita dentro l'imbocco. Inoltre: il giro dal dock su questa build
       (tour72) ha raggiunto 6/9, 0 perdite, 0 cadute — quello del run 69
       era 8/9; i tre mancati sono le tappe di ritorno a sud della cucina,
       guidate dalle linee rette dello script.
