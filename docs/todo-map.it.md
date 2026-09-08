@@ -166,6 +166,20 @@ finale opzionale; il perché è nell'ADR 0005.
       vivo letto da un semplice client socket).
 
 ## 1. quacksat consuma la mappa
+
+**Come misuriamo (adottato il 2026-09-08).** Un singolo run MuJoCo non
+distingue dieci punti di copertura dal rumore: nei run 70–77 lo stesso
+esploratore ha segnato fra il 31 % e il 53 %. Quindi copertura, rifiuti,
+metri camminati e permanenza nelle stanze si decidono sul gemello di carta
+con **novanta semi per condizione, appaiati seme per seme** (il gemello è
+deterministico per seme, quindi lo stesso seme nelle due condizioni è la
+stessa casa e la stessa fortuna); una differenza conta quando i semi che
+migliorano superano nettamente quelli che peggiorano, non quando si sposta
+una mediana. MuJoCo resta per ciò che la carta non sa modellare — cadute,
+pose perse, stipiti, gli errori del sensore di profondità — e per la
+sicurezza, dove una sola caduta è un risultato. Entrambi i gemelli devono
+riportare zero cadute prima di chiamare qualcosa un miglioramento.
+
 - [x] Sottoscrizione `robot.map` in quacksat-core (client robotd):
       decodificare `map.frame`, tenere l'ultimo frame, esporre posa +
       tracking + griglia. Controllare la versione API; un robotd senza

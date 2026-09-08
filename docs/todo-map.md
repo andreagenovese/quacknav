@@ -153,6 +153,19 @@ optional last phase; see ADR 0005 for why.
       live `map.frame` stream was read from a plain socket client).
 
 ## 1. quacksat consumes the map
+
+**How we measure (adopted 2026-09-08).** A single MuJoCo run cannot tell
+ten points of coverage from noise: across runs 70–77 the same explorer
+scored between 31 % and 53 %. So coverage, refusals, walking distance and
+room dwell are decided on the paper twin with **ninety seeds per
+condition, paired seed by seed** (the twin is deterministic per seed, so
+the same seed under both conditions is the same house and the same luck);
+a difference counts when the seeds that improve clearly outnumber those
+that worsen, not when a median moves. MuJoCo is kept for what the paper
+twin cannot model — falls, lost poses, doorposts, the depth sensor's own
+mistakes — and for safety, where a single fall is a result. Both twins
+report zero falls before anything is called an improvement.
+
 - [x] `robot.map` subscription in quacksat-core (robotd client): decode
       `map.frame`, keep the latest frame, expose pose + tracking + grid.
       Gate on API version; a robotd without `robot.map` answers
