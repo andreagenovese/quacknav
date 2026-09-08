@@ -615,7 +615,23 @@ finale opzionale; il perché è nell'ADR 0005.
       restano spenti. Il primo tentativo del run 76 è finito dopo cinque
       minuti nel passaggio accanto alle scale — tre "chiusa" in trenta
       secondi raggiungono STUCK_MAX e chiudono il lavoro: fine troppo
-      frettolosa lì, da correggere. Inoltre: il giro dal dock su questa build
+      frettolosa lì. Corretto il 2026-09-08: un tentativo "chiusa" conta
+      solo trenta secondi dopo il precedente o dopo 0,20 m di movimento
+      del corpo (`STUCK_GAP_S`, `STUCK_MOVE_M`); gemello di carta neutro
+      (muri + tromba identico, casa completa 24/30 contro 26/30, rumore;
+      nessuna caduta). **La perdita di posa del run 73 al banco**
+      (registrazione 1788809590, `private/drives/runs/73-control/bench/
+      replay.txt`): la replica non perde mai la posa — errore vero mediano
+      5–36 cm per tutto il run e 15–17 cm negli ultimi dieci minuti, dove
+      il vivo era a 51–89 cm e ha dichiarato la perdita. Replica e vivo
+      coincidono per quaranta minuti (1–16 cm) e poi divergono: la perdita
+      è solo del vivo, la discrepanza vivo/replica già nota, ora con un
+      caso pulito. Ingredienti misurati: l'odometria grezza di una papera
+      che esplora deriva di 0,4–1,2 m (giri sul posto e retromarce; la
+      guida umana derivava di 13 cm), e le chiusure d'anello nel soggiorno
+      spostano la posa di 10–24 cm l'una a raffica. Il log vivo di robotd
+      del run 73 non era stato archiviato (sovrascritto dai run
+      successivi); `mujoco_run.sh` ora lo conserva a ogni run. Inoltre: il giro dal dock su questa build
       (tour72) ha raggiunto 6/9, 0 perdite, 0 cadute — quello del run 69
       era 8/9; i tre mancati sono le tappe di ritorno a sud della cucina,
       guidate dalle linee rette dello script.

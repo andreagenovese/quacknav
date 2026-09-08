@@ -558,8 +558,23 @@ optional last phase; see ADR 0005 for why.
       the bedroom. No falls in any. The paper twin's verdict holds on
       MuJoCo: all three stay off. Run 76's first attempt ended after five
       minutes in the stairwell passage — three "sealed in" attempts within
-      thirty seconds reach STUCK_MAX and end the job: the finish is too
-      hasty there, to fix. Also: the tour from the dock on this
+      thirty seconds reach STUCK_MAX and end the job: the finish was too
+      hasty there. Fixed on 2026-09-08: a "sealed in" attempt counts only
+      thirty seconds after the previous one or once the body has moved
+      0.20 m since (`STUCK_GAP_S`, `STUCK_MOVE_M`); paper twin neutral
+      (walls + stairwell identical, full flat 24/30 vs 26/30, noise; no
+      falls). **Run 73's pose loss on the bench** (recording 1788809590,
+      `private/drives/runs/73-control/bench/replay.txt`): the replay
+      never loses the pose — true error median 5–36 cm throughout and
+      15–17 cm in the last ten minutes, where live was at 51–89 cm and
+      declared the loss. Replay and live agree for forty minutes (1–16
+      cm) and diverge after: the loss is live-only, the known
+      live-versus-replay discrepancy, now with a clean case. Measured
+      ingredients: the raw odometry of an exploring duck drifts 0.4–1.2
+      m (spins and back-offs; the human drive drifted 13 cm), and loop
+      closures in the living room move the pose 10–24 cm each in bursts.
+      robotd's live log was not archived for run 73 (overwritten by the
+      later runs); `mujoco_run.sh` now keeps it with every run. Also: the tour from the dock on this
       build (tour72) reached 6/9, 0 lost, 0 falls — run 69's was 8/9; the
       three misses are the return legs south of the kitchen, steered by
       the script's straight lines.
