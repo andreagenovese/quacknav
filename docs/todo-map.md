@@ -740,7 +740,20 @@ report zero falls before anything is called an improvement.
       flat alone and overfitted to it. Nothing adopted; the defaults stand
       untouched. Next time the score must be the three levels together —
       the tool takes it as a change of one line — and the winner must be
-      confirmed on fresh seeds of every level before it is believed.
+      confirmed on fresh seeds of every level before it is believed. **Second search, scored on the three levels together** (2026-09-08):
+      the winner of sixty trials finished faster on paper (full flat 64 →
+      52 min, big furniture 48 → 41) but bought that speed with refusals
+      (113 → 163, 10 → 60, 65 → 92) and, on ninety fresh seeds of every
+      level, gained nothing: +31 seeds against −30, p = 1.00, and walls +
+      stairwell went from 18 to 23 minutes. Two searches, two honest
+      nulls. The lesson is about the search, not the explorer: thirty
+      seeds per trial cannot see an effect smaller than the ±5 houses a
+      ninety-seed batch already wanders, so random search over twelve
+      knobs at that budget selects noise, and the confirmation on fresh
+      seeds is what keeps it from being adopted. If it is worth another
+      go, it needs ninety seeds per trial and the three or four knobs the
+      ablation showed matter, not twelve — otherwise the defaults, each
+      measured one at a time against a fault it fixed, stand.
  Also: the tour from the dock on this
       build (tour72) reached 6/9, 0 lost, 0 falls — run 69's was 8/9; the
       three misses are the return legs south of the kitchen, steered by

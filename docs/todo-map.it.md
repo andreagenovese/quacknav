@@ -811,7 +811,21 @@ riportare zero cadute prima di chiamare qualcosa un miglioramento.
       completa e vi si è sovradattata. Non è stato adottato nulla, i
       default restano intatti. La prossima volta il punteggio dev'essere
       i tre livelli insieme — per lo strumento è una riga — e il vincitore
-      va confermato su semi nuovi di ogni livello prima di crederci.
+      va confermato su semi nuovi di ogni livello prima di crederci. **Seconda ricerca, valutata sui tre livelli insieme** (2026-09-08):
+      il vincitore di sessanta tentativi finisce prima sulla carta (casa
+      completa 64 → 52 min, mobili grandi 48 → 41) ma compra quella
+      velocità con i rifiuti (113 → 163, 10 → 60, 65 → 92) e, su novanta
+      semi nuovi di ogni livello, non guadagna nulla: +31 semi contro −30,
+      p = 1,00, e muri + tromba passa da 18 a 23 minuti. Due ricerche, due
+      risultati nulli onesti. La lezione riguarda la ricerca, non
+      l'esploratore: trenta semi per tentativo non vedono un effetto più
+      piccolo dei ±5 case che un gruppo da novanta semi già oscilla, e
+      quindi una ricerca casuale su dodici manopole con quel budget
+      seleziona rumore; è la conferma su semi nuovi a impedire che venga
+      adottato. Se vale un altro giro, servono novanta semi per tentativo
+      e le tre o quattro manopole che l'ablazione ha indicato, non dodici;
+      altrimenti restano i default, ciascuno misurato uno alla volta
+      contro il difetto che correggeva.
  Inoltre: il giro dal dock su questa build
       (tour72) ha raggiunto 6/9, 0 perdite, 0 cadute — quello del run 69
       era 8/9; i tre mancati sono le tappe di ritorno a sud della cucina,
