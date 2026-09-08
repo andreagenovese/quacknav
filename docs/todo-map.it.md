@@ -720,7 +720,30 @@ finale opzionale; il perché è nell'ADR 0005.
       passo indietro corto è la vittoria di sicurezza (sei passi corti,
       nessuna caduta, contro tre cadute su dodici con quello da tre
       secondi). Percorrere la fessura resta da provare: prossima nascita a
-      y = −1,45, a sud del buco, che obbliga a 0,9 m dentro. Inoltre: il giro dal dock su questa build
+      y = −1,45, a sud del buco, che obbliga a 0,9 m dentro. **Nascita più dura, e perché il pacchetto resta spento**
+      (2026-09-08): da y = −1,45, con 0,9 m di fessura da percorrere,
+      quattro tentativi per parte: il pacchetto ha attraversato una volta
+      in 251 s con sei tappe camminate — l'unico attraversamento vero
+      della giornata — la base non ha mai attraversato in quattro; nessuna
+      caduta da nessuna parte, perché da sud il lato ovest è aperto e la
+      papera di solito va nel soggiorno. Sicurezza su tutto il lavoro
+      della fessura: nessuna caduta in nove tentativi col pacchetto,
+      contro due su dieci senza. Ma la scala di carta dice che il
+      pacchetto costa copertura, e i pezzi si sommano (casa completa,
+      trenta semi: base 24–26/30 complete, 119 m camminati; sensore + filo
+      muro 18/30, 97 m; passo indietro sulla scia 21/30, 78 m; tutti e tre
+      16/30, 55 m — la papera smette di camminare e finisce presto e
+      incompleta). Quindi tutti e quattro restano SPENTI di default, e i
+      guadagni della giornata sono i due che non costano nulla: il giro
+      sul posto sorvegliato dal sensore e il passo indietro corto accanto
+      a un dislivello. **La ragione probabile, e la prossima idea**: sul
+      gemello di carta ogni mobile basso porta drop fantasma, quindi
+      "vicino a un dislivello" è lo stato normale e la regola zittisce il
+      recupero ovunque; nella casa vera l'unico dislivello è la tromba. Un
+      buco e uno spigolo di mobile si distinguono — lo spigolo mostra un
+      dislivello E un ostacolo alla stessa direzione, il buco mostra un
+      dislivello con niente dietro. Da misurare: permetterebbe di
+      applicare le regole severe solo accanto ai buchi veri. Inoltre: il giro dal dock su questa build
       (tour72) ha raggiunto 6/9, 0 perdite, 0 cadute — quello del run 69
       era 8/9; i tre mancati sono le tappe di ritorno a sud della cucina,
       guidate dalle linee rette dello script.

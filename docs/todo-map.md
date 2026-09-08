@@ -656,7 +656,27 @@ optional last phase; see ADR 0005 for why.
       walking the slot. The short step back is the safety win (six short
       backs, no fall, against three falls in twelve with the three-second
       one). Walking the slot is still untested: next spawn is y = −1.45,
-      south of the hole, which forces 0.9 m through it. Also: the tour from the dock on this
+      south of the hole, which forces 0.9 m through it. **Harder spawn, and why the package stays off** (2026-09-08): from
+      y = −1.45, 0.9 m of slot to walk, four attempts each: the package
+      crossed once in 251 s with six walked legs — the day's only genuine
+      crossing — the baseline never crossed in four; no fall either way,
+      because from south the west side is open and the duck usually goes
+      to the living room instead. Safety over the whole slot work: no
+      fall in nine attempts with the package against two in ten without.
+      But the paper ladder says the package costs coverage, and the pieces
+      compound (full flat, thirty seeds: baseline 24–26/30 complete, 119 m
+      walked; sensor + hug 18/30, 97 m; trail-only backing 21/30, 78 m;
+      all three 16/30, 55 m — the duck stops walking and ends early and
+      incomplete). So all four stay OFF by default, and the day's keepers
+      are the two that cost nothing: the sensor-watched turn in place and
+      the short step back beside a drop. **The likely reason, and the next
+      idea**: on the paper twin every low box wears phantom drops, so
+      "near a drop" is the normal state and the rule silences the recovery
+      everywhere; in the real flat the only drop is the stairwell. A hole
+      and a furniture edge can be told apart — a box edge shows a drop AND
+      an obstacle at the same bearing, a hole shows a drop with nothing
+      behind it. Worth measuring: it would let the strict rules apply only
+      beside true holes. Also: the tour from the dock on this
       build (tour72) reached 6/9, 0 lost, 0 falls — run 69's was 8/9; the
       three misses are the return legs south of the kitchen, steered by
       the script's straight lines.
