@@ -973,6 +973,26 @@ report zero falls before anything is called an improvement.
       be in neither; none → stay on the fresh map and keep exploring,
       which is the ordinary case the first time it is switched on
       anywhere.
+- [x] Measured with the overlap instrument, both houses, live
+      (2026-09-09, night). Thirteen asks in flat A against flat A's saved
+      map: 0.107–0.138, every one naming the right place. Fourteen asks in
+      flat B with BOTH maps in the library: it named `flat_b` every time,
+      0.043–0.086, at a pose that never moved more than 10 cm; and in the
+      same asks the wrong map scored 0.187 with 72 % overlap — the same
+      overlap as the right one, so it is not being penalised for covering
+      less, it simply is not that house. Offline the other way round:
+      0.224 and 0.227. So everything measured so far separates at
+      **0.16**: worst right 0.138, best wrong 0.187.
+      The runner-up margin does not survive the move from the bench to
+      the live runs — 0.74–0.96 in flat A while it was right — so it stays
+      as information and not as a rule. Repetition does survive: three
+      consecutive asks agreeing within 15 cm happen 5 times in 13 in flat
+      A and 9 times in 14 in flat B, so demanding three is affordable.
+      Note for the map itself: flat A's own map scores 0.107–0.138 in its
+      own house where flat B's scores 0.043 in its own, because `home` is
+      an old map with its own drift baked in and `flat_b` was built the
+      same evening. A better map is recognised better — the two goals are
+      one goal.
 - [ ] Still to measure with the overlap instrument: both dry series
       re-run live (does the score stay flat as the map grows?), flat B
       with BOTH maps in the library (the right answer is flat_b alone),
@@ -988,6 +1008,52 @@ report zero falls before anything is called an improvement.
       three asks instead of two, or the winner having to beat the
       runner-up across maps. Also owed: the dock case measured live, and
       the places registry carried across a swap by the same transform.
+
+## 2b. One map, kept true (2026-09-09, the user's direction)
+
+The library goes on the shelf. **One map**: the duck keeps it, improves it
+as it navigates, and replaces it when told to explore afresh. What matters
+instead is that the one map is right — "una mappa perfetta, senza derive o
+spostamenti" — and that the duck moves quickly from place to place on it.
+Recognition survives the change, simplified: at boot the question is no
+longer *which* house but *this one, yes or no*, which is the same
+measurement against a library of one, at the bar above. Refusing costs
+nothing: it explores and asks.
+
+- [x] A number for "perfect" (2026-09-09). `private/drives/mapquality.py`
+      scores a map against the house itself, not against another map: the
+      walls are in the world file, so the truth is available. It fits the
+      map to the truth rigidly first — where the map's origin sits is an
+      accident of where the duck booted — and what survives the fit is the
+      quality: displacement percentiles, the share beyond 10 cm, ghosts
+      beyond 25 cm (a drifted map draws the same corridor twice, and the
+      second copy lands in open floor), and coverage of the true wall
+      surfaces. `maploc`'s new `dump_frame` example turns a saved session
+      into the same JSON a live map frame carries, so a map on disk and a
+      map in flight are scored by one tool.
+      Where we stand, and it is not where the direction asks:
+
+      | map | median | 90th | beyond 10 cm | ghosts | coverage |
+      |---|---|---|---|---|---|
+      | run 71 (the reference) | 0 cm | 20 cm | 21.0 % | 6.9 % | 46 % |
+      | flat A, 30 min tonight | 0 cm | 25 cm | 18.7 % | 8.0 % | 39 % |
+      | flat B, 30 min tonight | 0 cm | 20 cm | 21.6 % | 3.4 % | 39 % |
+
+      The median is zero — most mapped walls sit exactly on true ones —
+      and a fifth of them are out by more than 10 cm, with 3–8 % doubled.
+      That fifth is the target.
+- [ ] Where the fifth comes from. The pose correction between closures is
+      already on by default (and these numbers are with it), so the next
+      suspect is the loop closer: run 71 closed **973** loops in half an
+      hour, and a closure on map noise does not move a map, it smears it.
+      The experiment the instrument now allows: the same house with the
+      closer's gates tightened, or off, scored the same way.
+- [ ] Moving quickly. Every leg today is walk-then-stand, and the stand is
+      there to *map*. On floor already mapped with a pose it trusts, the
+      duck does not need it: `go_to` can walk continuously with the depth
+      sensor as its only guard. Measure first — how long from the kitchen
+      to the bedroom as it stands — then the fast mode, and the same
+      number after.
 
 ## 3. `go_to` (needs an upstream goal RPC)
 - [ ] Follow upstream for a `robot.goto`-style RPC (planner + follower

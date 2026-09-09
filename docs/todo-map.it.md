@@ -1064,6 +1064,27 @@ riportare zero cadute prima di chiamare qualcosa un miglioramento.
       né l'una né l'altra; nessuna → resta sulla mappa fresca e continua
       a esplorare, che è il caso ordinario la prima volta che viene
       accesa da qualche parte.
+- [x] Misurato con lo strumento della sovrapposizione, in tutte e due le
+      case, dal vivo (2026-09-09, notte). Tredici domande in casa A contro
+      la mappa salvata di A: 0,107–0,138, tutte col posto giusto.
+      Quattordici domande in casa B con ENTRAMBE le mappe in libreria: ha
+      nominato `flat_b` ogni volta, 0,043–0,086, con una posa che non si è
+      mai spostata di più di 10 cm; e nelle stesse domande la mappa
+      sbagliata valeva 0,187 con il 72 % di sovrapposizione — la stessa
+      della giusta, quindi non è penalizzata perché copre meno:
+      semplicemente non è quella casa. Offline all'inverso: 0,224 e 0,227.
+      Quindi tutto ciò che abbiamo si separa a **0,16**: peggiore giusta
+      0,138, migliore sbagliata 0,187.
+      Il margine sul secondo candidato non sopravvive al passaggio dal
+      banco al vivo — 0,74–0,96 in casa A mentre aveva ragione — quindi
+      resta informazione e non regola. La ripetizione invece sopravvive:
+      tre domande di fila d'accordo entro 15 cm capitano 5 volte su 13 in
+      casa A e 9 su 14 in casa B, quindi pretenderne tre si può.
+      Nota che riguarda la mappa: la mappa di casa A prende 0,107–0,138 a
+      casa sua, quella di casa B prende 0,043 a casa sua, perché `home` è
+      vecchia e ha la propria deriva dentro mentre `flat_b` è stata
+      costruita la stessa sera. Una mappa migliore si riconosce meglio —
+      i due obiettivi sono lo stesso obiettivo.
 - [ ] Da misurare ancora con lo strumento della sovrapposizione: le due
       serie a vuoto rifatte dal vivo (il punteggio resta piatto mentre la
       mappa cresce?), casa B con ENTRAMBE le mappe in libreria (la
@@ -1081,6 +1102,55 @@ riportare zero cadute prima di chiamare qualcosa un miglioramento.
       secondo fra mappe diverse. Restano anche: il caso della base
       misurato dal vivo, e il registro dei luoghi portato oltre lo
       scambio con la stessa trasformazione.
+
+## 2b. Una mappa sola, tenuta giusta (2026-09-09, direzione dell'utente)
+
+La libreria va in soffitta. **Una mappa sola**: l'anatra la tiene, la
+migliora navigando, e la sostituisce quando le si dice di esplorare
+daccapo. Conta invece che quell'unica mappa sia giusta — "una mappa
+perfetta, senza derive o spostamenti" — e che l'anatra si muova in fretta
+da un punto a un altro. Il riconoscimento sopravvive al cambio,
+semplificato: all'accensione la domanda non è più *quale* casa ma *questa,
+sì o no*, che è la stessa misura contro una libreria di uno, con la barra
+qui sopra. Rifiutare non costa nulla: esplora e chiede.
+
+- [x] Un numero per "perfetta" (2026-09-09). `private/drives/mapquality.py`
+      valuta una mappa contro la casa stessa, non contro un'altra mappa: i
+      muri stanno nel file del mondo, quindi la verità è disponibile.
+      Prima adatta la mappa alla verità in modo rigido — dove sta
+      l'origine della mappa è un accidente di dove l'anatra si è accesa —
+      e ciò che sopravvive all'adattamento è la qualità: i percentili di
+      spostamento, la quota oltre 10 cm, i fantasmi oltre 25 cm (una mappa
+      derivata disegna lo stesso corridoio due volte, e la seconda copia
+      cade in mezzo al pavimento libero) e la copertura delle superfici di
+      muro vere. Il nuovo esempio `dump_frame` di `maploc` trasforma una
+      sessione salvata nello stesso JSON che porta un frame di mappa dal
+      vivo, così una mappa su disco e una in volo si misurano con un
+      unico strumento.
+      A che punto siamo, e non è dove la direzione chiede:
+
+      | mappa | mediana | 90° perc. | oltre 10 cm | fantasmi | copertura |
+      |---|---|---|---|---|---|
+      | run 71 (il riferimento) | 0 cm | 20 cm | 21,0 % | 6,9 % | 46 % |
+      | casa A, 30 min stasera | 0 cm | 25 cm | 18,7 % | 8,0 % | 39 % |
+      | casa B, 30 min stasera | 0 cm | 20 cm | 21,6 % | 3,4 % | 39 % |
+
+      La mediana è zero — la maggior parte dei muri mappati sta esatta su
+      quelli veri — e un quinto è fuori di più di 10 cm, con il 3–8 %
+      raddoppiato. Quel quinto è il bersaglio.
+- [ ] Da dove viene quel quinto. La correzione della posa fra una chiusura
+      e l'altra è già accesa di default (e questi numeri sono con essa),
+      quindi il sospettato successivo è il chiuditore d'anelli: il run 71
+      ha chiuso **973** anelli in mezz'ora, e una chiusura sul rumore
+      della mappa non la sposta, la sfuma. L'esperimento che ora lo
+      strumento permette: la stessa casa con le guardie del chiuditore
+      strette, o spento, misurata allo stesso modo.
+- [ ] Muoversi in fretta. Oggi ogni tappa è cammina-e-fermati, e la sosta
+      serve a *mappare*. Su pavimento già mappato e con una posa di cui si
+      fida, all'anatra non serve: `go_to` può camminare di continuo col
+      sensore di profondità come unico guardiano. Prima la misura — quanto
+      ci mette dalla cucina alla camera com'è adesso — poi la modalità
+      veloce, e lo stesso numero dopo.
 
 ## 3. `go_to` (serve un RPC di goal upstream)
 - [ ] Seguire upstream per un RPC tipo `robot.goto` (pianificatore e
