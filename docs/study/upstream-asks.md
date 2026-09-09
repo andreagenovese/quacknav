@@ -204,6 +204,39 @@ robot with a charging dock, "ask to be put back on the dock, or tell me
 where I am" is a reasonable thing to do — and it is what we would build on
 the client side while this stays unsolved.
 
+**Map against map: the answer (2026-09-09).** The user's own conclusion —
+if the duck does not recognise the house, let it explore as it always has —
+turns out to be more than a fallback, because after a few minutes of that
+it no longer has a scan to match: it has a map. `maploc/examples/align_maps`
+asks whether a fresh map fits inside a saved one, by turning the fresh
+map's wall cells into a synthetic scan and searching the saved map with the
+same coarse-to-fine machinery. Thousands of cells instead of a couple of
+hundred beams:
+
+| the fresh map | wall cells | where it landed | off by |
+|---|---|---|---|
+| run 70, booted at the dock | 1313 | (0.05, 0.00, 0.0°) | **5 cm, 0°** |
+| eight minutes after booting in the kitchen | 659 | (−3.50, 0.95, 6.0°) | 0.83 m, 14° |
+
+Against the 4–5 m that scan-to-map was wrong by, that is the difference
+between a method that works and one that does not. Both are still *refused*
+by the uniqueness gate, and rightly so as it stands: it is calibrated for
+scan-to-map, where a good residual is 0.01 and the rival must be 0.6 times
+worse. Matched map against map the residual floor is map noise, 0.07–0.09,
+and the runner-up — the flat's 180° mirror image, both times — sits at 0.76
+to 0.81 of the winner. So the acceptance rule needs its own calibration for
+this use, and would be helped by evidence the score does not use today: a
+candidate that lays the fresh map's *free* cells on top of the saved map's
+walls is wrong, and saying so costs nothing.
+
+**What we would build on this.** Boot: load the saved map, hold still and
+search; if the pose is not confirmed within a minute, open a fresh map and
+explore, which is what the duck does well. Then, every few minutes, ask
+whether the fresh map fits inside a saved one — and when it does, adopt the
+old map with the transform, keeping the places and the routes that hang off
+it. Recognition becomes something the robot arrives at, not something it
+must do before it may move.
+
 ## 6. Gait facts a follower needs, and cannot find written down
 
 We measured these on the twin because our first models of them were wrong

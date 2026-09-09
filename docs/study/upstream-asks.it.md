@@ -215,6 +215,40 @@ ricarica, "chiedimi di rimetterti sul dock, o dimmi dove sono" è una cosa
 ragionevole da fare — ed è ciò che costruiremmo sul lato client finché
 questo resta irrisolto.
 
+**Mappa contro mappa: la risposta (2026-09-09).** La conclusione
+dell'utente — se non riconosce la casa, che esplori come ha sempre fatto —
+si rivela più di un ripiego, perché dopo qualche minuto la papera non ha
+più una scansione da confrontare: ha una mappa.
+`maploc/examples/align_maps` chiede se una mappa fresca entra dentro una
+salvata, trasformando le celle di muro della fresca in una scansione
+sintetica e cercandole nella salvata con la stessa macchina grossolana-fine.
+Migliaia di celle invece di duecento fasci:
+
+| la mappa fresca | celle di muro | dove è finita | scarto |
+|---|---|---|---|
+| run 70, accesa sul dock | 1313 | (0,05, 0,00, 0,0°) | **5 cm, 0°** |
+| otto minuti dopo l'accensione in cucina | 659 | (−3,50, 0,95, 6,0°) | 0,83 m, 14° |
+
+Contro i 4–5 m di errore della scansione singola, è la differenza fra un
+metodo che funziona e uno che no. Entrambe sono ancora *rifiutate* dalla
+guardia di unicità, e per come è fatta ha ragione: è tarata per la
+scansione contro mappa, dove un buon residuo è 0,01 e il rivale deve essere
+0,6 volte peggio. Mappa contro mappa il pavimento del residuo è il rumore
+di mappa, 0,07–0,09, e il secondo — l'immagine speculare a 180° della casa,
+in entrambi i casi — sta fra 0,76 e 0,81 del vincitore. Quindi la regola di
+accettazione ha bisogno della sua taratura per questo uso, e sarebbe
+aiutata da una prova che il punteggio oggi non usa: un candidato che
+appoggia le celle *libere* della mappa fresca sopra i muri di quella
+salvata è sbagliato, e dirlo non costa nulla.
+
+**Cosa costruiremmo su questo.** Al boot: carica la mappa salvata, resta
+ferma e cerca; se entro un minuto la posa non è confermata, apre una mappa
+nuova ed esplora, che è ciò che la papera sa fare bene. Poi, ogni pochi
+minuti, si chiede se la mappa fresca entra in una salvata — e quando entra,
+adotta la vecchia con la trasformazione, tenendosi i luoghi e i percorsi
+che ci stanno appesi. Il riconoscimento diventa qualcosa a cui il robot
+arriva, non qualcosa che deve fare prima di potersi muovere.
+
 ## 6. Fatti sull'andatura che servono a chi segue un percorso, e non sono scritti
 
 Li abbiamo misurati sul gemello perché i nostri primi modelli erano
