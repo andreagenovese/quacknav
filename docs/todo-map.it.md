@@ -847,7 +847,15 @@ riportare zero cadute prima di chiamare qualcosa un miglioramento.
       mira a un punto avanti sul percorso e non taglia nulla). Cosa manca
       perché sia uno strumento: `go_to(luogo)` sulla registry dei luoghi
       invece delle coordinate grezze, e l'RPC di goal upstream quando ci
-      sarà.
+      sarà. **Confermato su MuJoCo** (2026-09-09): quindici minuti di
+      mappatura, poi `robot.go_to` verso un punto a 2,04 m nel corridoio
+      nord — arrivata in 65 s con nove tappe e un rifiuto, fermandosi a
+      0,17 m dal punto sulla propria mappa (0,27 m secondo la verità del
+      simulatore, e la differenza è l'errore di posa di maploc in quel
+      momento). Lo strumento rifiuta prima di camminare se la mappa non
+      mostra alcuna via. Cosa manca perché sia finito: da questa parte
+      nulla — `go_to(luogo)` per nome c'è, e l'RPC di goal upstream
+      sostituirebbe solo chi segue il percorso, non il piano.
  Inoltre: il giro dal dock su questa build
       (tour72) ha raggiunto 6/9, 0 perdite, 0 cadute — quello del run 69
       era 8/9; i tre mancati sono le tappe di ritorno a sud della cucina,

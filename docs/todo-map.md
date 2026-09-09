@@ -773,7 +773,15 @@ report zero falls before anything is called an improvement.
       the follower aims at a point ahead on the path and cuts nothing).
       What is missing before it is a tool: `go_to(place)` on the places
       registry rather than raw coordinates, and the upstream goal RPC when
-      it exists.
+      it exists. **Confirmed on MuJoCo** (2026-09-09): fifteen minutes of mapping,
+      then `robot.go_to` to a point 2.04 m away in the north corridor —
+      arrived in 65 s with nine legs and one refusal, stopping 0.17 m from
+      the point on its own map (0.27 m by the simulator's truth, the
+      difference being maploc's own pose error at that moment). The tool
+      refuses before walking when the map shows no way there. What is left
+      for the tool to be finished: nothing on this side — `go_to(place)`
+      by name is in, the upstream goal RPC would only replace the
+      follower, not the plan.
  Also: the tour from the dock on this
       build (tour72) reached 6/9, 0 lost, 0 falls — run 69's was 8/9; the
       three misses are the return legs south of the kitchen, steered by
