@@ -825,7 +825,29 @@ riportare zero cadute prima di chiamare qualcosa un miglioramento.
       adottato. Se vale un altro giro, servono novanta semi per tentativo
       e le tre o quattro manopole che l'ablazione ha indicato, non dodici;
       altrimenti restano i default, ciascuno misurato uno alla volta
-      contro il difetto che correggeva.
+      contro il difetto che correggeva. 
+- [x] `go_to`, da punto a punto sulla mappa già costruita (2026-09-09). Il
+      pianificatore ha guadagnato `path_to`: lo stesso Dijkstra sulla
+      stessa mappa dei costi che usano le frontiere — pavimento noto a
+      buon mercato, ignoto caro, muri e libri impassabili, la scia
+      camminata sempre percorribile — dalla papera a un punto, con la meta
+      agganciata al pavimento percorribile più vicino, così anche un
+      bersaglio contro un muro funziona. L'esploratore ha guadagnato una
+      modalità meta: quando un lavoro ne porta una, il pianificatore mira
+      lì invece che a una frontiera e il lavoro finisce all'arrivo; tutto
+      il resto — le tappe, il passaggio accanto a un dislivello, le
+      guardie, i libri, i recuperi — è la macchina del lavoro di
+      mappatura, estratta in un unico `walk_leg`. Il gemello di carta
+      accetta `--goto x,y`: prima mappa, poi ci va, e scrive entrambi i
+      percorsi nel frame perché l'immagine mostri quello pianificato sotto
+      quello camminato. Trenta semi, cinquanta minuti di mappatura e poi
+      una traversata della casa: **arrivata 30/30**, nessuna caduta,
+      fermandosi a 0,14 m dal punto, 242 s, nessun rifiuto alla mediana,
+      camminando 6,5 m contro un piano di 5,1 (rapporto 1,13: chi segue
+      mira a un punto avanti sul percorso e non taglia nulla). Cosa manca
+      perché sia uno strumento: `go_to(luogo)` sulla registry dei luoghi
+      invece delle coordinate grezze, e l'RPC di goal upstream quando ci
+      sarà.
  Inoltre: il giro dal dock su questa build
       (tour72) ha raggiunto 6/9, 0 perdite, 0 cadute — quello del run 69
       era 8/9; i tre mancati sono le tappe di ritorno a sud della cucina,

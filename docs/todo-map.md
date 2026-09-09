@@ -753,7 +753,27 @@ report zero falls before anything is called an improvement.
       seeds is what keeps it from being adopted. If it is worth another
       go, it needs ninety seeds per trial and the three or four knobs the
       ablation showed matter, not twelve — otherwise the defaults, each
-      measured one at a time against a fault it fixed, stand.
+      measured one at a time against a fault it fixed, stand. 
+- [x] `go_to`, point to point on the map already built (2026-09-09). The
+      planner gained `path_to`: the same Dijkstra on the same costmap the
+      frontier planner uses — known floor cheap, unknown dear, walls and
+      the books impassable, the walked trail always passable — from the
+      duck to one point, with the goal snapped to the nearest passable
+      floor so a target against a wall still works. The explorer gained a
+      goal mode: when a job carries one, the planner aims there instead of
+      at a frontier and the job ends on arrival; everything else — the
+      legs, the passage beside a drop, the guards, the books, the
+      recoveries — is the mapping job's own machinery, extracted into one
+      shared `walk_leg`. The paper twin takes `--goto x,y`: it maps first,
+      then walks there, and writes both routes into the frame so the
+      picture shows the planned one under the walked one. Thirty seeds,
+      fifty minutes of mapping then a crossing of the flat: **arrived
+      30/30**, no fall, stopping 0.14 m from the point, 242 s, no refusal
+      at the median, walking 6.5 m against a plan of 5.1 (a ratio of 1.13:
+      the follower aims at a point ahead on the path and cuts nothing).
+      What is missing before it is a tool: `go_to(place)` on the places
+      registry rather than raw coordinates, and the upstream goal RPC when
+      it exists.
  Also: the tour from the dock on this
       build (tour72) reached 6/9, 0 lost, 0 falls — run 69's was 8/9; the
       three misses are the return legs south of the kitchen, steered by
