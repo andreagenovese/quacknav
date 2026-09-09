@@ -237,6 +237,36 @@ old map with the transform, keeping the places and the routes that hang off
 it. Recognition becomes something the robot arrives at, not something it
 must do before it may move.
 
+**The floor as evidence, and what is still missing (2026-09-09).** A
+candidate that lays the fresh map's floor on the saved map's walls is
+wrong, and the wall residual cannot see it. Scoring each basin by walls
+plus a penalty on floor-laid-on-wall puts the truth first in both pairs and
+widens its lead: the kitchen map goes from 0.76 to 0.74 of its runner-up,
+run 70's from 0.81 to 0.78, and in both the truth has the lowest
+floor-on-wall of every basin (3.7 % against 5.3–7.7, and 5.1 against
+7.2–7.8). Nearly free, and the right direction — but not enough for a gate
+set at 0.6, and we cannot calibrate one honestly on two examples that are
+both true. What that needs is a negative control: a map of a house the duck
+has *not* been in, which we do not have and cannot fake by mirroring the
+same flat.
+
+So the acceptance rule we would build does not rest on a threshold at all.
+It rests on the same thing that makes the whole design work: **the fresh
+map keeps growing.** Ask every few minutes; require the winner to be the
+same place, within a third of a metre, on two successive asks, with the
+fresh map larger the second time. A wrong basin does not survive its own
+map growing into the rooms next door; the right one gets better. It is the
+multi-hypothesis idea again, at the scale where the evidence is actually
+strong.
+
+**Where the work stands.** The recognition piece is built and measured
+(`maploc/examples/align_maps`). What it needs to become the design above is
+the map library on the IPC — `robot.map_save`, `robot.map_list`,
+`robot.map_load` — which is upstream's to add or ours to prototype across
+five crates, and a client that at boot holds still, searches, gives up
+after a minute, explores, and asks the recognition question as it goes.
+Nothing in the client can be built before the RPCs exist.
+
 ## 6. Gait facts a follower needs, and cannot find written down
 
 We measured these on the twin because our first models of them were wrong

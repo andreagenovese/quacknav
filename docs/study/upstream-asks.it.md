@@ -249,6 +249,37 @@ adotta la vecchia con la trasformazione, tenendosi i luoghi e i percorsi
 che ci stanno appesi. Il riconoscimento diventa qualcosa a cui il robot
 arriva, non qualcosa che deve fare prima di potersi muovere.
 
+**Il pavimento come prova, e cosa manca ancora (2026-09-09).** Un candidato
+che appoggia il pavimento della mappa fresca sui muri di quella salvata è
+sbagliato, e il residuo sui muri non se ne accorge. Valutando ogni bacino
+con i muri più una penalità sul pavimento-su-muro, la verità va prima in
+entrambe le coppie e allarga il suo vantaggio: la mappa della cucina passa
+da 0,76 a 0,74 del secondo, quella del run 70 da 0,81 a 0,78, e in tutte e
+due la verità ha il pavimento-su-muro più basso di ogni bacino (3,7 %
+contro 5,3–7,7, e 5,1 contro 7,2–7,8). Quasi gratis, e nella direzione
+giusta — ma non abbastanza per una guardia tarata a 0,6, e non possiamo
+tararne una onestamente su due esempi che sono entrambi veri. Servirebbe un
+controllo negativo: la mappa di una casa in cui la papera non è mai stata,
+che non abbiamo e non si può fabbricare specchiando la stessa.
+
+Quindi la regola di accettazione che costruiremmo non si appoggia affatto a
+una soglia. Si appoggia alla stessa cosa che fa funzionare tutto il
+progetto: **la mappa fresca continua a crescere.** Chiedere ogni pochi
+minuti; pretendere che il vincitore sia lo stesso posto, entro un terzo di
+metro, in due domande consecutive, con la mappa fresca più grande la
+seconda volta. Un bacino sbagliato non sopravvive alla propria mappa che
+cresce nelle stanze accanto; quello giusto migliora. È di nuovo l'idea
+delle ipotesi multiple, alla scala in cui le prove sono davvero forti.
+
+**A che punto è il lavoro.** Il pezzo del riconoscimento è costruito e
+misurato (`maploc/examples/align_maps`). Perché diventi il progetto qui
+sopra servono la libreria di mappe sull'IPC — `robot.map_save`,
+`robot.map_list`, `robot.map_load` — che è di upstream da aggiungere o
+nostra da prototipare su cinque crate, e un client che al boot resti fermo,
+cerchi, si arrenda dopo un minuto, esplori e faccia la domanda del
+riconoscimento strada facendo. Nel client non si può costruire nulla prima
+che gli RPC esistano.
+
 ## 6. Fatti sull'andatura che servono a chi segue un percorso, e non sono scritti
 
 Li abbiamo misurati sul gemello perché i nostri primi modelli erano
