@@ -1,0 +1,190 @@
+# Cosa quacksat chiederebbe allo stack di Pollen
+
+Scritto il 2026-09-09, dopo due settimane di lavoro sulla mappatura con il
+gemello MuJoCo (`pollen-robotics/microduck` PR 127 `maploc` e il simulatore
+della PR 202, più `microduck_rl`). Progetto indipendente, nessuna
+affiliazione; tutto ciò che segue è un'osservazione con la corsa che l'ha
+prodotta, non una lista dei desideri. Nulla di tutto questo è ancora stato
+mandato a monte.
+
+Ogni numero viene dal gemello, non dall'hardware: la papera vera arriva a
+dicembre. Dove un'osservazione è probabilmente un artefatto del simulatore
+e non del robot, è detto.
+
+Le prime quattro sezioni riguardano la correttezza di `maploc` e crediamo
+valgano il tempo di upstream a prescindere da quacksat. Il resto è minore.
+
+## 1. Le chiusure d'anello scattano sul rumore della mappa e spostano la posa
+
+**Cosa vediamo.** Sul gemello, la cui odometria è quasi verità (0,13 m e 3°
+di deriva su 41 m di un giro guidato a mano), `maploc` chiude anelli decine
+di volte per corsa a livello del rumore della mappa: soglia di correzione
+0,04 m, tolleranza 0,06 m più 0,08 m per submappa con tetto a 0,6 m, e due
+testimoni che possono venire entrambi dalla stessa sosta. Le chiusure
+spostano la posa di 0,3–0,5 m dalla verità; poi il cane da guardia dichiara
+la posa persa e la rilocalizzazione a forza bruta sceglie un bacino
+sbagliato a metri di distanza.
+
+**Prove.** Matrice al banco su cinque registrazioni
+(`maploc/examples/evaluate` rigioca un `.mdlg` byte per byte). Stringere la
+tolleranza a 0,03 m per submappa con tetto 0,30 m ha eliminato ogni evento
+LOST e migliorato la mappa rispetto ai muri veri su 5 registrazioni su 5.
+
+**Modifica proposta.** Portare `max_correction_per_submap_m` a 0,03 e
+`max_correction_cap_m` a 0,30 (`maploc/src/pipeline.rs`), o renderli
+configurabili con quei valori di default. Pretendere che i due testimoni di
+una chiusura vengano da soste diverse.
+
+**Come verificarlo.** `cargo run -p maploc --example evaluate -- <rec.mdlg>
+sim-maploc/apartment.toml out/` e confrontare `map walls vs room` e le
+righe LOST prima e dopo.
+
+## 2. Fra una chiusura e l'altra nulla corregge la posa sulla mappa
+
+**Cosa vediamo.** Fra le chiusure d'anello la posa tracciata è pura
+navigazione stimata: lo scan matcher serve per le chiusure e per
+rilocalizzare, mai per tenere la posa sulla mappa che sta costruendo. MCL
+c'è nel crate e non è collegato. Così la posa deriva finché una chiusura la
+strattona, ed è il meccanismo dietro la sezione 1.
+
+**Prove.** Il nostro fork aggiunge una correzione scan-to-map a ogni
+finestra ferma (`Mapper::tracking_correction`, con un test di accordo con
+l'ultima ricerca). Sul gemello: la corsa 67 senza è derivata a 0,38 m
+mediani e 0,73 m nella parte finale; la corsa 69 con la correzione ha
+tenuto 0,15 m mediani per novanta minuti, mai persa, con zero cadute.
+
+**Modifica proposta.** Correggere la posa tracciata contro la mappa a ogni
+finestra ferma, con una soglia di miglioramento del residuo e un tetto,
+così può solo stringere una posa e mai spostarla di molto. La nostra è
+`TrackingConfig` in `maploc/src/mapper.rs` (274 righe del diff, attiva di
+default).
+
+## 3. La rilocalizzazione può sbagliare con sicurezza
+
+**Cosa vediamo.** Dopo un LOST la ricerca globale restituisce una posa a
+metri dalla verità con residuo 0,000–0,005: una corrispondenza perfetta con
+la stanza sbagliata. Una casa ha rettangoli ripetuti e, senza magnetometro,
+la ricerca copre anche la rotazione, quindi l'aliasing è atteso; quello che
+manca è una qualunque prova che il vincitore sia *unico*.
+
+**Prove.** Le corse 56, 64, 65 e 68 sul gemello si sono rilocalizzate a 3–6
+m di distanza. Rigiocando quelle registrazioni con le nostre guardie,
+l'errore scende da 3,1 m a 0,10 m e da 2,06 m a 0,07 m.
+
+**Modifica proposta**, quattro pezzi piccoli e indipendenti:
+- un rapporto di unicità: accettare il vincitore solo se batte il bacino
+  secondo di un margine (`uniqueness_ratio 0.6`, `runner_up` in
+  `maploc/src/relocalize.rs`);
+- accordo: pretendere che ricerche consecutive concordino entro circa 0,3 m
+  prima di agire (`relocalize_agree_windows 2`);
+- prima una ricerca locale: se la posa era soltanto persa, cercare attorno a
+  dove la papera crede di essere (`hard_lost_search_radius_m 1.0`) prima di
+  cercare in tutta la mappa;
+- arrendersi con onestà: dopo N finestre senza una risposta convinta,
+  riprendere sull'odometria e dirlo (`Note::ResumedUnverified`) invece di
+  impegnarsi su una posa sbagliata. Il client può allora fermarsi,
+  guardarsi attorno e chiedere.
+
+## 4. La catena viva e il banco non concordano
+
+**Cosa vediamo, e non sappiamo spiegare.** La stessa registrazione che il
+banco rigioca pulita è una corsa in cui il demone vivo ha perso la posa. È
+l'osservazione che più ci piacerebbe far guardare a monte, perché significa
+che il banco non può garantire per il robot.
+
+**Prove.** Corsa 73 (registrazione `1788809590.mdlg`, 60 minuti, boot
+pulito): dal vivo l'errore di posa ha superato 0,5 m al minuto 50, le
+finestre sono state messe in quarantena dalle 22:24, il tracking è stato
+dichiarato perso alle 22:28:23 ed è ripreso non verificato con 0,8 m di
+errore. Rigiocando lo stesso file: la posa tracciata resta fra 5 e 36 cm
+dalla verità per tutta la corsa e fra 15 e 17 cm in quegli ultimi dieci
+minuti, e non si perde mai. Vivo e replica coincidono per i primi quaranta
+minuti (fra 1 e 16 cm) e poi divergono. Lo stesso era successo con la corsa
+49 e la registrazione `1788627740.mdlg`.
+
+**Dove guarderemmo.** I tempi dei frame e il cancello di immobilità (quali
+finestre il worker vivo integra davvero), i frame di profondità persi sotto
+carico, e se la ricerca giri su una finestra stantia. Il banco consuma ogni
+record; il demone forse no.
+
+## 5. Una libreria di mappe, e rilocalizzarsi al boot
+
+**Cosa c'è.** Un solo file di sessione (`map_path`), salvato allo spegnimento
+e con autosalvataggio, ricaricato al boot fidandosi dell'ultima posa
+salvata. La superficie IPC è `robot.map` e `robot.map_wipe`.
+
+**Perché non basta.** Un robot che vive in una casa dovrebbe svegliarsi e
+sapere in quale casa si trova, e dove. Oggi o viene acceso esattamente dove
+era stato spento, oppure la mappa non vale nulla: la posa salvata è
+sbagliata e nessuno la controlla.
+
+**Modifica proposta.**
+- `robot.map_save {nome}`, `robot.map_list`, `robot.map_load {nome}`: una
+  cartella di sessioni con un nome, invece di un file solo.
+- Caricare una sessione fa partire il mapper nello stato "persa dura" e lo
+  fa cercare, con le guardie della sezione 3, invece di fidarsi di
+  `tracked`.
+- Dire nel frame della mappa quale sessione è caricata e se la posa è stata
+  confermata dal boot, così un client può stare fermo, guardarsi attorno e
+  chiedere all'utente invece di partire su un'ipotesi.
+
+**Una cautela che porteremmo insieme.** Un ToF 8×8 a 2 m è una firma povera
+di una stanza, e senza direzione assoluta la ricerca è su tre gradi di
+libertà. Due segnali economici porterebbero via quasi tutta la domanda "in
+quale mappa sono" senza toccare il ToF: il **dock** (un robot che si accende
+sul suo caricatore sa esattamente dov'è, e questo da solo risolve il caso
+comune) e il vicinato **Wi-Fi**, che `configd` già vede. Nessuno dei due è
+raggiungibile da un client di robotd oggi.
+
+## 6. Fatti sull'andatura che servono a chi segue un percorso, e non sono scritti
+
+Li abbiamo misurati sul gemello perché i nostri primi modelli erano
+sbagliati e la papera finiva contro i muri. Se valgono sull'hardware, il
+posto giusto è la documentazione; se è il simulatore ad averli sbagliati,
+vale la pena saperlo lo stesso.
+
+- **Un arco rallenta pochissimo.** A `vx 0.3, vyaw 0.7` il corpo avanza a
+  0,110 m/s contro 0,121 m/s in rettilineo, non un quarto come assumevano i
+  nostri modelli. Chi riserva un quarto dello spazio per un arco finisce
+  contro il muro.
+- **Da fermo non esiste rotazione sul posto.** `vx 0, vyaw ±0.7` muove il
+  corpo di 1–2° in sei secondi. Un secondo di cammino prima, poi solo
+  imbardata, gira a circa 30°/s con 15 cm di deriva.
+- **La retromarcia ha bisogno di un'imbardata positiva per partire.** Da
+  fermo, `vx -0.3` con `vyaw -0.7` non muove affatto il corpo; con `+0.7`
+  arretra di 0,23 m in tre secondi. Una volta in passo va bene qualunque
+  segno, e anche l'indietro dritto: mezzo secondo di `+0.7` basta a
+  innescarlo.
+- **I giri a tempo non sono ripetibili.** Lo stesso comando varia del triplo
+  con la fase del passo, e il corpo prosegue di 5–10° dopo la fine del
+  comando. Il controllo di rotta deve chiudersi sull'odometria, non sul
+  tempo.
+
+## 7. Piccole cose nel simulatore
+
+- **Una posa di nascita.** `sim-maploc/body_with_map.py` mette sempre la
+  papera nell'origine. Un `--start x,y,yaw` (noi usiamo localmente una
+  variabile d'ambiente `MICRODUCK_START`) permette di provare un
+  comportamento dove accade — accanto alla tromba delle scale, in una porta
+  — invece di arrivarci a piedi, che è la maggior parte del tempo di una
+  prova. La sovrapposizione della mappa ha poi bisogno della stessa
+  trasformazione, altrimenti la mappa è disegnata nell'origine mentre la
+  papera è altrove.
+- **Il ToF legge i mobili bassi come un buco.** Nella scena
+  dell'appartamento le righe che guardano il pavimento e cadono su un letto
+  o un tavolino riportano un dislivello che non c'è: in una corsa cinque di
+  questi hanno sigillato la porta della camera per un quarto d'ora. Se il
+  sensore vero faccia lo stesso su un piumone è esattamente il genere di
+  cosa su cui il simulatore dovrebbe avere ragione, perché un client che ci
+  crede si rifiuta di camminare. (Il nostro ora distingue un buco da uno
+  spigolo chiedendosi se un ostacolo stia alla stessa direzione: sul gemello
+  classifica tre dislivelli su quattro come mobilio.)
+
+## Cosa manderemmo insieme
+
+Le quattro modifiche a `maploc` qui sopra stanno su un ramo locale sopra la
+PR 202 (`maploc/{pipeline,mapper,relocalize,scan_matcher}.rs`, più le
+manopole d'ambiente in `evaluate.rs` per le prove di ipotesi e una riga di
+log in `robotd/src/maploc.rs`): circa 435 righe. Le registrazioni dietro
+ogni affermazione sono normali file `.mdlg` e possono viaggiare con il
+rapporto.

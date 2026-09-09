@@ -1,0 +1,177 @@
+# What quacksat would ask of Pollen's stack
+
+Written 2026-09-09, from a fortnight of mapping work on the MuJoCo twin
+(`pollen-robotics/microduck` PR 127 `maploc` and PR 202's simulator, plus
+`microduck_rl`). Independent project, no affiliation; everything below is
+a finding with the run that produced it, not a wish list. Nothing here has
+been sent upstream yet.
+
+Every number comes from the twin, not from hardware — the physical duck
+arrives in December. Where a finding is likely to be a simulator artefact
+rather than the robot's, it says so.
+
+The first four sections are `maploc` correctness and are, we think, worth
+upstream's time whatever quacksat does. The rest are smaller.
+
+## 1. Loop closures fire on map noise, and walk the pose off
+
+**What we see.** On the twin, whose odometry is nearly ground truth
+(0.13 m and 3° drift over 41 m of a hand-driven tour), `maploc` closes
+loops dozens of times per run at map-noise level: correction floor 0.04 m,
+allowance 0.06 m plus 0.08 m per submap capped at 0.6 m, two witnesses that
+can both come from the same stand. The closures walk the tracked pose
+0.3–0.5 m away from the truth; the watchdog then calls the pose lost, and
+the brute-force relocalize picks a wrong basin metres away.
+
+**Evidence.** Bench matrix over five recordings (`maploc/examples/evaluate`
+replays a `.mdlg` byte for byte). Tightening the allowance to 0.03 m per
+submap with a 0.30 m cap removed every LOST event and improved the map
+against the truth walls on 5 recordings out of 5.
+
+**Proposed change.** Lower `max_correction_per_submap_m` to 0.03 and
+`max_correction_cap_m` to 0.30 (`maploc/src/pipeline.rs`), or make them
+configurable and default them there. Require the two witnesses of a closure
+to come from different stands.
+
+**How to check it.** `cargo run -p maploc --example evaluate -- <rec.mdlg>
+sim-maploc/apartment.toml out/` and compare `map walls vs room` and the
+LOST lines before and after.
+
+## 2. Nothing corrects the pose against the map between closures
+
+**What we see.** Between loop closures the tracked pose is dead reckoning:
+the scan matcher is used for closures and for relocalizing, never to keep
+the pose on the map it is building. MCL exists in the crate and is not
+wired in. So the pose drifts until a closure yanks it, which is the
+mechanism behind section 1.
+
+**Evidence.** Our fork adds a scan-to-map correction at every still window
+(`Mapper::tracking_correction`, gated by an agreement test against the last
+search). On the twin: run 67 without it drifted to 0.38 m median and 0.73 m
+late in the run; run 69 with it held 0.15 m median over ninety minutes,
+never lost, with 0 falls.
+
+**Proposed change.** Correct the tracked pose against the map on every
+still window, with a residual improvement threshold and a cap, so it can
+only ever tighten a pose. Ours is `TrackingConfig` in
+`maploc/src/mapper.rs` (274 lines of the diff, defaults on).
+
+## 3. Relocalize can be confidently wrong
+
+**What we see.** After a LOST, the global search returns a pose metres away
+from the truth with a residual of 0.000–0.005 — a perfect match to the
+wrong room. A flat has repeated rectangles and, with no magnetometer, the
+search covers rotation too, so aliasing is expected; what is missing is any
+test that the winner is *unique*.
+
+**Evidence.** Runs 56, 64, 65 and 68 on the twin each relocalized 3–6 m
+wrong. Replaying those recordings with our gates, the errors drop from
+3.1 m to 0.10 m and from 2.06 m to 0.07 m.
+
+**Proposed change**, all four small and independent:
+- a uniqueness ratio: accept the winner only when it beats the runner-up
+  basin by a margin (`uniqueness_ratio 0.6`, `runner_up` in
+  `maploc/src/relocalize.rs`);
+- agreement: require consecutive searches to agree within about 0.3 m
+  before acting on either (`relocalize_agree_windows 2`);
+- a local search first: when the pose was merely lost, search around where
+  the duck thinks it is (`hard_lost_search_radius_m 1.0`) before searching
+  the whole map;
+- give up honestly: after N windows with no confident answer, resume on
+  odometry and say so (`Note::ResumedUnverified`) instead of committing to
+  a wrong pose. A client can then stand still, sweep, and ask.
+
+## 4. The live pipeline and the bench disagree
+
+**What we see, and cannot explain.** The same recording that the bench
+replays cleanly is a run in which the live daemon lost the pose. This is
+the finding we would most like upstream to look at, because it means the
+bench cannot vouch for the robot.
+
+**Evidence.** Run 73 (recording `1788809590.mdlg`, 60 minutes, clean boot):
+live, the pose error grew past 0.5 m at minute 50, windows were quarantined
+from 22:24, tracking was declared lost at 22:28:23 and resumed unverified
+0.8 m off. Replaying the same file: the tracked pose stays within 5–36 cm
+of truth throughout and 15–17 cm during those last ten minutes, and is
+never lost. Live and replay agree for the first forty minutes (1–16 cm
+apart) and diverge after. The same happened on run 49 in an earlier
+session with recording `1788627740.mdlg`.
+
+**Where we would look.** Frame timing and the still gate (which windows the
+live worker actually integrates), dropped depth frames under load, and
+whether the search runs on a stale window. The bench consumes every record;
+the daemon may not.
+
+## 5. A map library, and relocalizing at boot
+
+**What exists.** One session file (`map_path`), saved on shutdown and
+autosaved, reloaded at boot — trusting the last saved pose. The IPC surface
+is `robot.map` and `robot.map_wipe`.
+
+**Why that is not enough.** A robot that lives in a house should wake up
+and know which house, and where in it. Today, either it is switched on
+exactly where it was switched off, or the map is worthless: the saved pose
+is wrong and nothing checks it.
+
+**Proposed change.**
+- `robot.map_save {name}`, `robot.map_list`, `robot.map_load {name}` — a
+  directory of named sessions rather than one file.
+- Loading a session starts the mapper in the hard-lost state and searches,
+  with the gates of section 3, instead of trusting `tracked`.
+- Say in the map frame which session is loaded and whether the pose has
+  been confirmed since boot, so a client can hold still, sweep and ask the
+  user rather than driving on a guess.
+
+**A caveat we would raise with it.** An 8×8 ToF at 2 m is a poor signature
+of a room, and with no absolute heading the search is over three degrees of
+freedom. Two cheap signals would carry most of the "which map" question
+without touching the ToF: the **dock** (a robot that boots on its charger
+knows exactly where it is — that alone solves the common case) and the
+**Wi-Fi** neighbourhood, which `configd` already sees. Neither is reachable
+from a robotd client today.
+
+## 6. Gait facts a follower needs, and cannot find written down
+
+We measured these on the twin because our first models of them were wrong
+and the duck walked into walls. If they hold on hardware, they belong in
+the docs; if the simulator has them wrong, that is worth knowing too.
+
+- **A turning arc barely slows down.** At `vx 0.3, vyaw 0.7` the body
+  advances 0.110 m/s against 0.121 m/s straight — not the quarter our
+  models assumed. A follower that reserves a quarter of the room for an arc
+  ends against the wall.
+- **There is no turn in place from a standstill.** `vx 0, vyaw ±0.7` moves
+  the body 1–2° in six seconds. One second of walking first, then yaw only,
+  turns about 30°/s with 15 cm of drift.
+- **Backing needs a positive yaw to start.** From a standstill, `vx -0.3`
+  with `vyaw -0.7` does not move the body at all; with `+0.7` it backs
+  0.23 m in three seconds. Once stepping, either sign works, and straight
+  backing works too — half a second of `+0.7` is enough to start it.
+- **Timed turns are not repeatable.** The same command varies threefold
+  with the step phase, and the body coasts 5–10° after the command stops.
+  Heading control has to close on odometry, not on time.
+
+## 7. Small things in the simulator
+
+- **A spawn pose.** `sim-maploc/body_with_map.py` always places the duck at
+  the origin. A `--start x,y,yaw` (we use a `MICRODUCK_START` environment
+  variable locally) makes it possible to test a behaviour where it happens
+  — beside the stairwell, in a doorway — instead of walking there first,
+  which is most of a test's runtime. The map overlay then needs the same
+  transform, or the map is drawn at the origin while the duck is elsewhere.
+- **The ToF reads low furniture as a hole.** In the apartment scene, the
+  floor rows that land on a bed or a low table report a drop where there is
+  none: on one run five of them sealed a bedroom doorway for a quarter of
+  an hour. Whether the real sensor does this on a duvet is exactly the kind
+  of thing the simulator should be right about, because a client that
+  believes it will refuse to walk. (Our client now tells a hole from an
+  edge by asking whether an obstacle stands at the same bearing; on the
+  twin that classifies three drops in four as furniture.)
+
+## What we would send with it
+
+The four `maploc` changes above are on a local branch against PR 202
+(`maploc/{pipeline,mapper,relocalize,scan_matcher}.rs`, plus env knobs in
+`evaluate.rs` for hypothesis testing and one log line in
+`robotd/src/maploc.rs`): about 435 lines. The recordings behind every claim
+are ordinary `.mdlg` files and can travel with the report.
