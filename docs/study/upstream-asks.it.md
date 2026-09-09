@@ -272,13 +272,28 @@ cresce nelle stanze accanto; quello giusto migliora. È di nuovo l'idea
 delle ipotesi multiple, alla scala in cui le prove sono davvero forti.
 
 **A che punto è il lavoro.** Il pezzo del riconoscimento è costruito e
-misurato (`maploc/examples/align_maps`). Perché diventi il progetto qui
-sopra servono la libreria di mappe sull'IPC — `robot.map_save`,
-`robot.map_list`, `robot.map_load` — che è di upstream da aggiungere o
-nostra da prototipare su cinque crate, e un client che al boot resti fermo,
-cerchi, si arrenda dopo un minuto, esplori e faccia la domanda del
-riconoscimento strada facendo. Nel client non si può costruire nulla prima
-che gli RPC esistano.
+misurato (`maploc/examples/align_maps`), e ora anche la libreria di mappe
+che gli serviva.
+
+Abbiamo prototipato le tre chiamate su `maploc-study`, ed è questa la forma
+che proporremmo. `robot.map_save {name}` copia la mappa viva in una
+cartella `maps/` accanto a `map_path`, così un'installazione che sposta la
+sessione si porta dietro la libreria. `robot.map_list` risponde con nome,
+dimensione e data. `robot.map_load {name}` ne rende viva una tramite
+`Mapper::resumed_lost` — torna la mappa, non la posa — e la mappa caricata
+diventa quella di lavoro, così il prossimo autosalvataggio la scrive e un
+riavvio la riprende. Un nome è da 1 a 64 caratteri fra lettere, cifre, `-`
+e `_`, rifiutato e non ripulito, perché chi intendeva `../../etc/passwd`
+deve sentirsi dire di no. `robot.map_wipe` conserva il significato che ha:
+azzera la mappa viva e lascia in piedi la libreria. Le due che aspettano il
+thread del mapper rispondono dentro `block_in_place`, perché un mapper in
+mezzo a una ricerca può metterci secondi e nessun altro client deve
+aspettarlo. L'instradamento segue `robot.map_wipe`: `mediad` le porta,
+`btd` le rifiuta, l'updater non le conosce. `robotctl robot
+map-save|map-list|map-load` le guida a mano.
+
+Resta il client: al boot restare fermi e cercare, arrendersi dopo un
+minuto, esplorare, e fare la domanda del riconoscimento strada facendo.
 
 ## 6. Fatti sull'andatura che servono a chi segue un percorso, e non sono scritti
 

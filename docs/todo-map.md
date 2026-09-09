@@ -857,6 +857,38 @@ report zero falls before anything is called an improvement.
       starts elsewhere (the kidnap test). Caveats: the 8×8 ToF's signature
       of a room is poor (the uniqueness gate is the defence); the session
       is schema-less bincode, so saved maps die with a format bump.
+- [x] The three calls exist, on the local branches (2026-09-09).
+      `robot.map_save <name>` copies the live map into a `maps/` directory
+      beside the working session; `robot.map_list` says what is there,
+      with sizes and dates; `robot.map_load <name>` makes one live and
+      starts the mapper hard-lost inside it, so what comes back is the map
+      and never the pose. A name is 1 to 64 characters of letters, digits,
+      `-` and `_`, refused rather than sanitised: a caller that meant
+      `../../etc/passwd` hears no. A wipe clears the live map and leaves
+      the library standing. mediad carries the three, btd refuses them,
+      the updater calls them unknown; `robotctl robot map-save|map-list|
+      map-load` drives them by hand. quacksat exposes the same three as
+      tools, spelled by method name through `Control::request_method`,
+      because the released `duck-ipc-proto` has none of them — an older
+      robotd answers METHOD_NOT_FOUND and the duck says "this robot's
+      software has no map library yet" instead of failing obscurely.
+      Measured against a fake robotd, over robotctl and through the MCP
+      surface: an empty library lists nothing, a save appears in the
+      listing, `../evil` is refused, an unknown name says so, a load is
+      adopted with the mapper searching, and a wipe leaves the library
+      alone. Where it lives: `microduck-pr202` branch `maploc-study`
+      commit 4692340, quacksat `maploc-track` commit d875888 — local,
+      unpushed, and asked of upstream in docs/study/upstream-asks.md §5.
+- [ ] The boot flow on top of them (next): load the saved map, stand
+      still and let the mapper search; if nothing is confirmed inside
+      about a minute, open a fresh map and explore as usual; every few
+      minutes ask the map-to-map question (the fresh map against each
+      saved one, `maploc/examples/align_maps`), and adopt the old map
+      with its transform when the same winner survives two asks with a
+      bigger fresh map. The acceptance rule is still uncalibrated: the
+      alignment found the truth at 5 cm on a 1313-cell map and 0.83 m on
+      a 659-cell one, but nothing has yet been shown a house it has
+      never seen (2026-09-09).
 
 ## 3. `go_to` (needs an upstream goal RPC)
 - [ ] Follow upstream for a `robot.goto`-style RPC (planner + follower

@@ -260,12 +260,27 @@ multi-hypothesis idea again, at the scale where the evidence is actually
 strong.
 
 **Where the work stands.** The recognition piece is built and measured
-(`maploc/examples/align_maps`). What it needs to become the design above is
-the map library on the IPC — `robot.map_save`, `robot.map_list`,
-`robot.map_load` — which is upstream's to add or ours to prototype across
-five crates, and a client that at boot holds still, searches, gives up
-after a minute, explores, and asks the recognition question as it goes.
-Nothing in the client can be built before the RPCs exist.
+(`maploc/examples/align_maps`), and so is the map library it needed.
+
+We prototyped the three calls on `maploc-study`, and this is the shape we
+would propose. `robot.map_save {name}` copies the live map into a `maps/`
+directory beside `map_path`, so an installation that moves the session
+takes its library with it. `robot.map_list` answers with name, size and
+mtime. `robot.map_load {name}` makes one live through
+`Mapper::resumed_lost` — the map comes back, the pose does not — and the
+loaded map becomes the working one, so the next autosave persists it and a
+reboot resumes it. A name is 1 to 64 characters of letters, digits, `-`
+and `_`, refused rather than sanitised, because a caller that meant
+`../../etc/passwd` should hear no. `robot.map_wipe` keeps its present
+meaning: it clears the live map and leaves the library standing. The two
+that wait on the mapper thread answer inside `block_in_place`, since a
+mapper mid-search can take seconds and no other client should wait for it.
+Routing follows `robot.map_wipe`: `mediad` carries them, `btd` refuses
+them, the updater does not know them. `robotctl robot map-save|map-list|
+map-load` drives them by hand.
+
+What is left is the client: at boot hold still and search, give up after a
+minute, explore, and ask the recognition question as it goes.
 
 ## 6. Gait facts a follower needs, and cannot find written down
 

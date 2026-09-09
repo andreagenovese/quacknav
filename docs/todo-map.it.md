@@ -940,6 +940,40 @@ riportare zero cadute prima di chiamare qualcosa un miglioramento.
       Cautele: la firma di una stanza col ToF 8×8 è povera (la guardia di
       unicità è la difesa); la sessione è bincode senza schema, le mappe
       salvate muoiono a ogni cambio di formato.
+- [x] Le tre chiamate esistono, sui rami locali (2026-09-09).
+      `robot.map_save <nome>` copia la mappa viva in una cartella `maps/`
+      accanto alla sessione di lavoro; `robot.map_list` dice cosa c'è, con
+      dimensioni e date; `robot.map_load <nome>` ne rende viva una e fa
+      partire il mapper "perso duro" dentro di essa: torna la mappa, mai
+      la posa. Un nome è da 1 a 64 caratteri fra lettere, cifre, `-` e
+      `_`, rifiutato e non ripulito: chi intendeva `../../etc/passwd` si
+      sente dire di no. Il wipe azzera la mappa viva e lascia in piedi la
+      libreria. mediad porta le tre chiamate, btd le rifiuta, l'updater le
+      dichiara sconosciute; `robotctl robot map-save|map-list|map-load` le
+      guida a mano. quacksat espone gli stessi tre strumenti, scritti per
+      nome di metodo con `Control::request_method`, perché il
+      `duck-ipc-proto` pubblicato non ne ha nessuno: un robotd più vecchio
+      risponde METHOD_NOT_FOUND e l'anatra dice "questo robot non ha
+      ancora una libreria di mappe" invece di fallire in modo oscuro.
+      Misurato contro un robotd finto, da robotctl e attraverso l'MCP:
+      una libreria vuota non elenca nulla, un salvataggio compare
+      nell'elenco, `../evil` è rifiutato, un nome sconosciuto lo dice, un
+      caricamento è adottato con il mapper che cerca, e un wipe lascia
+      stare la libreria. Dove sta: ramo `maploc-study` di
+      `microduck-pr202`, commit 4692340; quacksat `maploc-track`, commit
+      d875888 — locali, non spinti, e chiesti a upstream in
+      docs/study/upstream-asks.it.md §5.
+- [ ] Il giro di avvio sopra di esse (prossimo): caricare la mappa
+      salvata, stare ferme e lasciare cercare il mapper; se entro un
+      minuto circa non si conferma nulla, aprire una mappa nuova ed
+      esplorare come sempre; ogni pochi minuti fare la domanda mappa
+      contro mappa (la mappa fresca contro ognuna salvata,
+      `maploc/examples/align_maps`) e adottare la vecchia con la sua
+      trasformazione quando lo stesso vincitore sopravvive a due domande
+      con la mappa fresca più grande. La regola di accettazione è ancora
+      da tarare: l'allineamento ha trovato la verità a 5 cm su una mappa
+      da 1313 celle e a 0,83 m su una da 659, ma a nessuno è stata ancora
+      mostrata una casa mai vista (2026-09-09).
 
 ## 3. `go_to` (serve un RPC di goal upstream)
 - [ ] Seguire upstream per un RPC tipo `robot.goto` (pianificatore e
