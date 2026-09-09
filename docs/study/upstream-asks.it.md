@@ -186,6 +186,35 @@ candidate e valutarle alla finestra successiva, invece della sola migliore
 (`last_search`) che la guardia di accordo porta oggi. `maploc` contiene già
 un modulo MCL non collegato, ed è esattamente a questo che serve.
 
+**Costruito e misurato (2026-09-09).** La ricerca ora restituisce tutti i
+bacini che ritiene plausibili, non solo il vincitore, e un mapper ripreso
+su una mappa salvata li tiene tutti: ogni ipotesi è trasportata in avanti
+con l'**odometria grezza** (la posa tracciata è congelata mentre è persa,
+apposta, quindi non si può usare) e valutata su ogni finestra nuova dove
+l'odometria dice che quell'ipotesi si troverebbe. Valutare invece di
+aspettare che la ricerca la riproponga conta: la ricerca restituisce una
+manciata di bacini fra i tanti, e quello vero non è sempre fra loro.
+Un'ipotesi si crede solo quando è stata confermata lungo una certa
+distanza camminata ed è in testa alle altre.
+
+Non ha salvato il caso. Rigiocando l'accensione in cucina dentro la mappa
+del run 71: senza chiedere cammino, si impegna dopo 32 s e sbaglia di 5 m;
+chiedendo un metro, si impegna dopo 195 s e sbaglia di 4,5 m; chiedendone
+due, non si impegna mai e la papera resta onestamente persa per tutti gli
+otto minuti. Quindi un secondo punto di vista a un metro o due non separa
+il posto vero dal suo alias in questa casa: gli alias continuano a
+valutarsi bene quanto la verità.
+
+Due cose attenuano il risultato. La mappa era il 46 % della casa, quindi
+metà di ogni scansione cade dove la mappa non ha opinioni e non può
+contraddire una posa sbagliata; una mappa completa sarebbe una prova più
+equa e non ce l'abbiamo ancora. E il modo di fallire, quando si chiedono
+prove sufficienti, è quello sicuro: la papera dice che non sa, invece di
+avviarsi convinta nella stanza sbagliata. Per un robot con una base di
+ricarica, "chiedimi di rimetterti sul dock, o dimmi dove sono" è una cosa
+ragionevole da fare — ed è ciò che costruiremmo sul lato client finché
+questo resta irrisolto.
+
 ## 6. Fatti sull'andatura che servono a chi segue un percorso, e non sono scritti
 
 Li abbiamo misurati sul gemello perché i nostri primi modelli erano

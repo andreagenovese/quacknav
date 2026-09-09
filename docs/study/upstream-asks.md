@@ -178,6 +178,32 @@ rather than the single best (`last_search`) the agreement gate carries
 today. `maploc` already contains an MCL module that is not wired in, and
 this is what it is for.
 
+**Built and measured (2026-09-09).** The search now returns every basin it
+finds plausible, not only the winner, and a mapper resumed on a saved map
+keeps them all: each hypothesis is carried forward by **raw odometry** (the
+tracked pose is frozen while lost, on purpose, so it cannot be used) and
+scored against every new window where odometry says that hypothesis would
+be. Scoring rather than waiting for the search to propose it again matters:
+the search returns a handful of basins out of many and the true one is not
+always among them. A hypothesis is believed only once it has been confirmed
+over a set distance of walking and leads the rest.
+
+It did not rescue the case. Replaying the kitchen boot into run 71's map:
+demanding no walking, it commits after 32 s and is 5 m wrong; demanding one
+metre, it commits after 195 s and is 4.5 m wrong; demanding two, it never
+commits and the duck stays honestly lost for the whole eight minutes. So a
+second viewpoint a metre or two away does not separate the true place from
+its alias in this flat — the aliases keep scoring as well as the truth.
+
+Two things temper that. The map was 46 % of the flat, so half of every scan
+falls where the map has no opinion and cannot contradict a wrong pose; a
+complete map is a fairer test and we do not have one yet. And the failure
+mode, with enough evidence demanded, is the safe one: the duck says it does
+not know rather than walking off confidently into the wrong room. For a
+robot with a charging dock, "ask to be put back on the dock, or tell me
+where I am" is a reasonable thing to do — and it is what we would build on
+the client side while this stays unsolved.
+
 ## 6. Gait facts a follower needs, and cannot find written down
 
 We measured these on the twin because our first models of them were wrong
