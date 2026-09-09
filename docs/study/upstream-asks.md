@@ -130,6 +130,29 @@ knows exactly where it is — that alone solves the common case) and the
 **Wi-Fi** neighbourhood, which `configd` already sees. Neither is reachable
 from a robotd client today.
 
+**Measured, 2026-09-09.** We built the smallest version of this and put it
+on the bench: `Mapper::resumed_lost` starts a loaded session in the lost
+state, and `MAP_SESSION=<file>` in `evaluate` replays a recording into a
+saved map. Two lessons.
+
+The first is a design lesson we would pass on: the two settings that make
+a *kidnap* recoverable are wrong at *boot*. A local search radius around
+"where the duck thinks it is" is anchored to the very pose that must not be
+trusted, and giving up means falling back to it. On a resumed map the
+search must be global and must never fall back.
+
+The second is the honest result. Replaying into run 71's saved map (536
+frozen submaps, the flat at 46 %): a recording that booted **on the dock**
+relocalized after 125 s, and its pose then agreed with the true walls to
+0.070 m median against the 0.036 m a fresh map gives — it finds itself, but
+slowly and less well. Two recordings that booted **beside the stairwell**
+relocalized within 24 s to poses that agree with the true walls to only
+0.169 and 0.203 m, where a correct pose scores under 0.10: fast, confident,
+and wrong. So with an 8×8 ToF and no absolute heading, boot relocalization
+is not usable yet, which is why the dock and the Wi-Fi above matter more
+than they look. A fairer test is still owed: our away-from-dock recordings
+are short and spent beside one wall, so they show the sensor little.
+
 ## 6. Gait facts a follower needs, and cannot find written down
 
 We measured these on the twin because our first models of them were wrong

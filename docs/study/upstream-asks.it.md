@@ -136,6 +136,31 @@ sul suo caricatore sa esattamente dov'è, e questo da solo risolve il caso
 comune) e il vicinato **Wi-Fi**, che `configd` già vede. Nessuno dei due è
 raggiungibile da un client di robotd oggi.
 
+**Misurato, 2026-09-09.** Abbiamo costruito la versione minima di questo e
+l'abbiamo messa al banco: `Mapper::resumed_lost` fa partire una sessione
+caricata nello stato "persa", e `MAP_SESSION=<file>` in `evaluate` rigioca
+una registrazione dentro una mappa salvata. Due lezioni.
+
+La prima è di progetto e la passeremmo volentieri: le due impostazioni che
+rendono recuperabile un *rapimento* sono sbagliate al *boot*. Un raggio di
+ricerca locale attorno a "dove la papera crede di essere" è ancorato
+proprio alla posa di cui non ci si deve fidare, e arrendersi significa
+tornare a quella. Su una mappa ripresa la ricerca dev'essere globale e non
+deve mai ripiegare su quella posa.
+
+La seconda è il risultato onesto. Rigiocando dentro la mappa salvata del
+run 71 (536 submappe congelate, la casa al 46 %): una registrazione accesa
+**sul dock** si è rilocalizzata dopo 125 s, e la sua posa concordava con i
+muri veri a 0,070 m mediani contro i 0,036 m di una mappa nuova — si
+ritrova, ma lentamente e peggio. Due registrazioni accese **accanto alla
+tromba delle scale** si sono rilocalizzate entro 24 s su pose che
+concordano con i muri veri solo a 0,169 e 0,203 m, dove una posa corretta
+sta sotto 0,10: veloci, convinte e sbagliate. Quindi con un ToF 8×8 e senza
+direzione assoluta la rilocalizzazione al boot non è ancora utilizzabile,
+ed è per questo che il dock e il Wi-Fi contano più di quanto sembri. Una
+prova più equa resta da fare: le nostre registrazioni lontane dal dock sono
+brevi e passate accanto a un muro solo, quindi mostrano poco al sensore.
+
 ## 6. Fatti sull'andatura che servono a chi segue un percorso, e non sono scritti
 
 Li abbiamo misurati sul gemello perché i nostri primi modelli erano
