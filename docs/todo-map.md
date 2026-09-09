@@ -916,13 +916,41 @@ report zero falls before anything is called an improvement.
       running" rather than starting), and stand still afterwards until
       the mapper confirms the adopted place, because the explorer will
       not start without a pose it trusts.
-- [ ] Still owed on the homecoming: a negative control (a house the duck
-      has never seen — the twin has one flat, so this needs a second
-      world), the dock case measured live (booting where the duck was
-      switched off should confirm inside the minute and skip the
-      exploring altogether), and the places registry carried across the
-      swap: names taught on the fresh map are dropped when the saved map
-      is adopted, and the transform is exactly what would move them.
+- [x] The negative control exists, and it refuted the rule (2026-09-09).
+      `sim-maploc/houses/flat_b.xml` is a second twin house — five rooms
+      around a central hall, on a plan taller than it is wide, where the
+      apartment is a corridor with rooms either side on a plan wider than
+      it is tall. Its first draft had two rooms with no doorway at all
+      (wall segments meeting exactly where the gap belonged) and furniture
+      across a third, which is why `private/drives/housecheck.py` now
+      exists: it grows every solid thing by the duck's own width and
+      floods the floor from the spawn, naming what it cannot reach. Flat B
+      is 100 % reachable at 14, 20 and 25 cm of clearance; flat A drops to
+      86 % at 25.
+      Put in flat B with only flat A in the library, the duck **adopted
+      flat A**. The asks were (−0.25, 1.75) 0.116, (−1.40, −1.85) 0.119,
+      (−1.80, −0.60) 0.133, (−1.80, −0.45) 0.124 — the last two 15 cm
+      apart with the map grown from 728 to 810 cells, which is exactly
+      what the two-ask rule was told to accept. So "a wrong candidate does
+      not survive its own map growing" is false as written: a wrong
+      candidate can sit still for two asks four minutes apart.
+      What did separate the two houses, on this evidence, is the score
+      itself: 0.066–0.092 in its own house against 0.116–0.133 in the
+      other, with no overlap. And the failure was at least quiet — the
+      mapper never confirmed the adopted pose, so the duck stopped instead
+      of walking off convinced; but it had already thrown away the map of
+      flat B it had built, which says adoption should be on trial and
+      reversible rather than final.
+- [ ] Next, and measured before deciding: `[homecoming] dry_run = true`
+      asks every two minutes and writes down what it *would* have done,
+      so a run yields the whole series instead of stopping at its first
+      mistake. Two series to collect — flat B against flat A's map, and
+      flat B against both maps once B is mapped and saved — and then a
+      rule chosen from the distributions: a ceiling on the score, a
+      tighter agreement radius than 0.30 m (the false positive was 15 cm),
+      three asks instead of two, or the winner having to beat the
+      runner-up across maps. Also owed: the dock case measured live, and
+      the places registry carried across a swap by the same transform.
 
 ## 3. `go_to` (needs an upstream goal RPC)
 - [ ] Follow upstream for a `robot.goto`-style RPC (planner + follower

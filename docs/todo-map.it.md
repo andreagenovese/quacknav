@@ -1003,14 +1003,44 @@ riportare zero cadute prima di chiamare qualcosa un miglioramento.
       e restare fermi dopo, finché il mapper non conferma il posto
       adottato, perché l'esploratore non parte senza una posa di cui si
       fida.
-- [ ] Resta da fare sul ritorno a casa: un controllo negativo (una casa
-      mai vista — il gemello ha un solo appartamento, serve un secondo
-      mondo), il caso della base misurato dal vivo (nascere dove è stata
-      spenta dovrebbe confermare entro il minuto e saltare del tutto
-      l'esplorazione) e il registro dei luoghi portato oltre lo scambio:
-      i nomi insegnati sulla mappa fresca si perdono quando si adotta
-      quella salvata, e la trasformazione è esattamente ciò che
-      servirebbe per spostarli.
+- [x] Il controllo negativo esiste, e ha smentito la regola (2026-09-09).
+      `sim-maploc/houses/flat_b.xml` è una seconda casa per il gemello —
+      cinque stanze attorno a un atrio centrale, su una pianta più alta
+      che larga, dove l'appartamento è un corridoio con le stanze ai lati
+      su una pianta più larga che alta. La sua prima stesura aveva due
+      stanze senza alcuna porta (segmenti di muro che si toccavano
+      esattamente dove doveva esserci il varco) e un mobile davanti a una
+      terza: per questo ora esiste `private/drives/housecheck.py`, che
+      ingrossa ogni cosa solida della larghezza dell'anatra, allaga il
+      pavimento dal punto di nascita e nomina ciò che non raggiunge. Casa
+      B è raggiungibile al 100 % con 14, 20 e 25 cm di franco; casa A
+      scende all'86 % a 25.
+      Messa in casa B con in libreria solo casa A, l'anatra **ha adottato
+      casa A**. Le domande: (−0,25, 1,75) 0,116; (−1,40, −1,85) 0,119;
+      (−1,80, −0,60) 0,133; (−1,80, −0,45) 0,124 — le ultime due a 15 cm
+      l'una dall'altra con la mappa cresciuta da 728 a 810 celle, cioè
+      esattamente ciò che la regola delle due domande era stata istruita
+      ad accettare. Quindi "un candidato sbagliato non sopravvive alla
+      propria mappa che cresce" è falso com'è scritto: un candidato
+      sbagliato può stare fermo per due domande a quattro minuti.
+      Ciò che invece separa le due case, su questa evidenza, è il
+      punteggio: 0,066–0,092 in casa propria contro 0,116–0,133
+      nell'altra, senza sovrapposizione. E il seguito è stato quieto — il
+      mapper non ha mai confermato la posa adottata, così l'anatra si è
+      fermata invece di camminare convinta; ma aveva già buttato la mappa
+      di casa B che aveva costruito, il che dice che l'adozione dovrebbe
+      essere a prova e reversibile, non definitiva.
+- [ ] Prossimo, e misurato prima di decidere: `[homecoming] dry_run =
+      true` chiede ogni due minuti e mette a verbale ciò che *avrebbe*
+      fatto, così un giro dà tutta la serie invece di fermarsi al primo
+      errore. Due serie da raccogliere — casa B contro la mappa di A, e
+      casa B contro entrambe una volta mappata e salvata B — e poi una
+      regola scelta dalle distribuzioni: un tetto al punteggio, un raggio
+      di accordo più stretto di 0,30 m (il falso positivo era a 15 cm),
+      tre domande invece di due, o il vincitore che deve battere il
+      secondo fra mappe diverse. Restano anche: il caso della base
+      misurato dal vivo, e il registro dei luoghi portato oltre lo
+      scambio con la stessa trasformazione.
 
 ## 3. `go_to` (serve un RPC di goal upstream)
 - [ ] Seguire upstream per un RPC tipo `robot.goto` (pianificatore e
