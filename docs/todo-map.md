@@ -879,16 +879,50 @@ report zero falls before anything is called an improvement.
       alone. Where it lives: `microduck-pr202` branch `maploc-study`
       commit 4692340, quacksat `maploc-track` commit d875888 — local,
       unpushed, and asked of upstream in docs/study/upstream-asks.md §5.
-- [ ] The boot flow on top of them (next): load the saved map, stand
-      still and let the mapper search; if nothing is confirmed inside
-      about a minute, open a fresh map and explore as usual; every few
-      minutes ask the map-to-map question (the fresh map against each
-      saved one, `maploc/examples/align_maps`), and adopt the old map
-      with its transform when the same winner survives two asks with a
-      bigger fresh map. The acceptance rule is still uncalibrated: the
-      alignment found the truth at 5 cm on a 1313-cell map and 0.83 m on
-      a 659-cell one, but nothing has yet been shown a house it has
-      never seen (2026-09-09).
+- [x] Recognition on the IPC (2026-09-09). The alignment moved out of
+      the bench example into `maploc::align` and onto the wire as
+      `robot.map_match` (candidates, best first: the name, where the live
+      map sits inside the saved one, the wall residual, the share of live
+      floor laid on saved walls, and a score) and `robot.map_adopt`
+      (trade the live map for the saved one, composing the transform with
+      wherever the robot stands at that moment, so the client need not
+      freeze it). The adopted pose is set before the mapper is built, so
+      the confirming window judges it and not the pose the saved run
+      ended at; the robot comes up suspect, not tracked. `robotctl robot
+      map-match|map-adopt` drives both by hand.
+- [x] The homecoming, and it works (run home2, 2026-09-09).
+      `quacksat-core/src/homecoming.rs`, off unless `[homecoming]
+      enabled = true`: at boot load the newest saved map and stand still
+      for a minute in case the mapper confirms a pose by itself; if it
+      does not, wipe, explore, and ask the map-to-map question every
+      three minutes; adopt when two asks name the same map in the same
+      place (within 0.3 m) with the live map bigger the second time.
+      On the twin, booting in the kitchen 3.5 m from the dock with run
+      71's map in the library: the boot search found nothing in its
+      minute, as expected; the first ask, four minutes in with 339 wall
+      cells, named the map at (−3.40, 1.00) against a true spawn of
+      (−3.50, 1.30); the second, three minutes later with 551 cells,
+      said (−3.40, 0.95); it adopted, and the pose it took was
+      (−0.66, 1.99) against a true (−0.57, 1.82) — **19 cm**. Each ask
+      cost 0.6–0.7 s of paused mapping. The two-ask rule is what makes
+      this safe without a calibrated threshold, and it is cheap: the
+      answer was already right at the first ask. Run home3, from the same
+      spawn, did it again independently — asks at 417 and 575 cells, both
+      naming the same place within 5 cm, adopted at (0.16, 2.05) against
+      a true (0.05, 2.13), **14 cm** — and then picked exploring back up
+      on the adopted map. That last part needed two fixes home2 found:
+      wait for the running job to actually stop before adopting (a
+      panorama takes a minute, and `robot.map_explore` answers "already
+      running" rather than starting), and stand still afterwards until
+      the mapper confirms the adopted place, because the explorer will
+      not start without a pose it trusts.
+- [ ] Still owed on the homecoming: a negative control (a house the duck
+      has never seen — the twin has one flat, so this needs a second
+      world), the dock case measured live (booting where the duck was
+      switched off should confirm inside the minute and skip the
+      exploring altogether), and the places registry carried across the
+      swap: names taught on the fresh map are dropped when the saved map
+      is adopted, and the transform is exactly what would move them.
 
 ## 3. `go_to` (needs an upstream goal RPC)
 - [ ] Follow upstream for a `robot.goto`-style RPC (planner + follower

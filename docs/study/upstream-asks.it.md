@@ -292,8 +292,23 @@ aspettarlo. L'instradamento segue `robot.map_wipe`: `mediad` le porta,
 `btd` le rifiuta, l'updater non le conosce. `robotctl robot
 map-save|map-list|map-load` le guida a mano.
 
-Resta il client: al boot restare fermi e cercare, arrendersi dopo un
-minuto, esplorare, e fare la domanda del riconoscimento strada facendo.
+Anche il client è costruito, e funziona. Il ritorno a casa di `quacksat`
+carica all'avvio la mappa salvata più recente, resta fermo un minuto nel
+caso il mapper confermi una posa da solo, e altrimenti azzera, esplora e
+fa la domanda mappa contro mappa ogni tre minuti, adottando quando due
+domande nominano la stessa mappa nello stesso punto con la mappa viva più
+grande la seconda volta. Sul gemello, acceso in cucina a 3,5 m dalla base
+con in libreria una mappa da 536 sottomappe: la ricerca all'avvio non ha
+trovato nulla, come previsto; la prima domanda, dopo quattro minuti e con
+339 celle di muro, era già giusta, e la seconda l'ha confermata tre minuti
+dopo. Ha adottato, e il posto che ha preso era a 19 cm dalla verità. Ogni
+domanda è costata 0,7 s di mappatura in pausa.
+
+Quindi la forma che proponiamo non è uno schizzo: `robot.map_save`,
+`robot.map_list`, `robot.map_load`, `robot.map_match` e
+`robot.map_adopt` bastano perché un robot si svegli, capisca da solo in
+quale casa si trova e si riprenda la sua vecchia mappa con i nomi e i
+percorsi appesi — senza una soglia che qualcuno abbia dovuto tarare.
 
 ## 6. Fatti sull'andatura che servono a chi segue un percorso, e non sono scritti
 

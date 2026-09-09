@@ -279,8 +279,22 @@ Routing follows `robot.map_wipe`: `mediad` carries them, `btd` refuses
 them, the updater does not know them. `robotctl robot map-save|map-list|
 map-load` drives them by hand.
 
-What is left is the client: at boot hold still and search, give up after a
-minute, explore, and ask the recognition question as it goes.
+The client is built too, and it works. `quacksat`'s homecoming loads the
+newest saved map at boot, stands still for a minute in case the mapper
+confirms a pose by itself, and otherwise wipes, explores, and asks the
+map-to-map question every three minutes, adopting when two asks name the
+same map in the same place with the live map bigger the second time. On
+the twin, switched on in the kitchen 3.5 m from the dock with a 536-submap
+map in the library: the boot search found nothing, as expected; the first
+ask, four minutes in with 339 wall cells, was already right, and the
+second confirmed it three minutes later. It adopted, and the place it took
+was 19 cm from the truth. Each ask cost 0.7 s of paused mapping.
+
+So the shape we are proposing is not a sketch: `robot.map_save`,
+`robot.map_list`, `robot.map_load`, `robot.map_match` and
+`robot.map_adopt` are enough for a robot to wake up, work out for itself
+which house it is in, and get its old map back with the names and routes
+hanging off it — without a threshold anybody had to calibrate.
 
 ## 6. Gait facts a follower needs, and cannot find written down
 

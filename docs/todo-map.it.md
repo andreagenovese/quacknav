@@ -963,17 +963,54 @@ riportare zero cadute prima di chiamare qualcosa un miglioramento.
       `microduck-pr202`, commit 4692340; quacksat `maploc-track`, commit
       d875888 — locali, non spinti, e chiesti a upstream in
       docs/study/upstream-asks.it.md §5.
-- [ ] Il giro di avvio sopra di esse (prossimo): caricare la mappa
-      salvata, stare ferme e lasciare cercare il mapper; se entro un
-      minuto circa non si conferma nulla, aprire una mappa nuova ed
-      esplorare come sempre; ogni pochi minuti fare la domanda mappa
-      contro mappa (la mappa fresca contro ognuna salvata,
-      `maploc/examples/align_maps`) e adottare la vecchia con la sua
-      trasformazione quando lo stesso vincitore sopravvive a due domande
-      con la mappa fresca più grande. La regola di accettazione è ancora
-      da tarare: l'allineamento ha trovato la verità a 5 cm su una mappa
-      da 1313 celle e a 0,83 m su una da 659, ma a nessuno è stata ancora
-      mostrata una casa mai vista (2026-09-09).
+- [x] Il riconoscimento sull'IPC (2026-09-09). L'allineamento è uscito
+      dall'esempio al banco ed è diventato `maploc::align`, e sul filo
+      `robot.map_match` (i candidati, il migliore per primo: nome, dove
+      la mappa viva si colloca in quella salvata, il residuo sui muri, la
+      quota di pavimento vivo posato su muri salvati e un punteggio) e
+      `robot.map_adopt` (scambia la mappa viva con quella salvata,
+      componendo la trasformazione con dove il robot si trova in quel
+      momento, così il client non deve congelarlo). La posa adottata è
+      impostata prima di costruire il mapper, così la finestra di
+      conferma giudica quella e non la posa a cui finì il run salvato; il
+      robot riparte sospetto, non tracciato. `robotctl robot
+      map-match|map-adopt` le guida a mano.
+- [x] Il ritorno a casa, e funziona (run home2, 2026-09-09).
+      `quacksat-core/src/homecoming.rs`, spento se non `[homecoming]
+      enabled = true`: all'avvio carica la mappa salvata più recente e
+      resta ferma un minuto nel caso il mapper confermi una posa da solo;
+      se non lo fa, azzera, esplora e fa la domanda mappa contro mappa
+      ogni tre minuti; adotta quando due domande nominano la stessa mappa
+      nello stesso punto (entro 0,3 m) con la mappa viva più grande la
+      seconda volta. Sul gemello, nascendo in cucina a 3,5 m dalla base
+      con la mappa del run 71 in libreria: la ricerca all'avvio non ha
+      trovato nulla nel suo minuto, come previsto; la prima domanda,
+      dopo quattro minuti e con 339 celle di muro, ha nominato la mappa a
+      (−3,40, 1,00) contro una nascita vera a (−3,50, 1,30); la seconda,
+      tre minuti dopo con 551 celle, ha detto (−3,40, 0,95); ha adottato,
+      e la posa che ha preso è (−0,66, 1,99) contro un vero (−0,57,
+      1,82) — **19 cm**. Ogni domanda è costata 0,6–0,7 s di mappatura
+      in pausa. La regola delle due domande è ciò che rende sicura la
+      cosa senza una soglia tarata, e costa poco: la risposta era già
+      giusta alla prima domanda. Il run home3, dalla stessa nascita, l'ha
+      rifatto in modo indipendente — domande a 417 e 575 celle, entrambe
+      nello stesso punto entro 5 cm, adozione a (0,16, 2,05) contro un
+      vero (0,05, 2,13), **14 cm** — e poi ha ripreso a esplorare sulla
+      mappa adottata. Quest'ultima parte ha richiesto due correzioni che
+      home2 ha scoperto: aspettare che il lavoro in corso si fermi
+      davvero prima di adottare (un panorama dura un minuto, e
+      `robot.map_explore` risponde "sto già girando" invece di partire),
+      e restare fermi dopo, finché il mapper non conferma il posto
+      adottato, perché l'esploratore non parte senza una posa di cui si
+      fida.
+- [ ] Resta da fare sul ritorno a casa: un controllo negativo (una casa
+      mai vista — il gemello ha un solo appartamento, serve un secondo
+      mondo), il caso della base misurato dal vivo (nascere dove è stata
+      spenta dovrebbe confermare entro il minuto e saltare del tutto
+      l'esplorazione) e il registro dei luoghi portato oltre lo scambio:
+      i nomi insegnati sulla mappa fresca si perdono quando si adotta
+      quella salvata, e la trasformazione è esattamente ciò che
+      servirebbe per spostarli.
 
 ## 3. `go_to` (serve un RPC di goal upstream)
 - [ ] Seguire upstream per un RPC tipo `robot.goto` (pianificatore e
