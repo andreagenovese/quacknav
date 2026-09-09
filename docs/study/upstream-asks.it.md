@@ -161,6 +161,31 @@ ed è per questo che il dock e il Wi-Fi contano più di quanto sembri. Una
 prova più equa resta da fare: le nostre registrazioni lontane dal dock sono
 brevi e passate accanto a un muro solo, quindi mostrano poco al sensore.
 
+**La prova equa, e cosa ha deciso (2026-09-09).** L'abbiamo registrata: la
+papera accesa in cucina, a 3,5 m dal dock, che esplora per otto minuti —
+un panorama, qualche metro di cammino, altri panorami, 4000 celle mappate,
+nessun salto di posa. Rigiocata dentro la mappa salvata del run 71, la posa
+resta a 4–5 m dalla verità per tutta la replica: non una finestra su 89
+arriva a mezzo metro.
+
+La riga di `RELOC_DEBUG` dice perché, e non è quello che ci aspettavamo. La
+ricerca il posto giusto lo *trova*: a 38 s il suo vincitore è a 0,6 m dalla
+verità, spiega 231 fasci su 231 con un residuo medio di 0,0132 m. Nella
+stessa ricerca, un bacino dall'altra parte della casa segna 0,0132 m pure
+lui. La guardia di unicità li rifiuta entrambi, che è la risposta giusta a
+una domanda ambigua, e la papera resta onestamente persa.
+
+Quindi l'ostacolo non è la soglia di accettazione, né il numero di fasci,
+né le guardie: una singola finestra ferma di un ToF 8×8, in una casa di
+rettangoli ripetuti, non basta a nominare un luogo. **Ciò che deciderebbe è
+la forma proposta dall'utente**: guardarsi attorno, camminare qualche
+metro, guardarsi attorno di nuovo, e chiedersi quale ipotesi sopravvive a
+entrambi i punti di vista — gli alias vengono contraddetti dal secondo, la
+verità no. In codice significa portare avanti con l'odometria le prime
+candidate e valutarle alla finestra successiva, invece della sola migliore
+(`last_search`) che la guardia di accordo porta oggi. `maploc` contiene già
+un modulo MCL non collegato, ed è esattamente a questo che serve.
+
 ## 6. Fatti sull'andatura che servono a chi segue un percorso, e non sono scritti
 
 Li abbiamo misurati sul gemello perché i nostri primi modelli erano

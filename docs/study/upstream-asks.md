@@ -153,6 +153,31 @@ is not usable yet, which is why the dock and the Wi-Fi above matter more
 than they look. A fairer test is still owed: our away-from-dock recordings
 are short and spent beside one wall, so they show the sensor little.
 
+**The fair test, and what it settled (2026-09-09).** We recorded one: the
+duck switched on in the kitchen, 3.5 m from the dock, exploring for eight
+minutes — a panorama, several metres of walking, more panoramas, 4000 cells
+mapped, no pose jump. Replayed into run 71's saved map, the pose stays
+4–5 m from the truth for the whole replay; not one window of 89 comes
+within half a metre.
+
+The `RELOC_DEBUG` line says why, and it is not what we expected. The search
+*does* find the true place — at 38 s its winner is 0.6 m from it, explaining
+231 of 231 beams with a mean residual of 0.0132 m. In the same search, a
+basin on the other side of the flat scores 0.0132 m as well. The uniqueness
+gate then refuses both, which is the right answer to an ambiguous question,
+and the duck stays honestly lost.
+
+So the obstacle is not the acceptance threshold, the beam count or the
+gates: one still window of an 8×8 ToF in a flat of repeated rectangles is
+simply not enough to name a place. **What would settle it is the shape the
+user proposed**: look around, walk a few metres, look around again, and ask
+which hypothesis survives both — the aliases are contradicted by the second
+viewpoint, the truth is not. In code that means carrying the top few
+candidates forward with odometry and scoring them at the next window,
+rather than the single best (`last_search`) the agreement gate carries
+today. `maploc` already contains an MCL module that is not wired in, and
+this is what it is for.
+
 ## 6. Gait facts a follower needs, and cannot find written down
 
 We measured these on the twin because our first models of them were wrong
