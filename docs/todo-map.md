@@ -941,6 +941,43 @@ report zero falls before anything is called an improvement.
       of walking off convinced; but it had already thrown away the map of
       flat B it had built, which says adoption should be on trial and
       reversible rather than final.
+- [x] The instrument was wrong before the rule was (2026-09-09, evening).
+      A dry run in the duck's OWN house — thirteen asks, every one naming
+      the right place within 15 cm — showed the score *degrading* as the
+      map grew: 0.064 at 321 wall cells, 0.103 at 766. So "in the right
+      house the fit improves" was an artefact of two measurements, and
+      worse, the two houses' score ranges nearly met (own 0.064–0.103,
+      other 0.110–0.142): a ceiling at 0.10 would have refused the right
+      house six times in thirteen.
+      The cause is not the house but the question. The saved map covers
+      46 % of the flat; as the live map grows past its edges, more and
+      more live wall cells land where the saved map has no opinion, and
+      "how far is the nearest saved wall" there answers nothing. So
+      `maploc::align` now judges the residual **on the overlap only** —
+      cells where the saved map is sure of something — and reports the
+      overlap share as its own number. Re-scored offline, the same pairs:
+      own house 0.109, 0.116, 0.144 against another house 0.224, 0.227 —
+      a factor of two where there had been seven thousandths. The same
+      big live map of flat A scores 0.144 against flat A's map and 0.227
+      against flat B's. The runner-up margin orders them the same way:
+      0.51–0.79 when right, 0.96–0.99 when wrong — a wrong winner is
+      indistinguishable from its own second choice, which is what not
+      recognising a place actually looks like.
+- [ ] Acceptance must be ABSOLUTE, never "the best of the library"
+      (2026-09-09, user's point): the duck may be in a house that is in no
+      map it holds, so the question has to have "none of these" as an
+      answer. A map is adopted because it clears a bar of its own; the
+      ranking between maps may only order candidates that already cleared
+      it. Three outcomes: exactly one clears it → adopt; more than one →
+      refuse, since a robot cannot be in two houses and the real one may
+      be in neither; none → stay on the fresh map and keep exploring,
+      which is the ordinary case the first time it is switched on
+      anywhere.
+- [ ] Still to measure with the overlap instrument: both dry series
+      re-run live (does the score stay flat as the map grows?), flat B
+      with BOTH maps in the library (the right answer is flat_b alone),
+      and a third house — the duck in C with A and B in the library must
+      say none. Then the bar, from the distributions.
 - [ ] Next, and measured before deciding: `[homecoming] dry_run = true`
       asks every two minutes and writes down what it *would* have done,
       so a run yields the whole series instead of stopping at its first

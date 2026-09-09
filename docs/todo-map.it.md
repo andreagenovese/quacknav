@@ -1030,6 +1030,46 @@ riportare zero cadute prima di chiamare qualcosa un miglioramento.
       fermata invece di camminare convinta; ma aveva già buttato la mappa
       di casa B che aveva costruito, il che dice che l'adozione dovrebbe
       essere a prova e reversibile, non definitiva.
+- [x] Lo strumento era sbagliato prima della regola (2026-09-09, sera).
+      Un giro a vuoto nella casa PROPRIA — tredici domande, tutte che
+      nominano il posto giusto entro 15 cm — ha mostrato il punteggio che
+      *peggiora* mentre la mappa cresce: 0,064 a 321 celle di muro, 0,103
+      a 766. Quindi "nella casa giusta migliora" era un artefatto di due
+      misure, e peggio: le due gamme quasi si toccavano (propria
+      0,064–0,103, altrui 0,110–0,142) e una soglia a 0,10 avrebbe
+      rifiutato la casa giusta sei volte su tredici.
+      La causa non è la casa ma la domanda. La mappa salvata copre il 46 %
+      dell'appartamento; quando quella viva cresce oltre i suoi bordi,
+      sempre più celle di muro finiscono dove la salvata non ha opinione,
+      e lì "quanto dista il muro salvato più vicino" non risponde a nulla.
+      Perciò `maploc::align` calcola il residuo **solo sulla
+      sovrapposizione** — le celle di cui la mappa salvata sa qualcosa — e
+      riporta la quota di sovrapposizione come numero a sé. Ripunteggiate
+      offline, le stesse coppie: casa propria 0,109, 0,116, 0,144 contro
+      un'altra casa 0,224, 0,227 — un fattore due dove c'erano sette
+      millesimi. La stessa grande mappa viva di casa A vale 0,144 contro
+      la mappa di A e 0,227 contro quella di B. Il margine sul secondo
+      candidato li ordina allo stesso modo: 0,51–0,79 quando è giusto,
+      0,96–0,99 quando è sbagliato — un vincitore falso non si distingue
+      dalla propria seconda scelta, che è esattamente l'aspetto che ha il
+      non riconoscere un posto.
+- [ ] L'accettazione dev'essere ASSOLUTA, mai "la migliore della
+      libreria" (2026-09-09, osservazione dell'utente): l'anatra può
+      trovarsi in una casa che non è in nessuna mappa che possiede,
+      quindi la domanda deve avere "nessuna di queste" fra le risposte.
+      Una mappa si adotta perché supera una barra sua; la classifica fra
+      mappe può solo ordinare i candidati che l'hanno già superata. Tre
+      esiti: una sola la supera → adotta; più d'una → rifiuta, perché un
+      robot non può stare in due case e quella vera potrebbe non essere
+      né l'una né l'altra; nessuna → resta sulla mappa fresca e continua
+      a esplorare, che è il caso ordinario la prima volta che viene
+      accesa da qualche parte.
+- [ ] Da misurare ancora con lo strumento della sovrapposizione: le due
+      serie a vuoto rifatte dal vivo (il punteggio resta piatto mentre la
+      mappa cresce?), casa B con ENTRAMBE le mappe in libreria (la
+      risposta giusta è solo `flat_b`), e una terza casa — l'anatra in C
+      con A e B in libreria deve dire nessuna. Poi la barra, dalle
+      distribuzioni.
 - [ ] Prossimo, e misurato prima di decidere: `[homecoming] dry_run =
       true` chiede ogni due minuti e mette a verbale ciò che *avrebbe*
       fatto, così un giro dà tutta la serie invece di fermarsi al primo
