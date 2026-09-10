@@ -1267,6 +1267,46 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       e non pagava *prima* di queste due modifiche; vale la pena richiederselo
       ora che il percorso è dritto.
 
+- [x] La sosta resta, deciso per ripetizione (2026-09-10). Cinque
+      tragitti da tre metri per ogni impostazione, dopo le correzioni sui
+      panorami e sulla mira: sosta piena da 3 s 135 · 136 · 133 · 135 ·
+      185 s; breve da 1,5 s 87 · 126 · 86 · 156 · 197; nessuna 63 · 110 ·
+      113 · 137 · 81. Le mediane scendono (135 → 126 → 110) ma le
+      dispersioni si sovrappongono quasi del tutto: su cinque misure la
+      differenza non si distingue dal rumore fra un giro e l'altro — lo
+      stesso rumore che ha dato 106 s e 135 s per la stessa identica
+      configurazione in due giri diversi.
+      Ciò che invece si distingue: con la sosta piena quattro tragitti su
+      cinque cadono entro tre secondi l'uno dall'altro, nessuna tappa
+      manca di muovere l'anatra e non ci sono retromarce. Senza, una e
+      tre; con niente, cinque e undici. Quindi la sosta compra
+      prevedibilità e un corpo che non va a sbattere, a un prezzo nascosto
+      dentro il rumore. Resta (`QK_FAST_GOAL=1`, `QK_FAST_STAND_S` per
+      riprendere il discorso).
+- [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
+      domanda dell'utente — perché mappano un piano intero senza sbagliare
+      di un millimetro?). Gran parte della risposta è che giocano un altro
+      gioco: un LIDAR rotante vede 360° in un colpo, migliaia di punti al
+      secondo, e il contorno completo di una stanza ha un solo modo di
+      combaciare con la mappa, mentre uno spicchio di 45° su un muro
+      liscio ci scivola sopra liberamente — che è insieme il nostro
+      aliasing, le nostre chiusure d'anello dubbie e le corrispondenze con
+      l'immagine speculare. E rotolano su encoder sopra un pavimento
+      piano, dove noi camminiamo con un sensore su una testa su un corpo
+      che beccheggia.
+      Tre dei loro trucchi sono alla nostra portata, in quest'ordine:
+      **Raddrizzare a rette.** La mappa sul loro telefono non è la griglia
+      grezza: i muri sono ricondotti a segmenti dritti e angoli retti. Una
+      casa è fatta di segmenti e la nostra griglia non lo sa. Attacca
+      proprio il numero che vogliamo abbassare.
+      **Ancorarsi alla base.** Ci tornano e si riancorano a ogni giro, il
+      che cancella la deriva accumulata contro un riferimento che non si
+      muove mai. Il gemello una base ce l'ha e non la usiamo per nulla.
+      **Prima il perimetro.** Il loro primo giro è quasi sempre lungo i
+      muri, e tenere una parete in vista è ciò che rende ben condizionata
+      la stima. L'esplorazione a frontiere copre benissimo e ancora
+      malissimo.
+
 ## 3. `go_to` (serve un RPC di goal upstream)
 - [ ] Seguire upstream per un RPC tipo `robot.goto` (pianificatore e
       follower esistono nel crate, non sono cablati). Se entro dicembre

@@ -1162,6 +1162,42 @@ nothing: it explores and asks.
       measured and did not pay *before* these two changes; worth asking
       again now that the path is straight.
 
+- [x] The stand stays, decided by repetition (2026-09-10). Five
+      three-metre journeys under each setting, after the panorama and aim
+      fixes: full 3 s stand 135 · 136 · 133 · 135 · 185 s; short 1.5 s
+      87 · 126 · 86 · 156 · 197; none 63 · 110 · 113 · 137 · 81. The
+      medians fall (135 → 126 → 110) but the spreads overlap almost
+      entirely, so on five samples the difference is not distinguishable
+      from the run-to-run noise — the same noise that gave 106 s and 135 s
+      for the identical configuration on two different runs.
+      What is distinguishable: with the full stand four of five journeys
+      land within three seconds of each other, and no leg fails to move
+      the duck and nothing backs off. Without it, one and three; with none,
+      five and eleven. So the stand buys predictability and a body that
+      does not walk into things, at a price hidden inside the noise. It
+      stays (`QK_FAST_GOAL=1`, `QK_FAST_STAND_S` to revisit).
+- [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
+      question — why do they map a whole floor without a millimetre of
+      error?). Most of the answer is that they play another game: a
+      spinning LIDAR sees 360° at once, thousands of points a second, and
+      a full outline of a room has exactly one way to fit the map, where a
+      45° wedge on a flat wall can slide along it freely — which is our
+      aliasing, our doubtful loop closures and our mirror-image matches,
+      all at once. And they roll on encoders over a flat floor where we
+      walk, with a sensor on a head on a body that bobs.
+      Three of their tricks are within reach, and worth taking in this
+      order:
+      **Fit lines.** The map on their phone is not a raw grid: walls are
+      snapped to straight segments and right angles. A house is made of
+      segments and our grid does not know it. This attacks the very number
+      we are trying to lower.
+      **Anchor on the dock.** They return to it and re-anchor every run,
+      which erases accumulated drift against a landmark that never moves.
+      The twin has a dock and we use it for nothing.
+      **Follow the wall first.** Their first pass is the perimeter, and
+      keeping a wall in view is what makes the estimate well-conditioned.
+      Frontier exploration is excellent at covering and poor at anchoring.
+
 ## 3. `go_to` (needs an upstream goal RPC)
 - [ ] Follow upstream for a `robot.goto`-style RPC (planner + follower
       exist in the crate, not wired). If nothing appears by December,
