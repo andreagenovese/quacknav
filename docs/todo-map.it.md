@@ -1138,13 +1138,49 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       La mediana è zero — la maggior parte dei muri mappati sta esatta su
       quelli veri — e un quinto è fuori di più di 10 cm, con il 3–8 %
       raddoppiato. Quel quinto è il bersaglio.
-- [ ] Da dove viene quel quinto. La correzione della posa fra una chiusura
-      e l'altra è già accesa di default (e questi numeri sono con essa),
-      quindi il sospettato successivo è il chiuditore d'anelli: il run 71
-      ha chiuso **973** anelli in mezz'ora, e una chiusura sul rumore
-      della mappa non la sposta, la sfuma. L'esperimento che ora lo
-      strumento permette: la stessa casa con le guardie del chiuditore
-      strette, o spento, misurata allo stesso modo.
+- [x] Da dove veniva quel quinto, e metà se n'è andata (2026-09-10).
+      La correzione della posa era già accesa, quindi il sospettato era il
+      chiuditore d'anelli — ed era lui, ma non per il motivo previsto. Le
+      chiusure servono: rigiocando una sessione senza nessuna, i muri
+      fuori posto salgono al 27 % contro il 21 % con esse. Sbagliato era
+      quanto ci si credeva. L'arco diceva all'ottimizzatore che la posa
+      relativa di due sottomappe era nota a 5 cm — una cella e mezza — e
+      il grafo si piegava per accontentare ogni chiusura che i rettangoli
+      ripetuti dell'appartamento producevano.
+      Allargato a 40 cm e 14°, su sette sessioni rigiocate in due case:
+      meglio in sei su sette, media dei muri fuori posto 21,1 % → 13,4 %,
+      media dei muri raddoppiati 5,4 % → 3,4 %. Sulla registrazione di
+      riferimento 20,8 % → 3,6 %. Dal vivo, mezz'ora in casa A: muri
+      raddoppiati **8,0 % → 1,1 %**, 90° percentile 25 cm → 15 cm,
+      peggiore 55 cm → 40 cm; i muri fuori posto si muovono appena
+      (18,7 → 17,1), perché un giro dal vivo è un percorso diverso e non
+      un confronto controllato.
+      E la mappa che ne è venuta riconosce meglio la sua casa: la serie
+      delle domande è passata da 0,107–0,138 a **0,058–0,112**, i margini
+      da 0,74–0,96 a 0,34–0,43. Una mappa più vera è una mappa più facile
+      da riconoscere.
+- [ ] Ciò che NON è risolto: la sensibilità in sé. La stessa
+      registrazione, con la fiducia sull'arco spostata di poco, cade
+      ancora fra il 3,6 % e il 29 % di muri fuori posto — l'esito è
+      caotico in quel parametro, e 40 cm è un posto più tollerante dove
+      stare, non una cura. Un nucleo di Huber sugli archi era il rimedio
+      ovvio ed è stato misurato: con archi da 40 cm nessun residuo arriva
+      a 1,5 sigma e non scatta mai; con archi da 5 cm scatta e il
+      risultato è una lotteria (una registrazione +17 punti, un'altra
+      −21). Va in produzione spento, `OptimizerConfig::huber_delta`, con
+      la misura scritta accanto. Una cura vera deve impedire a una singola
+      chiusura sbagliata di dominare: un vincolo commutabile, un consenso
+      fra chiusure, o la validazione di una chiusura contro la mappa che
+      produrrebbe.
+- [x] Strumenti per questo lavoro: `mapquality.py` (una mappa contro i
+      muri veri della casa), `dump_frame` di `maploc` (una sessione
+      salvata come frame di mappa dal vivo) e `OUT_SESSION` di `evaluate`
+      (la mappa costruita da una riprova, salvata come la salva il robot).
+      Insieme: rigiocare qualunque registrazione con qualunque
+      impostazione e misurare la mappa che ne esce, in una quindicina di
+      secondi. E per giunta: una mappa misurata contro la casa sbagliata
+      legge 40–50 % di muri fuori posto contro il ~20 % di quella giusta,
+      quindi la qualità della mappa fa anche da prova d'identità.
 - [ ] Muoversi in fretta. Oggi ogni tappa è cammina-e-fermati, e la sosta
       serve a *mappare*. Su pavimento già mappato e con una posa di cui si
       fida, all'anatra non serve: `go_to` può camminare di continuo col

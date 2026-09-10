@@ -1042,12 +1042,45 @@ nothing: it explores and asks.
       The median is zero — most mapped walls sit exactly on true ones —
       and a fifth of them are out by more than 10 cm, with 3–8 % doubled.
       That fifth is the target.
-- [ ] Where the fifth comes from. The pose correction between closures is
-      already on by default (and these numbers are with it), so the next
-      suspect is the loop closer: run 71 closed **973** loops in half an
-      hour, and a closure on map noise does not move a map, it smears it.
-      The experiment the instrument now allows: the same house with the
-      closer's gates tightened, or off, scored the same way.
+- [x] Where the fifth came from, and half of it is gone (2026-09-10).
+      The pose correction between closures was already on, so the suspect
+      was the loop closer — and it was, but not for the reason expected.
+      Closures are worth having: replaying a session with none at all
+      leaves 27 % of walls misplaced against 21 % with them. What was
+      wrong is how much they were believed. The edge told the optimizer
+      that two submaps' relative pose was known to 5 cm — a cell and a
+      half — so the graph bent to satisfy every closure the flat's
+      repeated rectangles produced.
+      Widened to 40 cm and 14°, over seven replayed sessions in two
+      houses: better on six of seven, mean misplaced wall 21.1 % → 13.4 %,
+      mean doubled wall 5.4 % → 3.4 %. On the reference recording
+      20.8 % → 3.6 %. Live, half an hour in flat A: doubled walls
+      **8.0 % → 1.1 %**, the 90th percentile 25 cm → 15 cm, the worst
+      55 cm → 40 cm; misplaced walls barely moved (18.7 → 17.1), a live
+      run being a different path and not a controlled comparison.
+      And the map that came of it recognised its house better: the ask
+      series went from 0.107–0.138 to **0.058–0.112**, margins from
+      0.74–0.96 to 0.34–0.43. A truer map is an easier map to recognise.
+- [ ] What is NOT fixed: the sensitivity itself. The same recording, with
+      the edge confidence moved a little, still lands anywhere between
+      3.6 % and 29 % of misplaced wall — the outcome is chaotic in that
+      parameter, and 40 cm is a more tolerant place to stand rather than a
+      cure. A Huber kernel on the loop edges was the obvious treatment and
+      it was measured: with 40 cm edges nothing reaches 1.5 sigmas so it
+      never fires; with 5 cm edges it fires and the result is a lottery
+      (one recording +17 points, another −21). It ships off,
+      `OptimizerConfig::huber_delta`, with the measurement beside it. A
+      real cure has to make one bad closure unable to dominate — a
+      switchable constraint, a consensus over closures, or validating a
+      closure against the map it would produce.
+- [x] Instruments for this work: `mapquality.py` (a map against the
+      house's own walls), `maploc`'s `dump_frame` (a saved session as a
+      live map frame) and `evaluate`'s `OUT_SESSION` (the map a replay
+      built, saved the way the robot saves one). Together: replay any
+      recording under any setting and score the map that comes out, in
+      about fifteen seconds. Also, usefully, a map scored against the
+      wrong house reads 40–50 % misplaced against ~20 % for the right
+      one, so map quality doubles as an identity check.
 - [ ] Moving quickly. Every leg today is walk-then-stand, and the stand is
       there to *map*. On floor already mapped with a pose it trusts, the
       duck does not need it: `go_to` can walk continuously with the depth
