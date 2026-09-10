@@ -1105,6 +1105,34 @@ nothing: it explores and asks.
       to the bedroom as it stands — then the fast mode, and the same
       number after.
 
+- [x] How fast is it, and the stands are not the fat (2026-09-10).
+      `private/drives/speed_test.py` and `speed_run.sh`: the duck maps on
+      its own for seven minutes, then is asked to cross what it mapped,
+      with the truth taken from the body server. Two three-metre journeys
+      take **221 s and 192 s**, arriving within 9-15 cm — a speed made
+      good of 0.013-0.015 m/s against a walking speed of 0.121. Nine
+      tenths of the journey is not progress.
+      The obvious cure — drop the stand between legs on floor already
+      mapped, standing every fifth leg to keep the pose honest — was built
+      and measured, and does not pay: 235 s and 214 s, no faster, and the
+      duck walked 8.5 m and 8.7 m to make the same three metres, with
+      seven legs that failed to move it against one and eleven back-offs
+      against four. So it ships off (`QK_FAST_GOAL=1` turns it on).
+      What that taught: the stand is not only how the stop reaches the
+      map, it is also what puts a fresh frame and a corrected pose in
+      front of the next leg's plan. Walking on from a stale plan bumps
+      into corners the plan did not know about.
+      Where the journey actually goes: 7-8 m walked to make 3, thirteen
+      turns in place along the way, and about 60 s of the 200 spent
+      walking. **The path and the spins are the target**, not the stands —
+      a follower question, and behind it the pose: mid-run the belief was
+      0.70 m from the truth, which is enough to make the planner see walls
+      where there is floor.
+      (A word to the next reader: `robot.go_to` speaks the duck's map
+      frame, whose origin is where it booted. Handing it world
+      coordinates sent it walking at a point outside the flat and cost a
+      run. `speed_test.py` converts now.)
+
 ## 3. `go_to` (needs an upstream goal RPC)
 - [ ] Follow upstream for a `robot.goto`-style RPC (planner + follower
       exist in the crate, not wired). If nothing appears by December,

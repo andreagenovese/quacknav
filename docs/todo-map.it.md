@@ -1206,6 +1206,37 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       ci mette dalla cucina alla camera com'è adesso — poi la modalità
       veloce, e lo stesso numero dopo.
 
+- [x] Quanto è veloce, e le soste non sono il grasso (2026-09-10).
+      `private/drives/speed_test.py` e `speed_run.sh`: l'anatra mappa da
+      sola per sette minuti, poi le si chiede di attraversare ciò che ha
+      mappato, con la verità presa dal server del corpo. Due tragitti da
+      tre metri costano **221 s e 192 s**, con arrivo a 9-15 cm — una
+      velocità utile di 0,013-0,015 m/s contro un passo di 0,121. Nove
+      decimi del viaggio non sono avanzamento.
+      La cura ovvia — togliere la sosta fra le tappe su pavimento già
+      mappato, fermandosi ogni quinta per tenere onesta la posa — è stata
+      costruita e misurata, e non paga: 235 s e 214 s, nessun guadagno, e
+      l'anatra ha camminato 8,5 m e 8,7 m per fare gli stessi tre metri,
+      con sette tappe che non l'hanno mossa affatto contro una e undici
+      retromarce contro quattro. Va in produzione spenta
+      (`QK_FAST_GOAL=1` l'accende).
+      Cosa ha insegnato: la sosta non è solo il modo in cui la fermata
+      raggiunge la mappa, è anche ciò che mette un frame fresco e una posa
+      corretta davanti al piano della tappa successiva. Ripartire su un
+      piano stantio significa sbattere negli angoli che il piano non
+      conosceva.
+      Dove va davvero il viaggio: 7-8 m camminati per farne 3, tredici
+      giri sul posto per strada, e circa 60 s dei 200 passati a
+      camminare. **Il percorso e i giri sono il bersaglio**, non le soste
+      — una questione di chi segue il percorso, e dietro di essa la posa:
+      a metà giro la convinzione distava 0,70 m dal vero, abbastanza per
+      far vedere al pianificatore muri dove c'è pavimento.
+      (Una parola per chi legge dopo: `robot.go_to` parla nel sistema
+      della mappa dell'anatra, la cui origine è dove si è accesa. Dargli
+      coordinate del mondo l'ha mandata a camminare verso un punto fuori
+      dall'appartamento ed è costato un giro. Ora `speed_test.py`
+      converte.)
+
 ## 3. `go_to` (serve un RPC di goal upstream)
 - [ ] Seguire upstream per un RPC tipo `robot.goto` (pianificatore e
       follower esistono nel crate, non sono cablati). Se entro dicembre
