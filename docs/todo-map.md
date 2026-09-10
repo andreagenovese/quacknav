@@ -1198,6 +1198,40 @@ nothing: it explores and asks.
       keeping a wall in view is what makes the estimate well-conditioned.
       Frontier exploration is excellent at covering and poor at anchoring.
 
+- [x] The duck in the house with curves (2026-09-10). Flat C mapped for
+      25 minutes, then scored against its own geometry:
+
+      | | flat A | flat B | flat C |
+      |---|---|---|---|
+      | median | 0 cm | 0 cm | **5 cm** |
+      | 90th | 25 cm | 20 cm | **42 cm** |
+      | beyond 10 cm | 18.7 % | 21.6 % | **32.9 %** |
+      | doubled | 8.0 % | 3.4 % | **18.9 %** |
+
+      The picture says what the numbers do not. The round island and the
+      curved partition are mapped cleanly — the two things most feared.
+      What is missing is **the big gentle bay**: the floor beneath it is
+      explored, so the duck walked there, but the wall itself survives
+      only in patches. The reason is not curvature but grazing incidence —
+      a wide concave wall seen from inside returns echoes along itself,
+      and a grazing beam either does not come back or is dropped by the
+      filter that separates floor from wall. The same sensor traces a
+      cylinder at one metre and misses a soft wall at three.
+      So 32.9 % does not read "curves are hard"; it reads **"what the
+      sensor sees edge-on does not reach the map"**, and flat C simply has
+      much more of it. That will be true of the real duck too, and worse,
+      since a real wall reflects less kindly than a simulated one.
+      It also settles the straightening question from the other side: in a
+      house like this a line-fitter would have the least real evidence
+      exactly where the map is poorest, and would fill the gap with its
+      own invention. Straightness belongs in the pose correction, not in
+      the drawing of walls.
+      (Two of the three instruments were quietly showing the wrong house
+      until this run: the map picture drew flat A's boxes over flat C's
+      map, and then drew flat C's turned walls unturned. Both fixed. The
+      quality figures were never affected — that tool learned about
+      rotation first.)
+
 ## 3. `go_to` (needs an upstream goal RPC)
 - [ ] Follow upstream for a `robot.goto`-style RPC (planner + follower
       exist in the crate, not wired). If nothing appears by December,

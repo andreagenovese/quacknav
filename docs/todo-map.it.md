@@ -1307,6 +1307,41 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       la stima. L'esplorazione a frontiere copre benissimo e ancora
       malissimo.
 
+- [x] L'anatra nella casa con le curve (2026-09-10). Casa C mappata per
+      25 minuti, poi misurata contro la propria geometria:
+
+      | | casa A | casa B | casa C |
+      |---|---|---|---|
+      | mediana | 0 cm | 0 cm | **5 cm** |
+      | 90° perc. | 25 cm | 20 cm | **42 cm** |
+      | oltre 10 cm | 18,7 % | 21,6 % | **32,9 %** |
+      | raddoppiati | 8,0 % | 3,4 % | **18,9 %** |
+
+      L'immagine dice ciò che i numeri non dicono. L'isola tonda e il
+      tramezzo curvo sono mappati con nettezza — le due cose che temevo di
+      più. Manca invece **la grande baia dolce**: il pavimento sotto di
+      essa risulta esplorato, quindi l'anatra ci è passata, ma del muro
+      restano solo pezzi. La ragione non è la curvatura ma l'incidenza
+      radente — una parete concava ampia vista da dentro rimanda echi
+      lungo sé stessa, e un raggio radente o non torna o viene scartato
+      dal filtro che separa il pavimento dai muri. Lo stesso sensore
+      traccia un cilindro a un metro e perde un muro dolce a tre.
+      Quindi il 32,9 % non si legge "le curve sono difficili", si legge
+      **"ciò che il sensore vede di striscio non arriva in mappa"**, e
+      casa C ne ha semplicemente molto di più. Varrà anche per l'anatra
+      vera, e peggio, perché un muro vero riflette meno gentilmente di uno
+      simulato.
+      E risolve la questione del raddrizzamento dall'altro lato: in una
+      casa così, chi tira rette avrebbe pochissima evidenza vera proprio
+      dove la mappa è più povera, e riempirebbe il vuoto con una propria
+      invenzione. La rettitudine va nella correzione della posa, non nel
+      disegno dei muri.
+      (Due strumenti su tre mostravano di nascosto la casa sbagliata fino
+      a questa prova: l'immagine della mappa disegnava le scatole di casa
+      A sopra la mappa di casa C, e poi disegnava i muri ruotati di casa C
+      senza ruotarli. Corretti entrambi. Le cifre di qualità non ne sono
+      state toccate: quello strumento aveva imparato la rotazione prima.)
+
 ## 3. `go_to` (serve un RPC di goal upstream)
 - [ ] Seguire upstream per un RPC tipo `robot.goto` (pianificatore e
       follower esistono nel crate, non sono cablati). Se entro dicembre
