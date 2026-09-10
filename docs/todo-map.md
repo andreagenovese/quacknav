@@ -1009,6 +1009,23 @@ report zero falls before anything is called an improvement.
       runner-up across maps. Also owed: the dock case measured live, and
       the places registry carried across a swap by the same transform.
 
+- [ ] A window cannot form while the pose is suspect (2026-09-10, found
+      while building the travel bench). After `robot.map_adopt`, standing
+      and turning on the spot produces windows of 15–48 beams, which the
+      mapper discards as too thin (`min_window_beams` 60) — so the
+      confirmation the adopted pose needs can never arrive, and the duck
+      stays lost on a map whose pose was right to a few centimetres. The
+      same stands while tracking produce composites of 1000–2400 beams.
+      The suspect is the accumulator's vote: it keeps a beam only when
+      several frames of the window saw its endpoint cell, and while the
+      pose is suspect the head is sweeping ±0.9 rad to widen the view, so
+      consecutive frames look elsewhere and few cells collect votes. A
+      defence against noise that empties the window exactly when the
+      window matters most. This is probably also why boot relocalization
+      always looked weak. To measure: composite beams per window with the
+      sweep on and off, and the vote's `min_frames` against the sweep
+      rate.
+
 ## 2b. One map, kept true (2026-09-09, the user's direction)
 
 The library goes on the shelf. **One map**: the duck keeps it, improves it

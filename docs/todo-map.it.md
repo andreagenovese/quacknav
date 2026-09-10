@@ -1103,6 +1103,24 @@ riportare zero cadute prima di chiamare qualcosa un miglioramento.
       misurato dal vivo, e il registro dei luoghi portato oltre lo
       scambio con la stessa trasformazione.
 
+- [ ] Una finestra non può formarsi mentre la posa è sospetta
+      (2026-09-10, trovato costruendo il banco di velocità). Dopo
+      `robot.map_adopt`, stare fermi e girare sul posto produce finestre
+      da 15–48 raggi, che il mapper scarta come troppo magre
+      (`min_window_beams` 60) — quindi la conferma di cui la posa adottata
+      ha bisogno non può mai arrivare, e l'anatra resta persa su una mappa
+      la cui posa era giusta a pochi centimetri. Le stesse soste, quando
+      traccia, danno composite da 1000–2400 raggi.
+      Il sospetto è il voto dell'accumulatore: tiene un raggio solo se più
+      fotogrammi della finestra hanno visto la sua cella terminale, e
+      mentre la posa è sospetta la testa spazza di ±0,9 rad per allargare
+      il campo, così fotogrammi consecutivi guardano altrove e poche celle
+      raccolgono voti. Una difesa dal rumore che svuota la finestra
+      proprio quando la finestra conta. È probabilmente anche il motivo
+      per cui la rilocalizzazione all'accensione è sempre parsa debole. Da
+      misurare: raggi per finestra con la spazzata accesa e spenta, e il
+      `min_frames` del voto contro la velocità della spazzata.
+
 ## 2b. Una mappa sola, tenuta giusta (2026-09-09, direzione dell'utente)
 
 La libreria va in soffitta. **Una mappa sola**: l'anatra la tiene, la
