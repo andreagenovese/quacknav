@@ -1385,6 +1385,45 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       sensore vero a tre metri, che è un numero di upstream e non del
       gemello.
 
+- [ ] Una politica di cammino che sa girare sul posto (2026-09-11, su
+      segnalazione dell'utente: uduckmoves.com, un registro comunitario di
+      politiche per il Microduck, Apache-2.0, 18 mosse, 8 con dichiarazione
+      di prova su hardware). Due fatti prima di tutto: la "Alpha Dynamic
+      Walk" del registro ha lo stesso SHA256 dell'`alpha_walking.onnx` che
+      già usiamo, quindi quella voce è la nostra andatura; e il caricatore
+      di robotd passa l'ingresso col nome `obs` e legge la prima uscita
+      comunque si chiami, quindi qualunque modello 61 → 14 si innesta
+      senza modifiche, quanto ai tensori.
+      `backlash.onnx` (Genesis, rifinita con ±1° di gioco simulato su ogni
+      servo) è 61 → 14 e **cammina**, quindi la disposizione delle
+      osservazioni è compatibile. Confrontata con l'alpha sul gemello, una
+      ripetizione:
+
+      | | alpha | backlash |
+      |---|---|---|
+      | dritto | +0,123 m/s | +0,128 m/s |
+      | sbandamento | −4,8 °/s | −8,5 °/s |
+      | **giro sul posto da fermo** | **+0,2 °/s** | **+28 / −32 °/s** |
+      | arco +0,7 | +38,3 °/s | −1,3 °/s (verso sbagliato) |
+      | arco −0,7 | −32,0 °/s, avanzando | −26,8 °/s, senza avanzare |
+      | retromarcia | −0,122 m/s | −0,084 m/s |
+      | cadute | 0 | 0 |
+
+      Girare sul posto è la capacità che più manca all'esploratore: oggi
+      ogni cambio di direzione in uno spazio stretto costa prima un calcio
+      in avanti, ed è da lì che vengono i tredici giri per tre metri,
+      diverse tappe rifiutate e una parte delle retromarce. Ma gli archi
+      sono rotti — chiesto un arco a sinistra gira di un grado dalla parte
+      sbagliata — e l'esploratore vive di archi, con `GAIT_M_PER_S` e le
+      frazioni di avanzamento in arco tutte misurate sull'alpha.
+      Quindi: candidato serio, non un ricambio. Gli serve un giro intero
+      sul gemello (qualità della mappa, cadute, tempi di percorrenza) e,
+      se regge, chi segue il percorso va ritarato attorno a un'andatura
+      che sa perniare — il ramo del giro sul posto smette di essere
+      l'ultima risorsa. Con l'avvertenza che accompagna tutto ciò che
+      viene da quel registro: nessuna delle politiche Genesis ha mai
+      camminato su un'anatra fisica.
+
 ## 3. `go_to` (serve un RPC di goal upstream)
 - [ ] Seguire upstream per un RPC tipo `robot.goto` (pianificatore e
       follower esistono nel crate, non sono cablati). Se entro dicembre

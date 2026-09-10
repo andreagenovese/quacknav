@@ -1272,6 +1272,42 @@ nothing: it explores and asks.
       decided: it wants repeats, and it wants the real sensor's noise at
       three metres, which is upstream's number and not the twin's.
 
+- [ ] A walking policy that can turn on the spot (2026-09-11, from the
+      user: uduckmoves.com, a community registry of Microduck policies,
+      Apache-2.0, 18 moves, 8 with a hardware claim). Two facts first: the
+      registry's "Alpha Dynamic Walk" has the same SHA256 as the
+      `alpha_walking.onnx` we already run, so that entry is our own gait;
+      and robotd's loader feeds its input by the name `obs` and reads the
+      first output whatever it is called, so any 61 → 14 model is a
+      drop-in as far as the tensors go.
+      `backlash.onnx` (Genesis, fine-tuned with ±1° of simulated gearbox
+      play on every servo) is 61 → 14 and **walks**, so the observation
+      layout is compatible. Probed against alpha on the twin, one rep:
+
+      | | alpha | backlash |
+      |---|---|---|
+      | straight | +0.123 m/s | +0.128 m/s |
+      | veer | −4.8 °/s | −8.5 °/s |
+      | **spin from a standstill** | **+0.2 °/s** | **+28 / −32 °/s** |
+      | arc +0.7 | +38.3 °/s | −1.3 °/s (wrong way) |
+      | arc −0.7 | −32.0 °/s, advancing | −26.8 °/s, not advancing |
+      | backing | −0.122 m/s | −0.084 m/s |
+      | falls | 0 | 0 |
+
+      Turning in place is the capability the explorer most lacks: today
+      every heading change in a tight place costs a kick forward first,
+      which is where the thirteen spins per three metres, several refused
+      legs and some of the back-offs come from. But the arcs are broken —
+      asked to arc left it turns one degree the wrong way — and the
+      explorer lives on arcs, with `GAIT_M_PER_S` and the arc-advance
+      fractions all measured on alpha.
+      So: a serious candidate, not a swap. What it wants next is a full
+      run in the twin (map quality, falls, journey times) and, if that
+      holds, the follower re-tuned around a gait that can pivot — the
+      spin-in-place branch stops being a last resort. And the caveat that
+      travels with everything from this registry: none of the Genesis
+      policies has ever walked on a physical duck.
+
 ## 3. `go_to` (needs an upstream goal RPC)
 - [ ] Follow upstream for a `robot.goto`-style RPC (planner + follower
       exist in the crate, not wired). If nothing appears by December,
