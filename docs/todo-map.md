@@ -1232,6 +1232,46 @@ nothing: it explores and asks.
       quality figures were never affected — that tool learned about
       rotation first.)
 
+- [x] **A correction: the measuring instrument was choosing bad
+      alignments** (2026-09-10, late). `mapquality.py` fits the map to the
+      house rigidly before scoring, and the fit minimised the *median*
+      distance — which is minimised beautifully by an alignment that nails
+      a subset of walls and ruins the rest. It chose one: the same flat C
+      map read 36.3 % beyond 10 cm at the fit it picked (−8°) and 22.2 %
+      four degrees away. The fit now minimises the share beyond 10 cm
+      itself, with the median only as a tie-breaker.
+      Every figure measured before this is biased, and the wild
+      non-monotonic jumps that made a parameter look chaotic were largely
+      the fit hopping between alignments. Re-measured, the three live maps
+      of this evening read:
+
+      | | flat A | flat B | flat C |
+      |---|---|---|---|
+      | beyond 10 cm | 4.9 % | 11.2 % | 22.5 % |
+      | doubled | 0.9 % | 1.5 % | 15.1 % |
+      | coverage | 49 % | 49 % | 51 % |
+
+      Both decisions of the day survive the correction, one of them larger
+      than it looked. The loop-closure widening (5 cm → 40 cm), paired per
+      recording at the same range: flat C 29.3 % → 14.4 %, flat A 13.4 % →
+      1.9 % and 14.2 % → 8.0 %, flat B 13.2 % → 5.4 % — four of four, with
+      doubled walls in flat C falling from 20.6 % to 0.5 %.
+- [ ] **The accumulator keeps only the nearest two metres**
+      (`AccumulatorConfig::max_range_m` = 2.0, "the sensor's noise past
+      here costs more than the coverage buys"). The sensor reaches four.
+      That is why the far half of an open room is never inked, and why
+      flat C's wide bay is missing from its map — not curvature, and not
+      grazing incidence: the simulated ToF is a plain raycast with no
+      incidence model at all, which is a correction to what this file said
+      an hour earlier.
+      Raising it to 3 m, paired per recording: flat C 14.4 % → **1.2 %**
+      with coverage 48 % → 62 %; flat A 8.0 % → 1.1 %; flat A 1.9 % →
+      8.8 %; flat B 5.4 % → 5.1 %. Two better, one worse, one level — and
+      the shape of it makes sense, since a narrow flat has little beyond
+      two metres to gain and only the noise to lose. Promising, not
+      decided: it wants repeats, and it wants the real sensor's noise at
+      three metres, which is upstream's number and not the twin's.
+
 ## 3. `go_to` (needs an upstream goal RPC)
 - [ ] Follow upstream for a `robot.goto`-style RPC (planner + follower
       exist in the crate, not wired). If nothing appears by December,

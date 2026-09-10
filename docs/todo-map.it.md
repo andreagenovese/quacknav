@@ -1342,6 +1342,49 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       senza ruotarli. Corretti entrambi. Le cifre di qualità non ne sono
       state toccate: quello strumento aveva imparato la rotazione prima.)
 
+- [x] **Una correzione: lo strumento di misura sceglieva allineamenti
+      sbagliati** (2026-09-10, tardi). `mapquality.py` adatta la mappa alla
+      casa in modo rigido prima di valutarla, e l'adattamento minimizzava
+      la *mediana* delle distanze — che si minimizza splendidamente con un
+      allineamento che incolla qualche muro e rovina tutti gli altri. Ne ha
+      scelto uno: la stessa mappa di casa C leggeva 36,3 % oltre 10 cm con
+      l'allineamento scelto (−8°) e 22,2 % con uno a quattro gradi di
+      distanza. Ora l'adattamento minimizza direttamente la quota oltre 10
+      cm, con la mediana solo come spareggio.
+      Ogni cifra misurata prima di questo è viziata, e i salti non monotoni
+      che facevano sembrare caotico un parametro erano in buona parte
+      l'adattamento che saltava fra allineamenti. Rimisurate, le tre mappe
+      dal vivo di stasera danno:
+
+      | | casa A | casa B | casa C |
+      |---|---|---|---|
+      | oltre 10 cm | 4,9 % | 11,2 % | 22,5 % |
+      | raddoppiati | 0,9 % | 1,5 % | 15,1 % |
+      | copertura | 49 % | 49 % | 51 % |
+
+      Entrambe le decisioni della giornata sopravvivono alla correzione,
+      una più grande di come sembrava. L'allargamento delle chiusure
+      d'anello (5 cm → 40 cm), appaiato per registrazione a pari portata:
+      casa C 29,3 % → 14,4 %, casa A 13,4 % → 1,9 % e 14,2 % → 8,0 %, casa
+      B 13,2 % → 5,4 % — quattro su quattro, e i muri raddoppiati di casa C
+      dal 20,6 % allo 0,5 %.
+- [ ] **L'accumulatore tiene solo i primi due metri**
+      (`AccumulatorConfig::max_range_m` = 2.0, "il rumore del sensore oltre
+      questo punto costa più di quanto la copertura renda"). Il sensore
+      arriva a quattro. È il motivo per cui la metà lontana di una stanza
+      aperta non entra mai in mappa, e per cui l'ampia baia di casa C manca
+      dalla sua mappa — non la curvatura, e nemmeno l'incidenza radente: il
+      ToF simulato è un raycast puro senza alcun modello di incidenza, il
+      che corregge quanto questo stesso file diceva un'ora prima.
+      Alzandolo a 3 m, appaiato per registrazione: casa C 14,4 % → **1,2 %**
+      con la copertura dal 48 % al 62 %; casa A 8,0 % → 1,1 %; casa A 1,9 %
+      → 8,8 %; casa B 5,4 % → 5,1 %. Due meglio, una peggio, una pari — e
+      la forma della cosa ha senso, perché in un appartamento stretto oltre
+      i due metri c'è poco da guadagnare e solo rumore da perdere.
+      Promettente, non decisa: vuole ripetizioni, e vuole il rumore del
+      sensore vero a tre metri, che è un numero di upstream e non del
+      gemello.
+
 ## 3. `go_to` (serve un RPC di goal upstream)
 - [ ] Seguire upstream per un RPC tipo `robot.goto` (pianificatore e
       follower esistono nel crate, non sono cablati). Se entro dicembre
