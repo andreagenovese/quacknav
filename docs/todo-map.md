@@ -1133,6 +1133,35 @@ nothing: it explores and asks.
       coordinates sent it walking at a point outside the flat and cost a
       run. `speed_test.py` converts now.)
 
+- [x] Halved: the string pulled straight, and no sightseeing on the way
+      (2026-09-10). Two changes, each measured on the same two
+      three-metre journeys:
+      **The aim.** A grid path is a staircase, and the follower aimed at
+      the point eight cells along it, so the wanted heading swung half a
+      quadrant and alternated — thirteen turns in place per journey, each
+      asking for 64° to 101°. It now aims at the farthest point of the
+      path it can reach in a straight line, walls and books both clear
+      (`QK_SMOOTH_PATH=0` restores the old way). Spins 13 → 7, and legs
+      that failed to move the duck, back-offs and refusals all → 0.
+      **The sightseeing.** Timing every turn of the explorer's loop showed
+      the ordinary leg is 4.4 s and perfectly fine, while one or two turns
+      per journey took 78 s and 113 s — panoramas, in the middle of a
+      journey across floor already mapped, worth 60–76 % of the whole
+      trip. A panorama is how a mapping job learns a room it has not seen;
+      a journey has nothing to learn from one, and if it does meet unknown
+      floor the guards refuse the step and the planner routes round it.
+      Skipped when the job has a goal. (Also: a panorama saw a stop
+      request only when it finished, so `map_explore {stop}` sat unanswered
+      for a hundred seconds. It checks between steps now.)
+      Together: **221 s → 106 s and 192 s → 124 s**, path over straight
+      line 2.48 → 1.67 and 2.07 → 1.89, speed made good 0.013–0.015 →
+      **0.025–0.029 m/s**, arriving as accurately as before (15–21 cm).
+      The longest turn of the loop went from 113 s to 8.6 s.
+      What is left is the leg itself: 1.5 s of walking and 3 s of standing,
+      so still a fifth of the walking speed. Dropping the stand was
+      measured and did not pay *before* these two changes; worth asking
+      again now that the path is straight.
+
 ## 3. `go_to` (needs an upstream goal RPC)
 - [ ] Follow upstream for a `robot.goto`-style RPC (planner + follower
       exist in the crate, not wired). If nothing appears by December,

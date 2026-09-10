@@ -1237,6 +1237,36 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       dall'appartamento ed è costato un giro. Ora `speed_test.py`
       converte.)
 
+- [x] Dimezzato: la corda tirata dritta, e niente panorami per strada
+      (2026-09-10). Due modifiche, ciascuna misurata sugli stessi due
+      tragitti da tre metri:
+      **La mira.** Un percorso su griglia è a scalini, e chi lo seguiva
+      puntava al punto otto celle più avanti, così la direzione voluta
+      ballava di mezzo quadrante alternandosi — tredici giri sul posto per
+      viaggio, da 64° a 101° l'uno. Ora punta al punto più lontano del
+      percorso raggiungibile in linea retta, con la corsia libera sia sui
+      muri sia sugli appunti locali (`QK_SMOOTH_PATH=0` torna al vecchio
+      modo). Giri 13 → 7, e tappe a vuoto, retromarce e rifiuti tutti → 0.
+      **I panorami.** Cronometrando ogni giro del ciclo si è visto che la
+      tappa normale dura 4,4 s e va benissimo, mentre uno o due giri per
+      viaggio duravano 78 s e 113 s — panorami, in mezzo a un tragitto su
+      pavimento già mappato, pari al 60–76 % dell'intero viaggio. Il
+      panorama è il modo in cui un lavoro di mappatura impara una stanza
+      mai vista; un viaggio non ha nulla da impararci, e se incontra
+      davvero dell'ignoto i guardiani rifiutano il passo e il pianificatore
+      gira intorno. Saltato quando il lavoro ha un obiettivo. (Inoltre: il
+      panorama vedeva la richiesta di stop solo alla fine, così un
+      `map_explore {stop}` restava inascoltato per cento secondi. Ora
+      controlla fra un passo e l'altro.)
+      Insieme: **221 s → 106 s e 192 s → 124 s**, rapporto percorso/retta
+      2,48 → 1,67 e 2,07 → 1,89, velocità utile 0,013–0,015 →
+      **0,025–0,029 m/s**, con la stessa precisione d'arrivo (15–21 cm).
+      Il giro più lungo del ciclo è passato da 113 s a 8,6 s.
+      Resta la tappa in sé: 1,5 s di cammino e 3 di sosta, quindi ancora un
+      quinto della velocità di passo. Togliere la sosta era stato misurato
+      e non pagava *prima* di queste due modifiche; vale la pena richiederselo
+      ora che il percorso è dritto.
+
 ## 3. `go_to` (serve un RPC di goal upstream)
 - [ ] Seguire upstream per un RPC tipo `robot.goto` (pianificatore e
       follower esistono nel crate, non sono cablati). Se entro dicembre
