@@ -1461,6 +1461,32 @@ nothing: it explores and asks.
       it by is the tally above: a run that re-anchors should show more
       closures and less spread, not just a better mean.
 
+- [x] Re-anchoring built (2026-09-11, `explore.rs`). Every three minutes
+      the explorer breaks off, walks back to the nearest point of its own
+      trail that it left a while ago, stands there, and resumes — the
+      floor-scrubber's habit of returning to the dock, in our terms, and
+      the `go_to` machinery does the walking. `QK_REANCHOR=0` turns it off.
+      Six runs of flat C with it against seven without:
+
+      | | median | mean | worst |
+      |---|---|---|---|
+      | without | 4.7 % | 7.8 % | 21.6 % |
+      | with | 3.6 % | 4.9 % | **12.3 %** |
+
+      Better, and best where it matters — the bad tail. But the closure
+      count, which is what the whole idea rests on, barely moved, because
+      the first version was too timid in two ways that the submap manager
+      explains:
+      the destination had to be ten metres of walking back, where five is
+      already six submaps back and far easier to find nearby; and the
+      stand there was six seconds, while a submap freezes after eight
+      standing or 0.8 m walked — so the duck arrived at the old place and
+      left again *before the visit had an anchor of its own to close
+      against*. Both corrected; measuring again.
+      The law itself holds over all thirteen runs and is the sharpest
+      thing we have: fifteen closures gave 12.6 %, 21.6 % and 12.3 %;
+      twenty-one to twenty-three gave 0.5 %, 0.7 %, 1.2 % and 1.3 %.
+
 ## 3. `go_to` (needs an upstream goal RPC)
 - [ ] Follow upstream for a `robot.goto`-style RPC (planner + follower
       exist in the crate, not wired). If nothing appears by December,

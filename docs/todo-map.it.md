@@ -1588,6 +1588,34 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       giro che si riancora deve mostrare più chiusure e meno dispersione,
       non solo una media migliore.
 
+- [x] Riancoraggio costruito (2026-09-11, `explore.rs`). Ogni tre minuti
+      l'esploratore interrompe, torna al punto più vicino della propria
+      scia fra quelli lasciati un po' di tempo fa, ci sosta e riprende —
+      l'abitudine del lavapavimenti di tornare alla base, nei nostri
+      termini, con la macchina di `go_to` a fare il cammino.
+      `QK_REANCHOR=0` lo spegne. Sei giri di casa C con esso contro sette
+      senza:
+
+      | | mediana | media | peggiore |
+      |---|---|---|---|
+      | senza | 4,7 % | 7,8 % | 21,6 % |
+      | con | 3,6 % | 4,9 % | **12,3 %** |
+
+      Meglio, e meglio dove conta — la coda cattiva. Ma il conto delle
+      chiusure, su cui tutta l'idea si regge, si è mosso appena, perché la
+      prima versione era timida in due modi che il gestore delle
+      sottomappe spiega:
+      il bersaglio doveva essere lasciato dieci metri di cammino prima,
+      mentre cinque sono già sei sottomappe indietro e molto più facili da
+      trovare vicino; e la sosta era di sei secondi, mentre una sottomappa
+      si congela dopo otto da fermi o 0,8 m camminati — quindi l'anatra
+      arrivava nel posto vecchio e ripartiva *prima che quella visita
+      avesse un'ancora propria con cui chiudere*. Corretti entrambi; nuova
+      misura in corso.
+      La legge in sé regge su tutti e tredici i giri ed è la cosa più
+      netta che abbiamo: quindici chiusure hanno dato 12,6 %, 21,6 % e
+      12,3 %; da ventuno a ventitré hanno dato 0,5 %, 0,7 %, 1,2 % e 1,3 %.
+
 ## 3. `go_to` (serve un RPC di goal upstream)
 - [ ] Seguire upstream per un RPC tipo `robot.goto` (pianificatore e
       follower esistono nel crate, non sono cablati). Se entro dicembre
