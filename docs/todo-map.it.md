@@ -1547,6 +1547,47 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       una casa i cui giri vanno dal 3,7 % al 36,3 %, non dice ancora
       nulla. **D'ora in poi ogni parametro ha anche una colonna di CPU.**
 
+- [x] **Perché un giro su tre esce sfumato, e non è un parametro**
+      (2026-09-11). Sette registrazioni della stessa casa, rigiocate con
+      il resoconto di tutto ciò che il mapper ha fatto accanto alla
+      qualità della mappa prodotta:
+
+      | registrazione | fuori posto | raddoppiati | finestre | **chiusure** |
+      |---|---|---|---|---|
+      | 1789073165 | 1,2 % | 0,2 % | 388 | 22 |
+      | 1789109158 | 3,0 % | 0,0 % | 330 | 32 |
+      | 1789112972 | 3,2 % | 0,1 % | 293 | 33 |
+      | 1789110708 | 4,7 % | 0,0 % | 336 | 19 |
+      | 1789076196 | 8,5 % | 1,7 % | 345 | 29 |
+      | 1789114222 | 12,6 % | 5,0 % | 290 | **15** |
+      | 1789122541 | 21,6 % | 15,0 % | 280 | **15** |
+
+      I due giri peggiori hanno chiuso quindici anelli ciascuno; i buoni da
+      diciannove a trentatré. Il confronto è pulito: quei due e il giro al
+      3,2 % duravano tutti e tre esattamente 1200 s. Quindi non sono le
+      chiusure a sfumare la mappa, è una mappa senza chiusure a derivare —
+      coerente col fatto che spegnerle del tutto costa il 27 %.
+      E un anello si chiude solo dove l'anatra ripassa vicino a dove è già
+      stata. L'esplorazione a frontiere non torna mai indietro di
+      proposito, quindi **quante chiusure faccia un giro è un accidente
+      della sua forma**: ed è tutta la bimodalità.
+      Due tentativi di rimedio nel grafo, entrambi misurati, nessuno
+      risolutivo: allargare la ricerca delle chiusure da 1,5 a 2,5 m salva
+      cinque registrazioni su sette (21,6 → 14,2, 12,6 → 11,5, 8,5 → 4,7)
+      e rovina le due migliori (1,2 → 17,5, 3,2 → 16,1), quindi la mediana
+      peggiora e la CPU sale del 50–70 %; e rinnegare l'arco peggiore
+      (`OptimizerConfig::reject_sigmas`, ora nell'ottimizzatore) aiuta un
+      poco ovunque — 21,6 → 18,7, 1,2 → 0,9 — e va in produzione spento.
+- [ ] **Quindi il rimedio sta nel camminare, non nel risolutore**: far
+      chiudere gli anelli all'anatra di proposito. Sa già dov'è stata (la
+      scia), e `go_to` sa portarcela. Ogni pochi minuti interrompere
+      l'esplorazione, tornare in un punto ben mappato, sostare, e
+      riprendere — il trucco della base dei lavapavimenti e la loro
+      passata perimetrale, nei nostri termini. È la prossima cosa da
+      costruire, e lo strumento per giudicarla è la tabella qui sopra: un
+      giro che si riancora deve mostrare più chiusure e meno dispersione,
+      non solo una media migliore.
+
 ## 3. `go_to` (serve un RPC di goal upstream)
 - [ ] Seguire upstream per un RPC tipo `robot.goto` (pianificatore e
       follower esistono nel crate, non sono cablati). Se entro dicembre

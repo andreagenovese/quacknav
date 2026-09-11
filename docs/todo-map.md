@@ -1421,6 +1421,46 @@ nothing: it explores and asks.
       inside a house whose runs range from 3.7 % to 36.3 %, says nothing
       yet. **From here on, every parameter gets a CPU column.**
 
+- [x] **Why one run in three comes out smeared, and it is not a
+      parameter** (2026-09-11). Seven recordings of the same house,
+      replayed with a tally of everything the mapper did beside the
+      quality of the map it made:
+
+      | recording | misplaced | doubled | windows | **closures** |
+      |---|---|---|---|---|
+      | 1789073165 | 1.2 % | 0.2 % | 388 | 22 |
+      | 1789109158 | 3.0 % | 0.0 % | 330 | 32 |
+      | 1789112972 | 3.2 % | 0.1 % | 293 | 33 |
+      | 1789110708 | 4.7 % | 0.0 % | 336 | 19 |
+      | 1789076196 | 8.5 % | 1.7 % | 345 | 29 |
+      | 1789114222 | 12.6 % | 5.0 % | 290 | **15** |
+      | 1789122541 | 21.6 % | 15.0 % | 280 | **15** |
+
+      The two worst runs closed fifteen loops each; the good ones nineteen
+      to thirty-three. The comparison is clean — those two and the 3.2 %
+      run all lasted exactly 1200 s. So closures are not what smears a
+      map, a map without them drifts, which agrees with disabling them
+      entirely costing 27 %.
+      And a loop closes only where the duck passes near where it has
+      already been. Frontier exploration never goes back on purpose, so
+      **how many closures a run gets is an accident of its shape** — which
+      is the whole bimodality.
+      Two attempts to fix it in the graph, both measured, neither a cure:
+      widening the closure search from 1.5 m to 2.5 m rescues five
+      recordings of seven (21.6 → 14.2, 12.6 → 11.5, 8.5 → 4.7) and ruins
+      the two best (1.2 → 17.5, 3.2 → 16.1), so the median gets worse and
+      the CPU cost rises 50–70 %; and disowning the worst loop edge
+      (`OptimizerConfig::reject_sigmas`, now in the optimizer) helps a
+      little everywhere — 21.6 → 18.7, 1.2 → 0.9 — and ships off.
+- [ ] **So the fix belongs in the walking, not in the solver**: make the
+      duck close loops on purpose. It already knows where it has been (the
+      trail), and `go_to` can take it there. Every few minutes, break off
+      exploring, return to a well-mapped place, stand, and resume — the
+      floor-scrubber's dock trick and its perimeter pass, in our own
+      terms. That is the next thing to build, and the instrument to judge
+      it by is the tally above: a run that re-anchors should show more
+      closures and less spread, not just a better mean.
+
 ## 3. `go_to` (needs an upstream goal RPC)
 - [ ] Follow upstream for a `robot.goto`-style RPC (planner + follower
       exist in the crate, not wired). If nothing appears by December,
