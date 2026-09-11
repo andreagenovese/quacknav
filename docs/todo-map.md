@@ -1528,6 +1528,35 @@ nothing: it explores and asks.
       *bad* run, which happens about one in three. The tracker is attached
       to every run from here on.
 
+- [x] **Five interventions, one signature** (2026-09-11, the evening's
+      result and a negative one). Widening the closure search, a Huber
+      kernel, disowning the worst loop edge, forcing re-anchoring, and
+      cutting the submap when the pose is corrected: every one of them
+      improves four or five recordings of seven and ruins the rest, with
+      swings of ten to twenty-five points either way, and none moves the
+      median. The map's quality is **chaotically sensitive** — a submap
+      boundary moved, an edge weight changed, and which closures happen
+      reorganises the whole map. All five ship off or gentle.
+      What that means for the work: stop chasing the mean by tuning.
+      Either reduce the variance, or let the duck notice a bad map and
+      redo it.
+- [x] The duck cannot yet tell a bad map from a good one by itself
+      (2026-09-11). Two self-checks tried, neither usable:
+      **its own window agreement** — how well each still window matches
+      what is already drawn — does not predict the truth at all: over the
+      seven recordings the worst map (21.6 % of wall misplaced) agrees
+      with its own windows at 0.018, better than a 3.0 % map's 0.022.
+      Every window is judged at its own pose, so a map that is locally
+      consistent and globally wrong passes.
+      **Doubled walls found in the map alone** (`maphealth.py`: a wall
+      cell, mapped floor, and another wall cell within 30 cm — a shape a
+      house does not have) is weakly informative: it puts the worst run
+      top at 1.0 % and the best bottom at 0.4 %, but gives 0.4 % to a run
+      that was 12.6 % wrong. Promising in principle, too weak as built.
+      A usable self-check is what would let the duck keep one map honestly
+      — the direction of the whole track — so it is worth another attempt:
+      a global consistency measure rather than a local one.
+
 ## 3. `go_to` (needs an upstream goal RPC)
 - [ ] Follow upstream for a `robot.goto`-style RPC (planner + follower
       exist in the crate, not wired). If nothing appears by December,

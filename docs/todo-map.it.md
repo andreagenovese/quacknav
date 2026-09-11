@@ -1660,6 +1660,38 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       una volta su tre. Il tracciatore resta attaccato a ogni giro d'ora
       in poi.
 
+- [x] **Cinque interventi, una sola firma** (2026-09-11, il risultato
+      della sera, ed è negativo). Allargare la ricerca delle chiusure, un
+      nucleo di Huber, rinnegare l'arco peggiore, forzare il
+      riancoraggio, tagliare la sottomappa quando la posa viene corretta:
+      ognuno di essi migliora quattro o cinque registrazioni su sette e
+      rovina le altre, con oscillazioni da dieci a venticinque punti nei
+      due sensi, e nessuno sposta la mediana. La qualità della mappa è
+      **caoticamente sensibile** — un confine di sottomappa spostato, un
+      peso d'arco cambiato, e quali chiusure avvengano riorganizza tutta
+      la mappa. Tutti e cinque vanno in produzione spenti o leggeri.
+      Cosa significa per il lavoro: smettere di inseguire la media
+      tarando. O si riduce la varianza, o si mette l'anatra in condizione
+      di accorgersi che la mappa è venuta male e rifarla.
+- [x] L'anatra non sa ancora distinguere da sola una mappa buona da una
+      cattiva (2026-09-11). Due autodiagnosi provate, nessuna utilizzabile:
+      **il proprio accordo di finestra** — quanto ogni sosta combacia con
+      ciò che è già disegnato — non predice affatto la verità: sulle sette
+      registrazioni la mappa peggiore (21,6 % di muri fuori posto)
+      concorda con le proprie finestre a 0,018, meglio dello 0,022 di una
+      mappa al 3,0 %. Ogni finestra è giudicata alla propria posa, quindi
+      una mappa localmente coerente e globalmente sbagliata passa l'esame.
+      **I muri doppi cercati nella mappa stessa** (`maphealth.py`: una
+      cella di muro, pavimento mappato, un'altra cella di muro entro 30 cm
+      — una forma che una casa non ha) è debolmente informativo: mette il
+      giro peggiore in cima all'1,0 % e il migliore in fondo allo 0,4 %,
+      ma dà 0,4 % anche a un giro sbagliato del 12,6 %. Promettente in
+      linea di principio, troppo debole così com'è.
+      Un'autodiagnosi utilizzabile è ciò che permetterebbe all'anatra di
+      tenere onestamente una sola mappa — la direzione di tutto il filone
+      — quindi merita un altro tentativo: una misura di coerenza globale
+      invece che locale.
+
 ## 3. `go_to` (serve un RPC di goal upstream)
 - [ ] Seguire upstream per un RPC tipo `robot.goto` (pianificatore e
       follower esistono nel crate, non sono cablati). Se entro dicembre
