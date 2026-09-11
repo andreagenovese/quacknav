@@ -1588,35 +1588,39 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       giro che si riancora deve mostrare più chiusure e meno dispersione,
       non solo una media migliore.
 
-- [x] Riancoraggio costruito (2026-09-11, `explore.rs`). Ogni tre minuti
-      l'esploratore interrompe, torna al punto più vicino della propria
-      scia fra quelli lasciati un po' di tempo fa, ci sosta e riprende —
-      l'abitudine del lavapavimenti di tornare alla base, nei nostri
-      termini, con la macchina di `go_to` a fare il cammino.
-      `QK_REANCHOR=0` lo spegne. Sei giri di casa C con esso contro sette
-      senza:
+- [x] Riancoraggio costruito e misurato, e la teoria che lo reggeva
+      confutata (2026-09-11, `explore.rs`). Ogni tre minuti l'esploratore
+      interrompe, torna al punto più vicino della propria scia fra quelli
+      lasciati un po' prima, ci sosta e riprende — il ritorno alla base
+      del lavapavimenti, con `go_to` a fare il cammino. `QK_REANCHOR=0` lo
+      spegne. Sedici giri di casa C:
 
       | | mediana | media | peggiore |
       |---|---|---|---|
-      | senza | 4,7 % | 7,8 % | 21,6 % |
-      | con | 3,6 % | 4,9 % | **12,3 %** |
+      | senza ritorni (7 giri) | 4,7 % | 7,8 % | 21,6 % |
+      | **ritorni, leggeri (6)** | **3,6 %** | **4,9 %** | **12,3 %** |
+      | ritorni, forzati (3) | 6,6 % | 8,4 % | 17,2 % |
 
-      Meglio, e meglio dove conta — la coda cattiva. Ma il conto delle
-      chiusure, su cui tutta l'idea si regge, si è mosso appena, perché la
-      prima versione era timida in due modi che il gestore delle
-      sottomappe spiega:
-      il bersaglio doveva essere lasciato dieci metri di cammino prima,
-      mentre cinque sono già sei sottomappe indietro e molto più facili da
-      trovare vicino; e la sosta era di sei secondi, mentre una sottomappa
-      si congela dopo otto da fermi o 0,8 m camminati — quindi l'anatra
-      arrivava nel posto vecchio e ripartiva *prima che quella visita
-      avesse un'ancora propria con cui chiudere*. Corretti entrambi; nuova
-      misura in corso.
-      La legge in sé regge su tutti e tredici i giri ed è la cosa più
-      netta che abbiamo: quindici chiusure hanno dato 12,6 %, 21,6 % e
-      12,3 %; da ventuno a ventitré hanno dato 0,5 %, 0,7 %, 1,2 % e 1,3 %.
-
-## 3. `go_to` (serve un RPC di goal upstream)
+      La versione leggera aiuta, soprattutto nella coda cattiva. Quella
+      forzata — bersagli a cinque metri invece di dieci, sosta di dieci
+      secondi perché la visita diventi una sottomappa propria, ricerca più
+      larga — **non è meglio del non fare nulla**, e confuta l'idea su cui
+      era costruita. Più ritorni hanno effettivamente alzato il conto
+      delle chiusure, e le mappe non hanno seguito: un giro ha chiuso
+      ventidue anelli e ha comunque sbagliato il 17,2 % dei muri con
+      l'11,7 % raddoppiati, dove ventidue chiusure avevano dato lo 0,7 %.
+      Più occasioni di chiudere sono anche più occasioni di chiudere sul
+      posto sbagliato, e una chiusura falsa disegna il corridoio due
+      volte.
+      Quindi il conto delle chiusure **è correlato a una buona mappa e non
+      la causa**. Probabilmente entrambi discendono dalla forma del
+      cammino: un giro che resta compatto deriva meno e ripassa di più.
+      Sedici giri coprono ormai da 0,5 % a 21,6 % con tutti i parametri
+      che abbiamo provato, e a dirimerlo servirebbe una misura della
+      deriva stessa invece che delle sue conseguenze — la posa contro la
+      verità, secondo per secondo, che il gemello può dare e che non
+      abbiamo mai tracciato.
+      Ciò che va in produzione sono i parametri leggeri.
 - [ ] Seguire upstream per un RPC tipo `robot.goto` (pianificatore e
       follower esistono nel crate, non sono cablati). Se entro dicembre
       non compare nulla, proporlo come PR sul repo Pollen con l'anatra in

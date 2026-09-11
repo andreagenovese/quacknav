@@ -1461,33 +1461,37 @@ nothing: it explores and asks.
       it by is the tally above: a run that re-anchors should show more
       closures and less spread, not just a better mean.
 
-- [x] Re-anchoring built (2026-09-11, `explore.rs`). Every three minutes
-      the explorer breaks off, walks back to the nearest point of its own
-      trail that it left a while ago, stands there, and resumes — the
-      floor-scrubber's habit of returning to the dock, in our terms, and
-      the `go_to` machinery does the walking. `QK_REANCHOR=0` turns it off.
-      Six runs of flat C with it against seven without:
+- [x] Re-anchoring built and measured, and the theory behind it refuted
+      (2026-09-11, `explore.rs`). Every three minutes the explorer breaks
+      off, walks back to the nearest point of its own trail that it left a
+      while ago, stands there, and resumes — the floor-scrubber's return
+      to its dock, with `go_to` doing the walking. `QK_REANCHOR=0` turns
+      it off. Sixteen runs of flat C:
 
       | | median | mean | worst |
       |---|---|---|---|
-      | without | 4.7 % | 7.8 % | 21.6 % |
-      | with | 3.6 % | 4.9 % | **12.3 %** |
+      | no returns (7 runs) | 4.7 % | 7.8 % | 21.6 % |
+      | **returns, gentle (6)** | **3.6 %** | **4.9 %** | **12.3 %** |
+      | returns, forced (3) | 6.6 % | 8.4 % | 17.2 % |
 
-      Better, and best where it matters — the bad tail. But the closure
-      count, which is what the whole idea rests on, barely moved, because
-      the first version was too timid in two ways that the submap manager
-      explains:
-      the destination had to be ten metres of walking back, where five is
-      already six submaps back and far easier to find nearby; and the
-      stand there was six seconds, while a submap freezes after eight
-      standing or 0.8 m walked — so the duck arrived at the old place and
-      left again *before the visit had an anchor of its own to close
-      against*. Both corrected; measuring again.
-      The law itself holds over all thirteen runs and is the sharpest
-      thing we have: fifteen closures gave 12.6 %, 21.6 % and 12.3 %;
-      twenty-one to twenty-three gave 0.5 %, 0.7 %, 1.2 % and 1.3 %.
-
-## 3. `go_to` (needs an upstream goal RPC)
+      The gentle version helps, mostly in the bad tail. The forced one —
+      destinations five metres back instead of ten, a ten-second stand so
+      the visit becomes a submap of its own, a wider search — is **no
+      better than doing nothing**, and it refutes the idea it was built
+      on. More returns did raise the closure count, and the maps did not
+      follow: one run closed twenty-two loops and still misplaced 17.2 %
+      of its walls with 11.7 % doubled, where twenty-two closures had
+      given 0.7 % before. More chances to close is also more chances to
+      close against the wrong place, and a wrong closure draws the
+      corridor twice.
+      So the closure count is **correlated with a good map and does not
+      cause one**. Most likely both follow from the shape of the walk: a
+      run that stays compact drifts less and revisits more. Sixteen runs
+      now span 0.5 % to 21.6 % with every parameter we have tried, and
+      what would settle it is a measure of the drift itself rather than of
+      its consequences — the pose against the truth, second by second,
+      which the twin can give and we have never plotted.
+      The gentle parameters are what ships.
 - [ ] Follow upstream for a `robot.goto`-style RPC (planner + follower
       exist in the crate, not wired). If nothing appears by December,
       propose it as a PR on the Pollen repo with the duck in hand.
