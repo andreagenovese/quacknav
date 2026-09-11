@@ -1506,6 +1506,47 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       dall'orologio. Quindi i tre metri reggono anche nella casa curva, e
       il banco aveva ragione fin dall'inizio.
 
+- [x] **Il banco è affidabile, dopotutto** (2026-09-11, pomeriggio). La
+      divergenza fra diretta e riprova non si è riprodotta sotto
+      controllo. Un giro di casa C ha conservato il registro del demone, e
+      il conteggio del mapper vivo corrisponde quasi esattamente alla
+      riprova della registrazione di quel giro — 61 635 campioni di
+      odometria contro 61 905, 17 243 fotogrammi contro 17 319, 278
+      finestre contro 280, 100 sottomappe contro 100, con differenze pari
+      ai cinque secondi fra l'ultima riga di stato e la fine del file. Le
+      mappe poi concordano a un decimo di punto: 21,7 % di muri oltre 10
+      cm dal vivo, 21,6 % in riprova; 15,5 % raddoppiati contro 15,0 %.
+      Quindi il 36,3 % contro 8,5 % di stamattina era quasi certamente una
+      registrazione accoppiata al giro sbagliato da parte nostra: quella
+      riprova mostrava 114 sottomappe e 600 celle di muro dove la sessione
+      viva ne aveva 121 e 815, che non è l'aspetto di uno stesso giro.
+      L'anomalia di settembre resta una domanda aperta, ma nulla qui la
+      sostiene, e del banco ci si può fidare come sostituto di una diretta.
+- [x] **Quanto costa mappare, che non avevamo mai chiesto** (2026-09-11,
+      osservazione dell'utente: il processore della papera è un RK3566,
+      quattro Cortex-A55 e un gigabyte, e il thread di mappatura li divide
+      con la parola di risveglio e un ciclo di controllo a 50 Hz).
+      Rigiocando la stessa sessione da 1238 secondi: 1,08 s di CPU con la
+      portata dell'accumulatore a due metri, 1,30 s a tre, 1,46 s a
+      quattro — quindi **il passaggio a tre metri costa il 20 % di CPU in
+      più**, e la mappatura nel suo insieme gira a circa 950 volte il
+      tempo reale su un core di questo Mac, cioè un millesimo di esso.
+      Portato su un A55 a forse un decimo della velocità, fanno 80–120
+      volte il tempo reale: attorno all'uno per cento di un core, e il
+      venti per cento in più di quell'uno per cento è nulla. I tre metri
+      sono sostenibili.
+      Con tre avvertenze: la riprova misura il solo mapper, mentre il
+      demone vivo disegna anche una griglia ogni secondo e scrive sette
+      megabyte di sessione al minuto sulla flash; il lavoro pesante non è
+      la media ma gli eventi — una rilocalizzazione a forza bruta, una
+      raffica di chiusure d'anello — e cadono proprio quando la posa serve
+      di più; e questi sono i volumi di dati del gemello.
+      Ridimensiona anche l'esperimento sul carico di stamattina: se
+      mappare costa l'uno per cento di un core, cinque core occupati non
+      dovrebbero contare, e 11,0 % contro 18,2 % su una coppia sola, in
+      una casa i cui giri vanno dal 3,7 % al 36,3 %, non dice ancora
+      nulla. **D'ora in poi ogni parametro ha anche una colonna di CPU.**
+
 ## 3. `go_to` (serve un RPC di goal upstream)
 - [ ] Seguire upstream per un RPC tipo `robot.goto` (pianificatore e
       follower esistono nel crate, non sono cablati). Se entro dicembre

@@ -1383,6 +1383,44 @@ nothing: it explores and asks.
       spoiled. So three metres holds in the curved house too, and the
       bench agreed all along.
 
+- [x] **The bench is trustworthy after all** (2026-09-11, afternoon). The
+      live-versus-replay divergence did not reproduce under control. A
+      flat C run kept its daemon log, and the live mapper's own tally
+      matched the replay of that run's recording almost exactly — 61 635
+      odometry samples against 61 905, 17 243 frames against 17 319, 278
+      windows against 280, 100 submaps against 100, the differences being
+      the five seconds between the last status line and the end of the
+      file. The maps then agreed to a tenth of a point: 21.7 % of wall
+      beyond 10 cm live, 21.6 % replayed; 15.5 % doubled against 15.0 %.
+      So the morning's 36.3 %-against-8.5 % was almost certainly a
+      mispaired recording on our side — its replay showed 114 submaps and
+      600 wall cells where the live session had 121 and 815, which is not
+      how the same run looks. The September anomaly stays open as a
+      question, but nothing here supports it, and the replay bench can be
+      trusted to stand in for a live run.
+- [x] **What the mapping costs, which we had never asked** (2026-09-11,
+      the user's point: the duck's processor is an RK3566, four Cortex-A55
+      and a gigabyte, and the mapping thread shares them with the wake
+      word and a 50 Hz control loop). Replaying the same 1238-second
+      session: 1.08 s of CPU at two metres of accumulator range, 1.30 s at
+      three, 1.46 s at four — so **the change to three metres costs 20 %
+      more CPU**, and the mapping as a whole runs at about 950× real time
+      on one Mac core, a thousandth of it.
+      Scaled to an A55 at perhaps a tenth of the speed, that is 80–120×
+      real time: roughly one per cent of one core, and twenty per cent
+      more of that is nothing. Three metres is affordable.
+      Three caveats travel with it: the replay measures the mapper alone,
+      where the live daemon also renders a grid every second and writes a
+      seven-megabyte session every minute onto flash; the heavy work is
+      not the average but the events — a brute-force relocalize, a burst
+      of loop closures — and those land exactly when the pose is most
+      needed; and these are the twin's data volumes.
+      It also undercuts this morning's load experiment, which is
+      downgraded: if mapping uses one per cent of a core, five busy cores
+      should not have mattered, and 11.0 % against 18.2 % on one pair,
+      inside a house whose runs range from 3.7 % to 36.3 %, says nothing
+      yet. **From here on, every parameter gets a CPU column.**
+
 ## 3. `go_to` (needs an upstream goal RPC)
 - [ ] Follow upstream for a `robot.goto`-style RPC (planner + follower
       exist in the crate, not wired). If nothing appears by December,
