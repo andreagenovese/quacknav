@@ -1692,6 +1692,43 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       — quindi merita un altro tentativo: una misura di coerenza globale
       invece che locale.
 
+- [x] **La posa era la malata, dopotutto, e la cura è venuta dalla
+      traccia** (2026-09-11, tardi — il risultato più forte del lavoro sul
+      gemello). Cinque tracce di deriva, non due, e la correlazione è
+      monotona su tutte: deriva mediana 6,8 cm ha dato una mappa sbagliata
+      del 2,4 %, 9,0 ha dato 6,6 %, 10,4 ha dato 11,1 %, 11,6 ha dato
+      11,5 %, 14,0 ha dato 12,2 %. La conclusione precedente che la posa
+      fosse innocente veniva da due giri ed era sbagliata.
+      La traccia ha poi mostrato il meccanismo invece di suggerirlo. La
+      correzione tira la posa sulla mappa; **questo ripara la deriva
+      finché la mappa è giusta e la rinforza appena la mappa è storta**.
+      Nel giro peggiore i salti verso l'alto cadevano ognuno su una
+      correzione — 19 → 37 cm, 15 → 29, 34 → 47 — e ciascuna migliorava il
+      residuo della propria finestra allontanandosi dal vero, finché la
+      posa ha superato il metro. L'inchiostro steso a quella posa rendeva
+      poi la mappa ancora più storta: un anello di retroazione.
+      Spegnere la correzione è meglio in aggregato (mediana 4,7 % →
+      3,4 %, media 7,8 → 4,9) ma rovina due registrazioni che la
+      correzione stava salvando — 3,0 % → 14,6 % e 1,2 % → 6,4 %. Non è un
+      meccanismo buono o cattivo: è un meccanismo senza guardia.
+      La guardia sta nei numeri: le correzioni dannose finivano con un
+      residuo attorno a 0,055 m, quelle utili a 0,009–0,026. Quindi una
+      correzione deve ora **atterrare anche sotto una barra assoluta**
+      (`TrackingConfig::max_residual_after_m`, due centimetri), non solo
+      migliorare rispetto a dov'era:
+
+      | | mediana | media | peggiore |
+      |---|---|---|---|
+      | com'era | 4,7 % | 7,8 % | 21,6 % |
+      | correzione spenta | 3,4 % | 4,9 % | 14,6 % |
+      | **con la barra** | **1,2 %** | **2,5 %** | **10,9 %** |
+
+      Meglio su sei registrazioni su sette e su tutte e tre le statistiche
+      insieme, cosa che nessuno dei cinque tentativi precedenti aveva
+      ottenuto; a tre centimetri invece di due dà 2,1 / 4,8 / 16,0. I due
+      giri che erano i peggiori escono a 0,0 % e 0,9 %. Conferma dal vivo
+      in corso.
+
 ## 3. `go_to` (serve un RPC di goal upstream)
 - [ ] Seguire upstream per un RPC tipo `robot.goto` (pianificatore e
       follower esistono nel crate, non sono cablati). Se entro dicembre

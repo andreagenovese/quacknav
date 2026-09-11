@@ -1557,6 +1557,43 @@ nothing: it explores and asks.
       — the direction of the whole track — so it is worth another attempt:
       a global consistency measure rather than a local one.
 
+- [x] **The pose was the illness after all, and the cure came from the
+      trace** (2026-09-11, late — the strongest result of the twin work).
+      Five drift traces, not two, and the correlation is monotone across
+      every one: median drift 6.8 cm gave a map 2.4 % wrong, 9.0 gave
+      6.6 %, 10.4 gave 11.1 %, 11.6 gave 11.5 %, 14.0 gave 12.2 %. The
+      earlier conclusion that the pose was innocent came from two runs and
+      was wrong.
+      The trace then showed the mechanism rather than suggesting it. The
+      tracking correction pulls the pose onto the map; **that repairs
+      drift while the map is right and reinforces it once the map is
+      wrong**. In the worst run the jumps upward each landed on a
+      correction — 19 → 37 cm, 15 → 29, 34 → 47 — every one of them
+      improving its window's residual while walking away from the truth,
+      until the pose passed a metre. Ink laid at that pose then made the
+      map worse still: a feedback loop.
+      Turning the correction off is better on aggregate (median 4.7 % →
+      3.4 %, mean 7.8 → 4.9) but ruins two recordings that the correction
+      was saving — 3.0 % → 14.6 % and 1.2 % → 6.4 %. It is not a good or
+      bad mechanism; it is one with no guard.
+      The guard is in the numbers: the corrections that hurt each ended
+      with a residual around 0.055 m, those that helped at 0.009–0.026. So
+      a correction must now **also land below an absolute bar**
+      (`TrackingConfig::max_residual_after_m`, two centimetres), not
+      merely improve on where it started:
+
+      | | median | mean | worst |
+      |---|---|---|---|
+      | as it was | 4.7 % | 7.8 % | 21.6 % |
+      | correction off | 3.4 % | 4.9 % | 14.6 % |
+      | **with the bar** | **1.2 %** | **2.5 %** | **10.9 %** |
+
+      Better on six of seven recordings and on all three statistics at
+      once, which none of the five earlier attempts managed; at three
+      centimetres instead of two it is 2.1 / 4.8 / 16.0. The two runs that
+      had been the worst come out at 0.0 % and 0.9 %. Live confirmation
+      running.
+
 ## 3. `go_to` (needs an upstream goal RPC)
 - [ ] Follow upstream for a `robot.goto`-style RPC (planner + follower
       exist in the crate, not wired). If nothing appears by December,
