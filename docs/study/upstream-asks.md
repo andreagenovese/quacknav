@@ -296,6 +296,49 @@ So the shape we are proposing is not a sketch: `robot.map_save`,
 which house it is in, and get its old map back with the names and routes
 hanging off it — without a threshold anybody had to calibrate.
 
+## 5a. Three constants, each measured against a house's own walls
+
+These came out of scoring maps against ground truth rather than against
+each other — the tool is quacksat's `private/drives/mapquality.py`, which
+fits a map to the house rigidly and then asks how far each mapped wall is
+from a real one. All three are one-line changes.
+
+**A loop closure knows less than it claims.** `edge_sigma_xy` is 0.05 m,
+so the edge tells the optimizer that two submaps' relative pose is known
+to a cell and a half. The graph then bends to satisfy every closure a
+flat of repeated rectangles produces, and the map comes out smeared.
+Widened to 0.40 m (and yaw to 0.24), over eight recorded sessions in two
+simulated flats: better on six, mean misplaced wall 21.4 % → 13.4 %, mean
+doubled wall 5.3 % → 2.5 %. Re-checked later with a corrected fitting
+tool on four recordings: better on four of four, and the doubled walls of
+one house fell from 20.6 % to 0.5 %.
+
+**The accumulator keeps only the nearest two metres.**
+`AccumulatorConfig::max_range_m` is 2.0 with the comment that noise past
+there costs more than the coverage buys; the sensor reaches four. The far
+half of an open room therefore never reaches the map. At 3 m, over eight
+recordings: median misplaced wall 6.3 % → 2.2 %, doubled 0.6 % → 0.3 %,
+coverage of the house's wall surfaces 44 % → 48 %; at 4 m it starts to
+give back (3.9 / 0.8 / 47). In a flat with a wide open bay the difference
+is the whole finding — 14.4 % → 1.2 %, coverage 48 % → 62 %. The caveat
+is that this is a simulated sensor's noise (3 mm growing to 20 mm at four
+metres) and a real VL53L8 in daylight is a poorer instrument, so two
+metres may be right for hardware; it wants the real noise at three metres
+to settle.
+
+**A still window cannot form while the pose is suspect.** After a resume
+or an adopt, standing and turning produces windows of 15–48 beams, which
+`min_window_beams` (60) discards — so the confirmation the suspect pose
+needs can never arrive, and the duck stays lost on a map whose pose was
+right to a few centimetres. The same stands while tracking give
+composites of 1000–2400 beams. The suspect is the accumulator's vote
+meeting the head sweep: a beam is kept only when several frames of the
+window saw its endpoint cell, and while the pose is suspect the head is
+sweeping ±0.9 rad, so consecutive frames look elsewhere and few cells
+collect votes. We have not confirmed the cause, only the effect, but the
+effect is reproducible and it makes boot relocalization much weaker than
+it looks.
+
 ## 5b. A pose correction with no absolute bar
 
 **What exists.** `Mapper`'s tracking correction matches each still

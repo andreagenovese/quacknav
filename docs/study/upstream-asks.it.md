@@ -310,6 +310,53 @@ Quindi la forma che proponiamo non è uno schizzo: `robot.map_save`,
 quale casa si trova e si riprenda la sua vecchia mappa con i nomi e i
 percorsi appesi — senza una soglia che qualcuno abbia dovuto tarare.
 
+## 5a. Tre costanti, ciascuna misurata contro i muri veri di una casa
+
+Sono uscite dal valutare le mappe contro la verità invece che l'una
+contro l'altra — lo strumento è `private/drives/mapquality.py` di
+quacksat, che adatta una mappa alla casa in modo rigido e poi chiede
+quanto ogni muro mappato disti da uno vero. Tutte e tre sono modifiche di
+una riga.
+
+**Una chiusura d'anello sa meno di quanto dichiara.** `edge_sigma_xy` è
+0,05 m, quindi l'arco dice all'ottimizzatore che la posa relativa di due
+sottomappe è nota a una cella e mezza. Il grafo si piega allora per
+accontentare ogni chiusura che un appartamento di rettangoli ripetuti
+produce, e la mappa esce sfumata. Allargato a 0,40 m (e lo yaw a 0,24),
+su otto sessioni registrate in due appartamenti simulati: meglio su sei,
+media dei muri fuori posto 21,4 % → 13,4 %, media dei muri raddoppiati
+5,3 % → 2,5 %. Ricontrollato più tardi con uno strumento di adattamento
+corretto su quattro registrazioni: meglio su quattro su quattro, e i muri
+raddoppiati di una casa dal 20,6 % allo 0,5 %.
+
+**L'accumulatore tiene solo i primi due metri.**
+`AccumulatorConfig::max_range_m` è 2,0 con il commento che oltre quel
+punto il rumore costa più di quanto la copertura renda; il sensore arriva
+a quattro. La metà lontana di una stanza aperta non raggiunge quindi mai
+la mappa. A 3 m, su otto registrazioni: mediana dei muri fuori posto
+6,3 % → 2,2 %, raddoppiati 0,6 % → 0,3 %, copertura delle superfici di
+muro 44 % → 48 %; a 4 m comincia a restituire (3,9 / 0,8 / 47). In un
+appartamento con un'ampia baia aperta la differenza è tutta la scoperta —
+14,4 % → 1,2 %, copertura 48 % → 62 %. L'avvertenza è che questo è il
+rumore di un sensore simulato (3 mm che crescono a 20 mm a quattro metri)
+e un VL53L8 vero in piena luce è uno strumento peggiore, quindi due metri
+potrebbero essere giusti per l'hardware; serve il rumore vero a tre metri
+per deciderlo.
+
+**Una finestra ferma non può formarsi mentre la posa è sospetta.** Dopo
+una ripresa o un'adozione, stare fermi e girare produce finestre da 15–48
+raggi, che `min_window_beams` (60) scarta — quindi la conferma di cui la
+posa sospetta ha bisogno non può mai arrivare, e l'anatra resta persa su
+una mappa la cui posa era giusta a pochi centimetri. Le stesse soste
+mentre traccia danno composite da 1000–2400 raggi. Il sospetto è il voto
+dell'accumulatore che incontra la spazzata della testa: un raggio è
+tenuto solo se più fotogrammi della finestra hanno visto la sua cella
+terminale, e mentre la posa è sospetta la testa spazza di ±0,9 rad, così
+fotogrammi consecutivi guardano altrove e poche celle raccolgono voti.
+Non abbiamo confermato la causa, solo l'effetto, ma l'effetto è
+riproducibile e rende la rilocalizzazione all'accensione molto più debole
+di quanto sembri.
+
 ## 5b. Una correzione della posa senza barra assoluta
 
 **Cosa esiste.** La correzione di tracciamento del `Mapper` confronta ogni
