@@ -1499,6 +1499,43 @@ nothing: it explores and asks.
       failure; the ToF avoidance in M9 is upstream's job, not ours.
 - [ ] `look_at` via the existing `robot.look`.
 
+- [x] **The drift itself, at last** (2026-09-11 evening,
+      `private/drives/posetrack.py` and `driftlook.py`). Every number
+      until now measured the consequence of drift on a finished map; this
+      writes the belief beside the truth once a second while the duck
+      works, as *displacements from each one's own start*, so the two
+      frames need not be aligned. `driftlook.py` then prints the shape of
+      the run and every jump over 5 cm with the daemon's lines from those
+      seconds.
+      Two runs of flat C, and three things we did not know: the drift does
+      not grow, it **oscillates** — 3 → 6 → 22 → 1 → 15 cm in one run,
+      5 → 4 → 28 → 15 → 6 in the other — so the system really does correct
+      itself, repeatedly; the live pose is **better than the maps
+      suggested**, never past 35 cm and mostly under 15, median 7–9 cm;
+      and the jumps have mixed causes, some landing on a tracking
+      correction or a loop closure and some on nothing at all in the log,
+      which is odometry walking away between stands.
+      The consequence matters more than the numbers. If the pose wanders
+      to 25 cm and comes back, but a fifth of the map's walls are more
+      than 10 cm out with some drawn twice, then **the fault is not the
+      pose but that ink stays where it was laid**: a wall inked at 25 cm
+      of drift stays there after the pose recovers, and the same wall seen
+      twice from poses 25 cm apart is the doubled corridor.
+      Both runs were good maps (6.6 % and 2.4 %, no ghosts) with the pose
+      over 10 cm for 37–41 % of the time — a quiet validation of
+      stop-and-scan, where ink goes down only at stands and a stand is
+      just after a correction. What is owed now is the same trace on a
+      *bad* run, which happens about one in three. The tracker is attached
+      to every run from here on.
+
+## 3. `go_to` (needs an upstream goal RPC)
+- [ ] Follow upstream for a `robot.goto`-style RPC (planner + follower
+      exist in the crate, not wired). If nothing appears by December,
+      propose it as a PR on the Pollen repo with the duck in hand.
+- [ ] `go_to(place)` tool on top of it: plan, follow, report arrival or
+      failure; the ToF avoidance in M9 is upstream's job, not ours.
+- [ ] `look_at` via the existing `robot.look`.
+
 ## 4. Later, optional: semantics from the camera (off-board)
 - [ ] Only if places + `where_am_i` prove insufficient: frames from
       mediad (`get_frame` or WebRTC), a local server that labels what the

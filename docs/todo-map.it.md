@@ -1630,6 +1630,46 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       non nostro.
 - [ ] `look_at` tramite il `robot.look` esistente.
 
+- [x] **La deriva stessa, finalmente** (2026-09-11 sera,
+      `private/drives/posetrack.py` e `driftlook.py`). Ogni numero finora
+      misurava la conseguenza della deriva su una mappa finita; questo
+      scrive la convinzione accanto alla verità una volta al secondo
+      mentre l'anatra lavora, come *spostamenti dal proprio inizio*, così
+      i due riferimenti non devono essere allineati. `driftlook.py` stampa
+      poi la forma del giro e ogni salto oltre i 5 cm con le righe del
+      demone di quei secondi.
+      Due giri di casa C, e tre cose che non sapevamo: la deriva non
+      cresce, **oscilla** — 3 → 6 → 22 → 1 → 15 cm in un giro, 5 → 4 → 28
+      → 15 → 6 nell'altro — quindi il sistema si corregge davvero, e più
+      volte; la posa viva è **migliore di quanto le mappe lasciassero
+      credere**, mai oltre 35 cm e per lo più sotto i 15, mediana 7–9 cm;
+      e i salti hanno cause miste, alcuni su una correzione contro la
+      mappa o una chiusura d'anello, altri su nulla che il registro
+      mostri, cioè odometria che se ne va fra una sosta e l'altra.
+      La conseguenza conta più dei numeri. Se la posa vaga fino a 25 cm e
+      torna, ma un quinto dei muri della mappa è fuori di più di 10 cm con
+      alcuni disegnati due volte, allora **il guasto non è la posa ma che
+      l'inchiostro resta dove è stato steso**: un muro segnato con 25 cm
+      di deriva ci rimane dopo che la posa è rientrata, e lo stesso muro
+      visto due volte da pose distanti 25 cm è il corridoio doppio.
+      Entrambi i giri hanno dato mappe buone (6,6 % e 2,4 %, nessun
+      fantasma) con la posa oltre i 10 cm per il 37–41 % del tempo — una
+      conferma silenziosa dello stop-and-scan, dove l'inchiostro scende
+      solo alle soste e una sosta è subito dopo una correzione. Ciò che
+      manca è la stessa traccia su un giro **cattivo**, che capita circa
+      una volta su tre. Il tracciatore resta attaccato a ogni giro d'ora
+      in poi.
+
+## 3. `go_to` (serve un RPC di goal upstream)
+- [ ] Seguire upstream per un RPC tipo `robot.goto` (pianificatore e
+      follower esistono nel crate, non sono cablati). Se entro dicembre
+      non compare nulla, proporlo come PR sul repo Pollen con l'anatra in
+      mano.
+- [ ] Strumento `go_to(place)` sopra di esso: pianifica, segue, riferisce
+      arrivo o fallimento; l'evitamento ToF di M9 è compito di upstream,
+      non nostro.
+- [ ] `look_at` tramite il `robot.look` esistente.
+
 ## 4. Più avanti, opzionale: semantica dalla telecamera (fuori bordo)
 - [ ] Solo se luoghi + `where_am_i` si rivelano insufficienti: frame da
       mediad (`get_frame` o WebRTC), un server locale che etichetta ciò
