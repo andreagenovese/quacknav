@@ -1474,6 +1474,39 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       è proprio ciò che manca e ciò che fa scattare quei panorami da
       novanta secondi.
 
+- [x] **La diretta e la riprova differiscono perché il vivo butta via
+      l'orologio del sensore** (2026-09-11). L'anomalia di settembre,
+      ritrovata e stavolta con un numero. Il secondo giro di casa C ha
+      mappato al 36,3 % di muri oltre 10 cm e 27,1 % raddoppiati; **la sua
+      stessa registrazione, rigiocata con lo stesso codice e gli stessi
+      parametri, dà 8,5 % e 1,7 %**. Stessi dati, quattro volte l'errore.
+      La causa è in `robotd/src/maploc.rs`: il worker timbra ogni
+      fotogramma e ogni campione di odometria con `started.elapsed()` —
+      l'ora in cui il suo thread ci è arrivato — mentre il registratore
+      scrive `frame.at_us`, il timbro di cattura del sensore, che è quello
+      che poi la riprova usa. Il thread di mappatura ha priorità abbassata
+      di proposito e compete con tutto il resto, e fotogrammi di
+      profondità e odometria arrivano da due thread diversi su un solo
+      canale, quindi ritardano in modo diverso. Una scansione incontra
+      così una posa di un altro istante: a 0,12 m/s, 200 ms di ritardo
+      sono 2,4 cm di sbavatura e un secondo sono dodici — cioè la taglia
+      esatta dello sfumato che inseguiamo.
+      Spiega anche la bimodalità: la stessa impostazione dà una mappa al
+      4 % o al 30 % a seconda, a quanto pare, di quanto fosse carica la
+      macchina.
+      La correzione non è una riga, perché i due flussi devono
+      condividere un orologio: il ToF porta `at_us` e `OdomSample` non
+      porta alcun timbro di cattura, quindi il ciclo di controllo deve
+      iniziare a timbrare i suoi campioni e le due basi vanno riconciliate
+      una volta. Ma è la cosa più preziosa da consegnare a upstream che
+      abbiamo trovato, e mette sotto avvertenza ogni parametro misurato
+      sul gemello, compresi i nostri.
+- [x] Casa C a tre metri, quattro giri (2026-09-11): 22,5 % a due metri,
+      poi 36,3 %, **3,7 %** e **4,8 %** a tre, con la copertura 51 → 34,
+      60, 55 %. Il 36,3 % era il giro qui sopra, quello rovinato
+      dall'orologio. Quindi i tre metri reggono anche nella casa curva, e
+      il banco aveva ragione fin dall'inizio.
+
 ## 3. `go_to` (serve un RPC di goal upstream)
 - [ ] Seguire upstream per un RPC tipo `robot.goto` (pianificatore e
       follower esistono nel crate, non sono cablati). Se entro dicembre

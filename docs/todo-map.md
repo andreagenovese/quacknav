@@ -1355,6 +1355,37 @@ nothing: it explores and asks.
       what is short and what sends the duck into those ninety-second
       panoramas.
 
+- [x] **Live and replay differ because the live pipeline throws the
+      sensor's clock away** (2026-09-11). The September anomaly, found
+      again and this time with a number on it. Flat C's second run mapped
+      at 36.3 % of wall beyond 10 cm and 27.1 % doubled; **its own
+      recording, replayed through the same code with the same parameters,
+      gives 8.5 % and 1.7 %**. Same data, four times the error.
+      The cause is in `robotd/src/maploc.rs`: the worker stamps every
+      frame and every odometry sample with `started.elapsed()` — the time
+      its own thread got round to them — while the recorder writes
+      `frame.at_us`, the sensor's capture stamp, which is what the replay
+      then uses. The mapping thread is deliberately niced +10 and competes
+      with everything else on the machine, and depth frames and odometry
+      arrive from two different threads on one channel, so they are
+      delayed by different amounts. A scan then meets a pose from another
+      instant: at 0.12 m/s, 200 ms of lag is 2.4 cm of smear and a second
+      is twelve — which is the size of the smear we have been chasing.
+      It also explains the bimodality: the same setting gives a 4 % map or
+      a 30 % one depending, apparently, on how busy the machine was.
+      The fix is not a one-liner, because the two streams have to share a
+      clock: the ToF carries `at_us` and `OdomSample` carries no capture
+      time at all, so the control loop has to start stamping its samples
+      and the two bases have to be reconciled once. But it is the most
+      valuable thing to hand upstream that we have found, and it puts
+      every parameter measured on the twin under a caveat — including
+      ours.
+- [x] Flat C at three metres, four runs (2026-09-11): 22.5 % at two
+      metres, then 36.3 %, **3.7 %** and **4.8 %** at three, with coverage
+      51 → 34, 60, 55 %. The 36.3 % was the run above, the one the clock
+      spoiled. So three metres holds in the curved house too, and the
+      bench agreed all along.
+
 ## 3. `go_to` (needs an upstream goal RPC)
 - [ ] Follow upstream for a `robot.goto`-style RPC (planner + follower
       exist in the crate, not wired). If nothing appears by December,
