@@ -1474,33 +1474,32 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       è proprio ciò che manca e ciò che fa scattare quei panorami da
       novanta secondi.
 
-- [x] **La diretta e la riprova differiscono perché il vivo butta via
-      l'orologio del sensore** (2026-09-11). L'anomalia di settembre,
-      ritrovata e stavolta con un numero. Il secondo giro di casa C ha
-      mappato al 36,3 % di muri oltre 10 cm e 27,1 % raddoppiati; **la sua
-      stessa registrazione, rigiocata con lo stesso codice e gli stessi
-      parametri, dà 8,5 % e 1,7 %**. Stessi dati, quattro volte l'errore.
-      La causa è in `robotd/src/maploc.rs`: il worker timbra ogni
-      fotogramma e ogni campione di odometria con `started.elapsed()` —
-      l'ora in cui il suo thread ci è arrivato — mentre il registratore
-      scrive `frame.at_us`, il timbro di cattura del sensore, che è quello
-      che poi la riprova usa. Il thread di mappatura ha priorità abbassata
-      di proposito e compete con tutto il resto, e fotogrammi di
-      profondità e odometria arrivano da due thread diversi su un solo
-      canale, quindi ritardano in modo diverso. Una scansione incontra
-      così una posa di un altro istante: a 0,12 m/s, 200 ms di ritardo
-      sono 2,4 cm di sbavatura e un secondo sono dodici — cioè la taglia
-      esatta dello sfumato che inseguiamo.
-      Spiega anche la bimodalità: la stessa impostazione dà una mappa al
-      4 % o al 30 % a seconda, a quanto pare, di quanto fosse carica la
-      macchina.
-      La correzione non è una riga, perché i due flussi devono
-      condividere un orologio: il ToF porta `at_us` e `OdomSample` non
-      porta alcun timbro di cattura, quindi il ciclo di controllo deve
-      iniziare a timbrare i suoi campioni e le due basi vanno riconciliate
-      una volta. Ma è la cosa più preziosa da consegnare a upstream che
-      abbiamo trovato, e mette sotto avvertenza ogni parametro misurato
-      sul gemello, compresi i nostri.
+- [x] **La diretta e la riprova differiscono, e NON per l'orologio**
+      (2026-09-11, corretto la stessa mattina). Il secondo giro di casa C
+      ha mappato al 36,3 % di muri oltre 10 cm e 27,1 % raddoppiati; **la
+      sua stessa registrazione, rigiocata con lo stesso codice e gli
+      stessi parametri, dà 8,5 % e 1,7 %**. Stessi dati, quattro volte
+      l'errore — l'anomalia di settembre, ritrovata e stavolta con un
+      numero.
+      La prima spiegazione scritta qui era sbagliata ed è ritirata: è vero
+      che il worker vivo timbra i fotogrammi con `started.elapsed()` e non
+      con l'`at_us` del sensore, ma **anche il registratore timbra ogni
+      record col proprio `started.elapsed()`, ed è quello che la riprova
+      usa** — quindi i due percorsi corrono sullo stesso orologio, jitter
+      compreso. Verificati ed esclusi insieme a esso: la costruzione della
+      posa, il filtro degli stati, lo specchio delle colonne, la modalità
+      continua e il determinismo del mapper (nessun orologio e nessun
+      generatore casuale non seminato nel percorso vivo; l'unica HashMap
+      che conta viene solo interrogata, e mcl rompe già i pareggi per
+      coordinata).
+      Ciò che è accertato è che le due mappe differiscono nel *contenuto*,
+      non solo nell'allineamento: dal vivo 815 celle di muro e 121
+      sottomappe, in riprova 600 e 114. Un mapper deterministico nutrito
+      con la stessa sequenza non può farlo, quindi le sequenze differiscono
+      — e scoprire come è la prossima cosa da fare. Il piano: rigiocare una
+      registrazione due volte e confrontare le mappe, il che separa "il
+      banco non è deterministico" da "la registrazione non è ciò che il
+      mapper ha visto".
 - [x] Casa C a tre metri, quattro giri (2026-09-11): 22,5 % a due metri,
       poi 36,3 %, **3,7 %** e **4,8 %** a tre, con la copertura 51 → 34,
       60, 55 %. Il 36,3 % era il giro qui sopra, quello rovinato

@@ -1355,31 +1355,28 @@ nothing: it explores and asks.
       what is short and what sends the duck into those ninety-second
       panoramas.
 
-- [x] **Live and replay differ because the live pipeline throws the
-      sensor's clock away** (2026-09-11). The September anomaly, found
-      again and this time with a number on it. Flat C's second run mapped
-      at 36.3 % of wall beyond 10 cm and 27.1 % doubled; **its own
-      recording, replayed through the same code with the same parameters,
-      gives 8.5 % and 1.7 %**. Same data, four times the error.
-      The cause is in `robotd/src/maploc.rs`: the worker stamps every
-      frame and every odometry sample with `started.elapsed()` — the time
-      its own thread got round to them — while the recorder writes
-      `frame.at_us`, the sensor's capture stamp, which is what the replay
-      then uses. The mapping thread is deliberately niced +10 and competes
-      with everything else on the machine, and depth frames and odometry
-      arrive from two different threads on one channel, so they are
-      delayed by different amounts. A scan then meets a pose from another
-      instant: at 0.12 m/s, 200 ms of lag is 2.4 cm of smear and a second
-      is twelve — which is the size of the smear we have been chasing.
-      It also explains the bimodality: the same setting gives a 4 % map or
-      a 30 % one depending, apparently, on how busy the machine was.
-      The fix is not a one-liner, because the two streams have to share a
-      clock: the ToF carries `at_us` and `OdomSample` carries no capture
-      time at all, so the control loop has to start stamping its samples
-      and the two bases have to be reconciled once. But it is the most
-      valuable thing to hand upstream that we have found, and it puts
-      every parameter measured on the twin under a caveat — including
-      ours.
+- [x] **Live and replay differ, and the clock is NOT why** (2026-09-11,
+      corrected the same morning). Flat C's second run mapped at 36.3 % of
+      wall beyond 10 cm and 27.1 % doubled; **its own recording, replayed
+      through the same code with the same parameters, gives 8.5 % and
+      1.7 %**. Same data, four times the error — the September anomaly,
+      found again and this time with a number on it.
+      The first explanation written here was wrong and is retracted: the
+      live worker does stamp frames with `started.elapsed()` rather than
+      the sensor's `at_us`, but **the recorder stamps each record with its
+      own `started.elapsed()` too, and the replay uses that**, so both
+      paths run on the same clock, scheduling jitter included. Checked and
+      ruled out with it: posture construction, the status filter, the
+      column mirror, `continuous`, and the mapper's determinism (no wall
+      clock and no unseeded RNG in the live path; the one HashMap that
+      matters is only queried, and mcl already breaks ties by coordinate).
+      What is established is that the two maps differ in *content*, not
+      just in alignment: live 815 wall cells and 121 submaps, replay 600
+      and 114. A deterministic mapper fed the same sequence cannot do
+      that, so the sequences differ — and finding out how is the next
+      thing to do. The plan: replay one recording twice and compare the
+      maps byte for byte, which separates "the bench is not deterministic"
+      from "the recording is not what the mapper saw".
 - [x] Flat C at three metres, four runs (2026-09-11): 22.5 % at two
       metres, then 36.3 %, **3.7 %** and **4.8 %** at three, with coverage
       51 → 34, 60, 55 %. The 36.3 % was the run above, the one the clock
