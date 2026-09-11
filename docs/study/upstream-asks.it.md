@@ -310,6 +310,59 @@ Quindi la forma che proponiamo non è uno schizzo: `robot.map_save`,
 quale casa si trova e si riprenda la sua vecchia mappa con i nomi e i
 percorsi appesi — senza una soglia che qualcuno abbia dovuto tarare.
 
+## 5b. Una correzione della posa senza barra assoluta
+
+**Cosa esiste.** La correzione di tracciamento del `Mapper` confronta ogni
+finestra ferma con la mappa e sposta la posa tracciata su di essa,
+accettando lo spostamento quando migliora il residuo della finestra di un
+fattore (`min_improvement`, 0,8) e quando passano alcune prove di
+condizionamento. È accesa di default, e giustamente: senza, fra una
+chiusura d'anello e l'altra la posa è stima a naso.
+
+**Cosa va storto.** Migliorare rispetto a dov'eri non basta, se dov'eri
+eri già perso. Tirare la posa sulla mappa ripara la deriva finché la
+mappa è giusta, e la rinforza appena la mappa è storta — e l'inchiostro
+steso dopo rende la mappa ancora più storta.
+
+**Misurato.** Abbiamo registrato la posa vera del gemello accanto alla
+convinzione del mapper, una volta al secondo per giri di venti minuti,
+come spostamenti dal proprio inizio, e valutato le mappe risultanti
+contro i muri della casa (entrambi gli strumenti stanno in
+`private/drives/` di quacksat; le case in `sim-maploc/houses/`). Su cinque
+giri la deriva mediana predice la mappa in modo monotono: 6,8 cm di
+deriva hanno dato una mappa con il 2,4 % dei muri oltre 10 cm dal vero, e
+14,0 cm hanno dato il 12,2 %.
+Nel giro peggiore la posa ha superato **il metro**, e ogni salto verso
+l'alto cadeva su una correzione: 19 → 37 cm, 15 → 29, 34 → 47. Ognuna di
+quelle correzioni migliorava il residuo della propria finestra. Ognuna
+finiva attorno a 0,055 m. Quelle che hanno aiutato finivano a
+0,009–0,026.
+
+**Modifica proposta.** Una correzione deve anche finire sotto una barra
+assoluta, non solo migliorare: dove mappa e sensore continuano a
+discordare dopo lo spostamento, lo spostamento è andato verso una
+menzogna. Sette sessioni registrate della stessa casa, rigiocate con lo
+stesso codice e valutate contro i suoi muri:
+
+| | mediana | media | peggiore |
+|---|---|---|---|
+| com'è | 4,7 % | 7,8 % | 21,6 % |
+| correzione spenta | 3,4 % | 4,9 % | 14,6 % |
+| **barra a 0,02 m** | **1,2 %** | **2,5 %** | **10,9 %** |
+
+Meglio su sei registrazioni su sette e su tutte e tre le statistiche
+insieme. A 0,03 m dà 2,1 / 4,8 / 16,0, quindi il valore conta e andrebbe
+verificato contro il rumore di un sensore vero.
+
+**Perché conta oltre il numero.** Altri cinque interventi che abbiamo
+provato — ricerca delle chiusure più larga, nucleo di Huber, rinnegare
+l'arco peggiore, obbligare l'anatra a ripassare, tagliare la sottomappa
+alla correzione — miglioravano ciascuno quattro o cinque registrazioni su
+sette e rovinavano le altre, con oscillazioni di dieci-venticinque punti
+e la mediana ferma. Questa è l'unica modifica che ha spostato tutte e tre
+le statistiche, ed è l'unica venuta dal guardare il guasto accadere
+invece che dall'indovinarlo.
+
 ## 6. Fatti sull'andatura che servono a chi segue un percorso, e non sono scritti
 
 Li abbiamo misurati sul gemello perché i nostri primi modelli erano

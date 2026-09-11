@@ -296,6 +296,56 @@ So the shape we are proposing is not a sketch: `robot.map_save`,
 which house it is in, and get its old map back with the names and routes
 hanging off it — without a threshold anybody had to calibrate.
 
+## 5b. A pose correction with no absolute bar
+
+**What exists.** `Mapper`'s tracking correction matches each still
+window against the map and moves the tracked pose onto it, accepting the
+move when it improves the window's residual by a factor
+(`min_improvement`, 0.8) and when several conditioning tests pass. It is
+on by default, and rightly: without it the pose is dead reckoning between
+loop closures.
+
+**What goes wrong.** Improving on where you started is not enough when
+where you started was already lost. Pulling the pose onto the map repairs
+drift while the map is right, and reinforces it once the map is wrong —
+and the ink laid afterwards makes the map wronger still.
+
+**Measured.** We logged the twin's true pose beside the mapper's belief
+once a second through twenty-minute runs, as displacements from each
+one's own start, and scored the resulting maps against the house's walls
+(both tools are in quacksat's `private/drives/`; the houses are in
+`sim-maploc/houses/`). Over five runs the median drift predicts the map
+monotonically: 6.8 cm of drift gave a map with 2.4 % of its walls more
+than 10 cm from a true one, and 14.0 cm gave 12.2 %.
+In the worst run the pose passed **a metre**, and every jump upward
+landed on a correction: 19 → 37 cm, 15 → 29, 34 → 47. Each of those
+corrections improved its own window's residual. Each ended around
+0.055 m. The corrections that helped ended at 0.009–0.026.
+
+**Proposed change.** A correction must also end below an absolute bar,
+not merely improve: where the map and the sensor still disagree after the
+move, the move was toward a lie. Seven recorded sessions of one house,
+replayed through the same code and scored against its walls:
+
+| | median | mean | worst |
+|---|---|---|---|
+| as it is | 4.7 % | 7.8 % | 21.6 % |
+| correction disabled | 3.4 % | 4.9 % | 14.6 % |
+| **bar at 0.02 m** | **1.2 %** | **2.5 %** | **10.9 %** |
+
+Better on six of the seven recordings and on all three statistics at
+once. At 0.03 m it is 2.1 / 4.8 / 16.0, so the value is doing the work
+and would want checking against a real sensor's noise.
+
+**Why it matters beyond the number.** Five other interventions we tried —
+a wider loop-closure search, a Huber kernel, disowning the worst loop
+edge, forcing the duck to revisit, cutting the submap at a correction —
+each improved four or five recordings of seven and ruined the rest, with
+swings of ten to twenty-five points and no movement in the median. This
+one is the only change that moved all three statistics, and it is the
+only one that came from watching the failure happen rather than from
+guessing at it.
+
 ## 6. Gait facts a follower needs, and cannot find written down
 
 We measured these on the twin because our first models of them were wrong
