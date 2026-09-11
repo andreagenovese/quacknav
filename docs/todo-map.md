@@ -1308,6 +1308,53 @@ nothing: it explores and asks.
       travels with everything from this registry: none of the Genesis
       policies has ever walked on a physical duck.
 
+- [x] The policy that pivots loses anyway (2026-09-11). A full 25-minute
+      mapping run in flat A with each gait, same code, same house:
+
+      | | alpha | backlash |
+      |---|---|---|
+      | beyond 10 cm | **1.6 %** | 14.0 % |
+      | ghosts | **0.0 %** | 5.8 % |
+      | coverage | 46 % | 43 % |
+      | falls | 0 | 0 |
+      | spins | 33 | **27** |
+      | legs refused | **2** | 11 |
+      | back-offs | **7** | 14 |
+
+      Turning in place does pay a little — six fewer spins — but the
+      broken arcs cost five times the refusals and twice the back-offs,
+      and the veer (−8.5 °/s against −4.8) becomes pose drift, and drift
+      smears the map. For this robot **a clean walk matters more than a
+      manoeuvrable one**: a gait that goes where it is pointed makes a
+      better map, and a better map makes everything else easier. So alpha
+      stays, and the registry's value to us is the fact that a 61 → 14
+      policy drops in at all — the door is open when a better-behaved one
+      appears.
+      That alpha run is also the best live map measured so far: 1.6 %
+      misplaced wall and no doubled wall at all. It is the reference to
+      beat, and it is the repeat that was missing on the three-metre
+      range — live, in flat A, three metres is excellent. Last night's
+      contradiction is now confined to flat C, where there is one
+      measurement.
+- [ ] While the duck walks, the ToF reaches nothing but the guards
+      (2026-09-11, the user's question). `Mapper::frame` opens with
+      `if !self.was_still { return false }`: in stop-and-scan every frame
+      that arrives while the body moves is dropped before anything looks
+      at it. The same frames do feed the cliff guard, the step guards and
+      the explorer's books — safety reads the sensor continuously — but
+      nothing seen in motion ever reaches the map. At 15 Hz a three-second
+      leg throws away some forty frames, and over a run that is most of
+      the data collected.
+      The reason is sound: walking, the pose is dead reckoning and the
+      trunk bobs, and ink laid at a wrong pose is the smear we spent a
+      night removing. But `MapperConfig::continuous` already exists and we
+      have never measured it, and now there is an instrument to judge it
+      with. The middle ground worth trying first: **carve free floor while
+      moving, ink walls only from stands** — free space forgives a pose
+      error where a wall does not, and floor coverage (39–51 %) is exactly
+      what is short and what sends the duck into those ninety-second
+      panoramas.
+
 ## 3. `go_to` (needs an upstream goal RPC)
 - [ ] Follow upstream for a `robot.goto`-style RPC (planner + follower
       exist in the crate, not wired). If nothing appears by December,

@@ -1424,6 +1424,56 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       viene da quel registro: nessuna delle politiche Genesis ha mai
       camminato su un'anatra fisica.
 
+- [x] La politica che pernia perde lo stesso (2026-09-11). Un giro intero
+      di mappatura da 25 minuti in casa A con ciascuna andatura, stesso
+      codice, stessa casa:
+
+      | | alpha | backlash |
+      |---|---|---|
+      | oltre 10 cm | **1,6 %** | 14,0 % |
+      | fantasmi | **0,0 %** | 5,8 % |
+      | copertura | 46 % | 43 % |
+      | cadute | 0 | 0 |
+      | giri sul posto | 33 | **27** |
+      | tappe rifiutate | **2** | 11 |
+      | retromarce | **7** | 14 |
+
+      Girare sul posto paga un poco — sei giri in meno — ma gli archi
+      rotti costano cinque volte i rifiuti e il doppio delle retromarce, e
+      lo sbandamento (−8,5 °/s contro −4,8) diventa deriva della posa, e
+      la deriva sfuma la mappa. Per questo robot **un cammino pulito conta
+      più di uno manovriero**: un'andatura che va dove è puntata fa una
+      mappa migliore, e una mappa migliore rende tutto il resto più
+      facile. Quindi resta alpha, e il valore del registro per noi è il
+      fatto che una politica 61 → 14 si innesti affatto: la porta è
+      aperta quando ne comparirà una più educata.
+      Quel giro con alpha è anche la migliore mappa dal vivo mai
+      misurata: 1,6 % di muri fuori posto e nessun muro raddoppiato. È il
+      riferimento da battere, ed è la ripetizione che mancava sulla
+      portata a tre metri — dal vivo, in casa A, tre metri è ottimo. La
+      contraddizione di stanotte resta confinata a casa C, dove abbiamo
+      una misura sola.
+- [ ] Mentre l'anatra cammina, il ToF non arriva che ai guardiani
+      (2026-09-11, domanda dell'utente). `Mapper::frame` si apre con
+      `if !self.was_still { return false }`: in stop-and-scan ogni
+      fotogramma che arriva mentre il corpo si muove viene scartato prima
+      che qualcuno lo guardi. Gli stessi fotogrammi alimentano però il
+      guardiano del vuoto, i guardiani della tappa e gli appunti
+      dell'esploratore — la sicurezza legge il sensore di continuo — ma
+      nulla di ciò che si vede in movimento arriva alla mappa. A 15 Hz una
+      tappa di tre secondi ne butta una quarantina, e su un giro è la
+      maggior parte dei dati raccolti.
+      La ragione è buona: camminando la posa è stima a naso e il torso
+      beccheggia, e l'inchiostro steso a una posa sbagliata è lo sfumato
+      che abbiamo passato una notte a togliere. Ma
+      `MapperConfig::continuous` esiste già e non l'abbiamo mai misurata,
+      e ora c'è lo strumento per giudicarla. La via di mezzo da provare
+      per prima: **scavare il pavimento libero in movimento, inchiostrare
+      i muri solo da fermi** — lo spazio libero perdona un errore di posa
+      dove un muro non lo perdona, e la copertura del pavimento (39–51 %)
+      è proprio ciò che manca e ciò che fa scattare quei panorami da
+      novanta secondi.
+
 ## 3. `go_to` (serve un RPC di goal upstream)
 - [ ] Seguire upstream per un RPC tipo `robot.goto` (pianificatore e
       follower esistono nel crate, non sono cablati). Se entro dicembre
