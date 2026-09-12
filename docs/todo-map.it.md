@@ -1407,6 +1407,55 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       altro secondo tolto alla mediana: è il 30-40 % del tempo totale in
       ogni serie.
 
+- [x] Gliel'ho detto a voce, ed è andata (2026-09-12). L'intera catena
+      fatta girare insieme per la prima volta da quando la mappa è buona,
+      sul gemello: parola di risveglio → VAD → riconoscitore → qwen3:8b
+      con il catalogo degli strumenti → robotd → il corpo. L'anatra ha
+      mappato per sei minuti, ha imparato `cucina` dove si trovava e
+      `salotto` a 3,6 m, e poi le è stato chiesto, a voce:
+
+      > — Dove ti trovi adesso?
+      > — Sono nel salotto! Quack!          (`robot.where_am_i`)
+      > — Portami in cucina.
+      > — Vado in cucina! Quack!            (`robot.go_to {"place":"cucina"}`)
+
+      Lo strumento l'ha scelto da sé, dal nome imparato pochi minuti
+      prima, e si è messa in cammino. Lo esegue
+      `private/drives/voicedemo.{sh,py}`; `fakevoice.py` fa le veci dei due
+      capi per cui su questo Mac non abbiamo server — un riconoscitore in
+      dialetto OpenAI che restituisce ciò che il microfono a copione ha
+      appena "detto", e una voce che annota le risposte. Tutto ciò che sta
+      in mezzo è vero. `voice.py` è quel microfono: zeri a 48 kHz stereo
+      e, al momento giusto, la *forma* di qualcuno che parla, che è quanto
+      basta alla modalità di risveglio `energy`.
+      **Quello che non ha fatto: arrivare.** Ha percorso 3,5 m dei 3,6 ed
+      è finita fuori dai 300 s di bilancio dello strumento a 1,70 m dalla
+      meta — 68 tappe, il 16 % del tempo a girare sul posto, il 19 % in
+      impulsi di allineamento, due stalli e un rifiuto. Il viaggio storto,
+      e stavolta è toccato proprio a quello richiesto.
+      **E nessuno è stato avvisato.** `go_to` ritorna subito, il modello
+      dice "vado" e non guarda più, quindi l'anatra è rimasta a 1,70 m
+      dalla cucina senza dire nulla. Riferire la fine di un viaggio — un
+      secondo turno, un "ci sono" o un "non sono riuscita a passare" — non
+      c'è, ed è la prima cosa che un utente noterebbe.
+      **Due correzioni al prodotto, trovate strada facendo.** Alla
+      richiesta di andare in cucina il modello ha chiamato dapprima
+      `robot.map_explore`: il prompt di sistema parlava solo di ricordare i
+      posti, e la descrizione di `go_to` si apriva con "Walk to a place the
+      duck knows". Ora il prompt dice che andare in una stanza per nome è
+      `go_to` e mai `map_explore`, e la descrizione dello strumento si apre
+      con le parole che una persona dice davvero. A un modello da 8
+      miliardi di parametri, quello che gira in casa, serve; a uno grande
+      no.
+      **Due difetti del banco, entrambi miei, entrambi da ricordare.** Una
+      frase detta mentre l'anatra parla ancora viene scartata di proposito
+      (non c'è cancellazione dell'eco, quindi il microfono sentirebbe la
+      propria voce) e il backend svuota ciò che resta — il banco ora
+      aspetta il silenzio e ripete se non è stata sentita. E il verdetto
+      cercava `tool=robot.go_to` in un registro colorato, con i codici di
+      escape proprio lì in mezzo: un viaggio riuscito è stato riferito
+      come un rifiuto.
+
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro

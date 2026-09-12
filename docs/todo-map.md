@@ -1295,6 +1295,51 @@ nothing: it explores and asks.
       Chasing that outlier is worth more than another second off the
       median: it is 30-40 % of the total time in every series.
 
+- [x] Told out loud, and it went (2026-09-12). The whole chain run
+      together for the first time since the map got good, on the twin:
+      wake word → VAD → recognizer → qwen3:8b with the tool catalogue →
+      robotd → the body. The duck mapped for six minutes, was taught
+      `cucina` where it stood and `salotto` 3.6 m away, and was then
+      asked, out loud:
+
+      > — Dove ti trovi adesso?
+      > — Sono nel salotto! Quack!          (`robot.where_am_i`)
+      > — Portami in cucina.
+      > — Vado in cucina! Quack!            (`robot.go_to {"place":"cucina"}`)
+
+      It chose the tool itself, from the name it had been taught minutes
+      before, and set off. `private/drives/voicedemo.{sh,py}` runs it;
+      `fakevoice.py` stands in for the two ends we have no servers for on
+      this Mac — an OpenAI-dialect recognizer that returns what the
+      scripted mic just "said", and a voice that writes down what the duck
+      replies. Everything between them is the real thing. `voice.py` is
+      that mic: 48 kHz stereo zeros, and on cue the *shape* of someone
+      speaking, which is all the `energy` wake mode needs.
+      **What it did not do: arrive.** It walked 3.5 m of the 3.6 and ran
+      out of the tool's 300 s budget 1.70 m short — 68 legs, 16 % of the
+      time turning in place, 19 % in alignment pulses, two stalls and a
+      refusal. The bad journey, and this time it was the one that had been
+      asked for.
+      **And nobody was told.** `go_to` returns at once, the model says "I
+      am going" and never looks again, so the duck stood 1.70 m from the
+      kitchen and said nothing. Reporting the end of a journey — a second
+      turn, a spoken "I am there" or "I could not get through" — is
+      missing and is what a user would notice first.
+      **Two product fixes on the way there.** Asked to go to the kitchen,
+      the model first called `robot.map_explore`: the system prompt spoke
+      only of remembering places, and `go_to`'s description opened with
+      "Walk to a place the duck knows". The prompt now says that going to
+      a room by name is `go_to` and never `map_explore`, and the tool
+      description opens with the words a person actually says. An 8B model
+      at home needs that; a large one would not.
+      **Two harness bugs, both mine, both worth remembering.** A sentence
+      said while the duck is still speaking is dropped on purpose (no echo
+      cancellation, so the mic hears its own voice) and the backend drains
+      what is left — the demo now waits for quiet and says it again if it
+      was missed. And the verdict read the coloured log for
+      `tool=robot.go_to`, which the escape codes sit inside: a successful
+      journey was reported as a refusal.
+
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a
