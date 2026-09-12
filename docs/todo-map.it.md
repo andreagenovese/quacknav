@@ -1729,6 +1729,28 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       giri che erano i peggiori escono a 0,0 % e 0,9 %. Conferma dal vivo
       in corso.
 
+- [x] La barra confermata dal vivo (2026-09-12). Tre giri nuovi di casa C
+      con `max_residual_after_m` a due centimetri, contro i sette
+      precedenti:
+
+      | | mediana | media | peggiore |
+      |---|---|---|---|
+      | prima | 4,7 % | 7,8 % | 21,6 % |
+      | **dopo** | **2,0 %** | **4,1 %** | **8,6 %** |
+
+      Ciò che è sparito è la coda cattiva: prima un giro su tre finiva
+      oltre il 12 % e uno toccò il 21,6 %. Anche la posa è più regolare —
+      deriva mediana 5,9, 6,1 e 6,5 cm, mai oltre 26, dove il giro
+      peggiore di prima aveva superato i 127.
+      Uno dei tre (8,6 %, 2,8 % raddoppiati) aveva la *migliore* posa del
+      gruppo — mediana 6,1 cm, mai oltre 24 — quindi una posa buona non
+      garantisce più una mappa buona. È un guasto diverso da quello appena
+      curato: non una deriva che la mediana veda, ma qualcosa di locale e
+      raro, una manciata di finestre inchiostrate nel momento sbagliato o
+      una chiusura che ha spostato sottomappe già scritte. Per quel giro
+      esistono entrambe le tracce, quindi lo si può cercare invece che
+      indovinare.
+
 ## 3. `go_to` (serve un RPC di goal upstream)
 - [ ] Seguire upstream per un RPC tipo `robot.goto` (pianificatore e
       follower esistono nel crate, non sono cablati). Se entro dicembre

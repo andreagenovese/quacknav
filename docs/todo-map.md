@@ -1594,6 +1594,27 @@ nothing: it explores and asks.
       had been the worst come out at 0.0 % and 0.9 %. Live confirmation
       running.
 
+- [x] The bar confirmed live (2026-09-12). Three fresh runs of flat C
+      with `max_residual_after_m` at two centimetres, against the seven
+      that came before it:
+
+      | | median | mean | worst |
+      |---|---|---|---|
+      | before | 4.7 % | 7.8 % | 21.6 % |
+      | **after** | **2.0 %** | **4.1 %** | **8.6 %** |
+
+      The bad tail is what went: one run in three used to finish past
+      12 %, and one reached 21.6 %. The pose is steadier too — median
+      drift 5.9, 6.1 and 6.5 cm, never past 26 cm, where the worst run
+      before had passed 127.
+      One of the three (8.6 %, 2.8 % doubled) had the *best* pose of the
+      lot — median 6.1 cm, never past 24 — so a good pose no longer
+      guarantees a good map. That is a different fault from the one just
+      cured: not a drift the median can see but something local and rare,
+      a handful of windows inked at a bad moment or a closure that moved
+      submaps already written. Both traces exist for that run, so it can
+      be looked for rather than guessed at.
+
 ## 3. `go_to` (needs an upstream goal RPC)
 - [ ] Follow upstream for a `robot.goto`-style RPC (planner + follower
       exist in the crate, not wired). If nothing appears by December,
