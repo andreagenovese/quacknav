@@ -1362,13 +1362,50 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       caduta, nessun rilocalizzarsi.
       **Il viaggio storto.** Uno dei cinque ha impiegato 198 s e camminato
       12,2 m per farne 3,0 — sette giri sul posto da 54,6 s complessivi e
-      39,5 s di impulsi di allineamento. La stessa traversata era la lenta
-      anche con la sosta (171 s), quindi è un posto della casa, non
-      l'impostazione.
+      39,5 s di impulsi di allineamento. (Letto dapprima come un posto
+      della casa, perché il lento con la sosta passava di là. La seconda
+      coppia qui sotto dice altro: ogni serie di cinque ne ha uno storto,
+      in un verso o nell'altro, con l'una o l'altra impostazione.)
       Su cinque campioni e con quel valore anomalo, merita un'altra coppia
       prima di diventare il comportamento normale; l'effetto è più grande
       del rumore fra un giro e l'altro che a settembre nascose il 10 %, ma
       non al punto che una ripetizione sia sprecata.
+
+- [x] Venti viaggi, e la sosta se ne va — `QK_FAST_GOAL` è ora il
+      comportamento normale (2026-09-12). Una seconda coppia di serie, una
+      per impostazione, per sciogliere il dubbio dei cinque campioni.
+      Dieci viaggi per impostazione:
+
+      | | sosta a ogni tappa | sosta ogni quinta |
+      |---|---|---|
+      | velocità utile, mediana | 0,024 m/s | **0,032 m/s** |
+      | media | 0,023 | **0,032** |
+      | tutti e venti, retta su tempo totale | 0,022 m/s | **0,028 m/s** |
+      | camminato per metro guadagnato | 2,12 | 2,60 |
+      | deriva durante i viaggi, mediana | 7,4 cm | 10,8 cm |
+      | fermata dalla meta, mediana | 0,14 m | **0,12 m** |
+
+      L'anatra svelta vince in **78 dei 100 accoppiamenti**, e un test di
+      permutazione sulla differenza delle medie dà p = 0,016 a una coda —
+      quindi non è il rumore fra un giro e l'altro che a settembre nascose
+      il 10 %. Ventinove per cento più veloce contando ogni viaggio da
+      capo a fondo. La sosta era il 53 % dei secondi di un viaggio e ora è
+      l'11 %; il cammino era il 27 % e ora è il 49 %.
+      **Acceso di suo** in `explore.rs`, con `QK_FAST_GOAL=0` per
+      rimettere la sosta. Solo quando c'è una meta: un lavoro di
+      mappatura continua a fermarsi a ogni tappa, che è il suo mestiere.
+      **Quanto costa**, e va tenuto d'occhio: l'anatra girovaga una volta
+      e mezza tanto, e la posa deriva una volta e mezza tanto (10,8 cm
+      contro 7,4 di mediana; al peggio 22,5 contro 23,2, quindi la coda è
+      la stessa). La sosta ogni quinta tappa è ciò che regge tutto questo,
+      ed è la prima cosa da cambiare se la deriva sale sull'anatra vera,
+      il cui sensore è più rumoroso del gemello.
+      **Il viaggio storto è sfortuna, non un posto.** Ogni serie di cinque
+      ne ha uno che impiega dal doppio al quadruplo e cammina 10-12 m per
+      farne 3 — con la sosta e senza, in entrambi i versi
+      dell'appartamento. Inseguire quel valore anomalo vale più di un
+      altro secondo tolto alla mediana: è il 30-40 % del tempo totale in
+      ogni serie.
 
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare

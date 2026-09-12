@@ -1252,12 +1252,48 @@ nothing: it explores and asks.
       every-fifth-leg stand is doing its job. No falls, no relocalize.
       **The bad journey.** One of the five took 198 s and walked 12.2 m
       to make 3.0 — seven turns in place costing 54.6 s and 39.5 s of
-      alignment pulses. The same crossing was the slow one with the stand
-      too (171 s), so it is a place in the house, not the setting.
+      alignment pulses. (First read as a place in the house, because the
+      slow one with the stand crossed the same way. The second pair below
+      shows otherwise: every series of five has one bad journey, in either
+      direction, under either setting.)
       On five samples and with that outlier this is worth one more pair
       before it becomes the default; the effect is larger than the
       run-to-run noise that hid September's 10 %, but not by so much that
       one repetition is a waste.
+
+- [x] Twenty journeys, and the stand comes off — `QK_FAST_GOAL` is now
+      the default (2026-09-12). A second pair of series, one each way, to
+      settle the five-sample doubt. Ten journeys per setting:
+
+      | | standing every leg | standing every fifth |
+      |---|---|---|
+      | speed made good, median | 0.024 m/s | **0.032 m/s** |
+      | mean | 0.023 | **0.032** |
+      | all twenty, straight line over total time | 0.022 m/s | **0.028 m/s** |
+      | walked per metre made good | 2.12 | 2.60 |
+      | drift across the journeys, median | 7.4 cm | 10.8 cm |
+      | stopped from the goal, median | 0.14 m | **0.12 m** |
+
+      The hurried duck is faster in **78 of the 100 pairings**, and a
+      permutation test on the difference of means gives a one-sided
+      p = 0.016 — so this is not the run-to-run noise that hid
+      September's 10 %. Twenty-nine per cent faster counting every journey
+      end to end. Standing was 53 % of a journey's seconds and is now
+      11 %; walking is 27 % and is now 49 %.
+      **Turned on by default** in `explore.rs`, with `QK_FAST_GOAL=0` to
+      put the stand back. Only with a goal: a mapping job still stands
+      every leg, which is what it is for.
+      **What it costs**, and it should be watched: the duck wanders half
+      again as far, and the pose drifts half again as much (10.8 cm
+      against 7.4 median; worst 22.5 against 23.2, so the tail is the
+      same). The fifth-leg stand is what holds that, and it is the first
+      thing to change if the drift climbs on the real duck, whose sensor
+      is noisier than the twin's.
+      **The bad journey is luck, not a place.** Every series of five has
+      one that takes two to four times as long and walks 10-12 m to make
+      3 — with the stand and without, in both directions across the flat.
+      Chasing that outlier is worth more than another second off the
+      median: it is 30-40 % of the total time in every series.
 
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
