@@ -1340,6 +1340,27 @@ nothing: it explores and asks.
       `tool=robot.go_to`, which the escape codes sit inside: a successful
       journey was reported as a refusal.
 
+- [x] And the whole conversation, end to end (2026-09-12, after the
+      model was re-downloaded — the Mac had been cleared and Ollama's
+      weights with it, which turned one run into three `404`s):
+
+      > — Dove ti trovi adesso?
+      > — Sono nel salotto.                     (`robot.where_am_i`)
+      > — Portami in cucina.
+      > — Sono in camino per la cucina.         (`robot.go_to {"place":"cucina"}`)
+      > — Ci sei arrivata in cucina?
+      > — Sì, sono arrivata in cucina!          (`robot.where_am_i`)
+
+      Three metres walked in about 110 s, stopping **0.42 m** from the
+      anchor it had been taught — inside the place's 1.5 m radius, so the
+      last answer is not a boast but a reading. Both answers came after a
+      tool call: the duck looked before it spoke.
+      Two things to keep honest about it. The Italian is an 8B model's
+      Italian ("Il mappatura", "Sono in camino"), and the promise of
+      "circa 30 secondi" was invented — the duck has no idea how long a
+      journey takes and nothing in the catalogue tells it. And it still
+      only reports when asked: the arrival is knowable, not announced.
+
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a

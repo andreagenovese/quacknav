@@ -1456,6 +1456,29 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       escape proprio lì in mezzo: un viaggio riuscito è stato riferito
       come un rifiuto.
 
+- [x] E l'intera conversazione, da capo a fondo (2026-09-12, dopo aver
+      riscaricato il modello — il Mac era stato svuotato e con esso i pesi
+      di Ollama, il che aveva trasformato un giro in tre `404`):
+
+      > — Dove ti trovi adesso?
+      > — Sono nel salotto.                     (`robot.where_am_i`)
+      > — Portami in cucina.
+      > — Sono in camino per la cucina.         (`robot.go_to {"place":"cucina"}`)
+      > — Ci sei arrivata in cucina?
+      > — Sì, sono arrivata in cucina!          (`robot.where_am_i`)
+
+      Tre metri percorsi in circa 110 s, fermandosi a **0,42 m**
+      dall'ancora che le era stata insegnata — dentro il raggio di 1,5 m
+      del posto, quindi l'ultima risposta non è un vanto ma una lettura.
+      Entrambe le risposte sono arrivate dopo una chiamata a uno
+      strumento: l'anatra ha guardato prima di parlare.
+      Due cose su cui restare onesti. L'italiano è quello di un modello da
+      8 miliardi di parametri ("Il mappatura", "Sono in camino"), e la
+      promessa dei "circa 30 secondi" è inventata — l'anatra non ha idea
+      di quanto duri un viaggio e niente nel catalogo glielo dice. E
+      riferisce ancora solo se interrogata: l'arrivo è conoscibile, non
+      annunciato.
+
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro
