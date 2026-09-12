@@ -1227,6 +1227,38 @@ nothing: it explores and asks.
       (stand every fifth leg on floor already mapped) deserves the same
       five journeys again.
 
+- [x] Now the stand can go — a quarter off the journey (2026-09-12,
+      `QK_FAST_GOAL=1`, the same five journeys again). September said the
+      stand had to stay; that was with a belief 0.70 m from the truth,
+      where the stand was also what kept the pose honest. With the
+      correction's bar in place it is no longer paying for that, and the
+      answer flips:
+
+      | | with the stand | standing every fifth leg |
+      |---|---|---|
+      | speed made good, per journey | .026 .024 .018 .022 .029 | **.041 .052 .015 .033 .034** |
+      | median | 0.024 m/s | **0.034 m/s** |
+      | all five, straight line over total time | 0.023 m/s | **0.029 m/s** |
+      | seconds for the five | 631 | **462** |
+
+      Faster on four of the five. Where the seconds went instead:
+      standing 333 → 51 s, walking 173 → 223, turning in place 89 → 98,
+      and a new 58 s inside the legs themselves — the step's own
+      alignment pulses and guards, which the leg never asked for and
+      which grow when no stand has just corrected the heading.
+      **What it costs.** The duck wanders more: 2.56 m walked per metre
+      made good against 1.94. The pose is slightly worse but holds —
+      drift median 9.4 cm against 7.8, worst 19.5 against 16.6, so the
+      every-fifth-leg stand is doing its job. No falls, no relocalize.
+      **The bad journey.** One of the five took 198 s and walked 12.2 m
+      to make 3.0 — seven turns in place costing 54.6 s and 39.5 s of
+      alignment pulses. The same crossing was the slow one with the stand
+      too (171 s), so it is a place in the house, not the setting.
+      On five samples and with that outlier this is worth one more pair
+      before it becomes the default; the effect is larger than the
+      run-to-run noise that hid September's 10 %, but not by so much that
+      one repetition is a waste.
+
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a

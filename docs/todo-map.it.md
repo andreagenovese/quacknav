@@ -1336,6 +1336,40 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       (sosta ogni quinta tappa su pavimento già mappato) merita di nuovo
       gli stessi cinque viaggi.
 
+- [x] Adesso la sosta può andarsene — un quarto del viaggio in meno
+      (2026-09-12, `QK_FAST_GOAL=1`, di nuovo gli stessi cinque viaggi).
+      A settembre la sosta doveva restare; ma era con una convinzione a
+      0,70 m dalla verità, dove la sosta era anche ciò che teneva onesta
+      la posa. Con la barra sulla correzione non deve più pagare quel
+      prezzo, e la risposta si ribalta:
+
+      | | con la sosta | sosta ogni quinta tappa |
+      |---|---|---|
+      | velocità utile, per viaggio | .026 .024 .018 .022 .029 | **.041 .052 .015 .033 .034** |
+      | mediana | 0,024 m/s | **0,034 m/s** |
+      | tutti e cinque, retta su tempo totale | 0,023 m/s | **0,029 m/s** |
+      | secondi per i cinque | 631 | **462** |
+
+      Più veloce su quattro viaggi su cinque. Dove sono finiti i secondi:
+      sosta 333 → 51 s, cammino 173 → 223, giri sul posto 89 → 98, e 58 s
+      nuovi dentro le tappe stesse — gli impulsi di allineamento e le
+      guardie del passo, che la tappa non ha chiesto e che crescono quando
+      nessuna sosta ha appena corretto la direzione.
+      **Quanto costa.** L'anatra girovaga di più: 2,56 m camminati per
+      ogni metro guadagnato contro 1,94. La posa peggiora un poco ma
+      tiene — deriva mediana 9,4 cm contro 7,8, al peggio 19,5 contro
+      16,6, quindi la sosta ogni quinta tappa fa il suo mestiere. Nessuna
+      caduta, nessun rilocalizzarsi.
+      **Il viaggio storto.** Uno dei cinque ha impiegato 198 s e camminato
+      12,2 m per farne 3,0 — sette giri sul posto da 54,6 s complessivi e
+      39,5 s di impulsi di allineamento. La stessa traversata era la lenta
+      anche con la sosta (171 s), quindi è un posto della casa, non
+      l'impostazione.
+      Su cinque campioni e con quel valore anomalo, merita un'altra coppia
+      prima di diventare il comportamento normale; l'effetto è più grande
+      del rumore fra un giro e l'altro che a settembre nascose il 10 %, ma
+      non al punto che una ripetizione sia sprecata.
+
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro
