@@ -1309,6 +1309,33 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       (La mappa attraversata dai viaggi: 9,9 % di muro oltre i 10 cm,
       0,1 % di fantasmi, su sette minuti di mappatura invece di venti.)
 
+- [x] I secondi del viaggio, contati (2026-09-12). L'esploratore
+      cronometra ogni passaggio del proprio ciclo, quindi i cinque viaggi
+      qui sopra si sono potuti aprire senza rifare il giro —
+      `private/drives/legtime.py` divide un log alle chiamate di
+      `robot.go_to` e attribuisce ogni passaggio. Su 631 s e 111 tappe:
+
+      | | secondi | quota |
+      |---|---|---|
+      | fermo in piedi | 333 | **52,8 %** |
+      | in cammino | 173 | 27,3 % |
+      | a girare sul posto | 89 | 14,1 % |
+      | tutto il resto | 6 | 1,0 % |
+
+      Non si nasconde nulla. La pianificazione, l'attesa di un fotogramma
+      nuovo della mappa, i rifiuti — insieme circa un secondo su cento.
+      **Metà del viaggio è l'anatra ferma in piedi**, tre secondi per
+      volta, e la sosta esiste per dare al mappatore una finestra immobile.
+      I giri sul posto sono 12 su cinque viaggi ma da 7,4 s l'uno, e si
+      addensano: un viaggio ne ha persi 37 in cinque giri e ha impiegato
+      170 s dove il suo gemello ne impiegava 133.
+      Questo riapre la decisione di settembre. La sosta fu tenuta perché
+      toglierla costava tappe che non spostavano l'anatra e retromarce —
+      con una convinzione a 0,70 m dalla verità, la sosta era anche ciò
+      che teneva onesta la posa. Ora la posa sta a 8 cm. `QK_FAST_GOAL=1`
+      (sosta ogni quinta tappa su pavimento già mappato) merita di nuovo
+      gli stessi cinque viaggi.
+
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro

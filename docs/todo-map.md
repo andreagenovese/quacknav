@@ -1200,6 +1200,33 @@ nothing: it explores and asks.
       (The map the journeys crossed: 9.9 % of wall beyond 10 cm, 0.1 %
       ghosts, on seven minutes of mapping rather than twenty.)
 
+- [x] The journey's seconds, counted (2026-09-12). The explorer times
+      every pass of its own loop, so the five journeys above could be
+      opened up without another run — `private/drives/legtime.py` splits
+      a log at the `robot.go_to` calls and attributes each pass. Over
+      631 s and 111 legs:
+
+      | | seconds | share |
+      |---|---|---|
+      | standing | 333 | **52.8 %** |
+      | walking | 173 | 27.3 % |
+      | turning in place | 89 | 14.1 % |
+      | everything else | 6 | 1.0 % |
+
+      Nothing is hiding. Planning, the wait for a fresh map frame, the
+      refusals — together about one second in a hundred. **Half the
+      journey is the duck standing still**, three seconds at a time, and
+      the stand exists to give the mapper a still window.
+      The turns in place are 12 over five journeys but 7.4 s each, and
+      they clump: one journey lost 37 s to five of them and took 170 s
+      where its twin took 133.
+      This reopens the September decision. The stand was kept then
+      because dropping it cost legs that failed to move the duck and
+      back-offs — with a belief 0.70 m from the truth, the stand was also
+      what kept the pose honest. The pose is now 8 cm. `QK_FAST_GOAL=1`
+      (stand every fifth leg on floor already mapped) deserves the same
+      five journeys again.
+
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a
