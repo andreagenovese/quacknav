@@ -380,6 +380,18 @@ Better on six of the seven recordings and on all three statistics at
 once. At 0.03 m it is 2.1 / 4.8 / 16.0, so the value is doing the work
 and would want checking against a real sensor's noise.
 
+**Confirmed live.** Three fresh runs of the same house with the bar in
+place, driven by the explorer rather than replayed, give 1.7 / 8.6 / 2.0
+% — median 2.0, mean 4.1, worst 8.6, against 4.7 / 7.8 / 21.6 for the
+seven runs before it. The bad tail is what went. Pose drift came with it:
+median 5.9, 6.1 and 6.5 cm, never past 26, where the worst run before had
+passed 127.
+
+One of the three carried the best pose of the lot and the worst map of
+the three, so a good pose no longer guarantees a good map. That is a
+second fault, local and rare where this one was a drift, and it is what
+we would look at next.
+
 **Why it matters beyond the number.** Five other interventions we tried —
 a wider loop-closure search, a Huber kernel, disowning the worst loop
 edge, forcing the duck to revisit, cutting the submap at a correction —

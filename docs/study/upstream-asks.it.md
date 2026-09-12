@@ -401,6 +401,18 @@ Meglio su sei registrazioni su sette e su tutte e tre le statistiche
 insieme. A 0,03 m dà 2,1 / 4,8 / 16,0, quindi il valore conta e andrebbe
 verificato contro il rumore di un sensore vero.
 
+**Confermata dal vivo.** Tre giri nuovi della stessa casa con la barra
+attiva, condotti dall'esploratore invece che riprodotti, danno 1,7 / 8,6
+/ 2,0 % — mediana 2,0, media 4,1, peggiore 8,6, contro 4,7 / 7,8 / 21,6
+dei sette giri precedenti. Ciò che è sparito è la coda cattiva. Con essa
+la deriva della posa: mediana 5,9, 6,1 e 6,5 cm, mai oltre 26, dove il
+giro peggiore di prima aveva superato i 127.
+
+Uno dei tre portava la posa migliore del gruppo e la mappa peggiore dei
+tre, quindi una posa buona non garantisce più una mappa buona. È un
+secondo guasto, locale e raro dove questo era una deriva, ed è quello che
+guarderemmo dopo.
+
 **Perché conta oltre il numero.** Altri cinque interventi che abbiamo
 provato — ricerca delle chiusure più larga, nucleo di Huber, rinnegare
 l'arco peggiore, obbligare l'anatra a ripassare, tagliare la sottomappa
