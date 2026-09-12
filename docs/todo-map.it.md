@@ -1283,6 +1283,32 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       prevedibilità e un corpo che non va a sbattere, a un prezzo nascosto
       dentro il rumore. Resta (`QK_FAST_GOAL=1`, `QK_FAST_STAND_S` per
       riprendere il discorso).
+- [x] Una posa migliore non rende il viaggio più veloce — rende
+      l'arrivo vero (2026-09-12). Con la barra assoluta sulla correzione,
+      cinque viaggi da tre metri per casa A
+      (`private/drives/speed_run.sh`), lo stesso percorso della serie di
+      riferimento di settembre: **82 · 135 · 171 · 133 · 111 s** contro
+      **135 · 136 · 133 · 135 · 185**. Mediana 133 contro 135 — lo stesso
+      numero. Rapporto fra percorso e linea retta da 1,51 a 2,50, lo
+      stesso girovagare; 19 giri sul posto; nessuna retromarcia, nessuno
+      stallo, nessuna caduta.
+      Ciò che è cambiato sta sotto. `posetrack` ha girato per tutto il
+      tempo: deriva mediana **3,5 cm mentre mappava e 7,8 cm durante i
+      viaggi, al peggio 18,9 cm**, dove il giro che fece da riferimento
+      aveva la convinzione a 0,70 m dalla verità a metà viaggio. Prima
+      l'anatra si fermava a 15 cm dalla meta *su una mappa a sua volta
+      sbagliata di due terzi di metro*; adesso quei 15 cm sono quasi tutto
+      l'errore che c'è.
+      Quindi la posa non è mai stata ciò che rendeva lento il viaggio, e
+      la nota di prima — una convinzione a 0,70 m "fa vedere al
+      pianificatore muri dove c'è pavimento" — non ha retto alla prova: il
+      pianificatore girovaga uguale con una posa dieci volte migliore.
+      Restano da accusare la tappa in sé — 1,5 s di cammino contro 3 di
+      sosta — e l'abitudine del follower di girare sul posto. Vale la pena
+      ricronometrare il ciclo con i viaggi separati dalla mappatura.
+      (La mappa attraversata dai viaggi: 9,9 % di muro oltre i 10 cm,
+      0,1 % di fantasmi, su sette minuti di mappatura invece di venti.)
+
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro

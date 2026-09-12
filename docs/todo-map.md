@@ -1176,6 +1176,30 @@ nothing: it explores and asks.
       five and eleven. So the stand buys predictability and a body that
       does not walk into things, at a price hidden inside the noise. It
       stays (`QK_FAST_GOAL=1`, `QK_FAST_STAND_S` to revisit).
+- [x] A better pose does not make the journey faster — it makes the
+      arrival true (2026-09-12). With the correction's absolute bar in
+      place, five three-metre journeys across flat A
+      (`private/drives/speed_run.sh`), the same route as the September
+      baseline: **82 · 135 · 171 · 133 · 111 s** against **135 · 136 ·
+      133 · 135 · 185**. Median 133 against 135 — the same number. Path
+      over straight line 1.51 to 2.50, the same wandering; 19 turns in
+      place; no back-offs, no stalls, no falls.
+      What did change is underneath. `posetrack` ran throughout: drift
+      median **3.5 cm while mapping and 7.8 cm across the journeys, worst
+      18.9 cm**, where the run that set the baseline had the belief 0.70 m
+      from the truth mid-journey. The duck used to stop 15 cm from the
+      goal *on a map that was itself two thirds of a metre out*; now the
+      15 cm is nearly all of the error there is.
+      So the pose was never what made the journey slow, and the earlier
+      note that a 0.70 m belief "makes the planner see walls where there
+      is floor" did not survive the test: the planner wanders just as much
+      with a pose ten times better. What is left to blame is the leg
+      itself — 1.5 s of walking to 3 s of standing — and the follower's
+      habit of turning in place. Worth timing the loop again with the
+      journeys separated from the mapping.
+      (The map the journeys crossed: 9.9 % of wall beyond 10 cm, 0.1 %
+      ghosts, on seven minutes of mapping rather than twenty.)
+
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a
