@@ -1522,6 +1522,59 @@ nothing: it explores and asks.
       the brute-force `relocalize.rs` instead, and the homecoming explores
       for minutes before it can ask. Worth trying at boot.
 
+- [x] Continuous mapping, all the way down (2026-09-13). The mode that
+      inks every frame while walking, tried because the user asked why a
+      duck that travels never fills the unknowns in — in stop-and-scan it
+      cannot, since the map only takes what it sees standing still.
+
+      | continuous, in the empty flat | n | median | m/s mean | walked/m | beats plain | maps, % wall beyond 10 cm |
+      |---|---|---|---|---|---|---|
+      | as shipped, stands kept | 25 | 71 s | 0.0430 | 2.09 | 59/100 | 1.1 · 1.3 · 2.5 · 16.6 · 6.9 · 5.7 |
+      | stands removed (`QK_MAP_STAND_S=0`) | — | — | — | — | — | **position lost after two minutes** |
+      | corrected while walking (`continuous_correct_s`) | 4 | 64 s | 0.0485 | 1.92 | 57/100 | **12.0 · 23.2** |
+
+      **What it does well.** Journeys add map: +2335 and +4494 known cells
+      per five journeys, where stop-and-scan adds none. Stalls fall (9
+      against 16), the route shortens (1.41x against 1.46x), and it wins
+      59 of 100 pairings on speed — the only edge over plain
+      stop-and-scan any mode has shown.
+      **What is wrong with it, read from `mapper.rs`.** `frame()` inks and
+      returns; the tracking correction lives inside the still-window path
+      and is never called. Continuous is odometry plus loop closures for
+      as long as the robot walks. Its drift is 17.7 cm at the median in
+      the worst run against 9 for stop-and-scan, 32 cm at the peak, and
+      that run's map is 16.6 % misplaced. Take the stands away — which in
+      this mode ink nothing — and the robot's own watchdog declares the
+      position lost after two minutes: the stand was slowing the bleed,
+      not stopping it.
+      **The fix we tried, and why it made things worse.** A rolling window
+      — the frames of the last second, composed at their own poses, no
+      vote (a vote empties a moving window: the first attempt corrected
+      the pose zero times) — matched against the map every second with
+      the same bars as a still window. It fires: 97 corrections of 771
+      attempts in a run, residuals 0.069 → 0.015. And the maps are the
+      worst of the day, 12.0 % and 23.2 %, one run's drift peaking at
+      51 cm. Continuous inks every frame at once, so a correction toward a
+      wrong patch of map is inked before anything can refute it — the
+      positive feedback the absolute bar exists to stop, with no window
+      left to stop it. Knob kept at zero. A correction that could work
+      here would hold the ink until the pose is confirmed, which is a
+      different mapper and an upstream design question.
+      **Verdict: off.** `MAPLOC_MODE` stays `stop_and_scan`.
+      **A retraction.** The "continuous with the head sweep" arm (sweep1,
+      sweep2 — 44/100, maps 6.9 and 5.7 %) never had the sweep. The twin
+      launcher copies `target/debug/robotd` and the evening's builds were
+      `--release`; the binary in use was two days old. So that arm is an
+      accidental repeat of plain continuous, and its numbers stand in the
+      table above as such. The sweep in continuous is untested. (The
+      launcher's binary is now checked with `strings` after every build;
+      the trap is in memory.)
+      **And the head never pans in continuous** — `search_sweep` is gated
+      on stop-and-scan in robotd's loop — which is why that mode maps more
+      cells and covers less wall surface (41 % against 47 %). The patch
+      that lets it sweep in both modes, and narrower while walking, is in
+      the fork, unmeasured.
+
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a

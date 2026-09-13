@@ -1648,6 +1648,63 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       risveglio esplora per minuti prima di poter chiedere. Vale la pena
       provarlo al risveglio.
 
+- [x] La mappatura continua, fino in fondo (2026-09-13). La modalità che
+      inchiostra ogni fotogramma mentre cammina, provata perché l'utente
+      ha chiesto come mai un'anatra che viaggia non riempie mai gli ignoti
+      — in stop-and-scan non può, perché la mappa prende solo ciò che vede
+      da ferma.
+
+      | continuous, casa vuota | n | mediana | m/s medio | camminato/m | vince | mappe, % muro oltre 10 cm |
+      |---|---|---|---|---|---|---|
+      | com'è, con le soste | 25 | 71 s | 0,0430 | 2,09 | 59/100 | 1,1 · 1,3 · 2,5 · 16,6 · 6,9 · 5,7 |
+      | senza soste (`QK_MAP_STAND_S=0`) | — | — | — | — | — | **posizione persa dopo due minuti** |
+      | corretta in cammino (`continuous_correct_s`) | 4 | 64 s | 0,0485 | 1,92 | 57/100 | **12,0 · 23,2** |
+
+      **Cosa fa bene.** I viaggi aggiungono mappa: +2.335 e +4.494 celle
+      conosciute ogni cinque viaggi, dove lo stop-and-scan ne aggiunge
+      zero. Gli stalli calano (9 contro 16), la rotta si accorcia (1,41×
+      contro 1,46×), e vince 59 accoppiamenti su 100 in velocità — l'unico
+      vantaggio sullo stop-and-scan liscio che una modalità abbia mostrato.
+      **Cosa ha che non va, letto in `mapper.rs`.** `frame()` inchiostra e
+      ritorna; la correzione della posa vive dentro il percorso della
+      finestra immobile e non viene mai chiamata. Continuous è odometria
+      più chiusure d'anello finché il robot cammina. La sua deriva è 17,7
+      cm di mediana nel giro peggiore contro 9 dello stop-and-scan, 32 cm
+      di picco, e la mappa di quel giro è fuori posto al 16,6 %. Tolte le
+      soste — che in questa modalità non inchiostrano nulla — il cane da
+      guardia del robot dichiara persa la posizione dopo due minuti: la
+      sosta rallentava l'emorragia, non la fermava.
+      **La cura che abbiamo provato, e perché ha peggiorato.** Una finestra
+      scorrevole — i fotogrammi dell'ultimo secondo, composti ciascuno alla
+      propria posa, senza voto (il voto svuota una finestra in movimento:
+      il primo tentativo ha corretto la posa zero volte) — confrontata con
+      la mappa ogni secondo con le stesse barre di una finestra da ferma.
+      Scatta: 97 correzioni su 771 tentativi in un giro, residui
+      0,069 → 0,015. E le mappe sono le peggiori della giornata, 12,0 % e
+      23,2 %, con la deriva di un giro a 51 cm di picco. Continuous
+      inchiostra ogni fotogramma subito, quindi una correzione verso un
+      pezzo di mappa sbagliato viene inchiostrata prima che qualcosa possa
+      smentirla — la retroazione positiva che la barra assoluta esiste per
+      fermare, senza più una finestra che la fermi. Manopola lasciata a
+      zero. Una correzione che potesse funzionare qui tratterrebbe
+      l'inchiostro finché la posa non è confermata, che è un altro
+      mappatore e una domanda di progetto per Pollen.
+      **Verdetto: spenta.** `MAPLOC_MODE` resta `stop_and_scan`.
+      **Una ritrattazione.** La casella "continuous con la spazzata"
+      (sweep1, sweep2 — 44/100, mappe 6,9 e 5,7 %) **non aveva la
+      spazzata**. Il lanciatore del gemello copia `target/debug/robotd` e
+      le compilazioni della serata erano `--release`; il binario in uso
+      aveva due giorni. Quella casella è quindi una ripetizione
+      accidentale di continuous liscio, e i suoi numeri stanno nella
+      tabella sopra come tali. La spazzata in continuous non è provata. (Il
+      binario del lanciatore ora si verifica con `strings` dopo ogni
+      compilazione; la trappola è in memoria.)
+      **E la testa in continuous non pana mai** — `search_sweep` è
+      condizionata allo stop-and-scan nel ciclo di robotd — ed è per questo
+      che quella modalità mappa più celle e copre meno superficie di muro
+      (41 % contro 47 %). La toppa che la fa spazzare in entrambe le
+      modalità, e più stretta in cammino, è nel fork, non misurata.
+
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro
