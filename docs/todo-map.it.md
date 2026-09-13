@@ -1705,6 +1705,37 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       (41 % contro 47 %). La toppa che la fa spazzare in entrambe le
       modalità, e più stretta in cammino, è nel fork, non misurata.
 
+- [x] La corsia campionata per intero: la prima modifica al seguipercorso
+      che ha pagato (2026-09-14). `lane_clear` controllava tre binari — il
+      centro e i due bordi del corpo — ogni mezza cella lungo la direzione;
+      con celle da 5 cm e 16 cm di semilarghezza restavano 8 cm per lato
+      che nessun binario toccava, e una cella di muro lì, larga quanto una
+      gamba di tavolo o uno stipite, passava per libera. Ora campiona ogni
+      mezza cella anche di traverso. Inchiodato da una prova che mette una
+      cella di muro in quel buco e mostra i binari mancarla; una revisione
+      avversaria (quattro lenti, ogni rilievo riletto da un confutatore)
+      non ha trovato difetti di funzionamento.
+      Misurato dove vivono gli urti, la casa arredata, bracci alternati
+      giro per giro:
+
+      | casa arredata | n | mediana | m/s medio | camminato/m | stalli per 100 tappe | ai mobili | rifiuti spazio | giri sul posto | **vince sui binari** |
+      |---|---|---|---|---|---|---|---|---|---|
+      | tre binari | 8 | 118 s | 0,029 | 2,58 | 7,1 | 8 | 2 | 23 | — |
+      | **larghezza piena** | 9 | **78 s** | **0,039** | **2,21** | **4,8** | 6 | **0** | **13** | **74/100** |
+
+      Un terzo di stalli in meno, i giri sul posto quasi dimezzati, nessun
+      rifiuto per mancanza di spazio, e 74 accoppiamenti su 100 — dove
+      quattro modifiche al seguipercorso prima di questa ne vincevano
+      45-49. Il meccanismo, a lettura: una tappa che partiva verso uno
+      stipite che la mappa aveva ma i binari non vedevano ora parte
+      altrove, e lo stallo, la retromarcia e il giro che seguivano non
+      avvengono. (Due serie precedenti a larghezza piena erano nulle — ogni
+      meta rifiutata con "già in cammino" — perché la sonda di
+      raggiungibilità del banco lasciava acceso il proprio go_to; ora
+      aspetta.)
+      `QK_LANE_RAILS=3` tiene i binari misurabili. Non misurato: la stessa
+      modifica nella casa vuota, dove c'è poco contro cui urtare.
+
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro

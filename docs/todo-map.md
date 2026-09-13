@@ -1575,6 +1575,34 @@ nothing: it explores and asks.
       that lets it sweep in both modes, and narrower while walking, is in
       the fork, unmeasured.
 
+- [x] The lane sampled whole: the first follower change that paid
+      (2026-09-14). `lane_clear` used to check three rails — the centre
+      and the two edges of the body — every half cell along the heading;
+      with 5 cm cells and a 16 cm half-width that left 8 cm on each side no
+      rail touched, and a wall cell there, the width of a table leg or a
+      door post, passed as clear. It now samples every half cell across as
+      well. Pinned by a test that puts one wall cell in that gap and shows
+      the rails missing it; an adversarial review (four lenses, every
+      finding re-read by a refuter) found no runtime defect.
+      Measured where the bumps live, the furnished flat, arms interleaved
+      run for run:
+
+      | in the furnished flat | n | median | m/s mean | walked/m | stalls per 100 legs | at furniture | space refusals | turns in place | **beats rails** |
+      |---|---|---|---|---|---|---|---|---|---|
+      | three rails | 8 | 118 s | 0.029 | 2.58 | 7.1 | 8 | 2 | 23 | — |
+      | **whole width** | 9 | **78 s** | **0.039** | **2.21** | **4.8** | 6 | **0** | **13** | **74/100** |
+
+      A third fewer stalls, the turns in place nearly halved, no refusal
+      for want of room, and 74 of 100 pairings — where four follower
+      changes before it won 45–49. Mechanism, as read: a leg that used to
+      start toward a post the map had but the rails did not see now starts
+      elsewhere, so the stall, the back-off and the turn that followed it
+      never happen. (Two earlier full-width series were void — every goal
+      refused with "already on its way" — because the bench's own
+      reachability probe left its go_to running; it waits now.)
+      `QK_LANE_RAILS=3` keeps the rails measurable. Unmeasured: the same
+      change in the empty flat, where there is little to bump.
+
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a
