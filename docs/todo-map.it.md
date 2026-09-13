@@ -1479,6 +1479,43 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       riferisce ancora solo se interrogata: l'arrivo è conoscibile, non
       annunciato.
 
+- [x] Quanto valgono i mobili, e cosa non sono (2026-09-13). Una copia
+      spoglia di casa A — stessi muri, stesse porte, stessi pavimenti,
+      nemmeno un mobile, 100 % raggiungibile — come controllo, per
+      distinguere il girovagare dell'anatra dall'ingombro del mondo. Dodici
+      viaggi lì contro nove nella casa arredata, stesso codice:
+
+      | | arredata | spoglia |
+      |---|---|---|
+      | viaggio mediano | 99 s | **80 s** |
+      | velocità utile | 0,031 m/s | **0,040 m/s** |
+      | **camminato per metro guadagnato** | **2,06** | **2,13** |
+      | viaggio peggiore | 181 s | 131 s |
+      | viaggi oltre 150 s | 2 su 9 | **0 su 12** |
+      | stalli nel giro intero | 13 | **16** |
+      | rifiuti | 72 | 33 |
+
+      Svuotare la casa rende l'anatra un quarto più veloce e toglie i
+      disastri — ma **non la fa girovagare di meno**, e non le impedisce di
+      bloccarsi. Due numeri chiudono due questioni:
+      **Il girovagare è nostro.** 2,13 m camminati per metro guadagnato con
+      assolutamente nulla in mezzo, contro 2,06 in una casa piena di
+      mobili. Qualunque cosa disegni quegli anelli, non è il mondo.
+      **E uno stallo è soprattutto l'andatura, non un urto.** Sedici in una
+      casa vuota contro tredici in una arredata. Il dato di prima — tre
+      quarti degli stalli entro 35 cm di un mobile — era vero e fuorviante:
+      casa A ha mobili quasi dappertutto, e l'anatra si blocca altrettanto
+      spesso dove non ce ne sono.
+      Quel che i mobili costano davvero sono i rifiuti — 72 contro 33 — e
+      la coda lunga, perché uno stallo accanto a un oggetto vero scrive un
+      fantasma nei libri, ed è il fantasma a mandare il viaggio dall'altra
+      parte della casa.
+      Quindi: la casa spoglia è il banco per il lavoro sul seguipercorso,
+      dove il rumore ha una sorgente in meno; la casa arredata resta quella
+      in cui l'anatra viene giudicata. E il riconoscimento degli oggetti,
+      quando verrà, non sarà ciò che la fa camminare dritta — dritta non ci
+      cammina nemmeno in una stanza vuota.
+
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro

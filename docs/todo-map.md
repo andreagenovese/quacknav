@@ -1361,6 +1361,42 @@ nothing: it explores and asks.
       journey takes and nothing in the catalogue tells it. And it still
       only reports when asked: the arrival is knowable, not announced.
 
+- [x] What the furniture is worth, and what it is not (2026-09-13). A
+      bare copy of flat A — same walls, same doorways, same floors, not a
+      stick of furniture, 100 % reachable — as a control, so the duck's own
+      wandering could be told apart from the world's obstruction. Twelve
+      journeys there against nine in the furnished flat, same code:
+
+      | | furnished | bare |
+      |---|---|---|
+      | median journey | 99 s | **80 s** |
+      | speed made good | 0.031 m/s | **0.040 m/s** |
+      | **walked per metre made good** | **2.06** | **2.13** |
+      | worst journey | 181 s | 131 s |
+      | journeys past 150 s | 2 of 9 | **0 of 12** |
+      | stalls over the run | 13 | **16** |
+      | refusals | 72 | 33 |
+
+      Emptying the house makes the duck a quarter faster and takes away the
+      disasters — but **it does not make it wander less**, and it does not
+      stop it stalling. Two numbers settle two questions:
+      **The wandering is ours.** 2.13 m walked per metre made good with
+      nothing in the way at all, against 2.06 with a flat full of
+      furniture. Whatever draws those loops, it is not the world.
+      **And a stall is mostly the gait, not a bump.** Sixteen of them in an
+      empty flat against thirteen in a furnished one. The earlier finding
+      that three quarters of stalls happen within 35 cm of furniture was
+      true and misleading: flat A has furniture nearly everywhere, and the
+      duck stalls just as often where there is none.
+      What the furniture does cost is refusals — 72 against 33 — and the
+      long tail, because a stall beside a real object writes a phantom into
+      the books and that is what sends a journey the long way round.
+      So: the bare flat is the bench for follower work, where the noise is
+      one source quieter; the furnished flat stays the house the duck is
+      judged in. And recognising objects, when it comes, will not be what
+      makes the duck walk straight — it does not walk straight in a room
+      with nothing in it.
+
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a
