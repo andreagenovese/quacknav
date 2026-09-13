@@ -1551,6 +1551,61 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       oggi sono 1,24 di andatura e 1,70 di percorso e giri sopra di essa.
       **Non è il corpo a essere lento.**
 
+- [x] La curva di sterzo dell'andatura, misurata e invertita — e ai viaggi
+      non importa (2026-09-13). `private/drives/yawcurve.py` percorre la
+      scala delle richieste di imbardata e legge la verità del gemello, tre
+      prove per punto, ciascuna scartata se il corpo non stava davvero
+      camminando (la prima passata misurò un'anatra incastrata in un
+      angolo: 0,003 m/s in avanti e "il 13 % di quanto chiesto", che è un
+      muro, non un'andatura — l'utente se n'è accorto guardando il
+      visualizzatore).
+
+      | chiesto | consegnato, andatura nuda | con il trim 0,08 di quacksat | con trim e guadagni |
+      |---|---|---|---|
+      | sinistra | 65 % | 82 % | **95 %** |
+      | destra | 80 % | 62 % | **101 %** |
+
+      Ne escono due fatti sull'andatura. **Il corpo consegna circa il 70 %
+      di una richiesta di rotazione**, su tutta la scala, quindi ogni
+      correzione calcolata dal seguipercorso arriva corta. **Ed è
+      asimmetrico**: fra destra e sinistra ballano quindici punti, e il
+      trim — che esiste per impedire alla papera di sbandare a destra
+      quando le si dice di andare dritta — scambia quale lato è debole.
+      `GaitConfig` porta `yaw_gain_left`/`yaw_gain_right` dall'inizio,
+      documentati e mai riempiti; 1,34 e 1,58 fanno consegnare al corpo
+      quanto gli si chiede, verificato con la stessa passata. Il comando
+      corretto ora è limitato a 0,9 rad/s, oltre i quali la curva è piatta
+      e rallenta soltanto il passo (0,124 m/s a 0,15, 0,101 a 0,9).
+      **E i viaggi non si muovono.** Otto viaggi con i guadagni contro
+      venti senza, nella casa vuota: 84 s contro 80, 0,037 m/s di velocità
+      utile contro 0,040, 2,15 m camminati per metro contro 2,11
+      (p = 0,73). L'errore di direzione a inizio tappa resta di 30° alla
+      mediana. Le correzioni ora arrivano intere, e l'errore si ricrea lo
+      stesso — quindi non era la consegna.
+      I guadagni restano: un corpo che fa quello che gli si dice va tenuto
+      comunque, e sull'anatra vera questa curva andrà rimisurata da capo (è
+      il primo lavoro di dicembre).
+
+- [ ] **Dove sta davvero il girovagare**, ora che il seguipercorso è stato
+      ricostruito quattro volte per nulla (mira tenuta, rotazione
+      proporzionale, orizzonte allungato, guadagni di rotazione calibrati —
+      tutti nulli). La distanza camminata si scompone, nella casa vuota:
+
+      | | fattore |
+      |---|---|
+      | la casa stessa: cammino più corto che i muri consentono | 1,19 |
+      | la rotta del pianificatore rispetto a quel minimo | 1,20 |
+      | il dondolio dell'andatura, misurato ad anello aperto | 1,24 |
+      | quel che resta al seguipercorso | 1,19 |
+      | **misurato, camminato per metro guadagnato** | **2,11** |
+
+      La quota del seguipercorso è la più piccola delle tre modificabili, e
+      quattro tentativi non l'hanno spostata. **La rotta è il margine più
+      grande**: il pianificatore consegna 1,43 volte la linea retta dove la
+      casa ne consentirebbe 1,19, e quel 20 % sono le scalinate della
+      griglia e i buchi di una mappa costruita da un'anatra che si ferma a
+      guardare. È lì che si va adesso — non su un altro controllore.
+
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro

@@ -1430,6 +1430,59 @@ nothing: it explores and asks.
       per metre it walks today is 1.24 of gait and 1.70 of route and
       turning on top of it. **The body is not what is slow.**
 
+- [x] The gait's turn curve, measured and inverted — and the journeys do
+      not care (2026-09-13). `private/drives/yawcurve.py` sweeps the yaw
+      request and reads the twin's truth, three trials a point, each one
+      thrown away if the body was not actually walking (the first sweep
+      measured a duck wedged in a corner: 0.003 m/s forward and "13 % of
+      the asked rate", which is a wall, not a gait — the user spotted it
+      in the viewer).
+
+      | asked | delivered, raw gait | with quacksat's 0.08 trim | with the trim and the gains |
+      |---|---|---|---|
+      | left | 65 % | 82 % | **95 %** |
+      | right | 80 % | 62 % | **101 %** |
+
+      Two gait facts fall out. **The body delivers about 70 % of a turn
+      request**, flat across the range, so every correction the follower
+      computes arrives short. **And it is asymmetric**: left and right
+      differ by fifteen points, and the trim — which exists to stop the
+      duck veering right when told to go straight — swaps which side is
+      weak. `GaitConfig` has carried `yaw_gain_left`/`yaw_gain_right` since
+      the beginning, documented and never filled in; 1.34 and 1.58 make
+      the body deliver what it is asked, verified by the same sweep. The
+      corrected command is now clamped at 0.9 rad/s, past which the curve
+      is flat and only the walk slows (0.124 m/s at 0.15, 0.101 at 0.9).
+      **And the journeys do not move.** Eight journeys with the gains
+      against twenty without, in the empty flat: 84 s against 80, 0.037 m/s
+      made good against 0.040, 2.15 m walked per metre against 2.11
+      (p = 0.73). The heading error at the start of a leg is still 30° at
+      the median. The corrections now arrive in full, and the error is
+      re-created anyway — so it was never the delivery.
+      The gains stay: a body that does what it is told is worth having
+      whatever the journey time says, and on the real duck this curve will
+      have to be measured again anyway (it is the first December job).
+
+- [ ] **Where the wandering actually lives**, now that the follower has
+      been rebuilt four times for nothing (aim held, turn made
+      proportional, look-ahead stretched, turn gains calibrated — every one
+      of them null). The walked distance decomposes, in the empty flat:
+
+      | | factor |
+      |---|---|
+      | the house itself: shortest walk the walls allow | 1.19 |
+      | the planner's route against that best | 1.20 |
+      | the gait's own waddle, measured open-loop | 1.24 |
+      | what is left for the follower | 1.19 |
+      | **measured, walked per metre made good** | **2.11** |
+
+      The follower's share is the smallest of the three that can be
+      changed, and four attempts at it have moved nothing. **The route is
+      the bigger slack**: the planner hands the duck 1.43× the straight
+      line where the house allows 1.19×, and that 20 % is grid staircases
+      and the holes in a map built by a duck that stops to look. That is
+      where to go next — not another controller.
+
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a
