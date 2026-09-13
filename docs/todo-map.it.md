@@ -1606,6 +1606,48 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       griglia e i buchi di una mappa costruita da un'anatra che si ferma a
       guardare. È lì che si va adesso — non su un altro controllore.
 
+- [x] Pavimento ignoto a prezzo ridotto: nullo (2026-09-13). Il
+      pianificatore ha sempre attraversato le celle ignote a tre volte il
+      costo del pavimento noto (`COST_UNKNOWN` 30 contro `COST_FREE` 10),
+      il che in una casa mappata attraverso un cuneo di 45° basta a mandare
+      l'anatra a fare il giro largo attorno a un varco che semplicemente
+      non ha mai guardato. A 13, su otto viaggi nella casa vuota contro
+      ventotto: velocità utile media 0,0434 m/s contro 0,0430, e **un
+      viaggio con l'ignoto a buon mercato batte uno con l'ignoto caro in
+      esattamente 50 accoppiamenti su 100**. Le mediane lusingano (74 s
+      contro 84, 1,88 m camminati per metro contro 2,14) e gli
+      accoppiamenti dicono che è il campione piccolo a parlare. Anche la
+      rotta consegnata alla partenza si è mossa appena: 1,43× contro 1,46×.
+      Lasciato a 30; `QK_COST_UNKNOWN` lo tiene misurabile.
+
+- [ ] **Cosa offre maploc che non abbiamo mai usato** (scansione
+      2026-09-13). La superficie del daemon è piccola — `enabled`, `mode`,
+      `map_path`, `wipe_on_boot`, `search_sweep`, `record_dir` — e solo
+      `mode` è su un valore mai provato (`stop_and_scan`; `continuous`
+      integra mentre cammina, ed è il prossimo esperimento). `search_sweep`
+      è già acceso, ed è ciò che rende una sosta un composito di ~150°
+      invece del cuneo da 45° dove capita che guardi la testa.
+      Tre moduli dentro la libreria non sono collegati a nulla:
+      **`planner.rs`** — lo stesso A*, ma con semplificazione greedy a
+      linea di vista dentro il pianificatore, "così l'anatra non riceve uno
+      zig-zag rumoroso dall'espansione a otto vicini". Il nostro il percorso
+      non lo liscia mai; liscia la mira, a valle.
+      **`follower.rs`** — gira-poi-vai con isteresi: entra in "vai" sotto
+      0,25 rad di errore di direzione, ne esce sopra 0,45, velocità in
+      avanti scalata per `cos(errore)`. Il commento dice il perché:
+      *"un'andatura bipede oscilla in imbardata a ogni passo; una soglia
+      sola faceva partire e fermare il moto in avanti attorno a quella."* È
+      l'ondeggiare su cui questo elenco ha passato una giornata, nominato e
+      risolto da chi ha scritto l'andatura. Non è adottabile alla lettera —
+      comanda `vx = 0` mentre gira, e questa andatura da ferma non gira
+      (0,2°/s, misurato) — ma l'isteresi e il coseno sono esattamente ciò
+      che manca al nostro seguipercorso, che fa sempre archi.
+      **`mcl.rs`** — un filtro particellare che si rilocalizza su una
+      mappa salvata, restringendo una nuvola di pose in pochi secondi. Il
+      nostro ramo usa invece il `relocalize.rs` a forza bruta, e il
+      risveglio esplora per minuti prima di poter chiedere. Vale la pena
+      provarlo al risveglio.
+
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro

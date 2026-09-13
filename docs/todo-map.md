@@ -1483,6 +1483,45 @@ nothing: it explores and asks.
       and the holes in a map built by a duck that stops to look. That is
       where to go next — not another controller.
 
+- [x] Unknown floor at a lower price: null (2026-09-13). The planner has
+      always crossed unknown cells at three times the cost of known floor
+      (`COST_UNKNOWN` 30 against `COST_FREE` 10), which on a house mapped
+      through a 45° wedge is enough to send the duck a long way round a gap
+      it has simply never looked at. At 13 instead, over eight journeys in
+      the empty flat against twenty-eight: mean speed made good 0.0434 m/s
+      against 0.0430, and **a cheap-unknown journey beats a dear-unknown
+      one in exactly 50 of 100 pairings**. The medians flatter it (74 s
+      against 84, 1.88 m walked per metre against 2.14) and the pairings
+      say that is the small sample talking. The route handed to the duck at
+      the start barely moved either: 1.43x against 1.46x.
+      Left at 30; `QK_COST_UNKNOWN` keeps it measurable.
+
+- [ ] **What maploc ships that we have never used** (scanned 2026-09-13).
+      The daemon's own surface is small — `enabled`, `mode`, `map_path`,
+      `wipe_on_boot`, `search_sweep`, `record_dir` — and only `mode` is at
+      an untried value (`stop_and_scan`; `continuous` integrates while
+      walking, and is the next experiment). `search_sweep` is already on,
+      which is what makes a stop a ~150° composite instead of whichever 45°
+      wedge the head faces.
+      Three modules inside the crate are wired to nothing:
+      **`planner.rs`** — the same A*, but with a greedy line-of-sight
+      simplification inside the planner, "so the duck doesn't get a noisy
+      zig-zag from the 8-connected grid expansion". Ours never smooths the
+      path; it smooths the aim, downstream.
+      **`follower.rs`** — turn-then-go with hysteresis: enter "go" below
+      0.25 rad of heading error, leave above 0.45, forward speed scaled by
+      `cos(yaw_err)`. Its comment says why: *"a bipedal gait oscillates yaw
+      every step; a single threshold made forward motion stutter on/off
+      around it."* That is the weave this to-do has spent a day on, named
+      and solved by the people who wrote the gait. It cannot be adopted
+      literally — it commands `vx = 0` while turning, and this gait does
+      not turn from a standstill (0.2°/s, measured) — but the hysteresis
+      and the cosine are exactly what our always-arc follower lacks.
+      **`mcl.rs`** — a particle filter that relocalizes against a saved
+      grid, narrowing a cloud of poses over a few seconds. Our branch runs
+      the brute-force `relocalize.rs` instead, and the homecoming explores
+      for minutes before it can ask. Worth trying at boot.
+
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a
