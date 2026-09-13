@@ -1397,6 +1397,39 @@ nothing: it explores and asks.
       makes the duck walk straight — it does not walk straight in a room
       with nothing in it.
 
+- [x] The look-ahead stretched, and the ceiling found (2026-09-13).
+      Aiming a metre along the path instead of 0.4 m was measured over
+      twelve journeys in the empty flat against twenty: median 86 s
+      against 80, 0.036 m/s made good against 0.040, 2.44 m walked per
+      metre against 2.11 (one-sided p = 0.84 — no gain anywhere). A far
+      aim holds the heading steady but points across the corners the grid
+      path goes round, and the leg that follows it comes back. Reverted to
+      0.4; `QK_GOAL_LOOKAHEAD_M` keeps it measurable. That is the third
+      rebuild of the follower in a row that changed nothing — aim held,
+      turn made proportional, look-ahead stretched — so the next question
+      had to be what the body can do at all.
+      **How straight can this duck walk?** `private/drives/straightline.py`
+      drives the body open-loop, no map and no aim, ten seconds at a time
+      with room ahead, and reads the twin's truth:
+
+      | | path over chord | off the line | yaw drift |
+      |---|---|---|---|
+      | vyaw 0, no trim | 1.15 · 1.24 · 1.46 | 0.35–0.42 m | +0.7° · **−47.9°** · +31.1° |
+      | with the 0.08 trim | 1.23 · 1.24 · 1.24 | 0.04–0.15 m | −7.7° · +4.5° · −5.4° |
+
+      Two things fall out. **The trim is not a nicety**: without it the
+      duck swings thirty to fifty degrees in a metre and ends 40 cm off
+      the line it was told to walk — no follower can hold a line on a body
+      like that, and the trim was measured once, from a human drive, on a
+      twin. It will have to be measured again on the real duck, and the
+      duck should probably measure it itself.
+      **And the gait's own floor is 1.24.** Told to walk straight, with
+      the trim on and nothing in the way, the duck still covers a quarter
+      more ground than the chord — the waddle is a curve. So a journey can
+      never do better than about 0.097 m/s with this gait, and the 2.11 m
+      per metre it walks today is 1.24 of gait and 1.70 of route and
+      turning on top of it. **The body is not what is slow.**
+
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a

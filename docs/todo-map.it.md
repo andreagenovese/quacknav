@@ -1516,6 +1516,41 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       quando verrà, non sarà ciò che la fa camminare dritta — dritta non ci
       cammina nemmeno in una stanza vuota.
 
+- [x] L'orizzonte allungato, e il soffitto trovato (2026-09-13). Mirare
+      a un metro lungo il percorso invece che a 0,4 è stato misurato su
+      dodici viaggi nella casa vuota contro venti: mediana 86 s contro 80,
+      0,036 m/s di velocità utile contro 0,040, 2,44 m camminati per metro
+      contro 2,11 (p = 0,84 a una coda — nessun guadagno da nessuna
+      parte). Una mira lontana tiene ferma la direzione ma punta
+      attraverso gli angoli che il percorso a griglia aggira, e la tappa
+      che la segue deve tornare indietro. Rimesso a 0,4;
+      `QK_GOAL_LOOKAHEAD_M` lo lascia misurabile. È la terza ricostruzione
+      di fila del seguipercorso che non cambia nulla — mira tenuta,
+      rotazione proporzionale, orizzonte allungato — quindi la domanda
+      successiva doveva essere cosa sappia fare il corpo.
+      **Quanto dritto cammina questa papera?**
+      `private/drives/straightline.py` guida il corpo ad anello aperto,
+      senza mappa e senza mira, dieci secondi per volta con spazio davanti,
+      e legge la verità del gemello:
+
+      | | percorso su corda | fuori dalla linea | deriva di imbardata |
+      |---|---|---|---|
+      | vyaw 0, senza trim | 1,15 · 1,24 · 1,46 | 0,35–0,42 m | +0,7° · **−47,9°** · +31,1° |
+      | con il trim 0,08 | 1,23 · 1,24 · 1,24 | 0,04–0,15 m | −7,7° · +4,5° · −5,4° |
+
+      Ne escono due cose. **Il trim non è un vezzo**: senza, l'anatra
+      sbanda di trenta-cinquanta gradi in un metro e finisce a 40 cm dalla
+      linea che le era stata detta — nessun seguipercorso tiene una retta
+      su un corpo così — e quel trim è stato misurato una volta sola, da
+      una guida umana, su un gemello. Andrà rimisurato sull'anatra vera, e
+      probabilmente dovrà misurarselo da sé.
+      **E il pavimento dell'andatura è 1,24.** Con il trim acceso e niente
+      davanti, per fare un metro in linea d'aria ne cammina un quarto in
+      più: il dondolio è una curva. Quindi un viaggio non potrà mai andare
+      oltre gli 0,097 m/s con questa andatura, e i 2,11 m per metro di
+      oggi sono 1,24 di andatura e 1,70 di percorso e giri sopra di essa.
+      **Non è il corpo a essere lento.**
+
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro
