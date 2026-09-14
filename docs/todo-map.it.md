@@ -1768,6 +1768,54 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       tenuta (un punto del percorso 0,15 m più avanti spunta ogni 0,18 m
       camminati), annotata su quella voce.
 
+- [x] MCL al risveglio: collegato, misurato al banco, spento
+      (2026-09-14). `maploc/src/mcl.rs` — il filtro particellare che la
+      sua stessa intestazione dice "il runtime collega sotto
+      pending_relocalize" — non era collegato a nulla. Da un flusso di
+      lettura e progetto (tre lettori, due progettisti, un confutatore
+      ciascuno) sono usciti due progetti; entrambi confutati su dettagli, ed
+      entrambi i confutatori hanno confermato gli stessi fatti: nessuna
+      porta sul movimento propria, una soglia di muro diversa da quella del
+      mappatore (200 contro 150), e una verosimiglianza che valutava i
+      raggi finiti in celle *non mappate* come se la mappa fosse completa —
+      il che trascina la nuvola verso ciò che è mappato.
+      Costruito il più piccolo dei due, dentro il mappatore: su una mappa
+      ripresa il filtro viene seminato (un quinto attorno alla posa
+      salvata), alimentato con ogni fotogramma e ogni tick di odometria
+      mentre è persa — in cammino o da ferma, che la ricerca a finestre
+      immobili non può usare — e quando si blocca e il corpo ha spazzato
+      0,8 rad e percorso 0,10 m, la sua posa entra in `pending_reloc` come
+      qualunque candidato della forza bruta, perché la finestra immobile
+      successiva la giudichi. Le celle non mappate ora valgono 0,20 fisso
+      e restano fuori dal residuo del blocco. `MAPLOC_MCL=1`; `_N`, `_YAW`,
+      `_TRAVEL`, `_RESID` per esplorare.
+      Al banco di riproduzione, due registrazioni accese sulla mappa
+      salvata del giro 71:
+
+      | registrazione | ricerca | rilocalizzata a | giusta? (vs verità, 30 s dopo) | persa di nuovo | verità finale |
+      |---|---|---|---|---|---|
+      | 1788872069 | forza bruta | 252,6 s | **sì** — 0,01 | — | 0,036 |
+      | 1788872069 | **MCL** | **35,9 s** | **no** — 0,36 · 0,29 · 0,25, imbardata sbagliata di 58° | a 54,7 s; la forza bruta ripara a 240,6 s | 0,044 |
+      | 1788929139 | forza bruta | 220,4 s | così così — 0,20 · 0,16 | — | 0,357 |
+      | 1788929139 | **MCL** | **38,6 s** | così così — 0,12 · 0,18 · 0,12 · 0,20 | — | **0,118** |
+
+      Sei volte più veloce al verdetto, e un verdetto su due sbagliato: un
+      blocco con l'imbardata fuori di 58° che la finestra immobile ha
+      confermato (residuo 0,036, sotto la barra) e il cane da guardia ha
+      colto diciannove secondi dopo. Le porte non aiutano — la scansione su
+      imbardata 0,8/1,5 rad, percorso 0,10/0,30 m e residuo 0,05/0,08 non
+      ha cambiato nulla, perché a 36 s il corpo le ha superate tutte e il
+      blocco era lì ad aspettare. L'alias è del filtro, e la cura è quella
+      che entrambi i confutatori hanno nominato: una prova di unicità prima
+      di proporre — valutare la posa bloccata e il miglior bacino rivale
+      con il matcher a forza bruta, e proporre solo se il rivale è peggiore
+      dello stesso 0,6 che la forza bruta pretende da sé. Non costruita;
+      spento finché non lo è. (Il vecchio banco del risveglio,
+      onmap-1788872069.txt, si rilocalizzava a 24,1 s con il codice di quel
+      giorno; la forza bruta di oggi ci mette 252 s sulla stessa
+      registrazione — la barra sulla correzione del 2026-09-12 rifiuta ciò
+      che quel giorno accettava. Annotato, non inseguito.)
+
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro

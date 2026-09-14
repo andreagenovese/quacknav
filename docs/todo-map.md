@@ -1633,6 +1633,48 @@ nothing: it explores and asks.
       path point 0.15 m further on turns up every 0.18 m walked), which is
       recorded with that entry.
 
+- [x] MCL at boot: wired, benched, off (2026-09-14). `maploc/src/mcl.rs`
+      — the particle filter its own header says "the runtime wires under
+      pending_relocalize" — was wired to nothing. Two designs came out of
+      a read-and-design workflow (three readers, two designers, one
+      refuter each); both were refuted on details and both refuters
+      confirmed the same facts: no motion gate of its own, a wall
+      threshold that did not match the mapper's (200 against 150), and a
+      likelihood that scored beams into *unmapped* cells as if the map
+      were complete — which drags the cloud toward whatever is mapped.
+      Built the smaller one, inside the mapper: on a resumed map the
+      filter is seeded (a fifth around the saved pose), fed every frame and
+      every odometry tick while lost — walking or standing, which the
+      still-window search cannot use — and when it locks and the body has
+      swept 0.8 rad and moved 0.10 m, its pose goes into `pending_reloc`
+      like any brute-force candidate, for the next still window to judge.
+      Unmapped cells now score a flat 0.20 and are left out of the lock
+      residual. `MAPLOC_MCL=1`; `_N`, `_YAW`, `_TRAVEL`, `_RESID` to sweep.
+      On the replay bench, two recordings booted on the saved map of run 71:
+
+      | recording | search | relocalized at | right? (vs truth, next 30 s) | lost again | final vs truth |
+      |---|---|---|---|---|---|
+      | 1788872069 | brute force | 252.6 s | **yes** — 0.01 | — | 0.036 |
+      | 1788872069 | **MCL** | **35.9 s** | **no** — 0.36 · 0.29 · 0.25, yaw 58° off | at 54.7 s; brute force fixed it at 240.6 s | 0.044 |
+      | 1788929139 | brute force | 220.4 s | so-so — 0.20 · 0.16 | — | 0.357 |
+      | 1788929139 | **MCL** | **38.6 s** | so-so — 0.12 · 0.18 · 0.12 · 0.20 | — | **0.118** |
+
+      Six times faster to a verdict, and one verdict in two was wrong: a
+      lock with the yaw 58° off that the still window confirmed (residual
+      0.036, under the bar) and the watchdog caught nineteen seconds later.
+      The gates do not help — the sweep over yaw 0.8/1.5 rad, travel
+      0.10/0.30 m and lock residual 0.05/0.08 changed nothing, because by
+      36 s the body has cleared all of them and the lock had been waiting.
+      The alias is the filter's, and the fix is the one both refuters
+      named: a uniqueness test before proposing — score the locked pose
+      and the best rival basin with the brute-force matcher and propose
+      only if the rival is worse by the same 0.6 the brute force demands
+      of itself. Not built; off until it is. (The earlier boot bench,
+      onmap-1788872069.txt, relocalized at 24.1 s with the code of that
+      day; today's brute force takes 252 s on the same recording — the
+      tracking bar of 2026-09-12 refuses what that day accepted. Noted,
+      not chased.)
+
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a
