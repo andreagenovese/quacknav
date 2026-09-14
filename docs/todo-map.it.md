@@ -2233,7 +2233,15 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       male costa ogni go_to successivo. (Il margine era stato accantonato
       il 2026-09-09 perché allora le risposte giuste nel flat A arrivavano
       a 0,96; se ora rifiuta una giusta, il costo è un'altra domanda, non
-      una casa sbagliata.) Ripetizione dell'ufficio sotto.
+      una casa sbagliata.) Ripetizione dell'ufficio con le soglie:
+      **nessuna adozione in 15 min** — le prime due domande rifiutate dal
+      margine (0,84), le tre successive dalla crescita (+40 %, +9 %,
+      +6 %: la stessa risposta ripetuta non è una seconda occhiata), e
+      l'ultima, con la mappa cresciuta a 722 celle, già in movimento
+      verso il vero a 0,150. "Non lo so" è la risposta giusta per una
+      stanza che la mappa non ha; con più tempo si riconosce uscendo,
+      come ha fatto il bagno. Tornata sette (tutti e sei gli spawn con
+      le tre soglie) in coda come conferma.
       Due difetti del banco trovati e corretti strada facendo, da sapere:
       l'harness leggeva la posa prima che l'adozione fosse finita (il
       lavoro di esplorazione ci mette fino a un minuto a fermarsi) e
