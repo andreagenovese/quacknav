@@ -1603,6 +1603,36 @@ nothing: it explores and asks.
       `QK_LANE_RAILS=3` keeps the rails measurable. Unmeasured: the same
       change in the empty flat, where there is little to bump.
 
+- [x] Commit to the aim — turn-then-go with hysteresis, adapted from
+      maploc's unused `follower.rs` — measured and refuted (2026-09-14). A
+      judge panel (three independent designs, three judges) chose it and
+      wrote its predictions down first; the twin then refused nearly all of
+      them. Empty flat, four series an arm, interleaved:
+
+      | | old follower | commit to the aim | predicted |
+      |---|---|---|---|
+      | journeys | 13 | 17 | |
+      | median | 67 s | 90 s | ≤ 72 s |
+      | m/s mean | 0.046 | 0.034 | ≥ 0.048 |
+      | walked per metre | 1.80 | 2.51 | ≤ 1.92 |
+      | stalls | 14 | 33 | |
+      | turns in place | 6 | 18 | unchanged |
+      | "go" legs | — | 28 % | ≥ 60 % |
+      | heading error, all legs | 32° | 35° | ≤ 22° |
+      | sign flips between "go" legs | — | 44 % | ≤ 15 % |
+      | **beats the old** | — | **28/100** | ≥ 60 |
+
+      Why, as read from the numbers: the entry gate is the deadband, 0.25
+      rad, and a body that begins every plan 30° off almost never clears
+      it — so the duck lived in the turning legs, which are the timed
+      curves and arcs, and turned in place three times as often. The old
+      follower's wider straight band (0.35 rad) and its willingness to walk
+      while still a little off were doing more than they looked.
+      Kept behind `QK_COMMIT=1`, off. What survives of the panel's work is
+      the observation that the held aim of 2026-09-12 was never held (a
+      path point 0.15 m further on turns up every 0.18 m walked), which is
+      recorded with that entry.
+
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a

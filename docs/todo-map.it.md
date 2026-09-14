@@ -1736,6 +1736,38 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       `QK_LANE_RAILS=3` tiene i binari misurabili. Non misurato: la stessa
       modifica nella casa vuota, dove c'è poco contro cui urtare.
 
+- [x] Impegnarsi sulla mira — gira-poi-vai con isteresi, adattato dal
+      `follower.rs` inutilizzato di maploc — misurato e bocciato
+      (2026-09-14). Un pannello di giudici (tre progetti indipendenti, tre
+      giudici) l'ha scelto e ne ha scritto prima le previsioni; il gemello
+      le ha poi rifiutate quasi tutte. Casa vuota, quattro serie per
+      braccio, alternate:
+
+      | | vecchio seguipercorso | impegno sulla mira | previsto |
+      |---|---|---|---|
+      | viaggi | 13 | 17 | |
+      | mediana | 67 s | 90 s | ≤ 72 s |
+      | m/s medio | 0,046 | 0,034 | ≥ 0,048 |
+      | camminato per metro | 1,80 | 2,51 | ≤ 1,92 |
+      | stalli | 14 | 33 | |
+      | giri sul posto | 6 | 18 | invariati |
+      | tappe "vai" | — | 28 % | ≥ 60 % |
+      | errore di direzione, tutte le tappe | 32° | 35° | ≤ 22° |
+      | cambi di segno fra tappe "vai" | — | 44 % | ≤ 15 % |
+      | **vince sul vecchio** | — | **28/100** | ≥ 60 |
+
+      Il perché, letto nei numeri: la porta d'ingresso è la banda morta,
+      0,25 rad, e un corpo che comincia ogni piano a 30° di errore quasi
+      mai la supera — così l'anatra ha vissuto nelle tappe di rotazione,
+      che sono le curve e gli archi a tempo, e ha girato sul posto tre volte
+      tanto. La banda dritta più larga del vecchio seguipercorso (0,35 rad)
+      e la sua disponibilità a camminare anche un po' storta facevano più di
+      quanto sembrasse.
+      Tenuto dietro `QK_COMMIT=1`, spento. Del lavoro del pannello resta
+      l'osservazione che la mira tenuta del 2026-09-12 non è mai stata
+      tenuta (un punto del percorso 0,15 m più avanti spunta ogni 0,18 m
+      camminati), annotata su quella voce.
+
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro
