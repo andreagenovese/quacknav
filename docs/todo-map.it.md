@@ -2064,6 +2064,62 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       modo di rialzarsi (una skill di rialzo, o `limp_fall` con un
       bersaglio di stazione).
 
+- [ ] Camminare prima di credere (2026-09-14, sera). Tre pezzi, poi una
+      tornata di sei risvegli contro la tornata tre.
+      **Il mapper** (`9e54857`): il "travel" di un'ipotesi è la corda da
+      dove è stata vista la prima volta, non il percorso — una papera che
+      gira sul posto deriva un decimetro a calcio, dodici calci
+      "camminavano" 1,5 m dentro un cerchio di 30 cm, ed è così che
+      l'immagine speculare veniva confermata. Al boot un candidato è
+      confermato solo dopo 0,5 m fra nomina e conferma
+      (`MAPLOC_CONFIRM_TRAVEL`), in attesa nel frattempo. Test in una
+      stanza con una mensola: sedici calci non confermano mai, le gambe
+      attraverso la stanza portano a casa sulla verità.
+      **L'homecoming** (`f8afb08`): tre calci di giro, poi due gambe da
+      3 s per ogni giro, tutte sotto le guardie di `map_step`; un passo
+      rifiutato indietreggia, poi gira. La guardia del sensore funziona
+      prima che la mappa garantisca (voleva una posa tracciata; su una
+      mappa salvata non c'è).
+      **E la scoperta del giorno** (`2d797ba`): al primo risveglio con le
+      gambe, ogni gamba era rifiutata da "qualcosa a 0,37 m avanti" —
+      anche nella casa vuota, in ogni direzione. Un frame ToF reale
+      proiettato con la cinematica metteva ogni ritorno di pavimento delle
+      righe vicine 7–20 cm *sopra* il pavimento. `robot.state.head` è la
+      testa *comandata* (gli offset della spazzata), e il cliff watch
+      proiettava con quella da quando esiste; la policy di cammino tiene
+      collo e testa inclinati in giù di 0,23 / 0,46 rad. Quindi il
+      pavimento era un ostacolo a 0,37 m nella direzione della spazzata.
+      L'esploratore non ci inciampava solo perché le sue gambe sono
+      ≤1,5 s (bisogno ≈0,35 m < 0,37) — che è anche il motivo per cui sono
+      1,5 s — e il rilevatore di buchi portava la stessa inclinazione. La
+      testa ora viene dai `joints` misurati. Dopo il fix: ostacolo più
+      vicino 1,37 m (il muro vero), gamba da 3 s accettata.
+      **Ogni numero dell'esploratore prima di questo porta quel
+      fantasma**: i viaggi, la lunghezza della gamba, gli "ostacoli
+      fantasma" di tipo A — da rimisurare prima di fidarsi di un vecchio
+      verdetto.
+
+      | spawn | tornata 3 (giri sul posto) | tornata 4 (camminando) |
+      |---|---|---|
+      | cucina | 195 s, **4,94 m** ✗ | 195 s, 0,21 m, 1° ✓ |
+      | soggiorno | 114 s, 0,08 m ✓ | 153 s, 0,84 m, 33° ~ |
+      | corridoio | 111 s, 0,09 m ✓ | 156 s, 0,44 m, **123°** ✗ |
+      | ufficio | 153 s, **1,71 m** ✗ | 168 s, **1,46 m, 179°** ✗ |
+      | camera | caduta | mai (nessun candidato in 7 min, 13 gambe su 21 rifiutate dal letto) |
+      | bagno | mai | mai |
+      | **giusti / sbagliati / mai** | 2 / 2 / 1 (+1 caduta) | **1 (+1 impreciso) / 2 / 2** |
+
+      Non è meglio, e lo si dice. La cucina ora è giusta (era l'immagine
+      speculare); il corridoio è diventato un alias di *direzione* —
+      posizione quasi giusta, 123° di verso: due muri paralleli sono
+      uguali anche dopo 0,5 m di gamba, e il gemello a 180° continua a
+      concordare finché non compare una porta. Mezzo metro non è prova in
+      un corridoio; lo è un cambio di geometria. La regola che manca è
+      sulla classifica, non sulla distanza: all'ipotesi in testa basta un
+      colpo più della seconda, e uno è rumore. Prossimo: un margine di
+      vantaggio (`MAPLOC_HYP_LEAD`, 3), tornata cinque con le ipotesi
+      tracciate.
+
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro

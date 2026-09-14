@@ -1909,6 +1909,57 @@ nothing: it explores and asks.
       remains the gait; revisit when upstream gives velstand a way up
       (a stand-up skill, or `limp_fall` with a standing target).
 
+- [ ] Walk before believing (2026-09-14, evening). Three pieces, then a
+      round of six wake-ups against round three.
+      **The mapper** (`9e54857`): a hypothesis' travel is the chord from
+      where it was first seen, not the path — a duck turning on the spot
+      drifts a decimetre a kick, twelve kicks "walked" 1.5 m inside a
+      30 cm circle, and that is how the mirror image got confirmed. At
+      boot a candidate is confirmed only after 0.5 m between nomination
+      and confirmation (`MAPLOC_CONFIRM_TRAVEL`), pending meanwhile. Test
+      in a room with a shelf: sixteen kicks never confirm, legs across the
+      room come home at the truth.
+      **The homecoming** (`f8afb08`): three kicks of a turn, then two 3 s
+      legs per turn, all under `map_step`'s guards; a refused step backs
+      away, then turns. The sensor guard works before the map vouches
+      (it needed a tracked pose; on a saved map there is none).
+      **And the find of the day** (`2d797ba`): the first walking wake-up
+      had every leg refused by "something 0.37 m ahead" — in the empty
+      house too, every heading. A live ToF frame projected with the
+      kinematics put every near-row floor return 7–20 cm *above* the
+      floor. `robot.state.head` is the *commanded* head (the sweep's
+      offsets), and the cliff watch had been projecting with it since it
+      was written; the walking policy holds neck and head pitched down
+      0.23 / 0.46 rad. So the floor was an obstacle 0.37 m ahead at the
+      sweep's bearing. The explorer never tripped on it only because its
+      legs are ≤1.5 s (needed ≈0.35 m < 0.37) — which is also why they
+      are 1.5 s — and the drop detector's expected floor carried the same
+      tilt. The head now comes from the measured `joints`. After the fix:
+      nearest obstacle 1.37 m (the real wall), a 3 s leg accepted.
+      **Every explorer number before this carries that phantom**: the
+      journeys, the leg length, the type-A "phantom obstacle" — to be
+      re-measured before any old verdict is trusted.
+
+      | spawn | round 3 (turning on the spot) | round 4 (walking) |
+      |---|---|---|
+      | kitchen | 195 s, **4.94 m** ✗ | 195 s, 0.21 m, 1° ✓ |
+      | living room | 114 s, 0.08 m ✓ | 153 s, 0.84 m, 33° ~ |
+      | corridor | 111 s, 0.09 m ✓ | 156 s, 0.44 m, **123°** ✗ |
+      | office | 153 s, **1.71 m** ✗ | 168 s, **1.46 m, 179°** ✗ |
+      | bedroom | fell | never (no candidate in 7 min, 13 of 21 legs refused by the bed) |
+      | bathroom | never | never |
+      | **right / wrong / never** | 2 / 2 / 1 (+1 fell) | **1 (+1 sloppy) / 2 / 2** |
+
+      Not better, and said so. The kitchen is right now (it was the
+      mirror image); the corridor became a *heading* alias — position
+      nearly right, 123° out: two parallel walls look the same after
+      0.5 m of leg, and the 180° twin keeps agreeing until a doorway
+      comes into view. Half a metre is not evidence in a corridor; a
+      change of geometry is. The rule that is missing is on the ranking,
+      not the distance: the leader needs only one hit more than the
+      runner-up, and one is noise. Next: a lead margin
+      (`MAPLOC_HYP_LEAD`, 3), round five with the hypotheses traced.
+
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a
