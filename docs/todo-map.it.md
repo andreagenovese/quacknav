@@ -1920,6 +1920,48 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       affidabile dopo un trasporto, che è il caso per cui esiste.
       `MAPLOC_MCL` resta a richiesta.
 
+- [x] Dodici risvegli, terza tornata: gli alias da sei secondi sono
+      spariti, quelli del filtro no (2026-09-14). Prima sono entrate tre
+      correzioni al risveglio, ciascuna trovata da un risveglio fallito: il
+      giro è un colpo di gamba (`vyaw` da solo non fa girare questa
+      andatura), la sosta è di sei secondi (quattro non lasciavano mai
+      chiudere una finestra), e un giro rifiutato indietreggia invece di
+      essere ritentato contro un letto. E il "a casa in sei secondi" della
+      tornata precedente non era affatto un alias: il risveglio leggeva il
+      fotogramma della mappa nello stesso secondo in cui la caricava, e
+      quel fotogramma — della mappa appena buttata — diceva ancora
+      `tracking`. Ora crede solo a un fotogramma più nuovo di quello con
+      cui è partito.
+
+      | partenza | forza bruta | filtro particellare |
+      |---|---|---|
+      | cucina | 195 s, **4,94 m** | 48 s, **3,65 m, 91°** |
+      | soggiorno | 114 s, 0,08 m, 3° ✓ | 66 s, 0,38 m, **168°** |
+      | corridoio | 111 s, 0,09 m, 1° ✓ | 33 s, **3,11 m, 172°** |
+      | studio | 153 s, **1,71 m** | 132 s, **4,66 m, 179°** |
+      | camera | caduta a 3 s (la caduta all'abilitazione del gemello) | 180 s, 0,32 m, 0° ✓ |
+      | bagno | mai | mai |
+      | **giuste / sbagliate / mai** | **2 / 2 / 1** | **1 / 4 / 1** |
+
+      Con il filtro il risveglio è più veloce e più sbagliato: quattro
+      alias su cinque, a 33–132 s, quasi tutti a 180°. Nella prima tornata
+      i suoi blocchi venivano respinti ogni volta; ora, riseminato sui
+      rivali e con le porte ripartite, insiste finché non arriva una
+      finestra su cui l'alias *è* l'incastro unico — in una cucina di
+      rettangoli quella finestra esiste anche per l'immagine speculare — e
+      la finestra successiva, girata sul posto a un metro di distanza,
+      concorda. Il banco a due registrazioni aveva detto l'opposto perché
+      lì l'anatra esplorava: le sue finestre venivano da metri di distanza,
+      ed è questo che distingue un alias dalla verità. **L'unicità su una
+      finestra non è evidenza; il percorso fra una finestra e l'altra lo
+      è.** Il ramo a più ipotesi lo dice già (due finestre e 1,5 m), e un
+      risveglio che gira sul posto non ci arriva mai.
+      `MAPLOC_MCL` resta spento. La prossima modifica al risveglio non è
+      un'altra rete: è far camminare l'anatra — qualche giro, poi tappe
+      brevi sorvegliate — e rifiutare qualunque conferma al risveglio
+      senza mezzo metro di percorso fra la finestra che ha nominato una
+      posa e quella che la conferma.
+
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro

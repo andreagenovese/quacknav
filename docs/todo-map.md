@@ -1773,6 +1773,46 @@ nothing: it explores and asks.
       to try. Until then the homecoming is not to be trusted after a carry,
       which is the case it exists for. `MAPLOC_MCL` stays opt-in.
 
+- [x] Twelve wake-ups, third round: the six-second aliases are gone, the
+      filter's are not (2026-09-14). Three fixes to the wake-up went in
+      first, each found by a wake-up that failed: the turn is a kick (vyaw
+      alone does not turn this gait), the stand is six seconds (four never
+      let a window close), and a refused turn backs away instead of being
+      retried against a bed. And the "home in six seconds" of the earlier
+      round was not an alias at all: the homecoming read the map frame in
+      the same second it loaded the map, and that frame — from the map
+      just thrown away — still said `tracking`. It now believes only a
+      frame newer than the one it started with.
+
+      | spawn | brute force | particle filter |
+      |---|---|---|
+      | kitchen | 195 s, **4.94 m** | 48 s, **3.65 m, 91°** |
+      | living room | 114 s, 0.08 m, 3° ✓ | 66 s, 0.38 m, **168°** |
+      | corridor | 111 s, 0.09 m, 1° ✓ | 33 s, **3.11 m, 172°** |
+      | office | 153 s, **1.71 m** | 132 s, **4.66 m, 179°** |
+      | bedroom | fell at 3 s (the twin's fall at enable) | 180 s, 0.32 m, 0° ✓ |
+      | bathroom | never | never |
+      | **right / wrong / never** | **2 / 2 / 1** | **1 / 4 / 1** |
+
+      With the filter the wake-up is faster and wronger: four aliases in
+      five, at 33–132 s, nearly all 180° out. In the first round its locks
+      were refused every time; now, re-seeded on the rivals and with the
+      gates restarted, it keeps trying until a window comes along on which
+      the alias *is* the unique fit — in a kitchen of rectangles that
+      window exists for the mirror image too — and the next window,
+      turned in place a metre away, agrees. The two-recording bench had
+      said the opposite because on it the duck was exploring: its
+      windows came from metres apart, and that is what tells an alias
+      from the truth. **Uniqueness on one window is not evidence; travel
+      between windows is.** The multi-hypothesis path already says so
+      (two windows and 1.5 m), and a wake-up that turns in place never
+      reaches it.
+      `MAPLOC_MCL` stays off. The next wake-up change is not another gate:
+      it is to make the duck walk — a few turns, then short guarded legs
+      — and to refuse any confirmation at boot without half a metre of
+      travel between the window that nominated a pose and the one that
+      confirms it.
+
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a
