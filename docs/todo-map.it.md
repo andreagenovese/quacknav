@@ -1878,6 +1878,48 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       risvegli sulla mappa salvata, con `duckwatch.py` a leggere il momento
       in cui dice casa — è ciò che la renderebbe predefinita.
 
+- [x] Dodici risvegli sulla mappa salvata, e cosa ha detto il gemello
+      (2026-09-14). Sei posizioni di partenza in sei stanze della casa
+      arredata, ciascuna una volta con il filtro particellare e una senza;
+      il risveglio sta fermo e gira fino a 240 s, poi cancella ed esplora;
+      420 s in tutto. Giudicati dalla convinzione dell'anatra contro la
+      verità nel momento in cui dice casa. (Prima è stato necessario
+      correggere il giro: `vyaw` da solo non fa girare questa andatura, e
+      una sosta di quattro secondi non ha mai lasciato chiudere una
+      finestra — vedi il commit del risveglio. Il primo risveglio dopo la
+      correzione è tornato a casa in 126 s a 0,15 m.)
+
+      | partenza | senza filtro | con filtro |
+      |---|---|---|
+      | cucina | 117 s, **4,89 m, 174°** | 132 s, 0,10 m, 2° |
+      | soggiorno | 6 s, **2,17 m, 180°** | 6 s, **2,17 m, 180°** |
+      | corridoio | 111 s, 0,05 m, 1° | 111 s, 0,13 m, 4° |
+      | studio | 138 s, **1,76 m, 179°** | mai |
+      | camera | 12 s, **3,85 m, 138°** | 89 s, **5,90 m, 89°** |
+      | bagno | mai | mai |
+      | **giuste / sbagliate / mai** | **1 / 4 / 1** | **2 / 2 / 2** |
+
+      **Sei conferme su nove sono sbagliate.** Il percorso del risveglio
+      conferma immagini speculari, e in entrambi i bracci, perché le
+      proposte del filtro sono state respinte ogni volta dalla prova di
+      unicità (5 su 6, 11 su 11, 21 su 21 blocchi) e le conferme sono
+      venute dalla ricerca a finestre immobili, che gira comunque. Due
+      generi di sbaglio: i rettangoli ripetuti della casa confermati a 180°
+      dopo un minuto o due di giri (cucina, studio); e la *posa salvata*
+      confermata in sei secondi quando l'anatra era stata portata in
+      un'altra stanza (soggiorno, camera) — una finestra che concorda con
+      la mappa alla posa in cui la sessione era finita, e un'anatra accesa
+      dall'altra parte della casa crede di essere dove era stata spenta.
+      Quindi la ricerca al risveglio su questa evidenza non aiuta e non
+      nuoce — non ha proposto nulla di sbagliato, e nulla di giusto — e il
+      difetto che doveva curare è più profondo del filtro: la conferma a
+      finestre immobili accetta da sé gli alias al risveglio, il seme
+      morbido più di tutto. La prova di unicità che ora vincola il blocco
+      del filtro è ciò che manca a quelle conferme, e applicarla a loro è la
+      prossima cosa da provare. Fino ad allora il risveglio non è
+      affidabile dopo un trasporto, che è il caso per cui esiste.
+      `MAPLOC_MCL` resta a richiesta.
+
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro

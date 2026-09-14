@@ -1733,6 +1733,46 @@ nothing: it explores and asks.
       `duckwatch.py` reading the moment it says home — is what would make
       it the default.
 
+- [x] Twelve wake-ups on the saved map, and what the twin said
+      (2026-09-14). Six spawns in six rooms of the furnished flat, each
+      once with the particle filter and once without; the homecoming
+      stands and turns for up to 240 s, then wipes and explores; 420 s in
+      all. Judged by the duck's belief against the truth at the moment it
+      says home. (The turn had to be fixed first: `vyaw` alone does not
+      turn this gait, and a four-second stand never let a window close —
+      see the homecoming commit. The first wake-up after the fix came home
+      in 126 s at 0.15 m.)
+
+      | spawn | without the filter | with the filter |
+      |---|---|---|
+      | kitchen | 117 s, **4.89 m, 174°** | 132 s, 0.10 m, 2° |
+      | living room | 6 s, **2.17 m, 180°** | 6 s, **2.17 m, 180°** |
+      | corridor | 111 s, 0.05 m, 1° | 111 s, 0.13 m, 4° |
+      | office | 138 s, **1.76 m, 179°** | never |
+      | bedroom | 12 s, **3.85 m, 138°** | 89 s, **5.90 m, 89°** |
+      | bathroom | never | never |
+      | **right / wrong / never** | **1 / 4 / 1** | **2 / 2 / 2** |
+
+      **Six of nine confirmations are wrong.** The wake-up path confirms
+      mirror images, and in both arms, because the filter's proposals were
+      refused every time by the uniqueness test (5 of 6, 11 of 11, 21 of
+      21 locks) and the confirmations came from the still-window search
+      that runs regardless. Two kinds of wrong: the flat's repeated
+      rectangles confirmed 180° out after a minute or two of turning (the
+      kitchen, the office); and the *saved pose* confirmed in six seconds
+      when the duck had been carried to another room (the living room, the
+      bedroom) — one window that agrees with the map at the pose the
+      session ended at, and a duck switched on across the flat believes it
+      is where it was switched off.
+      So the boot search neither helps nor hurts on this evidence — it
+      proposed nothing wrong, and nothing right — and the fault it was
+      wired to cure is deeper than the filter: the still-window
+      confirmation itself accepts aliases at boot, the soft seed most of
+      all. The uniqueness test that now gates the filter's lock is what
+      those confirmations lack, and applying it to them is the next thing
+      to try. Until then the homecoming is not to be trusted after a carry,
+      which is the case it exists for. `MAPLOC_MCL` stays opt-in.
+
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a
