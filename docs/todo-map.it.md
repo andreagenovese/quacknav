@@ -2195,6 +2195,57 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       1,5 s non sono più rifiutate dal pavimento, quindi la lunghezza della
       gamba si può misurare come manopola per la prima volta — dopo, a
       risveglio chiuso.
+- [x] Tornata sei: esplora finché ti riconosci (2026-09-15, notte). Il
+      flusso descritto dall'utente il primo giorno era già costruito
+      (`robot.map_match` e adozione su due domande concordi, 2026-09-09) e
+      il banco dei risvegli non lo aveva mai lasciato girare: 240 s di
+      ricerca al boot, poi un budget di 420 s che finiva prima della
+      seconda domanda. Ora: ricerca al boot 90 s, poi esplora e chiedi
+      ogni 120 s, budget 900 s, e la voce aperta chiusa strada facendo —
+      una **soglia assoluta** sulla risposta (`[homecoming]
+      adopt_max_score` 0,16: le risposte giuste facevano 0,043–0,138, le
+      sbagliate da 0,187 in su, 2026-09-09). Stessi sei spawn, mappa del
+      `run 71` (ufficio 70 % e bagno 92 % ignoti), posizione letta
+      all'adozione e 25 s dopo:
+
+      | spawn | tornata 5 (solo ricerca al boot) | tornata 6 (esplora e riconosci) |
+      |---|---|---|
+      | cucina | 0,20 m, verso ? | 405 s, **12 cm, 1°** → 9 cm, 0° a +25 s |
+      | soggiorno | 0,82 m | 363 s, **19 cm** → 17 cm, 15° |
+      | corridoio | mai | 477 s, **8 cm** all'adozione (era entrata in camera) |
+      | camera | mai | 426 s, **16 cm** |
+      | ufficio (70 % ignoto) | 170° ✗ | 360 s, **sbagliata: ha adottato la camera** (2,3 m) — sotto |
+      | bagno (92 % ignoto) | mai | 633 s, **7 cm** → 15 cm: è uscita fino al soggiorno e lì si è riconosciuta |
+      | **giusti / sbagliati / mai** | 1 / 1 / 3 | **5 / 1 / 0** |
+
+      Cinque su sei, tutti entro 20 cm, e il bagno è il migliore: una
+      stanza che la mappa non ha, e la papera non se l'è inventata — ha
+      esplorato finché è arrivata in una stanza che la mappa ha.
+      L'ufficio è il fallimento che conta, e i suoi numeri dicono perché:
+      una mappa fresca di una stanza che quella salvata ha appena
+      accennata combacia con la vicina identica (la camera) a 0,091 e
+      0,093 — sotto la soglia. Due cose nelle stesse risposte la separano
+      da ogni adozione giusta della notte: il margine del secondo (0,97 e
+      0,84 contro 0,23–0,68) e quanto la mappa viva è cresciuta fra le
+      due domande (+24 % contro +61–213 %). Entrambe ora sono soglie di
+      rifiuto (`adopt_max_margin` 0,80, `adopt_min_growth` 1,5,
+      `e20f367`); rifiutare costa due minuti di esplorazione, adottare
+      male costa ogni go_to successivo. (Il margine era stato accantonato
+      il 2026-09-09 perché allora le risposte giuste nel flat A arrivavano
+      a 0,96; se ora rifiuta una giusta, il costo è un'altra domanda, non
+      una casa sbagliata.) Ripetizione dell'ufficio sotto.
+      Due difetti del banco trovati e corretti strada facendo, da sapere:
+      l'harness leggeva la posa prima che l'adozione fosse finita (il
+      lavoro di esplorazione ci mette fino a un minuto a fermarsi) e
+      chiamava caduta nei primi tre secondi, quando la papera si sta
+      ancora alzando dal boot seduto; e un robotd orfano di una coda
+      uccisa teneva il socket IPC, per cui cinque risvegli di fila sono
+      "caduti" su un demone collegato a un corpo morto.
+      `try-maploc-local.sh up` ora uccide i nostri orfani.
+      Aperto: il verso riportato discorda dalla verità di ~55° in due
+      giri mentre la posizione segue il corpo (rec11: 15°, rec14: 0° —
+      quindi non sistematico); da guardare, non urgente, perché go_to
+      consuma la posizione.
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro

@@ -2030,6 +2030,55 @@ nothing: it explores and asks.
       because it paid. What it changes is the *ceiling*: legs longer than
       1.5 s are no longer refused by the floor, so the leg length can be
       measured as a knob for the first time — later, after the wake-up.
+- [x] Round six: explore until recognised (2026-09-15, night). The
+      flow the user described on day one was already built (`robot.map_match`
+      and adoption on two agreeing asks, 2026-09-09) and the wake-up bench
+      had never let it run: 240 s of boot search, then a 420 s budget that
+      ended before the second ask. Now: boot search 90 s, then explore
+      and ask every 120 s, budget 900 s, and the open item closed on the
+      way — an **absolute bar** on the answer (`[homecoming]
+      adopt_max_score` 0.16: right answers scored 0.043–0.138, wrong ones
+      0.187 and up, 2026-09-09). Same six spawns, `run 71`'s map (office
+      70 % and bathroom 92 % unknown), position read at adoption and
+      25 s later:
+
+      | spawn | round 5 (boot search only) | round 6 (explore and recognise) |
+      |---|---|---|
+      | kitchen | 0.20 m, heading ? | 405 s, **12 cm, 1°** → 9 cm, 0° at +25 s |
+      | living room | 0.82 m | 363 s, **19 cm** → 17 cm, 15° |
+      | corridor | never | 477 s, **8 cm** at adoption (it had walked into the bedroom) |
+      | bedroom | never | 426 s, **16 cm** |
+      | office (70 % unknown) | 170° ✗ | 360 s, **wrong: adopted the bedroom** (2.3 m) — see below |
+      | bathroom (92 % unknown) | never | 633 s, **7 cm** → 15 cm: walked out to the living room and recognised itself there |
+      | **right / wrong / never** | 1 / 1 / 3 | **5 / 1 / 0** |
+
+      Five of six, every one within 20 cm, and the bathroom is the best
+      of them: a room the map does not hold, and the duck did not
+      invent it — it explored until it reached a room the map does hold.
+      The office is the failure that matters, and its numbers say why:
+      a fresh map of a room the saved map barely has fits the identical
+      neighbour (the bedroom) at 0.091 and 0.093 — under the bar. Two
+      things in the same answers separate it from every right adoption
+      of the night: the runner-up's margin (0.97 and 0.84 against
+      0.23–0.68) and how much the live map grew between the two asks
+      (+24 % against +61–213 %). Both are now refusal bars
+      (`adopt_max_margin` 0.80, `adopt_min_growth` 1.5, `e20f367`);
+      refusing costs two minutes of exploring, adopting wrongly costs
+      every go_to after it. (The margin was set aside on 2026-09-09
+      because right answers in flat A reached 0.96 then; if it refuses
+      a right one now, the cost is another ask, not a wrong home.)
+      Office re-run below.
+      Two bench faults found and fixed on the way, both worth knowing:
+      the harness read the pose before the adoption had finished (the
+      exploring job takes up to a minute to stop) and called a fall in
+      the first three seconds, when the duck is still rising from its
+      seated boot; and an orphaned robotd from a killed queue held the
+      IPC socket, so five wake-ups in a row "fell" on a daemon wired to
+      a dead body. `try-maploc-local.sh up` now kills our own orphans.
+      Open: the reported heading disagrees with the truth by ~55° in two
+      runs while the position tracks the body (rec11: 15°, rec14: 0° —
+      so not systematic); to look at, not urgent, since position is
+      what go_to consumes.
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a
