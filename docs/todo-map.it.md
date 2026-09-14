@@ -1848,6 +1848,36 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       migliore, e resta dietro `MAPLOC_MCL=1` finché il gemello non ci si
       sarà risvegliato sopra una dozzina di volte.
 
+- [x] La prova di unicità, corretta dalla revisione: giusta su
+      entrambe, tre volte più veloce della forza bruta (2026-09-14). La
+      revisione avversaria della prima prova ha fatto passare una lente
+      sola prima del limite di sessione, e quella lente ha trovato tre
+      difetti che reggevano sul codice: il blocco veniva giudicato alla
+      posa *attuale* del filtro contro un composito misurato all'ultima
+      sosta, senza riportarlo indietro; `own` e il rivale erano valutati
+      con metriche diverse (`score_pose`, solo gli estremi osservati,
+      contro `score_offsets`, ogni raggio), quindi il rapporto non era la
+      prova della forza bruta; e un blocco rifiutato veniva riseminato
+      attorno alla posa rifiutata, dove si ribloccava in 25 fotogrammi e
+      incontrava di nuovo la stessa finestra. Tutti e tre corretti: il
+      blocco viene riportato alla posa della finestra e proposto come
+      candidato a quella finestra; `own` è il bacino che la ricerca a
+      forza bruta trova al blocco e il rivale il miglior bacino altrove,
+      stessi numeri da entrambe le parti; un rifiuto semina la nuvola sui
+      bacini rivali e fa ripartire le porte sul movimento; un giudizio per
+      finestra; una finestra magra non è un verdetto.
+
+      | registrazione | forza bruta | prima prova | **prova corretta** |
+      |---|---|---|---|
+      | 1788872069 | 252,6 s, giusta, finale 0,036 | 252,6 s, giusta | **73,3 s, giusta (0,01–0,05), finale 0,009** |
+      | 1788929139 | 220,4 s, un quarto di metro fuori, finale 0,357 | 174,4 s, giusta | **72,6 s, giusta (0,03–0,05), finale 0,020** |
+
+      Nessun alias, nessuna perdita, e un verdetto in 73 s dove la forza
+      bruta ne impiega 220–253. Sempre due registrazioni e sempre
+      `MAPLOC_MCL=1`; la prova di risveglio sul gemello — una dozzina di
+      risvegli sulla mappa salvata, con `duckwatch.py` a leggere il momento
+      in cui dice casa — è ciò che la renderebbe predefinita.
+
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro

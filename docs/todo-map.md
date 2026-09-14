@@ -1705,6 +1705,34 @@ nothing: it explores and asks.
       sometimes better, and it stays behind `MAPLOC_MCL=1` until the twin
       has booted on it a dozen times.
 
+- [x] The uniqueness test, corrected by review: right on both, three
+      times faster than the brute force (2026-09-14). The adversarial
+      review of the first gate got one lens through before the session
+      limit, and that lens found three faults that held on the code: the
+      lock was judged at the filter's *current* pose against a composite
+      measured at the last stand, without carrying it back; `own` and the
+      rival were scored with different metrics (`score_pose`, observed
+      endpoints only, against `score_offsets`, every beam), so the ratio
+      was not the brute force's test; and a refused lock was re-seeded
+      around the refused pose, where it re-locked in 25 frames and met the
+      same window again. All three fixed: the lock is carried back to the
+      window's pose and proposed as a candidate at that window; `own` is
+      the basin the brute-force search itself finds at the lock and the
+      rival the best basin elsewhere, same numbers on both sides; a
+      refusal seeds the cloud on the rival basins and restarts the motion
+      gates; one judgement per window; a thin window is no verdict.
+
+      | recording | brute force | first gate | **corrected gate** |
+      |---|---|---|---|
+      | 1788872069 | 252.6 s, right, final 0.036 | 252.6 s, right | **73.3 s, right (0.01–0.05), final 0.009** |
+      | 1788929139 | 220.4 s, a quarter metre out, final 0.357 | 174.4 s, right | **72.6 s, right (0.03–0.05), final 0.020** |
+
+      No alias, no loss, and a verdict in 73 s where the brute force
+      takes 220–253. Still two recordings and still `MAPLOC_MCL=1`; the
+      twin boot test — a dozen wake-ups on the saved map, with
+      `duckwatch.py` reading the moment it says home — is what would make
+      it the default.
+
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a
