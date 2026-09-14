@@ -1962,6 +1962,22 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       senza mezzo metro di percorso fra la finestra che ha nominato una
       posa e quella che la conferma.
 
+- [x] Perché il bagno non torna "mai" a casa, e l'ufficio ci torna
+      sbagliato (2026-09-14, l'ipotesi dell'utente: il bagno non è mai
+      stato mappato). Giusto. Sulla mappa salvata contro cui sono stati
+      giudicati i risvegli, il 92% delle celle di pavimento del bagno è
+      ancora ignoto, e il 70% di quelle dell'ufficio; cucina, soggiorno e
+      corridoio sono mappati per intero. Una papera che si sveglia in
+      bagno vede muri che la mappa non ha mai disegnato, quindi nessun
+      bacino combacia e la ricerca consuma i suoi quattro minuti; una che
+      si sveglia in ufficio vede una stanza disegnata per un terzo, e il
+      miglior incastro sta altrove. Due righe "mai/sbagliato" delle
+      tabelle qui sopra sono quindi copertura, non riconoscimento, e il
+      rimedio sta nel giro, non nel matcher: mappare le stanze prima di
+      chiedere di esservi riconosciuti. La serie dei risvegli resta com'è
+      (le altre quattro stanze sono la prova), e la prossima mappa per un
+      banco di risvegli si prende dopo un giro che entra in ogni stanza.
+
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro

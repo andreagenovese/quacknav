@@ -1813,6 +1813,21 @@ nothing: it explores and asks.
       travel between the window that nominated a pose and the one that
       confirms it.
 
+- [x] Why the bathroom "never" comes home, and the office comes home
+      wrong (2026-09-14, the user's guess: the bathroom was never mapped).
+      Right. On the saved map the wake-ups were judged against, 92% of
+      the bathroom's floor cells are still unknown and 70% of the
+      office's; the kitchen, living room and corridor are mapped through.
+      A duck that wakes in the bathroom sees walls the map has never
+      drawn, so no basin fits and the search runs out its four minutes;
+      one that wakes in the office sees a room drawn by a third, and the
+      best fit is somewhere else. Two "never/wrong" rows of the tables
+      above are therefore coverage, not recognition, and the fix is in
+      the tour, not the matcher: map the rooms before asking to be
+      recognised in them. The wake-up series stays as is (the four other
+      rooms are the evidence), and the next map for a wake-up bench is
+      taken after a tour that enters every room.
+
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a
