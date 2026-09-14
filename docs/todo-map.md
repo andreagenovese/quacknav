@@ -1675,6 +1675,36 @@ nothing: it explores and asks.
       tracking bar of 2026-09-12 refuses what that day accepted. Noted,
       not chased.)
 
+- [x] MCL at boot, with the uniqueness test: never wrong on the bench,
+      once better, no longer six times faster (2026-09-14). Before the
+      filter's lock is proposed, the locked pose is scored on the last
+      still-window composite and the brute-force search is asked for the
+      best basin elsewhere (farther than 0.40 m or 35°); the lock is
+      proposed only if it beats that rival by the ratio the brute force
+      demands of itself (`uniqueness_ratio` 0.6) with enough judged beams,
+      else the cloud is re-seeded half around it and moves on.
+
+      | recording | search | relocalized at | right? | final vs truth |
+      |---|---|---|---|---|
+      | 1788872069 | brute force | 252.6 s | yes (0.01) | 0.036 |
+      | 1788872069 | MCL, no test | 35.9 s | **no** (0.36), lost at 54.7 s | 0.044 |
+      | 1788872069 | **MCL + uniqueness** | 252.6 s | yes (0.01) — the alias refused, the brute force's own verdict | 0.036 |
+      | 1788929139 | brute force | 220.4 s | so-so (0.20 · 0.16) | 0.357 |
+      | 1788929139 | MCL, no test | 38.6 s | so-so (0.12 · 0.18) | 0.118 |
+      | 1788929139 | **MCL + uniqueness** | **174.4 s** | **yes (0.06 · 0.03 · 0.07)** | **0.013** |
+
+      The test does what it was built for: the 58°-off lock on the first
+      recording never reaches the window, and on the second the filter's
+      proposal at 174 s is the right one where the brute force's at 220 s
+      was a quarter metre out — the run ends 0.013 m from the truth
+      against 0.357. What is gone is the speed: a lock that passes the
+      test needs a composite the brute force can judge, and those come
+      only from still windows, so the filter can no longer beat the
+      windows to a verdict by minutes; it beats them to the *right*
+      verdict. Two recordings are two; on this evidence it is safe and
+      sometimes better, and it stays behind `MAPLOC_MCL=1` until the twin
+      has booted on it a dozen times.
+
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a

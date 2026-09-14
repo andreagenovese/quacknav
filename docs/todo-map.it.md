@@ -1816,6 +1816,38 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       registrazione — la barra sulla correzione del 2026-09-12 rifiuta ciò
       che quel giorno accettava. Annotato, non inseguito.)
 
+- [x] MCL al risveglio, con la prova di unicità: mai sbagliato al banco,
+      una volta migliore, non più sei volte più veloce (2026-09-14). Prima
+      che il blocco del filtro venga proposto, la posa bloccata viene
+      valutata sull'ultimo composito da fermo e alla ricerca a forza bruta
+      si chiede il miglior bacino altrove (oltre 0,40 m o 35°); il blocco
+      è proposto solo se batte quel rivale con il rapporto che la forza
+      bruta pretende da sé (`uniqueness_ratio` 0,6) e con abbastanza raggi
+      giudicati, altrimenti la nuvola viene riseminata per metà attorno a
+      esso e va avanti.
+
+      | registrazione | ricerca | rilocalizzata a | giusta? | verità finale |
+      |---|---|---|---|---|
+      | 1788872069 | forza bruta | 252,6 s | sì (0,01) | 0,036 |
+      | 1788872069 | MCL, senza prova | 35,9 s | **no** (0,36), persa a 54,7 s | 0,044 |
+      | 1788872069 | **MCL + unicità** | 252,6 s | sì (0,01) — l'alias rifiutato, il verdetto è della forza bruta | 0,036 |
+      | 1788929139 | forza bruta | 220,4 s | così così (0,20 · 0,16) | 0,357 |
+      | 1788929139 | MCL, senza prova | 38,6 s | così così (0,12 · 0,18) | 0,118 |
+      | 1788929139 | **MCL + unicità** | **174,4 s** | **sì (0,06 · 0,03 · 0,07)** | **0,013** |
+
+      La prova fa ciò per cui è nata: il blocco fuori di 58° sulla prima
+      registrazione non arriva mai alla finestra, e sulla seconda la
+      proposta del filtro a 174 s è quella giusta dove quella della forza
+      bruta a 220 s era fuori di un quarto di metro — il giro finisce a
+      0,013 m dalla verità contro 0,357. Quel che se n'è andato è la
+      velocità: un blocco che superi la prova ha bisogno di un composito
+      che la forza bruta possa giudicare, e quelli vengono solo dalle
+      finestre immobili, quindi il filtro non può più battere le finestre
+      al verdetto di minuti; le batte al verdetto *giusto*. Due
+      registrazioni sono due; su questa evidenza è sicuro e talvolta
+      migliore, e resta dietro `MAPLOC_MCL=1` finché il gemello non ci si
+      sarà risvegliato sopra una dozzina di volte.
+
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro
