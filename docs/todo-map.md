@@ -1865,6 +1865,17 @@ nothing: it explores and asks.
       now `[gait] yaw_max` (default 0.9, unchanged for alpha; 1.7 in the
       velstand file). Whether the journeys want the extra turn is a
       separate measurement.
+      **The first series was void, and the reason is upstream's:** on
+      velstand maploc never saw the duck still — `still=false moving=true
+      window_frames=0` through the whole lap, the explorer finished with
+      "0 windows" and no cell inked. robotd's `moving` is `busy || label
+      == "walk"`, and with no standing network the label is `walk` while
+      standing. Fixed in the worktree (`Step::walking`: the label when a
+      standing network exists, the standing threshold when none does —
+      `7329594`); the same flag feeds `safeToRestart`, which would have
+      told the updater "walking" forever. Written up in
+      `docs/study/upstream-asks.md` §6a. After the fix a standing sweep
+      closes windows again (`kept=171 windows=4` in ten seconds).
       Journeys: `vel1 → alp1 → vel2 → alp2`, interleaved in the furnished
       flat, judged pairwise with `bench.py` — result below when it lands.
       Also for later: velstand is slower straight (0.129 vs 0.150 m/s),

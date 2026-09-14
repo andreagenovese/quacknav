@@ -2017,6 +2017,18 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       (0.08 m/s in cima). Il limite ora è `[gait] yaw_max` (default 0.9,
       invariato per alpha; 1.7 nel file di velstand). Se i viaggi vogliano
       quel giro in più è una misura a parte.
+      **La prima serie è stata nulla, e il motivo è di upstream:** su
+      velstand maploc non ha mai visto la papera ferma — `still=false
+      moving=true window_frames=0` per tutto il giro, l'esploratore ha
+      chiuso con "0 finestre" e nessuna cella inchiostrata. Il `moving` di
+      robotd è `busy || label == "walk"`, e senza rete di stazione
+      l'etichetta è `walk` anche da ferma. Corretto nel worktree
+      (`Step::walking`: l'etichetta quando esiste una rete di stazione, la
+      soglia di stazione quando non esiste — `7329594`); lo stesso flag
+      alimenta `safeToRestart`, che avrebbe detto all'updater "sta
+      camminando" per sempre. Scritto in `docs/study/upstream-asks.md`
+      §6a. Dopo la correzione una spazzata da ferma chiude di nuovo le
+      finestre (`kept=171 windows=4` in dieci secondi).
       Viaggi: `vel1 → alp1 → vel2 → alp2`, alternati nel flat arredato,
       giudicati a coppie con `bench.py` — risultato sotto appena arriva.
       Da tenere a mente: velstand è più lenta in dritto (0.129 contro

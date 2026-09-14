@@ -446,6 +446,28 @@ vale la pena saperlo lo stesso.
   comando. Il controllo di rotta deve chiudersi sull'odometria, non sul
   tempo.
 
+## 6a. velstand e maploc non si sono ancora incontrati: `moving` resta vero per sempre
+
+Trovato il giorno dopo che main ha reso `velstand.onnx` l'andatura di
+default (set v5, `stand = "none"`, 2026-09-14). Il `moving` di robotd è
+`busy || label == "walk"`; senza una rete di stazione il controller non
+esce mai da `Net::Walk`, quindi una papera velstand ferma è etichettata
+`walk` e `moving` non cala mai. Due cose leggono quel flag: il cancello
+di immobilità di maploc, che non si è mai aperto — un intero giro
+stop-and-scan sul gemello ha chiuso zero finestre e non ha inchiostrato
+una cella — e `safeToRestart`, che rispondeva "il robot sta camminando" a
+un robot fermo, per cui l'updater non avrebbe mai avuto la sua finestra.
+La nostra correzione (`Step::walking`): decide l'etichetta quando esiste
+una rete di stazione, la soglia di stazione quando non esiste; test sul
+fixture feedforward. Su main nessuno lo vede finché maploc non entra — che
+è esattamente quando lo vedranno.
+
+Le leggi dell'andatura qui sopra valgono anche per velstand, misurate in
+un'arena vuota: nessun giro da ferma (0,5° in 5 s), calcio e poi
+rotazione (~100°/150° in 5 s), una deriva a destra da compensare — più
+grande: bias −0,13 rad/s a richiesta zero contro il −0,05 di alpha, e
+0,129 m/s in dritto contro 0,150.
+
 ## 7. Piccole cose nel simulatore
 
 - **Una posa di nascita.** `sim-maploc/body_with_map.py` mette sempre la

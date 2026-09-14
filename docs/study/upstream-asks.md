@@ -422,6 +422,26 @@ the docs; if the simulator has them wrong, that is worth knowing too.
   with the step phase, and the body coasts 5–10° after the command stops.
   Heading control has to close on odometry, not on time.
 
+## 6a. velstand and maploc have not met: `moving` is true forever
+
+Found the day after main made `velstand.onnx` the default walk (set v5,
+`stand = "none"`, 2026-09-14). robotd's `moving` is `busy || label ==
+"walk"`; with no standing network the controller never leaves `Net::Walk`,
+so a velstand robot standing still is labelled `walk` and `moving` never
+drops. Two things read that flag: maploc's still gate, which never opened —
+a whole stop-and-scan lap on the twin closed zero windows and inked no
+cell — and `safeToRestart`, which answered "the robot is walking" to a
+robot standing still, so the updater would never get its window. Our
+fix (`Step::walking`): the label decides when a standing network exists,
+the standing threshold when none does; test on the feedforward fixture.
+Nobody on main sees this until maploc lands — which is exactly when they
+will.
+
+The gait laws above hold for velstand as well, measured in an empty
+arena: no turn from a standstill (0.5° in 5 s), kick then spin (~100°/150°
+in 5 s), a right veer to trim out — larger: bias −0.13 rad/s at zero
+request against alpha's −0.05, and 0.129 m/s straight against 0.150.
+
 ## 7. Small things in the simulator
 
 - **A spawn pose.** `sim-maploc/body_with_map.py` always places the duck at
