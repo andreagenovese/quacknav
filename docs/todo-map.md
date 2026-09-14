@@ -2067,7 +2067,14 @@ nothing: it explores and asks.
       every go_to after it. (The margin was set aside on 2026-09-09
       because right answers in flat A reached 0.96 then; if it refuses
       a right one now, the cost is another ask, not a wrong home.)
-      Office re-run below.
+      Office re-run with the bars: **no adoption in 15 min** — the first
+      two asks refused on the margin (0.84), the next three on growth
+      (+40 %, +9 %, +6 %: the same answer repeated is not a second look),
+      and the last, with the map grown to 722 cells, already moving
+      toward the truth at 0.150. "I don't know" is the right answer for
+      a room the map does not hold; given more time it recognises itself
+      on the way out, as the bathroom did. Round seven (all six spawns
+      with the three bars) queued as the confirmation.
       Two bench faults found and fixed on the way, both worth knowing:
       the harness read the pose before the adoption had finished (the
       exploring job takes up to a minute to stop) and called a fall in
