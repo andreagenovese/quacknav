@@ -2007,6 +2007,29 @@ nothing: it explores and asks.
       confirmation chord (0.5 m), the lead margin (harmless, not the
       lever), turns-then-legs with back-off and turn-away.
 
+- [x] The journeys without the phantom (2026-09-15, 00:30 — the user's
+      order: re-measure exploration and go_to first, then the wake-up
+      with the explorer's legs, then the honesty of "I don't know").
+      `fix1`, `fix2` against `alp1`, `alp2` of the same evening — the
+      same code but for the cliff watch's head (`2d797ba`):
+
+      | | with the phantom (alp1, alp2) | without (fix1, fix2) |
+      |---|---|---|
+      | journey time, median | 94 s | 104 s |
+      | made good | 0.033 m/s | 0.029 m/s |
+      | walked / straight | 2.62 | 2.29 |
+      | stalls (8 journeys) | 17 | 11 |
+      | worst journey | 207 s | 234 s (three of 14–16 m in fix2) |
+      | pose drift, median | 0.12 · 0.06 m | 0.06 · 0.06 m |
+      | walls within 10 cm | 39 · 43 % | 42 · 36 % |
+      | **beats the baseline** | — | **33 / 100** |
+
+      Straighter and fewer stalls, but not faster, and `fix2` looped
+      three times. The phantom was not what made the journeys slow; the
+      sensor now tells the truth, and that stays because it is true, not
+      because it paid. What it changes is the *ceiling*: legs longer than
+      1.5 s are no longer refused by the floor, so the leg length can be
+      measured as a knob for the first time — later, after the wake-up.
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a

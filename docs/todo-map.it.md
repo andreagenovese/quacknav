@@ -2171,6 +2171,30 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       margine di vantaggio (innocuo, non la leva), giri-poi-gambe con
       indietreggio e giro-via.
 
+- [x] I viaggi senza il fantasma (2026-09-15, 00:30 — l'ordine
+      dell'utente: prima rimisurare esplorazione e go_to, poi il risveglio
+      con le gambe dell'esploratore, poi l'onestà del "non lo so").
+      `fix1`, `fix2` contro `alp1`, `alp2` della stessa sera — stesso
+      codice tranne la testa del cliff watch (`2d797ba`):
+
+      | | col fantasma (alp1, alp2) | senza (fix1, fix2) |
+      |---|---|---|
+      | tempo di viaggio, mediana | 94 s | 104 s |
+      | guadagnato | 0,033 m/s | 0,029 m/s |
+      | percorso / dritto | 2,62 | 2,29 |
+      | stalli (8 viaggi) | 17 | 11 |
+      | viaggio peggiore | 207 s | 234 s (tre da 14–16 m in fix2) |
+      | deriva di posa, mediana | 0,12 · 0,06 m | 0,06 · 0,06 m |
+      | muri entro 10 cm | 39 · 43 % | 42 · 36 % |
+      | **batte la baseline** | — | **33 / 100** |
+
+      Più dritto e meno stalli, ma non più veloce, e `fix2` ha girato in
+      tondo tre volte. Il fantasma non era ciò che rendeva lenti i viaggi;
+      il sensore ora dice il vero, e resta perché è vero, non perché ha
+      pagato. Quello che cambia è il *soffitto*: le gambe più lunghe di
+      1,5 s non sono più rifiutate dal pavimento, quindi la lunghezza della
+      gamba si può misurare come manopola per la prima volta — dopo, a
+      risveglio chiuso.
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro
