@@ -1978,6 +1978,52 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       (le altre quattro stanze sono la prova), e la prossima mappa per un
       banco di risvegli si prende dopo un giro che entra in ogni stanza.
 
+- [ ] velstand, l'andatura di main dal set di policy v5, misurata contro
+      alpha (2026-09-14, dopo il merge; la regola dell'utente per oggi:
+      le tarature si fanno in una stanza grande e vuota, altrimenti la
+      prova misura i mobili). `velstand.onnx` di upstream è una rete sola
+      che cammina su un twist e sta ferma a comando zero
+      (`stand = "none"`); alpha è la coppia da cui viene ogni numero
+      finora. Il lanciatore del gemello prende `GAIT=alpha|velstand`; i
+      set di policy sono parcheggiati in `private/` perché main non li
+      distribuisce più. Una scena nuova, `arena.xml` — una stanza vuota
+      di 12 × 12 m — sostituisce gli appartamenti per le tarature: nel
+      flat le spazzate scartavano prove contro i muri, nell'arena ogni
+      prova è stata tenuta.
+
+      | arena, anello aperto | alpha (trim 0.08) | velstand (grezza) |
+      |---|---|---|
+      | dritto, 10 s: percorso | 1.50 m (0.150 m/s) | 1.29 m (0.129 m/s) |
+      | percorso su corda | 1.23 | 1.23–1.34 |
+      | deriva di imbardata in 10 s | −20° … +17° | −42° … −78° (destra) |
+      | bias a richiesta zero | ≈ −0.05 rad/s | **−0.13 rad/s** |
+      | guadagno grezzo sinistra / destra | — | 0.66 / 0.46 |
+      | girarsi da ferma sul posto | 1.0° / 1.5° in 5 s | 0.6° / 0.5° in 5 s |
+      | dopo un calcio di 1 s, vx 0 vyaw ±0.7 | +103° / −160° in 5 s | +99° / −148° in 5 s |
+
+      Le leggi dell'andatura sopravvivono quindi alla rete nuova: non si
+      gira da ferma, calcio e poi rotazione, una deriva a destra da
+      compensare — solo di più. La taratura propria di velstand, fittata
+      dalla curva grezza e corretta una volta: **trim 0.16, guadagni 1.63
+      sinistra / 1.58 destra**, che la spazzata restituisce poi al 104 % /
+      102 % del chiesto, ogni prova tenuta
+      (`private/drives/quacksat-velstand.toml`). Quella di alpha, per il
+      verbale nella stessa arena: 98 % / 98 %.
+      Una cosa che la taratura ha fatto emergere per entrambe: **il
+      limite 0.9 sull'imbardata non è il soffitto.** La curva grezza di
+      alpha si appiattiva a 0.9 chiesto, ma coi guadagni continua a salire
+      (chiesto 0.9 → 0.81 / 1.00 ottenuto), e velstand arriva a 0.9 rad/s
+      ottenuti con 1.63 inviato — al prezzo della velocità in avanti
+      (0.08 m/s in cima). Il limite ora è `[gait] yaw_max` (default 0.9,
+      invariato per alpha; 1.7 nel file di velstand). Se i viaggi vogliano
+      quel giro in più è una misura a parte.
+      Viaggi: `vel1 → alp1 → vel2 → alp2`, alternati nel flat arredato,
+      giudicati a coppie con `bench.py` — risultato sotto appena arriva.
+      Da tenere a mente: velstand è più lenta in dritto (0.129 contro
+      0.150 m/s), e i viaggi lo faranno pagare; quello che può comprare è
+      lo stare ferma — una rete sola, nessun cambio di policy a ogni
+      fermata di scansione.
+
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro

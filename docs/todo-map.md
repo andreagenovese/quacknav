@@ -1828,6 +1828,49 @@ nothing: it explores and asks.
       rooms are the evidence), and the next map for a wake-up bench is
       taken after a tour that enters every room.
 
+- [ ] velstand, main's walk since policy set v5, measured against alpha
+      (2026-09-14, after the merge; the user's rule for the day: gait
+      probes in a big empty room, or the probe measures the furniture).
+      Upstream's `velstand.onnx` is one network that walks on a twist and
+      stands still at zero command (`stand = "none"`); alpha is the pair
+      every number so far came from. The twin launcher takes
+      `GAIT=alpha|velstand`; the policy sets are parked in `private/`
+      since main no longer ships them. A new scene, `arena.xml` — one
+      empty 12 × 12 m room — replaces the flats for calibration: in the
+      flat the sweeps had been throwing trials away against walls, in the
+      arena every trial was kept.
+
+      | arena, open loop | alpha (trim 0.08) | velstand (raw) |
+      |---|---|---|
+      | straight, 10 s: walked | 1.50 m (0.150 m/s) | 1.29 m (0.129 m/s) |
+      | path over chord | 1.23 | 1.23–1.34 |
+      | yaw drift in 10 s | −20° … +17° | −42° … −78° (right) |
+      | bias at zero request | ≈ −0.05 rad/s | **−0.13 rad/s** |
+      | raw gain left / right | — | 0.66 / 0.46 |
+      | turn in place from a standstill | 1.0° / 1.5° in 5 s | 0.6° / 0.5° in 5 s |
+      | after a 1 s kick, vx 0 vyaw ±0.7 | +103° / −160° in 5 s | +99° / −148° in 5 s |
+
+      So the gait laws survive the new network: no turning from a
+      standstill, kick then spin, a right veer to trim out — only more of
+      it. velstand's own calibration, fitted from the raw curve and
+      corrected once: **trim 0.16, gains 1.63 left / 1.58 right**, which
+      the sweep then returns at 104 % / 102 % of what is asked, every
+      trial kept (`private/drives/quacksat-velstand.toml`). Alpha's, for
+      the record in the same arena: 98 % / 98 %.
+      One thing the calibration turned up for both gaits: **the 0.9 yaw
+      clamp is not the ceiling.** Alpha's raw curve went flat at 0.9
+      asked, but with its gains on it climbs on (asked 0.9 → 0.81 / 1.00
+      achieved), and velstand reaches 0.9 rad/s achieved at 1.63 sent —
+      at the price of forward speed (0.08 m/s at the top). The clamp is
+      now `[gait] yaw_max` (default 0.9, unchanged for alpha; 1.7 in the
+      velstand file). Whether the journeys want the extra turn is a
+      separate measurement.
+      Journeys: `vel1 → alp1 → vel2 → alp2`, interleaved in the furnished
+      flat, judged pairwise with `bench.py` — result below when it lands.
+      Also for later: velstand is slower straight (0.129 vs 0.150 m/s),
+      which the journeys will price; what it may buy is the stand — one
+      network, no policy switch at every scan stop.
+
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a
