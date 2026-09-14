@@ -2116,9 +2116,60 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       concordare finché non compare una porta. Mezzo metro non è prova in
       un corridoio; lo è un cambio di geometria. La regola che manca è
       sulla classifica, non sulla distanza: all'ipotesi in testa basta un
-      colpo più della seconda, e uno è rumore. Prossimo: un margine di
-      vantaggio (`MAPLOC_HYP_LEAD`, 3), tornata cinque con le ipotesi
-      tracciate.
+      colpo più della seconda, e uno è rumore. Quindi un margine di
+      vantaggio (`MAPLOC_HYP_LEAD`, 3, `f763a3a`) e la tornata cinque con
+      le ipotesi tracciate:
+
+      | spawn | tornata 3 | tornata 4 | tornata 5 (margine 3) |
+      |---|---|---|---|
+      | cucina | 4,94 m ✗ | 0,21 m ✓ | 0,20 m, verso 157° (?) · ripetuta: mai |
+      | soggiorno | 0,08 m ✓ | 0,84 m ~ | 0,82 m ~ (stesso scarto, stesso punto) |
+      | corridoio | 0,09 m ✓ | 123° ✗ | mai · ripetuta con giro-via: mai |
+      | ufficio | 1,71 m ✗ | 179° ✗ | 170° ✗ |
+      | camera | caduta | mai | mai |
+      | bagno | mai | mai | mai |
+
+      Cosa dicono le tracce, e non è ciò per cui il margine era stato
+      messo:
+      1. **Nemmeno i colpi sono prova.** Nel corridoio la testa aveva
+         ×36 contro ×7 — ed era il gemello a 180°. Una fermata di 7 s
+         chiude due o tre finestre, tutte dallo stesso punto, e tutte
+         concordano col gemello quanto con la verità. Conta solo la
+         corda, e la corda è rimasta a 0,8 m in sette minuti.
+      2. **La mobilità è il soffitto.** 12–15 gambe su ~20 rifiutate per
+         giro, da mobili veri a 0,3–0,45 m (il corridoio della cucina fra
+         isola e bancone è largo 0,85 m; il corridoio 1,5 m): una gamba
+         da 3 s vuole 0,7 m liberi davanti, le gambe cieche puntano dove
+         le ha lasciate l'ultimo giro, e girare via dal lato nominato
+         (`c1efa02`) non ha cambiato il conto. La papera si è mossa di
+         0,6–0,8 m in sette minuti dove il cancello vuole 1,0 più 0,5.
+      3. **La copertura spiega ufficio e bagno** (70 % e 92 % ignoti
+         sulla mappa salvata; la camera è mappata, 15 %). Una papera che
+         si sveglia nella parte non mappata di una stanza può combaciare
+         solo con la parte mappata, e in un rettangolo la parte mappata
+         vista dall'altro capo *è* l'immagine speculare — l'alias
+         dell'ufficio a ogni tornata.
+      4. Gli 0,8 m del soggiorno sono lo stesso scarto nello stesso
+         punto due volte, dove la tornata tre era tornata entro 8 cm un
+         metro più in là: probabilmente è la mappa salvata a essere
+         storta lì. Da misurare.
+      5. I "157°" di verso in cucina nella tornata cinque non sono
+         verificati (l'harness stampava una sola imbardata allora); la
+         ripetizione con entrambe non è tornata a casa (12 gambe
+         rifiutate nel corridoio della cucina). Aperto.
+
+      **Dove lascia il risveglio.** I cancelli sono giusti — nulla che
+      giri sul posto viene più confermato, e l'immagine speculare della
+      cucina è sparita — ma le gambe cieche non possono comprare il metro
+      e mezzo di percorso che pretendono in una stanza arredata. Il
+      prossimo passo non è un altro cancello: l'homecoming deve camminare
+      con le gambe dell'esploratore (pianificate su ciò che il sensore
+      vede, con le stesse guardie, tenendo il corridoio) — "esplora
+      finché ti riconosci", il flusso descritto dall'utente il primo
+      giorno — e il banco dei risvegli ha bisogno di una mappa che entri
+      in ogni stanza. Tenuti: corda (1,0 m), corda di conferma (0,5 m),
+      margine di vantaggio (innocuo, non la leva), giri-poi-gambe con
+      indietreggio e giro-via.
 
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare

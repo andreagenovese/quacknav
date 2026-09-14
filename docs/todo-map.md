@@ -1957,8 +1957,55 @@ nothing: it explores and asks.
       comes into view. Half a metre is not evidence in a corridor; a
       change of geometry is. The rule that is missing is on the ranking,
       not the distance: the leader needs only one hit more than the
-      runner-up, and one is noise. Next: a lead margin
-      (`MAPLOC_HYP_LEAD`, 3), round five with the hypotheses traced.
+      runner-up, and one is noise. So a lead margin (`MAPLOC_HYP_LEAD`,
+      3, `f763a3a`) and round five with the hypotheses traced:
+
+      | spawn | round 3 | round 4 | round 5 (lead 3) |
+      |---|---|---|---|
+      | kitchen | 4.94 m ✗ | 0.21 m ✓ | 0.20 m, heading 157° (?) · rerun: never |
+      | living room | 0.08 m ✓ | 0.84 m ~ | 0.82 m ~ (same offset, same spot) |
+      | corridor | 0.09 m ✓ | 123° ✗ | never · rerun with turn-away: never |
+      | office | 1.71 m ✗ | 179° ✗ | 170° ✗ |
+      | bedroom | fell | never | never |
+      | bathroom | never | never | never |
+
+      What the traces say, and it is not what the lead margin was for:
+      1. **Hits are not evidence either.** In the corridor the leader had
+         ×36 against ×7 — and was the 180° twin. A 7 s stand closes two
+         or three windows, every one of them from the same spot, and
+         they all agree with the twin as much as with the truth. Only
+         the chord counts, and the chord stayed at 0.8 m in seven
+         minutes.
+      2. **Mobility is the ceiling.** 12–15 of ~20 legs refused per run,
+         by real furniture at 0.3–0.45 m (the kitchen aisle between
+         island and counter is 0.85 m wide; the corridor 1.5 m): a 3 s
+         leg needs 0.7 m clear ahead, blind legs point wherever the last
+         turn left them, and turning away from the named side
+         (`c1efa02`) did not change the count. The duck moved 0.6–0.8 m
+         in seven minutes where the gate wants 1.0 plus 0.5.
+      3. **Coverage explains the office and the bathroom** (70 % and
+         92 % unknown on the saved map; the bedroom is mapped, 15 %). A
+         duck waking in an unmapped part of a room can only match the
+         mapped part, and in a rectangle the mapped part seen from the
+         other end *is* the mirror image — the office alias every round.
+      4. The living room's 0.8 m is the same offset at the same spot
+         twice, where round three came home within 8 cm a metre away:
+         the saved map is probably off there itself. To measure.
+      5. The kitchen's "157°" heading in round five is unverified (the
+         harness printed one yaw then); the rerun with both yaws never
+         came home (12 legs refused in the aisle). Open.
+
+      **Where this leaves the wake-up.** The gates are right — nothing
+      turning on the spot gets confirmed any more, and the kitchen's
+      mirror image is gone — but blind legs cannot buy the metre and a
+      half of travel they demand in a furnished room. The next step is
+      not another gate: the homecoming should walk with the explorer's
+      own legs (planned on what the sensor sees, guarded the same way,
+      steering along corridors) — "explore until recognised", the flow
+      the user described on day one — and the wake-up bench needs a map
+      that covers every room. Kept on: chord travel (1.0 m), the
+      confirmation chord (0.5 m), the lead margin (harmless, not the
+      lever), turns-then-legs with back-off and turn-away.
 
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
