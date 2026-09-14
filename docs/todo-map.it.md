@@ -2029,12 +2029,40 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       camminando" per sempre. Scritto in `docs/study/upstream-asks.md`
       §6a. Dopo la correzione una spazzata da ferma chiude di nuovo le
       finestre (`kept=171 windows=4` in dieci secondi).
-      Viaggi: `vel1 → alp1 → vel2 → alp2`, alternati nel flat arredato,
-      giudicati a coppie con `bench.py` — risultato sotto appena arriva.
-      Da tenere a mente: velstand è più lenta in dritto (0.129 contro
-      0.150 m/s), e i viaggi lo faranno pagare; quello che può comprare è
-      lo stare ferma — una rete sola, nessun cambio di policy a ogni
-      fermata di scansione.
+      **Viaggi, e il verdetto: velstand resta spenta** (`vel1 → alp1 →
+      vel2 → alp2`, poi `vel3`, flat arredato, alternate):
+
+      | | alpha (alp1, alp2) | velstand (vel1, vel2, vel3) |
+      |---|---|---|
+      | serie completate | 2 su 2 | **1 su 3** — vel2 e vel3 sono cadute in un giro nei primi minuti e non si sono più rialzate |
+      | tempo di viaggio, mediana | 94 s | 113 s |
+      | guadagnato | 0,033 m/s | 0,031 m/s |
+      | percorso / dritto | 2,62 | 1,95 |
+      | stalli (8 / 4 viaggi) | 17 | 3 |
+      | costo di rotta | 1,46× | 1,52× |
+      | deriva di posa, mediana / max | 0,12 / 0,29 m · 0,06 / 0,20 m | 0,05 / 0,12 m |
+      | muri entro 10 cm | 39 % · 43 % | 35 % |
+      | **batte la baseline** | — | **50 / 100** |
+
+      Nell'unica serie finita velstand cammina più dritta e stalla meno,
+      ed è più lenta per questo — una moneta, 50/100, come i numeri
+      dell'arena prevedevano (0,129 contro 0,150 m/s in dritto, meno da
+      guadagnare da un inseguitore che già vaga 1,95 per 1). Quello che
+      decide sono le altre due serie: **con `stand = "none"` non c'è
+      niente che rialzi la papera.** La rete di stazione di alpha è ciò
+      che raddrizza un gemello caduto (il "non si è rialzata"
+      dell'esploratore è un'attesa esattamente di quello); velstand non
+      ha una rete simile, il `limp_fall` di upstream riconsegna a una rete
+      di stazione e per questo è spento di default per lei, e una papera
+      velstand caduta resta dove cade — il frame finale dice `seated:
+      true` e ogni viaggio è rifiutato. Due serie su tre perse così non
+      sono un'andatura da lasciare sola in una casa.
+      Tenuti: il braccio `GAIT` sul lanciatore, il file di taratura
+      velstand, l'arena, il knob `yaw_max` (default invariato) e la
+      correzione a robotd — quella è giusta qualunque rete cammini. Alpha
+      resta l'andatura; da rivedere quando upstream darà a velstand un
+      modo di rialzarsi (una skill di rialzo, o `limp_fall` con un
+      bersaglio di stazione).
 
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare

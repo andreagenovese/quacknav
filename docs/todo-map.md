@@ -1876,11 +1876,38 @@ nothing: it explores and asks.
       told the updater "walking" forever. Written up in
       `docs/study/upstream-asks.md` §6a. After the fix a standing sweep
       closes windows again (`kept=171 windows=4` in ten seconds).
-      Journeys: `vel1 → alp1 → vel2 → alp2`, interleaved in the furnished
-      flat, judged pairwise with `bench.py` — result below when it lands.
-      Also for later: velstand is slower straight (0.129 vs 0.150 m/s),
-      which the journeys will price; what it may buy is the stand — one
-      network, no policy switch at every scan stop.
+      **Journeys, and the verdict: velstand stays off** (`vel1 → alp1 →
+      vel2 → alp2`, then `vel3`, furnished flat, interleaved):
+
+      | | alpha (alp1, alp2) | velstand (vel1, vel2, vel3) |
+      |---|---|---|
+      | series completed | 2 of 2 | **1 of 3** — vel2 and vel3 fell during a turn in the first minutes and never got up |
+      | journey time, median | 94 s | 113 s |
+      | made good | 0.033 m/s | 0.031 m/s |
+      | walked / straight | 2.62 | 1.95 |
+      | stalls (8 / 4 journeys) | 17 | 3 |
+      | route cost | 1.46× | 1.52× |
+      | pose drift, median / max | 0.12 / 0.29 m · 0.06 / 0.20 m | 0.05 / 0.12 m |
+      | walls within 10 cm | 39 % · 43 % | 35 % |
+      | **beats the baseline** | — | **50 / 100** |
+
+      On the one series that finished, velstand walks straighter and
+      stalls less, and is slower for it — a coin, 50/100, as the arena
+      numbers predicted (0.129 against 0.150 m/s straight, less to gain
+      from a follower that already wanders 1.95 for 1). What settles it is
+      the other two series: **with `stand = "none"` there is nothing to
+      get the duck up.** Alpha's standing network is what rights a fallen
+      twin (the explorer's "did not get up" is a wait for exactly that);
+      velstand has no such network, upstream's `limp_fall` hands back to a
+      standing network and so is off by default for it, and a fallen
+      velstand duck lies where it fell — the final frame says `seated:
+      true` and every journey is refused. Two of three series lost that
+      way is not a gait that can be left alone in a house.
+      Kept: the `GAIT` arm on the launcher, the velstand calibration
+      file, the arena, the `yaw_max` knob (default unchanged), and the
+      robotd fix — that one is right whichever network walks. Alpha
+      remains the gait; revisit when upstream gives velstand a way up
+      (a stand-up skill, or `limp_fall` with a standing target).
 
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
