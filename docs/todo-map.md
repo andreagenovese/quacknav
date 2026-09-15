@@ -2176,9 +2176,19 @@ nothing: it explores and asks.
 
       The explorer finishes the room it is in before leaving it, and
       spent grow1 and grow2 finishing the bedroom and the office; the
-      living room and the bathroom are the only frontiers left. grow3 in
-      progress. (`full5`, a run that did not adopt and explored a fresh
-      map instead, went into both by itself — the lanes are open.)
+      living room and the bathroom are the only frontiers left. grow3
+      (+30 min): bedroom 91 %, office 96 %, and **still neither** — the
+      whole run was spent in the corridor and the bedroom, blocked by a
+      drop *on the explorer's books* at (−0.09, −0.20), half a metre
+      north of the real stairwell edge, which seals the corridor on the
+      way to the living room. The book entry is placed at the drop
+      zone's floor projection (`record_drops`), and a zone straddling
+      the edge reports early; a phantom drop is never erased even when
+      the duck later stands where it was. That is the next fix, and it
+      is small: book the rim at its estimated edge, and strike a booked
+      drop the duck has since stood on. (`full5`, a run that did not
+      adopt and explored a fresh map instead, went into both rooms by
+      itself — the lanes are open.)
 - [x] The narrow passage, as a formula (2026-09-15, the user's demand:
       "the room is there, the duck is small, by hand it passes, it has
       to pass on its own"). What refused it: the drop guard wanted 0.35 m

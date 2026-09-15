@@ -2351,9 +2351,19 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
 
       L'esploratore finisce la stanza in cui sta prima di lasciarla, e ha
       speso grow1 e grow2 a finire camera e ufficio; soggiorno e bagno
-      sono le uniche frontiere rimaste. grow3 in corso. (`full5`, un giro
-      che non ha adottato e ha esplorato una mappa fresca, è entrato in
-      entrambi da solo — le corsie sono aperte.)
+      sono le uniche frontiere rimaste. grow3 (+30 min): camera 91 %,
+      ufficio 96 %, e **ancora nessuno dei due** — tutto il giro speso fra
+      corridoio e camera, bloccata da un buco *sui libri dell'esploratore*
+      a (−0,09, −0,20), mezzo metro a nord del bordo vero della tromba,
+      che sigilla il corridoio verso il soggiorno. La voce sui libri è
+      messa alla proiezione a pavimento della zona di buco
+      (`record_drops`), e una zona a cavallo del bordo la segnala in
+      anticipo; un buco fantasma non viene mai cancellato nemmeno quando
+      la papera poi ci sta sopra. È la prossima correzione, ed è piccola:
+      segnare il bordo dove è stimato, e cancellare un buco sui libri su
+      cui la papera è poi stata. (`full5`, un giro che non ha adottato e
+      ha esplorato una mappa fresca, è entrato in entrambe le stanze da
+      solo — le corsie sono aperte.)
 - [x] Il passaggio stretto, come formula (2026-09-15, la richiesta
       dell'utente: "lo spazio c'è, la papera è piccola, a mano ci passa,
       deve passarci da sola"). Cosa la rifiutava: la guardia dei buchi
