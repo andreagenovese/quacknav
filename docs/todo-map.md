@@ -2233,6 +2233,37 @@ nothing: it explores and asks.
       refusal turns to the freer side, not to the aim. Next after the
       map: simulate every leg before walking it (as in the passage), and
       turn toward the aim.
+- [ ] Two of the user's questions, answered from the code (2026-09-15).
+      **"If the pose is off, Dijkstra plans through a wall — what does the
+      duck do when the route does not match reality?"** Every leg is
+      judged by the sensor, whatever the map says, so a leg into a real
+      wall is refused, not walked; the refusal books the obstacle at the
+      *believed* pose — consistent with the belief, off in the world —
+      and the planner routes round a phantom (the type-A bad journey);
+      three refusals drop the target, a streak triggers `unseal`; and the
+      pose itself is doubted at two levels, maploc's watchdog (windows
+      contradicting the map) and the explorer's map-vs-sensor streak —
+      both after 2–3 stands, i.e. after the wrong route has been walked a
+      while. What is missing is the middle level: the route is never
+      compared with what the sensor sees now. To add with the leg
+      simulation: roll the first half-metre of the route against the
+      sensor, and two contradicting stands make the pose suspect at once.
+      **"The camera, as SLAM does everywhere?"** Yes, in this order of
+      return on effort: (1) visual place recognition at each stand (a
+      small embedding on the NPU, `mediad` already carries frames) —
+      names the room and the view, exactly what the 45° ToF cannot, for
+      the wake-up and for refusing loop closures between rooms that look
+      different; (2) AprilTags at doors and the dock — the only way a map
+      *coincides* with reality to the centimetre, at the price of
+      stickers in the house; (3) visual odometry last — monocular scale
+      from the ToF, ORB in Rust at 5 Hz on the RK3566, a head that bobs:
+      uncertain until measured. All December-bound for the real camera;
+      MuJoCo can render frames to prototype (1) and (2). Before any of it,
+      the three free defects from the maths review (free floor, ray
+      judge, edge σ) improve the same map with no new sensor.
+      Also fixed on the way: the explorer answered the passage law's
+      "turn in place" refusal with a step back — twenty in a row (grow5);
+      now it turns as told (`dfd78ad`).
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a

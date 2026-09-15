@@ -2409,6 +2409,40 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       un rifiuto gira verso il lato libero, non verso la mira. Dopo la
       mappa: simulare ogni gamba prima di farla (come nel passaggio), e
       girare verso la mira.
+- [ ] Due domande dell'utente, con risposta dal codice (2026-09-15).
+      **"Se la posa è sbagliata, Dijkstra pianifica attraverso un muro —
+      cosa fa la papera quando la rotta non coincide con la realtà?"**
+      Ogni gamba è giudicata dal sensore, qualunque cosa dica la mappa,
+      quindi una gamba verso un muro vero viene rifiutata, non camminata;
+      il rifiuto segna l'ostacolo alla posa *creduta* — coerente con la
+      credenza, storto nel mondo — e il pianificatore gira intorno a un
+      fantasma (il viaggio storto di tipo A); tre rifiuti abbandonano la
+      meta, una striscia scatena `unseal`; e la posa in sé è messa in
+      dubbio a due livelli, il cane da guardia di maploc (finestre che
+      contraddicono la mappa) e la striscia mappa-sensore
+      dell'esploratore — entrambi dopo 2–3 soste, cioè dopo che la rotta
+      sbagliata è stata percorsa un po'. Ciò che manca è il livello di
+      mezzo: la rotta non viene mai confrontata con ciò che il sensore
+      vede adesso. Da aggiungere con la simulazione della gamba: srotolare
+      il primo mezzo metro di rotta contro il sensore, e due soste in
+      contraddizione rendono subito sospetta la posa.
+      **"La camera, come fa lo SLAM ovunque?"** Sì, in quest'ordine di
+      resa per sforzo: (1) riconoscimento visivo del luogo a ogni sosta
+      (un piccolo embedding sull'NPU, `mediad` porta già i fotogrammi) —
+      dà il nome della stanza e della vista, esattamente ciò che il ToF a
+      45° non può, per il risveglio e per rifiutare chiusure d'anello fra
+      stanze che in camera sembrano diverse; (2) AprilTag a porte e dock —
+      l'unico modo perché una mappa *coincida* con la realtà al
+      centimetro, al prezzo di adesivi in casa; (3) odometria visiva per
+      ultima — scala monoculare dal ToF, ORB in Rust a 5 Hz sull'RK3566,
+      una testa che ondeggia: incerta finché non misurata. Tutto legato a
+      dicembre per la camera vera; MuJoCo può renderizzare fotogrammi per
+      prototipare (1) e (2). Prima di tutto ciò, i tre difetti gratis
+      della revisione matematica (pavimento libero, giudice sul raggio, σ
+      degli archi) migliorano la stessa mappa senza sensori nuovi.
+      Corretto strada facendo: l'esploratore rispondeva al rifiuto "gira
+      sul posto" della legge del passaggio con un passo indietro — venti
+      di fila (grow5); ora gira come gli viene detto (`dfd78ad`).
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro
