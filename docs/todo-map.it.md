@@ -2254,6 +2254,32 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       giri mentre la posizione segue il corpo (rec11: 15°, rec14: 0° —
       quindi non sistematico); da guardare, non urgente, perché go_to
       consuma la posizione.
+- [x] Tornata sette: le soglie confermate, e una in più trovata
+      (2026-09-15, 02:00). Stessi sei spawn, esplora-e-riconosci con
+      punteggio ≤ 0,16, margine ≤ 0,80, crescita ≥ 1,5×:
+
+      | spawn | tornata 7 |
+      |---|---|
+      | cucina | 375 s, 12 cm, 2° → 9 cm, 3° |
+      | soggiorno | 417 s, 23 cm → 16 cm |
+      | corridoio | 375 s, 6 cm → **1 cm, 0°** |
+      | camera | 429 s, 21 cm → 9 cm, 5° |
+      | bagno (92 % ignoto) | nulla in 900 s — cinque domande rifiutate dal margine (0,95–1,00), la sesta sopra soglia: **onesto** |
+      | ufficio (70 % ignoto) | primo giro nullo (il robotd precedente stava ancora uscendo e il nuovo è morto sul lock — `up` ora aspetta); ripetuto: **sbagliato, di nuovo la camera** |
+      | **giusti / sbagliati / nulla** | **4 / 1 / 1** |
+
+      Il secondo fallimento dell'ufficio è mio: una domanda rifiutata
+      dal margine restava comunque come prima della coppia, e la
+      successiva (0,076, margine 0,55, +52 %) ha concordato con lei — una
+      risposta rifiutata che conferma se stessa. Corretto: un rifiuto non
+      semina nulla (`5de7d7e`). E l'ufficio mostra il quarto segnale, che
+      è quello che dà il nome al problema: la **sovrapposizione**, la
+      quota dei muri della mappa viva che cade dove quella salvata ha
+      un'opinione. Ogni adozione giusta della notte stava a 0,74–0,81;
+      l'ufficio a 0,69, 0,66 e 0,52 — la maggior parte di ciò che la
+      papera ha mappato sta dove la mappa salvata non è mai stata, quindi
+      ciò che combacia è la vicina identica. `adopt_min_overlap` 0,70,
+      con ufficio e cucina di controllo ripetuti sotto.
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro

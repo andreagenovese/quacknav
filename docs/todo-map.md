@@ -2086,6 +2086,31 @@ nothing: it explores and asks.
       runs while the position tracks the body (rec11: 15°, rec14: 0° —
       so not systematic); to look at, not urgent, since position is
       what go_to consumes.
+- [x] Round seven: the bars, confirmed and one more found (2026-09-15,
+      02:00). Same six spawns, explore-and-recognise with score ≤ 0.16,
+      margin ≤ 0.80, growth ≥ 1.5×:
+
+      | spawn | round 7 |
+      |---|---|
+      | kitchen | 375 s, 12 cm, 2° → 9 cm, 3° |
+      | living room | 417 s, 23 cm → 16 cm |
+      | corridor | 375 s, 6 cm → **1 cm, 0°** |
+      | bedroom | 429 s, 21 cm → 9 cm, 5° |
+      | bathroom (92 % unknown) | none in 900 s — five asks refused on the margin (0.95–1.00), the sixth above the bar: **honest** |
+      | office (70 % unknown) | first run void (the previous robotd was still exiting and the new one died on the lock — `up` now waits); re-run: **wrong, the bedroom again** |
+      | **right / wrong / none** | **4 / 1 / 1** |
+
+      The office's second failure is on me: an ask refused on the margin
+      was still kept as the first of the pair, and the next one (0.076,
+      margin 0.55, +52 %) agreed with it — a refused answer confirming
+      itself. Fixed: a refusal seeds nothing (`5de7d7e`). And the office
+      shows the fourth signal, which is the one that names the problem:
+      **overlap**, the share of the live map's walls that land where the
+      saved map has an opinion. Every right adoption of the night sat at
+      0.74–0.81; the office at 0.69, 0.66 and 0.52 — most of what the
+      duck had mapped lies where the saved map has never been, so
+      whatever fits is the identical neighbour. `adopt_min_overlap` 0.70,
+      with the office and a kitchen control re-run below.
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a
