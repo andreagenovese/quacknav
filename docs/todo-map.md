@@ -2264,6 +2264,23 @@ nothing: it explores and asks.
       Also fixed on the way: the explorer answered the passage law's
       "turn in place" refusal with a step back — twenty in a row (grow5);
       now it turns as told (`dfd78ad`).
+- [x] The fresh session that fell in the stairwell (fresh1, 2026-09-15
+      afternoon: first look 600 s, then the living-room door + 600 s, then
+      the bathroom door). Clean map — 1316 wall cells, median 0 cm, worst
+      17 cm, no ghosts, ~100 submaps — but 47 % of the wall surfaces, the
+      go_to to the living-room door stopped 2.6 m short, and on the way to
+      the bathroom the duck walked into the stairwell from the north:
+      route through (−0.15, −0.69), the rim, no refusal. Not the strike
+      rule (never fired), not the guard: **the books never carried over
+      between jobs**. `start_job` reset the status (`local`, `trail`
+      emptied) and only then read them for the new job — since the
+      carry-over was written (86cd5b9, 2026-09-07) every `go_to`/`explore`
+      started blind, and the hole refused twelve times on the way to the
+      living room was gone on the way to the bathroom. Fixed: read before
+      the reset (`ExploreStatus::begin_job`, tested). Every multi-job run
+      before this (growmap, roomgrow, homecoming legs) walked each
+      segment with empty books. `roomgrow.py` also kept issuing
+      explore/go_to after FELL: to stop at the first fall.
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a

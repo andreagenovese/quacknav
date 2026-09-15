@@ -2443,6 +2443,24 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       Corretto strada facendo: l'esploratore rispondeva al rifiuto "gira
       sul posto" della legge del passaggio con un passo indietro — venti
       di fila (grow5); ora gira come gli viene detto (`dfd78ad`).
+- [x] La sessione fresca caduta nella tromba delle scale (fresh1,
+      2026-09-15 pomeriggio: first look 600 s, poi porta del soggiorno +
+      600 s, poi porta del bagno). Mappa pulita — 1316 celle muro, mediana
+      0 cm, peggiore 17 cm, zero fantasmi, ~100 submap — ma il 47 % delle
+      superfici, il go_to alla porta del soggiorno fermo 2,6 m prima, e
+      verso il bagno il duck è entrato nella tromba da nord: rotta per
+      (−0,15, −0,69), il bordo, nessun rifiuto. Non la regola dello
+      strike (mai scattata), non la guardia: **i libri non passavano mai
+      da un job all'altro**. `start_job` azzerava lo status (`local`,
+      `trail` svuotati) e solo dopo li leggeva per il job nuovo — da
+      quando il passaggio è stato scritto (86cd5b9, 2026-09-07) ogni
+      `go_to`/`explore` partiva cieco, e il buco rifiutato dodici volte
+      andando in soggiorno era sparito andando in bagno. Corretto: letti
+      prima dell'azzeramento (`ExploreStatus::begin_job`, con test). Ogni
+      corsa a più job prima di questo (growmap, roomgrow, le gambe dello
+      homecoming) ha camminato ogni segmento con i libri vuoti.
+      `roomgrow.py` inoltre continuava a lanciare explore/go_to dopo FELL:
+      da fermare alla prima caduta.
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro
