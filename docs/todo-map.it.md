@@ -2334,8 +2334,26 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       corda nulla che giri sul posto viene mai confermato (il mio
       cancello, che fa il suo lavoro). Quindi la mappa si fa crescere
       come fa la papera da sola — boot su di essa, riconoscimento
-      esplorando, adozione, esplorazione che continua
-      (`continuemap.sh`) — full3 in corso.
+      esplorando, adozione, esplorazione che continua (`growmap.sh`).
+      **Farla crescere, tre giri:** la regola di adozione ha avuto
+      bisogno di due correzioni in più strada facendo — la soglia di
+      crescita bocciava cinque risposte identiche e giuste su una mappa
+      passati i primi minuti (×1,5, poi ×1,2; ora 1,0, nessuna crescita
+      pretesa: margine e sovrapposizione hanno preso da soli entrambe le
+      adozioni sbagliate) e tre domande concordi di fila hanno sostituito
+      la coppia (`adopt_asks`, `d2cb2a8`, `cdcc932`). Poi:
+
+      | mappa | cucina | soggiorno | corridoio | camera | ufficio | bagno | muri ≤10 cm |
+      |---|---|---|---|---|---|---|---|
+      | full1 (30 min da zero) | 85 % | 13 % | 95 % | 68 % | 92 % | 6 % | 52 % |
+      | grow1 (+12 min) | 86 % | 17 % | 95 % | 89 % | 91 % | 5 % | 57 % |
+      | grow2 (+30 min) | 86 % | 19 % | 95 % | 88 % | 95 % | 7 % | — |
+
+      L'esploratore finisce la stanza in cui sta prima di lasciarla, e ha
+      speso grow1 e grow2 a finire camera e ufficio; soggiorno e bagno
+      sono le uniche frontiere rimaste. grow3 in corso. (`full5`, un giro
+      che non ha adottato e ha esplorato una mappa fresca, è entrato in
+      entrambi da solo — le corsie sono aperte.)
 - [x] Il passaggio stretto, come formula (2026-09-15, la richiesta
       dell'utente: "lo spazio c'è, la papera è piccola, a mano ci passa,
       deve passarci da sola"). Cosa la rifiutava: la guardia dei buchi

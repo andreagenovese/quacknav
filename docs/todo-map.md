@@ -2160,8 +2160,25 @@ nothing: it explores and asks.
       a loaded map starts lost, and with the chord gate nothing turning on
       the spot is ever confirmed (my own gate, doing its job). So the
       map is grown the way the duck itself does it — boot on it, recognise
-      it by exploring, adopt, keep exploring (`continuemap.sh`) — full3
-      in progress.
+      it by exploring, adopt, keep exploring (`growmap.sh`).
+      **Growing it, three runs:** the adoption rule needed two more
+      corrections on the way — the growth bar refused five identical
+      right answers on a map past its first minutes (×1.5, then ×1.2;
+      now 1.0, no growth demanded, the margin and the overlap caught
+      both wrong adoptions on their own) and three agreeing asks in a
+      row replaced the pair (`adopt_asks`, `d2cb2a8`, `cdcc932`). Then:
+
+      | map | kitchen | living | corridor | bedroom | office | bathroom | walls ≤10 cm |
+      |---|---|---|---|---|---|---|---|
+      | full1 (30 min from scratch) | 85 % | 13 % | 95 % | 68 % | 92 % | 6 % | 52 % |
+      | grow1 (+12 min) | 86 % | 17 % | 95 % | 89 % | 91 % | 5 % | 57 % |
+      | grow2 (+30 min) | 86 % | 19 % | 95 % | 88 % | 95 % | 7 % | — |
+
+      The explorer finishes the room it is in before leaving it, and
+      spent grow1 and grow2 finishing the bedroom and the office; the
+      living room and the bathroom are the only frontiers left. grow3 in
+      progress. (`full5`, a run that did not adopt and explored a fresh
+      map instead, went into both by itself — the lanes are open.)
 - [x] The narrow passage, as a formula (2026-09-15, the user's demand:
       "the room is there, the duck is small, by hand it passes, it has
       to pass on its own"). What refused it: the drop guard wanted 0.35 m
