@@ -2122,6 +2122,46 @@ nothing: it explores and asks.
       mapped one, and no wrong adoption survives the four bars. What
       remains is the map, not the recogniser: a tour that enters every
       room makes the bathroom and the office ordinary rooms.
+- [ ] The map that holds every room (2026-09-15, morning — the user's
+      order: the full map and the per-room quality first, and the
+      SLAM's mathematics checked on the way).
+      **The maths:** read module by module in
+      `docs/study/maploc-math-review.md`. The geometry is right
+      everywhere it was checked — SE(2), the matcher's Jacobians, the
+      distance transform, the graph optimiser's linearisation (redone by
+      hand), the loop closer's frames, our eigen-projection, the
+      odometry's anchor model. What is wrong is a model, not a formula:
+      the judge that confirms a candidate pose scores endpoints only and
+      never asks whether a beam *crossed* a wall — the blindness every
+      alias of the week lived in. A judge along the ray
+      (`score_pose_rays`, `af9fed4`) exists now, with a test that fools
+      the endpoint judge and not the ray one; on the two boot recordings
+      it fixed one alias and made another (a true pose in a map with
+      doubled walls "crosses" phantom walls too), so it stays off
+      (`MAPLOC_RAY_JUDGE=1`) until it tolerates map noise. Also found:
+      floor returns are thrown away (`flatten` keeps wall hits only), so
+      the map never learns free floor except along wall beams — the
+      "only 0.08 m of known floor" refusals come from there.
+      **Coverage, per room** (share of floor cells the map has an
+      opinion on):
+
+      | map | kitchen | living | corridor | bedroom | office | bathroom |
+      |---|---|---|---|---|---|---|
+      | run 71 (the wake-up bench's) | 81 % | 91 % | 93 % | 85 % | 30 % | 8 % |
+      | full1, explorer 30 min | 85 % | **13 %** | 95 % | 68 % | **92 %** | 6 % |
+
+      Complementary maps; the explorer spent full1's last ten minutes
+      aiming at the living-room door and never went through. Both the
+      living room and the bathroom lie past the two 0.45–0.55 m lanes
+      either side of the stairwell, and a tour steered on the twin's
+      truth with `map_step` (`roomtour.py`) was refused 158 times there
+      in eight minutes — the guard's lane and margin do not fit the
+      lane. Growing a saved map by hand also does not work the naive way:
+      a loaded map starts lost, and with the chord gate nothing turning on
+      the spot is ever confirmed (my own gate, doing its job). So the
+      map is grown the way the duck itself does it — boot on it, recognise
+      it by exploring, adopt, keep exploring (`continuemap.sh`) — full3
+      in progress.
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a

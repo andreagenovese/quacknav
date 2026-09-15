@@ -2292,6 +2292,50 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       sopravvive alle quattro soglie. Ciò che resta è la mappa, non il
       riconoscitore: un giro che entra in ogni stanza rende bagno e
       ufficio stanze ordinarie.
+- [ ] La mappa che ha ogni stanza (2026-09-15, mattina — l'ordine
+      dell'utente: prima la mappa completa e la qualità per stanza, e la
+      matematica dello SLAM controllata strada facendo).
+      **La matematica:** letta modulo per modulo in
+      `docs/study/maploc-math-review.md`. La geometria è giusta ovunque
+      sia stata controllata — SE(2), gli jacobiani del matcher, la
+      trasformata di distanza, la linearizzazione dell'ottimizzatore del
+      grafo (rifatta a mano), i sistemi di riferimento del chiusore
+      d'anelli, la nostra proiezione agli autovettori, il modello ad
+      ancora dell'odometria. Ciò che è sbagliato è un modello, non una
+      formula: il giudice che conferma una posa candidata valuta solo gli
+      estremi e non chiede mai se un raggio abbia *attraversato* un muro
+      — la cecità in cui è vissuto ogni alias della settimana. Un giudice
+      lungo il raggio (`score_pose_rays`, `af9fed4`) ora esiste, con un
+      test che inganna il giudice a estremi e non quello sul raggio;
+      sulle due registrazioni di boot ha corretto un alias e ne ha creato
+      un altro (una posa vera in una mappa con muri doppi "attraversa"
+      anche lei muri fantasma), quindi resta spento (`MAPLOC_RAY_JUDGE=1`)
+      finché non tollera il rumore della mappa. Trovato anche: i ritorni
+      di pavimento vengono buttati (`flatten` tiene solo i colpi sui
+      muri), quindi la mappa non impara mai il pavimento libero se non
+      lungo i raggi dei muri — i rifiuti "solo 0,08 m di pavimento noto"
+      vengono da lì.
+      **Copertura, per stanza** (quota di celle di pavimento su cui la
+      mappa ha un'opinione):
+
+      | mappa | cucina | soggiorno | corridoio | camera | ufficio | bagno |
+      |---|---|---|---|---|---|---|
+      | run 71 (quella del banco dei risvegli) | 81 % | 91 % | 93 % | 85 % | 30 % | 8 % |
+      | full1, esploratore 30 min | 85 % | **13 %** | 95 % | 68 % | **92 %** | 6 % |
+
+      Mappe complementari; l'esploratore ha passato gli ultimi dieci
+      minuti di full1 a puntare la porta del soggiorno senza passarci.
+      Soggiorno e bagno stanno entrambi oltre le due corsie da 0,45–0,55 m
+      ai lati della tromba delle scale, e un giro guidato sulla verità
+      del gemello con `map_step` (`roomtour.py`) lì è stato rifiutato 158
+      volte in otto minuti — corsia e margine della guardia non ci
+      stanno. Nemmeno far crescere a mano una mappa salvata funziona nel
+      modo ingenuo: una mappa caricata parte persa, e col cancello della
+      corda nulla che giri sul posto viene mai confermato (il mio
+      cancello, che fa il suo lavoro). Quindi la mappa si fa crescere
+      come fa la papera da sola — boot su di essa, riconoscimento
+      esplorando, adozione, esplorazione che continua
+      (`continuemap.sh`) — full3 in corso.
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro
