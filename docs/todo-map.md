@@ -2162,6 +2162,50 @@ nothing: it explores and asks.
       map is grown the way the duck itself does it — boot on it, recognise
       it by exploring, adopt, keep exploring (`continuemap.sh`) — full3
       in progress.
+- [x] The narrow passage, as a formula (2026-09-15, the user's demand:
+      "the room is there, the duck is small, by hand it passes, it has
+      to pass on its own"). What refused it: the drop guard wanted 0.35 m
+      of margin in a ±0.22 m lane along the *current heading*, and the
+      centring between walls counted mapped walls only — the stairwell is
+      never a wall on the map, so beside it nothing centred the body, it
+      drifted to the edge and the edge was refused.
+      **The model** (`quack-places/src/passage.rs`): a passage is two
+      lateral boundaries L, R — mapped walls, drops and obstacles the
+      sensor saw — sampled at the body and 0.3 m on. Width
+      `W = min(L+R)`; offset from the middle `e = (L−R)/2`; skew of the
+      heading against the axis `θ = ½[atan(ΔL/0.3) − atan(ΔR/0.3)]`;
+      yaw `vyaw = 0.4·e/(W/2) + 0.6·θ` clamped to ±0.5; and **whether it
+      fits is asked of the leg as steered**, rolled out with the measured
+      gait against the boundary lines: at least `b + τ` = 0.10 + 0.05 m
+      on each side, where a side the body already stands inside of must
+      be left (never approached, 3 cm gained) — brushing a wall is a
+      bump, brushing a drop is a fall, and the drop guard judges the same
+      rolled-out leg with its own rule. In `map_step`: legs ≤ 1.5 s,
+      doorway margins, the passage's yaw over the caller's, side
+      boundaries remembered for a whole head sweep (frames kept 8 s), a
+      wall beside the body taken to go on into the unknown, things on
+      the heading line not counted as sides, refusals that name the turn.
+      **Measured** (`lanetest.sh`, the 0.54 m west lane): from the north
+      7 steps / 53 s then 6 / 45 s; from the south 6 / 44 s; every
+      refusal left was a heading error the refusal itself named. The day
+      before: 158 refusals in eight minutes, never through. And the
+      explorer alone (`full5`, on a fresh map): into the living room and
+      the bathroom by itself, the first time since the flat was built.
+      **Dry simulations** (`legsim.py`, `explsim.py`, images in
+      `private/drives/runs/legsim/`): a journey A→B with today's follower
+      bumps the kitchen island at leg 7 (an arc believed to advance 3 cm/s
+      advances 11) and never arrives; with every leg simulated on the
+      map before walking it arrives in 14 legs, 3.98 m for 3.11, no bump.
+      The exploration model says the same thing the twin then said: a
+      leg simulated without the passage law is too timid (zero bumps,
+      and two rooms never entered); the two go together.
+      Also from the user's question "does it plan at every stop, and
+      does it check where the arc ends?": yes at every stop (A* to the
+      goal, aim 0.4 m along the route), and no — the arc's end is not
+      checked, its advance is modelled at a quarter of the truth, and a
+      refusal turns to the freer side, not to the aim. Next after the
+      map: simulate every leg before walking it (as in the passage), and
+      turn toward the aim.
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a

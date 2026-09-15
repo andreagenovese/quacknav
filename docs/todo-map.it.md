@@ -2336,6 +2336,51 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       come fa la papera da sola — boot su di essa, riconoscimento
       esplorando, adozione, esplorazione che continua
       (`continuemap.sh`) — full3 in corso.
+- [x] Il passaggio stretto, come formula (2026-09-15, la richiesta
+      dell'utente: "lo spazio c'è, la papera è piccola, a mano ci passa,
+      deve passarci da sola"). Cosa la rifiutava: la guardia dei buchi
+      voleva 0,35 m di margine in una corsia di ±0,22 m lungo il *verso
+      attuale*, e la centratura fra i muri contava solo i muri mappati —
+      la tromba delle scale sulla mappa non è mai un muro, quindi accanto
+      a lei niente centrava il corpo, che derivava verso il bordo, e il
+      bordo veniva rifiutato.
+      **Il modello** (`quack-places/src/passage.rs`): un passaggio è due
+      bordi laterali L, R — muri mappati, buchi e ostacoli visti dal
+      sensore — campionati al corpo e a 0,3 m. Larghezza `W = min(L+R)`;
+      scarto dal centro `e = (L−R)/2`; sbieco del verso rispetto
+      all'asse `θ = ½[atan(ΔL/0,3) − atan(ΔR/0,3)]`; imbardata
+      `vyaw = 0,4·e/(W/2) + 0,6·θ` tagliata a ±0,5; e **se ci sta lo si
+      chiede alla gamba sterzata**, srotolata con la gait misurata contro
+      le linee dei bordi: almeno `b + τ` = 0,10 + 0,05 m per lato, dove un
+      lato dentro cui il corpo già sta va lasciato (mai avvicinato, 3 cm
+      guadagnati) — sfiorare un muro è un urto, sfiorare un buco è una
+      caduta, e la guardia dei buchi giudica la stessa gamba srotolata
+      con la sua regola. In `map_step`: gambe ≤ 1,5 s, margini di porta,
+      l'imbardata del passaggio sopra quella del chiamante, bordi
+      laterali ricordati per una spazzata intera (frame tenuti 8 s), un
+      muro a fianco prolungato nell'ignoto, le cose sulla linea del verso
+      non contate come bordi, rifiuti che dicono il giro da fare.
+      **Misurato** (`lanetest.sh`, la corsia ovest da 0,54 m): da nord 7
+      passi / 53 s poi 6 / 45 s; da sud 6 / 44 s; ogni rifiuto rimasto
+      era un errore di verso che il rifiuto stesso nominava. Il giorno
+      prima: 158 rifiuti in otto minuti, mai passata. E l'esploratore da
+      solo (`full5`, su una mappa fresca): in soggiorno e in bagno da
+      sé, per la prima volta da quando il flat esiste.
+      **Simulate a secco** (`legsim.py`, `explsim.py`, immagini in
+      `private/drives/runs/legsim/`): un viaggio A→B col follower di oggi
+      urta l'isola della cucina alla gamba 7 (un arco creduto da 3 cm/s
+      ne fa 11) e non arriva; con ogni gamba simulata sulla mappa prima
+      di farla arriva in 14 gambe, 3,98 m per 3,11, zero urti. Il modello
+      di esplorazione dice ciò che poi ha detto il gemello: una gamba
+      simulata senza la legge del passaggio è troppo timida (zero urti, e
+      due stanze mai entrate); le due cose vanno insieme.
+      Anche, dalla domanda dell'utente "pianifica a ogni sosta, e
+      controlla dove finisce l'arco?": sì a ogni sosta (A* verso la meta,
+      mira 0,4 m lungo la rotta), e no — la fine dell'arco non è
+      controllata, il suo avanzamento è modellato a un quarto del vero, e
+      un rifiuto gira verso il lato libero, non verso la mira. Dopo la
+      mappa: simulare ogni gamba prima di farla (come nel passaggio), e
+      girare verso la mira.
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro
