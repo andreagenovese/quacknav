@@ -2461,6 +2461,24 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       homecoming) ha camminato ogni segmento con i libri vuoti.
       `roomgrow.py` inoltre continuava a lanciare explore/go_to dopo FELL:
       da fermare alla prima caduta.
+      **fresh2** (stesso piano, libri che passano): nessuna caduta — il
+      bordo della tromba è restato sui libri tra i job e il duck l'ha
+      costeggiato due volte; porta del bagno raggiunta a 0,12 m (34 s),
+      cucina a 0,20 m (138 s); pavimento mappato 54 % (bagno 68 %, ovest
+      45 %) contro 38 %; superfici muro 49 % vs 47 %; rifiuti 21 (8 drop)
+      vs 23 (11). Meno precisa dove è più estesa — 18 % delle celle muro
+      oltre 10 cm, peggiore 25 cm, zero fantasmi: una traslazione di 30 cm
+      del sud-est, nata attraversando il passaggio accanto alla tromba
+      (deriva 9 → 21 cm in due minuti, chiusure di loop 84 → 88 in dieci)
+      e tenuta per tutto il bagno; ~190 submap alla fine. La porta del
+      soggiorno mancata di 2,6 m in ENTRAMBE le corse, da lati opposti
+      ((+0,56, +0,29) e (−2,62, +0,70)): il prossimo difetto vero, e il
+      motivo per disegnare la rotta pianificata nel viewer del gemello.
+      L'explore del bagno (600 s) è uscito dal bagno ed è risalito a
+      nord-ovest: le frontiere tirano il duck verso l'ignoto più grande,
+      non verso la stanza in cui è stato mandato. Difetto di script:
+      `snap.sh` disegna la scia dell'`explore*.log` più recente (full5),
+      non del job in corso.
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro

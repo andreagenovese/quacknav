@@ -2281,6 +2281,23 @@ nothing: it explores and asks.
       before this (growmap, roomgrow, homecoming legs) walked each
       segment with empty books. `roomgrow.py` also kept issuing
       explore/go_to after FELL: to stop at the first fall.
+      **fresh2** (same plan, books carried over): no fall — the stairwell
+      rim stayed booked across jobs and the duck skirted it twice; the
+      bathroom door reached at 0.12 m (34 s), the kitchen at 0.20 m
+      (138 s); floor mapped 54 % (bathroom 68 %, west 45 %) against 38 %;
+      wall surfaces 49 % vs 47 %; refusals 21 (8 drops) vs 23 (11). Less
+      precise where it is bigger — 18 % of wall cells beyond 10 cm, worst
+      25 cm, no ghosts: a 30 cm translation of the south-east, born
+      crossing the passage beside the stairwell (drift 9 → 21 cm over two
+      minutes, loop closures 84 → 88 in ten) and kept through the
+      bathroom; ~190 submaps at the end. The living-room door was missed
+      by 2.6 m in BOTH runs, from opposite sides ((+0.56, +0.29) and
+      (−2.62, +0.70)): the next real defect, and the case for drawing the
+      planned route in the twin's viewer. The bathroom explore (600 s)
+      walked out of the bathroom and up to the north-west: frontiers pull
+      the duck to the largest unknown, not to the room it was sent to.
+      Script defect: `snap.sh` draws the trail of the newest `explore*.log`
+      (full5), not the running job's.
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a
