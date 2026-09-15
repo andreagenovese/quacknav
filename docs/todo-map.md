@@ -2111,6 +2111,17 @@ nothing: it explores and asks.
       duck had mapped lies where the saved map has never been, so
       whatever fits is the identical neighbour. `adopt_min_overlap` 0.70,
       with the office and a kitchen control re-run below.
+      **With the floor:** the office says "I don't know" for the whole
+      15 minutes — the bedroom proposed six times, refused six times (one
+      on the margin at 0.82, five on overlap at 0.49–0.61); the kitchen
+      control comes home at 513 s, **6 cm**, overlap 0.74–0.76, the growth
+      bar costing it one ask. Where the wake-up stands now, on a map that
+      holds four rooms of six: every mapped room recognised within
+      20 cm (1–23 cm at adoption, 1–17 cm after 25 s of walking), the
+      two unmapped rooms answered honestly or by walking out into a
+      mapped one, and no wrong adoption survives the four bars. What
+      remains is the map, not the recogniser: a tour that enters every
+      room makes the bathroom and the office ordinary rooms.
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a

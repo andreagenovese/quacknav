@@ -2280,6 +2280,18 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       papera ha mappato sta dove la mappa salvata non è mai stata, quindi
       ciò che combacia è la vicina identica. `adopt_min_overlap` 0,70,
       con ufficio e cucina di controllo ripetuti sotto.
+      **Con la soglia:** l'ufficio dice "non lo so" per tutti i 15
+      minuti — la camera proposta sei volte, rifiutata sei volte (una dal
+      margine a 0,82, cinque dalla sovrapposizione a 0,49–0,61); la
+      cucina di controllo torna a casa a 513 s, **6 cm**, sovrapposizione
+      0,74–0,76, con la crescita che le costa una domanda. Dove sta il
+      risveglio ora, su una mappa che ha quattro stanze su sei: ogni
+      stanza mappata riconosciuta entro 20 cm (1–23 cm all'adozione,
+      1–17 cm dopo 25 s di cammino), le due stanze non mappate risposte
+      onestamente o uscendo in una mappata, e nessuna adozione sbagliata
+      sopravvive alle quattro soglie. Ciò che resta è la mappa, non il
+      riconoscitore: un giro che entra in ogni stanza rende bagno e
+      ufficio stanze ordinarie.
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro
