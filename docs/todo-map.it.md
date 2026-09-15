@@ -2479,6 +2479,40 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       non verso la stanza in cui è stato mandato. Difetto di script:
       `snap.sh` disegna la scia dell'`explore*.log` più recente (full5),
       non del job in corso.
+- [x] Il secondo giro umano, giudicato contro le guardie (2026-09-15,
+      idea dell'utente: "ti faccio vedere io come passare dagli spazi
+      stretti, e lo registriamo"). Diciassette minuti, ogni stanza una
+      volta, quattordici soglie marcate (`teleop.py`), con `shadow.py`
+      che registra a 2 Hz quello che il duck crede accanto alla verità
+      (posa creduta, clearance, guardia del cliff, libri, submap) e
+      `shadowjudge.py` che applica le guardie a posteriori. **La mappa,
+      `house1`**: 72 % delle superfici muro entro 10 cm (l'explorer al
+      meglio 49 %), 60 % del pavimento, mediana 0 cm, zero fantasmi, 103
+      submap — ora la mappa di riferimento in libreria. Un difetto solo,
+      globale: tutta la mappa ruotata di −5°, l'heading scivolato in modo
+      regolare (−1° a 3 min, −4° a 7,5, −5° a 13) e nessuna delle sei
+      chiusure di loop l'ha rimesso a posto; deriva di posizione 18 cm
+      media, 44 cm massima. È di maploc, con una registrazione pulita da
+      mostrare a monte. **Falsi rifiuti: nessuno.** Dei 174 momenti
+      fermo-poi-cammino (98 con la guardia che aveva guardato avanti)
+      nessuno sarebbe stato rifiutato dal margine muro (0,25), dal
+      margine cliff (0,35) o dall'ostacolo in corsia (0,25): l'umano è
+      sempre ripartito con ≥ 0,30 m liberi davanti (mediana 1,23). Quindi
+      le guardie non sono ciò che ferma l'explorer a 2,6 m dalla porta
+      del soggiorno — lo sono il pianificatore, il follower o le gambe di
+      passaggio. **Scoperta laterale:** camminando senza fermarsi la
+      guardia era cieca nel 97 % dei campioni — per progetto giudica i
+      frame solo da fermo e li dimentica dopo 3 s; bene per l'explorer
+      (una fermata prima di ogni leg), nessuna protezione per chi guida
+      `robot.move` in continuo (un agente, un teleop). Da decidere nel
+      design della corsia `robot.move` prima di dicembre. **Come l'umano
+      prende i passaggi:** la corsia da 0,54 m sull'asse (+1 cm mediana,
+      tre fermate dentro, in cammino il 39 % del tempo), quella da 0,44 m
+      a −5 cm (peggiore 14 cm, heading entro ±23°), le porte con 5–13
+      fermate entro 0,5 m dalla soglia e girando nell'11–31 % dei
+      campioni: allinearsi prima, entrare dritto, correggere a piccoli
+      tocchi — gira-poi-vai, il follower di Pollen, voce (2) della lista
+      del 13. Dati in `private/drives/runs/house1/`.
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro

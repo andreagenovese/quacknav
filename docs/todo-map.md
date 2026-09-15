@@ -2298,6 +2298,38 @@ nothing: it explores and asks.
       the duck to the largest unknown, not to the room it was sent to.
       Script defect: `snap.sh` draws the trail of the newest `explore*.log`
       (full5), not the running job's.
+- [x] The second human drive, judged against the guards (2026-09-15,
+      the user's idea: "let me drive the passages and record it").
+      Seventeen minutes, every room once, fourteen thresholds marked
+      (`teleop.py`), with `shadow.py` recording at 2 Hz what the duck
+      believed beside the truth (believed pose, clearance, the cliff
+      guard, the books, submaps) and `shadowjudge.py` applying the guards
+      offline. **The map, `house1`**: 72 % of the wall surfaces within
+      10 cm (the explorer's best 49 %), 60 % of the floor, median 0 cm,
+      no ghosts, 103 submaps — the reference map in the library now. Its
+      one defect is global: the whole map turned −5°, the heading
+      sliding steadily (−1° at 3 min, −4° at 7.5, −5° at 13) and none of
+      the six loop closures putting it back; position drift 18 cm mean,
+      44 cm worst. maploc's, with a clean recording to show upstream.
+      **False refusals: none.** Of 174 stop-then-walk moments (98 with
+      the guard having looked ahead) not one would have been refused by
+      the wall margin (0.25), the cliff margin (0.35) or the lane
+      obstacle (0.25): the human always set off with ≥ 0.30 m free ahead
+      (median 1.23). So the guards are not what stops the explorer 2.6 m
+      from the living-room door — the planner, the follower or the
+      passage legs are. **Side finding:** walking without stopping, the
+      guard was blind in 97 % of samples — by design it judges frames
+      only while standing and forgets them after 3 s; fine for the
+      explorer (a stand before every leg), no protection for anyone
+      driving `robot.move` continuously (an agent, a teleop). To settle
+      in the `robot.move` lane's design before December. **How the human
+      takes the passages:** the 0.54 m lane on its axis (+1 cm median,
+      three stops inside, walking 39 % of the time), the 0.44 m lane
+      −5 cm off it (worst 14 cm, heading within ±23°), doorways with
+      5–13 stops within 0.5 m of the threshold and turning in 11–31 % of
+      samples: align before, enter straight, correct in small touches —
+      turn-then-go, Pollen's follower, item (2) of the 13th's list.
+      Data in `private/drives/runs/house1/`.
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a
