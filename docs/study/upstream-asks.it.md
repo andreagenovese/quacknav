@@ -483,6 +483,33 @@ un solutore sparso (il grafo è una catena più qualche chiusura — Cholesky
 sulla H sparsa è banale) e un tetto o una fusione delle sottomappe. Fino
 ad allora una sessione dovrebbe restare sotto le ~150 sottomappe.
 
+## 6c. Un frame di profondità viene proiettato con la testa del tick successivo
+
+`robotd/src/maploc.rs`, `Event::Frame`: ogni frame viene appiattito con
+`latest`, il campione di odometria dell'ultimo tick di controllo — la
+testa com'era letta circa 12 ms (misurati) dopo la cattura del frame.
+Durante lo sweep di ricerca è una frazione di grado per frame, sempre
+nel verso dello sweep, e il composito della finestra di stillness lo
+eredita. Misurato sul gemello (2026-09-15), heading tracciato contro la
+verità del simulatore, diviso in secondi da fermo e secondi in cammino:
+tre sessioni di mappatura (due explorer, una guidata a mano) scivolavano
+di **+0,56, +0,80 e +0,88°/min da fermo**, un piccolo negativo in
+cammino; con `search_sweep = false` la deriva da fermo era +0,03 e
+−0,23°/min; fermo senza alcun movimento per cinque minuti, zero. La
+causa è lo sweep. Una mappa cresciuta per venti minuti finisce ruotata
+di 5°, e nessuna chiusura di loop la raddrizza — l'heading non ha un
+vincolo proprio nel grafo.
+
+La correzione che usiamo: `OdomSample` porta il tempo di lettura dei
+sensori (`CLOCK_MONOTONIC`, lo stesso orologio di `TofFrame::t_ns`), il
+worker tiene gli ultimi 128 campioni, un frame più nuovo di ogni
+campione aspetta il tick successivo, e testa, gravità e altezza del
+tronco sono interpolate all'istante del frame. Deriva da fermo con lo
+sweep acceso: **+0,17 e +0,22°/min** — quattro volte meno; il resto è
+probabilmente il ritardo tra posizione riportata e vera del servo, una
+latenza fissa da misurare e sottrarre. Ripiega su `latest` per un frame
+senza `t_ns` (un `tofd` precedente alla v24).
+
 ## 7. Piccole cose nel simulatore
 
 - **Una posa di nascita.** `sim-maploc/body_with_map.py` mette sempre la

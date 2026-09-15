@@ -456,6 +456,31 @@ solver (the graph is a chain plus a few closures — Cholesky on the sparse
 H is trivial), and a cap or a merge on submaps. Until then a session
 should stay under ~150 submaps.
 
+## 6c. A depth frame is projected with the head of the tick after it
+
+`robotd/src/maploc.rs`, `Event::Frame`: every frame is flattened with
+`latest`, the odometry sample of the last control tick — the head as it
+was read about 12 ms (measured) after the frame was taken. During the
+search sweep that is a fraction of a degree per frame, always in the
+sweep's direction, and the still-window composite inherits it. Measured
+on the twin (2026-09-15), the tracked heading against the simulator's
+truth, split into seconds standing and seconds walking: three mapping
+sessions (two explorer, one human-driven) crept **+0.56, +0.80 and
++0.88°/min of standing**, a small negative while walking; with
+`search_sweep = false` the standing drift was +0.03 and −0.23°/min;
+standing with no motion at all for five minutes, zero. The sweep is the
+cause. A map grown over twenty minutes ends turned 5°, and no loop
+closure puts it back — heading has no constraint of its own in the graph.
+
+The fix we run: `OdomSample` carries the sensors' read time
+(`CLOCK_MONOTONIC`, the clock `TofFrame::t_ns` shares), the worker keeps
+the last 128 samples, a frame newer than every sample waits for the next
+tick, and head, gravity and trunk height are interpolated at the frame's
+instant. Standing drift with the sweep on: **+0.17 and +0.22°/min** — four
+times less; the rest is probably the servo's reported-versus-true
+position lag, a fixed latency to measure and subtract. Falls back to
+`latest` for a frame without `t_ns` (a `tofd` before v24).
+
 ## 7. Small things in the simulator
 
 - **A spawn pose.** `sim-maploc/body_with_map.py` always places the duck at
