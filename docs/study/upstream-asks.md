@@ -442,6 +442,20 @@ arena: no turn from a standstill (0.5° in 5 s), kick then spin (~100°/150°
 in 5 s), a right veer to trim out — larger: bias −0.13 rad/s at zero
 request against alpha's −0.05, and 0.129 m/s straight against 0.150.
 
+## 6b. The pose-graph optimiser does not scale past a few hundred submaps
+
+`optimizer.rs` says it: "for our scales (≤ 50 nodes), a dense H of size
+3N × 3N is fine". A map grown over several sessions on the twin reached
+602 submaps and 915 loop closures (2026-09-15); every closure then ran a
+dense 1806 × 1806 Gaussian elimination per Gauss-Newton iteration, robotd
+sat at 100 % CPU for ~100 s, the map frames stopped, and every client
+read the daemon as gone. Nothing bounds the submap count (the manager
+opens one per travel/age rule and never merges or retires), so a long
+day of mapping walks straight into this. Two things would do: a sparse
+solver (the graph is a chain plus a few closures — Cholesky on the sparse
+H is trivial), and a cap or a merge on submaps. Until then a session
+should stay under ~150 submaps.
+
 ## 7. Small things in the simulator
 
 - **A spawn pose.** `sim-maploc/body_with_map.py` always places the duck at

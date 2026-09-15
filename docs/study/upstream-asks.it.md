@@ -468,6 +468,21 @@ rotazione (~100°/150° in 5 s), una deriva a destra da compensare — più
 grande: bias −0,13 rad/s a richiesta zero contro il −0,05 di alpha, e
 0,129 m/s in dritto contro 0,150.
 
+## 6b. L'ottimizzatore del grafo di pose non scala oltre qualche centinaio di sottomappe
+
+Lo dice `optimizer.rs` stesso: "per le nostre scale (≤ 50 nodi), una H
+densa 3N × 3N va bene". Una mappa cresciuta in più sessioni sul gemello è
+arrivata a 602 sottomappe e 915 chiusure d'anello (2026-09-15); ogni
+chiusura ha allora eseguito un'eliminazione gaussiana densa 1806 × 1806
+per iterazione di Gauss-Newton, robotd è rimasto al 100 % di CPU per
+~100 s, i frame della mappa si sono fermati, e ogni client ha letto il
+demone come sparito. Nulla limita il numero di sottomappe (il gestore ne
+apre una per regola di percorso/età e non le fonde né le ritira), quindi
+una lunga giornata di mappatura ci finisce dritta. Due cose basterebbero:
+un solutore sparso (il grafo è una catena più qualche chiusura — Cholesky
+sulla H sparsa è banale) e un tetto o una fusione delle sottomappe. Fino
+ad allora una sessione dovrebbe restare sotto le ~150 sottomappe.
+
 ## 7. Piccole cose nel simulatore
 
 - **Una posa di nascita.** `sim-maploc/body_with_map.py` mette sempre la
