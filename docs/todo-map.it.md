@@ -2548,11 +2548,25 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       l'angolo NW del buco e il guardiano rifiuta a ragione; l'umano
       quell'angolo non l'ha mai preso (corsia ovest dal sud, corsia est
       dal nord). Le corsie del giro umano ora stanno nel libro di terra e
-      sono percorribili, ma il pianificatore non le *preferisce*.
-      Prossimo: corsie più economiche del pavimento libero, e il primo
-      mezzo metro di rotta giudicato contro il sensore prima di un leg (il
-      "livello intermedio"). Le serie di comportamento del 15 sono
-      superate: misuravano rumore a 10°.
+      sono percorribili, ma il pianificatore non le *preferisce* — e
+      quando gliele si è fatte preferire (`QK_COST_LANE=5`, lane2) ha
+      seguito l'umano nella corsia da 0,44 m a est della tromba, che la
+      legge del passaggio vieta al corpo (0,50). Quindi dal corridoio la
+      tromba oggi è impassabile per il duck da ogni lato: l'angolo NW
+      troppo stretto per le sue guardie, la corsia est sotto la sua
+      soglia, il sud raggiungibile solo dal soggiorno. Altri due fatti
+      della giornata: in `localize` una sessione si è "persa" a metà
+      viaggio e si è ri-localizzata a 77° (lane1) — con la mappa
+      congelata, ogni finestra che contraddice un angolo non mappato va
+      al watchdog invece che all'inchiostro; e l'heading di loc10 è salito
+      a 7,6° negli ultimi cinque minuti. Prossimo, in quest'ordine: il
+      primo mezzo metro di rotta giudicato contro il sensore prima di un
+      leg (il "livello intermedio"); i passaggi della tromba decisi come
+      politica (ammettere 0,44 con la corsia del corpo, oppure affrontare
+      la bocca NW di fronte dalla fine del corridoio); la regola del
+      "perso" in localize (una finestra che contraddice la mappa congelata
+      in un'area non mappata non è una contraddizione). Le serie di
+      comportamento del 15 sono superate: misuravano rumore a 10°.
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro

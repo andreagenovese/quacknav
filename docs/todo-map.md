@@ -2363,10 +2363,24 @@ nothing: it explores and asks.
       corner of the hole and the guard rightly refuses; the human never
       took that corner (west lane from the south, east lane from the
       north). Lanes from the human drive are now kept in the ground book
-      and passable, but the planner does not *prefer* them. Next: lanes
-      cheaper than free floor, and the route's first half-metre judged
-      against the sensor before a leg (the "middle level"). The behaviour
-      series of the 15th are superseded: they measured noise at 10°.
+      and passable, but the planner does not *prefer* them — and when it
+      was made to (`QK_COST_LANE=5`, lane2) it followed the human into the
+      0.44 m passage east of the stairwell, which the passage law forbids
+      the body (0.50). So from the corridor the stairwell is, today,
+      impassable for the duck from every side: the NW corner too tight
+      for its guards, the east passage under its own bar, the south
+      reachable only from the living room. Two more facts from the day:
+      in `localize` a session went "lost" mid-journey and relocalised
+      77° off (lane1) — with the map frozen, every window that
+      contradicts an unmapped corner goes to the watchdog instead of the
+      ink; and loc10's heading rose to 7.6° in its last five minutes.
+      Next, in this order: the route's first half-metre judged against
+      the sensor before a leg (the "middle level"); the stairwell's
+      passages decided as a policy (allow 0.44 with the body's own lane,
+      or approach the NW mouth square-on from the corridor's end); the
+      lost-in-localize rule (a window contradicting the frozen map in an
+      unmapped area is not a contradiction). The behaviour series of the
+      15th are superseded: they measured noise at 10°.
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a
