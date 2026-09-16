@@ -2684,6 +2684,32 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       viene ricalcolato indietro rispetto alla papera"; il puntino rosso
       nella porta del bagno su costshot). Un urto ora è uno stallo che si
       ripete (`stalls_in_row`); tour2 lo misura.
+- [ ] I libri valgono la posa con cui sono scritti (notte del 2026-09-16).
+      tour2 (cieco, mappa congelata) ha cancellato il bordo ovest della
+      tromba — otto drop in sette secondi — con il corpo davvero a 9–17 cm
+      dal bordo e creduto sopra (posa a 12–17 cm in cammino): corretto, un
+      percorso cieco non cancella nulla e non deposita corsie (fd8c445).
+      Il passaggio di re-iscrizione con le guardie accese (rim1) è stato
+      peggio: fermo a nord della tromba con la posa 16–17 cm a ovest della
+      verità, i punti del bordo visti dal sensore si sono spostati con
+      essa, e la portata di 0,30 m dietro il bordo lungo raggi obliqui ha
+      dipinto trenta drop fantasma fino a 36 cm dentro il pavimento del
+      corridoio — corridoio sigillato, rotta per la cucina, dove la papera
+      si è trascinata l'ostacolo piccolo. Ucciso prima che scrivesse il
+      libro; i 39 drop tenuti (copia in private/drives/runs/house2/
+      ground-after-tour2.json). Decisione dell'utente: teniamo i 39 così —
+      il bordo della rotta cade allora sul bordo ovest stesso, "passa a
+      filo, ma passa, al momento". Aperti, in ordine: (1) la portata dietro
+      il bordo è sbagliata sui raggi obliqui (dietro il bordo lungo il
+      raggio c'è il pavimento accanto al buco) — portata solo quasi
+      perpendicolare, o nessuna su una mappa con libri; (2) una regola su
+      QUANDO si può scrivere sui libri: solo con la posa buona, e maploc
+      non ne dà una misura (il punteggio del giudice a raggi è il
+      candidato); (3) gli ostacoli bassi non sono visti né iscritti dalle
+      gambe — trascinati.
+- [x] tour1/tour2, camera → studio → bagno coi default: 3/3 entrambi,
+      67 + 123 + 110 = 300 s e 56 + 119 + 102 = 277 s; bagno a 0,05 e
+      0,14 m veri.
 - [ ] La ricerca al boot, due richieste (sera del 2026-09-16, dell'utente):
       (1) in Localize il ripiego "nessuna conferma → mappa fresca ed
       esplora" non ha senso (nulla può inchiostrare; "non è sicura della

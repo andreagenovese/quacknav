@@ -2492,6 +2492,31 @@ nothing: it explores and asks.
       behind the duck"; the red dot in the bathroom doorway on costshot).
       A bump is now a stall that repeats (`stalls_in_row`); tour2 measures
       it.
+- [ ] The books are worth the pose they were written with (2026-09-16
+      night). tour2 (blind, frozen map) struck the west rim of the
+      stairwell — eight drops in seven seconds — with the body truly
+      9–17 cm from the rim and believed on it (pose 12–17 cm out while
+      walking): fixed, a blind trail strikes nothing and lays no lane
+      (fd8c445). The re-booking pass with the guards on (rim1) was worse:
+      standing north of the stairwell with the pose 16–17 cm west of the
+      truth, the guard's rim points shifted with it, and the 0.30 m reach
+      behind the rim along oblique rays painted thirty phantom drops up
+      to 36 cm into the corridor's floor — corridor sealed, the route sent
+      round through the kitchen, where the duck dragged the small
+      obstacle along. Killed before it wrote the book; the 39 drops kept
+      (a copy in private/drives/runs/house2/ground-after-tour2.json).
+      The user's decision: keep the 39 as they are — the route's edge
+      then lies on the west rim itself, "it passes on the edge, but it
+      passes; for now". Open, in order: (1) the reach behind the rim is
+      wrong on oblique rays (behind the rim along the ray is the floor
+      beside the hole) — reach only near-perpendicular, or none on a map
+      with books; (2) a rule for WHEN the books may be written: only with
+      the pose good, and maploc gives no measure of it (the ray judge's
+      score is the candidate); (3) low obstacles are neither seen nor
+      booked by the legs — dragged along.
+- [x] tour1/tour2, bedroom → study → bathroom on the defaults: 3/3 both,
+      67 + 123 + 110 = 300 s and 56 + 119 + 102 = 277 s; bathroom 0.05
+      and 0.14 m truly.
 - [ ] The boot search, two asks (2026-09-16 evening, the user's): (1) in
       Localize the "no confirmation → fresh map and explore" fallback is
       meaningless (nothing can ink; "not sure of its position yet" and it
