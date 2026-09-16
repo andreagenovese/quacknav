@@ -2517,6 +2517,44 @@ nothing: it explores and asks.
 - [x] tour1/tour2, bedroom → study → bathroom on the defaults: 3/3 both,
       67 + 123 + 110 = 300 s and 56 + 119 + 102 = 277 s; bathroom 0.05
       and 0.14 m truly.
+- [x] The boot search looks before it walks (2026-09-16 night, the
+      user's: "make the boot faster"). Measured first: today's boots
+      65–243 s (median 176), and the 65 s ones are the floor — maploc's
+      gates (a candidate after 1.0 m of chord, a lead of 3 windows, a
+      confirmation after 0.5 m more; MAPLOC_HYP_TRAVEL / _HYP_LEAD /
+      _CONFIRM_TRAVEL), eight steps of walk + 6 s stand. The rest was
+      refusals: 8–23 in the 170–240 s boots (kicks into the wall the duck
+      woke facing, legs refused at the stairwell, turns back over the
+      trail), 1–2 in the 65 s ones. Now (d878834): the first step is a
+      look (a stand, the head sweeps); the leg goes along the freest
+      bearing in the cone (obstacles and drop edges in a body-wide lane,
+      the guard's frames; a walking turn first for bearings off the
+      nose); never a leg into less than 0.6 m — boxed in, a turn by what
+      the gait can do toward the freer side, a stand, another look; a
+      dead-reckoned trail of the stands, and a bearing that leads back
+      over it counts as that short; straight while there is a metre
+      ahead (every turn is chord not made — look6 wove ±40° for ten
+      legs). On a frozen map no fresh-map fallback: the search goes on
+      (three more budgets). Boots on house2, the policy as it stands:
+      look10–12 75 / 79 / 67 s; the earlier versions look1–8 68 / 94 /
+      71 / 106 / 110 / 119 / 74 / 67 s — no refusal, pose 2–9 cm at
+      five minutes. What the ladder taught, at a price: (a) a walking
+      turn toward the freest bearing with 0.20 m ahead is refused for
+      ever (look7 v1, ten times) — with less than 0.45 m ahead the turn
+      is on the spot; (b) on the spot the gait turns only by backing
+      with the yaw, and that turn is a transient — −11.7°/s over 0.8 s,
+      ~1°/s over 4 s (look7 v2: six 4 s commands for 7°) — so it is
+      pulses, one at a time, measured on the odometry heading after a
+      1.5 s pause, and once the gait is stepping a pulse turns 35–55°,
+      not 9°; (c) a map_step with vx < 0 does nothing (the guard judges
+      nothing backwards): the step back at the beak is blind
+      (`robot.move`); (d) **look9 FELL into the stairwell**: a blind
+      backing pulse beside the hole moved the body 0.5 m — the gait
+      backing with the yaw is uncontrolled and the guard does not look
+      behind. RULE: with a drop in view nothing blind and nothing
+      backwards; guarded kicks only (`map_step`, 0.6 s). Three boots
+      since, no fall; the morning owes the ladder five more before the
+      rule is trusted.
 - [ ] The boot search, two asks (2026-09-16 evening, the user's): (1) in
       Localize the "no confirmation → fresh map and explore" fallback is
       meaningless (nothing can ink; "not sure of its position yet" and it

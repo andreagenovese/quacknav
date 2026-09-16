@@ -2710,6 +2710,44 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
 - [x] tour1/tour2, camera → studio → bagno coi default: 3/3 entrambi,
       67 + 123 + 110 = 300 s e 56 + 119 + 102 = 277 s; bagno a 0,05 e
       0,14 m veri.
+- [x] La ricerca al boot guarda prima di camminare (notte del 2026-09-16,
+      dell'utente: "rendere il boot più veloce"). Misurato prima: i boot
+      di oggi 65–243 s (mediana 176), e quelli da 65 s sono il pavimento —
+      i cancelli di maploc (un candidato dopo 1,0 m di corda, un vantaggio
+      di 3 finestre, una conferma dopo altri 0,5 m; MAPLOC_HYP_TRAVEL /
+      _HYP_LEAD / _CONFIRM_TRAVEL), otto passi di cammino + fermata di 6 s.
+      Il resto erano rifiuti: 8–23 nei boot da 170–240 s (calci nel muro
+      davanti a cui la papera si sveglia, gambe rifiutate alla tromba,
+      giri indietro sulla propria scia), 1–2 in quelli da 65 s. Ora
+      (d878834): il primo passo è un'occhiata (una fermata, la testa
+      spazza); la gamba va lungo la direzione più libera nel cono
+      (ostacoli e bordi di drop in una corsia larga quanto il corpo, dai
+      frame della guardia; prima un giro camminato per le direzioni fuori
+      dal naso); mai una gamba dentro 0,6 m — chiusa, un giro secondo ciò
+      che il gait sa fare verso il lato più libero, una fermata, un'altra
+      occhiata; una scia a stima delle fermate, e una direzione che ci
+      riporta sopra vale quanto quella distanza; dritto finché c'è un
+      metro davanti (ogni svolta è corda non fatta — look6 ha zigzagato
+      ±40° per dieci gambe). Su mappa congelata nessun ripiego su mappa
+      nuova: la ricerca continua (altri tre budget). Boot su house2, la
+      politica com'è ora: look10–12 75 / 79 / 67 s; le versioni precedenti
+      look1–8 68 / 94 / 71 / 106 / 110 / 119 / 74 / 67 s — nessun rifiuto,
+      posa 2–9 cm a cinque minuti. Cosa ha insegnato la scala, a caro
+      prezzo: (a) un giro camminato verso la direzione più libera con
+      0,20 m davanti viene rifiutato per sempre (look7 v1, dieci volte) —
+      con meno di 0,45 m davanti il giro è sul posto; (b) sul posto il
+      gait gira solo in retro con la yaw, e quel giro è un transitorio —
+      −11,7°/s su 0,8 s, ~1°/s su 4 s (look7 v2: sei comandi da 4 s per
+      7°) — quindi impulsi, uno alla volta, misurati sull'odometria dopo
+      1,5 s di pausa, e col gait già in passo un impulso gira 35–55°, non
+      9°; (c) un map_step con vx < 0 non fa nulla (la guardia non giudica
+      all'indietro): il passo indietro al becco è cieco (`robot.move`);
+      (d) **look9 È CADUTA nella tromba**: un impulso in retro cieco
+      accanto al buco ha spostato il corpo di 0,5 m — la retro con la yaw
+      è incontrollata e la guardia non guarda dietro. REGOLA: con un drop
+      in vista niente di cieco e niente all'indietro; solo calci guardati
+      (`map_step`, 0,6 s). Tre boot da allora, nessuna caduta; il mattino
+      deve alla scala altri cinque prima di fidarsi della regola.
 - [ ] La ricerca al boot, due richieste (sera del 2026-09-16, dell'utente):
       (1) in Localize il ripiego "nessuna conferma → mappa fresca ed
       esplora" non ha senso (nulla può inchiostrare; "non è sicura della
