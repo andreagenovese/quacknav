@@ -2617,6 +2617,13 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       indietro corto gira in entrambi i versi, che è ciò che serve a un giro
       negli spazi stretti — parte con 0,8 s di quello, yaw verso l'aim
       (7df79a0), il corpo entro 2 cm.
+- [ ] Opzione: una rotta "appiccicosa" (sera del 2026-09-16, dell'utente).
+      La rotta viene ripianificata a ogni fermata e tremola — pochi
+      centimetri di posa scelgono un'altra scalinata di costo uguale, un
+      drop registrato o cancellato la sposta di una cella, i corner del
+      tiraggio si muovono. Tenere la rotta attuale a meno che la nuova sia
+      più corta di almeno il 10 % o l'attuale sia diventata impassabile;
+      l'aim segue allora una linea sola. Da misurare.
 - [ ] La ricerca al boot, due richieste (sera del 2026-09-16, dell'utente):
       (1) in Localize il ripiego "nessuna conferma → mappa fresca ed
       esplora" non ha senso (nulla può inchiostrare; "non è sicura della

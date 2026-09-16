@@ -2428,6 +2428,12 @@ nothing: it explores and asks.
       turns either way, which is what a turn in tight quarters needs —
       it starts with 0.8 s of it, yaw toward the aim (7df79a0), the body
       staying within 2 cm.
+- [ ] Option: a sticky route (2026-09-16 evening, the user's). The route
+      is re-planned at every stand and jitters — a few centimetres of
+      pose pick another staircase of equal cost, a drop booked or struck
+      moves it a cell, the pull's corners shift. Keep the current route
+      unless the new one is at least 10 % shorter or the current one has
+      become impassable; the aim then follows one line. To measure.
 - [ ] The boot search, two asks (2026-09-16 evening, the user's): (1) in
       Localize the "no confirmation → fresh map and explore" fallback is
       meaningless (nothing can ink; "not sure of its position yet" and it
