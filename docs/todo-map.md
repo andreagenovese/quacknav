@@ -2330,6 +2330,43 @@ nothing: it explores and asks.
       samples: align before, enter straight, correct in small touches —
       turn-then-go, Pollen's follower, item (2) of the 13th's list.
       Data in `private/drives/runs/house1/`.
+- [x] The pose, locked (2026-09-15 night → 09-16, the user's priority:
+      "if the pose is not anchored to the map perfectly we will always
+      have problems"). Three findings, each measured against the twin's
+      truth with `poseabs.py` (absolute; the older `posetrack` compared
+      displacements from its first sample and misread a map loaded after
+      that sample as a 110° alias — an artefact, corrected).
+      **(1) The standing heading drift was the head sweep**: every depth
+      frame was projected with the head of the tick *after* it (~12 ms,
+      measured). Three mapping sessions crept +0.56…+0.88°/min standing;
+      with the sweep off +0.03/−0.23; standing with no motion at all,
+      zero. Fixed on the worktree (`robotd/src/maploc.rs`: the frame is
+      paired with the head at its own time, interpolated, plus a 5 ms lead
+      measured by a ladder): +0.17/+0.22°/min. A 46-minute explorer map
+      on the fixed robotd (`explmap1`): 70 % of the wall surfaces, fitted
+      at −1° (house1 was −5°), heading ≤ 2° and position 2–10 cm all
+      session long. Upstream ask §6c.
+      **(2) Mapping on an adopted map turns the pose**: map1 confirmed at
+      5 cm / 0° and was at 40° a minute later — loop closures between the
+      new submaps and the loaded ones. `MaplocMode::Localize` (worktree):
+      the map is frozen once the pose is tracked on it, the still windows
+      serve the tracking correction alone; loc1/2/5/7/9 held 7–20 cm and
+      1–5° over 10–15 min each.
+      **(3) The boot search can alias with the endpoint judge**: loc3
+      confirmed 0.9 m off and sailed 4–6 m from there. A boot ladder on
+      explmap1: `MAPLOC_RAY_JUDGE=1` 4/4 correct, heading ≤ 0.5°; the
+      endpoint judge 4 correct + that alias, heading up to 3.8°. The ray
+      judge it is.
+      What the journeys then say: with the pose good (7–11 cm, ~1°) the
+      duck still failed the living-room door 4 times of 5 — at the
+      stairwell's north mouth, where the planner's route cuts the NW
+      corner of the hole and the guard rightly refuses; the human never
+      took that corner (west lane from the south, east lane from the
+      north). Lanes from the human drive are now kept in the ground book
+      and passable, but the planner does not *prefer* them. Next: lanes
+      cheaper than free floor, and the route's first half-metre judged
+      against the sensor before a leg (the "middle level"). The behaviour
+      series of the 15th are superseded: they measured noise at 10°.
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a

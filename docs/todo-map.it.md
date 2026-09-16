@@ -2513,6 +2513,46 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       campioni: allinearsi prima, entrare dritto, correggere a piccoli
       tocchi — gira-poi-vai, il follower di Pollen, voce (2) della lista
       del 13. Dati in `private/drives/runs/house1/`.
+- [x] La posa, agganciata (notte del 2026-09-15 → 09-16, la priorità
+      dell'utente: "se la posa non è ancorata perfettamente alla mappa
+      avremo sempre problemi"). Tre risultati, ciascuno misurato contro la
+      verità del gemello con `poseabs.py` (assoluto; il vecchio
+      `posetrack` confrontava spostamenti dal primo campione e leggeva una
+      mappa caricata dopo quel campione come un alias di 110° — un
+      artefatto, corretto).
+      **(1) La deriva di heading da fermo era lo sweep della testa**: ogni
+      frame di profondità veniva proiettato con la testa del tick
+      *successivo* (~12 ms, misurati). Tre sessioni di mappatura
+      scivolavano di +0,56…+0,88°/min da fermo; con lo sweep spento
+      +0,03/−0,23; fermo senza alcun movimento, zero. Corretto nel
+      worktree (`robotd/src/maploc.rs`: il frame è accoppiato alla testa
+      del suo istante, interpolata, più 5 ms di anticipo misurati con una
+      scala): +0,17/+0,22°/min. Una mappa dell'explorer di 46 minuti con
+      il robotd corretto (`explmap1`): 70 % delle superfici muro, fit a
+      −1° (house1 era −5°), heading ≤ 2° e posizione 2–10 cm per tutta la
+      sessione. Richiesta a monte §6c.
+      **(2) Mappare su una mappa adottata ruota la posa**: map1 confermata
+      a 5 cm / 0° e a 40° un minuto dopo — chiusure di loop tra i submap
+      nuovi e quelli caricati. `MaplocMode::Localize` (worktree): la mappa
+      si congela una volta che la posa vi è tracciata, le finestre di
+      stillness servono solo alla correzione di tracking; loc1/2/5/7/9
+      hanno tenuto 7–20 cm e 1–5° per 10–15 min ciascuna.
+      **(3) La ricerca al boot può aliasare con il giudice sugli
+      endpoint**: loc3 confermata a 0,9 m di distanza e da lì 4–6 m di
+      errore. Una scala di boot su explmap1: `MAPLOC_RAY_JUDGE=1` 4/4
+      giuste, heading ≤ 0,5°; il giudice sugli endpoint 4 giuste + quell'alias,
+      heading fino a 3,8°. Giudice a raggi, dunque.
+      Cosa dicono poi i viaggi: con la posa buona (7–11 cm, ~1°) il duck
+      ha comunque mancato la porta del soggiorno 4 volte su 5 — alla
+      bocca nord della tromba, dove la rotta del pianificatore taglia
+      l'angolo NW del buco e il guardiano rifiuta a ragione; l'umano
+      quell'angolo non l'ha mai preso (corsia ovest dal sud, corsia est
+      dal nord). Le corsie del giro umano ora stanno nel libro di terra e
+      sono percorribili, ma il pianificatore non le *preferisce*.
+      Prossimo: corsie più economiche del pavimento libero, e il primo
+      mezzo metro di rotta giudicato contro il sensore prima di un leg (il
+      "livello intermedio"). Le serie di comportamento del 15 sono
+      superate: misuravano rumore a 10°.
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro
