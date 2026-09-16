@@ -2625,7 +2625,10 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       far usare ai passi della ricerca i margini ridotti; (2) mentre cerca
       non deve ripassare dove è già stata — la ricerca ha bisogno di punti
       di vista nuovi, quindi deve esplorare (frontiere, la scia come luoghi
-      già visti) invece di girovagare su se stessa.
+      già visti) invece di girovagare su se stessa — e la regola
+      dell'utente per farlo: puntare ogni volta al punto libero più
+      lontano, allontanandosi da dove sta; è la distanza che dà al
+      riconoscitore muri nuovi da confrontare.
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro

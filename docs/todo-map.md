@@ -2436,7 +2436,10 @@ nothing: it explores and asks.
       let the search's own steps use the shrunken guards; (2) while it
       searches it must not walk over where it has been — the search
       needs new viewpoints, so it should explore (frontiers, the trail
-      as places already seen) rather than wander over itself.
+      as places already seen) rather than wander over itself — and the
+      user's rule for it: aim at the farthest free point every time,
+      getting away from where it stands; distance is what gives the
+      recogniser new walls to match against.
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a
