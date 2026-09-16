@@ -2439,7 +2439,12 @@ nothing: it explores and asks.
       as places already seen) rather than wander over itself — and the
       user's rule for it: aim at the farthest free point every time,
       getting away from where it stands; distance is what gives the
-      recogniser new walls to match against.
+      recogniser new walls to match against. (3) The search does not see
+      small obstacles — the duck drags them along (the user's eye,
+      2026-09-16 evening): its legs are judged by the guard, but low
+      things under the ToF's wedge and things beside the body go unseen;
+      to look at whether the search should walk with the explorer's
+      books and the sensor's obstacle rays, not only its refusals.
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a

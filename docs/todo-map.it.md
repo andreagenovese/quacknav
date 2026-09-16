@@ -2628,7 +2628,13 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       già visti) invece di girovagare su se stessa — e la regola
       dell'utente per farlo: puntare ogni volta al punto libero più
       lontano, allontanandosi da dove sta; è la distanza che dà al
-      riconoscitore muri nuovi da confrontare.
+      riconoscitore muri nuovi da confrontare. (3) La ricerca non vede
+      gli ostacoli piccoli — il duck se li trascina (l'occhio dell'utente,
+      sera del 2026-09-16): i suoi passi sono giudicati dal guardiano, ma
+      le cose basse sotto il cono del ToF e quelle di fianco al corpo
+      restano invisibili; da vedere se la ricerca debba camminare con i
+      libri dell'explorer e i raggi degli ostacoli del sensore, non solo
+      con i suoi rifiuti.
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro
