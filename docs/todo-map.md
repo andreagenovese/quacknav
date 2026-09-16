@@ -2428,6 +2428,43 @@ nothing: it explores and asks.
       turns either way, which is what a turn in tight quarters needs —
       it starts with 0.8 s of it, yaw toward the aim (7df79a0), the body
       staying within 2 cm.
+- [x] The evening of the 16th: the planner in charge. The user's rules, in
+      order, each measured on house2 (frozen, ray judge): no guards during
+      a journey (`QK_NO_GUARDS=1` — every leg, kick and pulse blind); the
+      route walked faithfully (`QK_FOLLOW_ROUTE=1`: aim 0.3 m, no straight
+      shortcut, legs ≤ 1.5 s, turn in place beyond 20°); the route pulled
+      taut between its corners but within 0.20 m of Dijkstra's
+      (`QK_PULL_ROUTE`, both drawn); fast mode (`QK_FAST=1`: no stand
+      after a leg, one for the pose every 20 s / 1.5 m, one for something
+      ahead at most every 10 s); the route kept between plans
+      (`QK_KEEP_ROUTE`); the aim never behind the beak; the planner 0.12
+      from walls; turns near obstacles by what the gait can do (walking
+      with ≥ 0.45 m ahead, backing to the right nearly in place, to the
+      left one second at most — `backprobe2.py`); the step back only when
+      boxed in, the boot search turning in place instead. The day's table
+      (`daytable.py`; legs in seconds, ✓ = within 0.35 m truly):
+
+| session | configuration | legs (s) | arrived | total | pose |
+|---|---|---|---|---|---|
+| frozen6 | congelata + guardie ridotte | 160✓ + 122✓ + 342✓ | 3/3 | 624 | 6 cm / 0.5° |
+| frozen7 | idem | 244✓ + 120✓ + 421✗ | 2/3 | 785 | 8 cm / 0.8° |
+| frozen10 | margini coerenti | 160✓ + 102✓ + 421✗ | 2/3 | 683 | 6 cm / 1.3° |
+| noguard1 | senza guardie | 130✓ + 85✓ + 206✓ | 3/3 | 421 | 6 cm / 0.8° |
+| noguard2 | + rotta fedele | 95✓ + 110✓ + 192✓ | 3/3 | 397 | 6 cm / 0.9° |
+| fast4 | + fast + tiraggio | 83✓ + 69✓ + 159✓ | 3/3 | 311 | 8 cm / 0.9° |
+| fast5 | idem | 119✓ + 88✓ + 147✓ | 3/3 | 354 | 16 cm / 1.8° |
+| fast6 | + rotta appiccicosa | 84✓ + 85✓ + 151✓ | 3/3 | 320 | 6 cm / 0.6° |
+| rooms2 | corridoio→studio→soggiorno→cucina | 91✓ + 122✓ + 169✓ | 3/3 | 382 | 6 cm / 0.5° |
+| rooms3 | idem | 79✓ + 99✓ + 148✓ | 3/3 | 326 | 6 cm / 0.5° |
+
+      The three doors: 624 s in the morning → 311–354 s; the last six
+      sessions 18 journeys of 18, no fall; the new rooms (study, living
+      room, kitchen, the stairwell between) 6/6 at first try, study →
+      living room at 0.056 m/s made good. What to decide next: WHEN the
+      guards come back on — today they were beaten without, but with the
+      stairwell already on the books; a first walk in a new house has no
+      books. Also today: the rim calibration is still open (booked 10–16
+      cm short), and the boot search's three asks.
 - [ ] Option: a sticky route (2026-09-16 evening, the user's). The route
       is re-planned at every stand and jitters — a few centimetres of
       pose pick another staircase of equal cost, a drop booked or struck

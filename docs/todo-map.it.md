@@ -2617,6 +2617,44 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       indietro corto gira in entrambi i versi, che è ciò che serve a un giro
       negli spazi stretti — parte con 0,8 s di quello, yaw verso l'aim
       (7df79a0), il corpo entro 2 cm.
+- [x] La sera del 16: il pianificatore al comando. Le regole dell'utente,
+      in ordine, ciascuna misurata su house2 (congelata, giudice a raggi):
+      niente guardie in viaggio (`QK_NO_GUARDS=1` — ogni leg, calcio e
+      impulso alla cieca); la rotta seguita fedelmente (`QK_FOLLOW_ROUTE=1`:
+      aim a 0,3 m, niente scorciatoia dritta, leg ≤ 1,5 s, giro sul posto
+      oltre 20°); la rotta tirata tra i suoi angoli ma entro 0,20 m da
+      quella di Dijkstra (`QK_PULL_ROUTE`, entrambe disegnate); modalità
+      fast (`QK_FAST=1`: nessuna fermata dopo un leg, una per la posa ogni
+      20 s / 1,5 m, una per qualcosa davanti al massimo ogni 10 s); la
+      rotta tenuta tra un piano e l'altro (`QK_KEEP_ROUTE`); l'aim mai
+      dietro il becco; il pianificatore a 0,12 dai muri; i giri vicino agli
+      ostacoli secondo ciò che il gait sa fare (camminando con ≥ 0,45 m
+      davanti, in retro a destra quasi sul posto, a sinistra al massimo un
+      secondo — `backprobe2.py`); il passo indietro solo se chiusa da ogni
+      lato, la ricerca al boot che gira sul posto invece. La tabella del
+      giorno (`daytable.py`; viaggi in secondi, ✓ = entro 0,35 m veri):
+
+| session | configuration | legs (s) | arrived | total | pose |
+|---|---|---|---|---|---|
+| frozen6 | congelata + guardie ridotte | 160✓ + 122✓ + 342✓ | 3/3 | 624 | 6 cm / 0.5° |
+| frozen7 | idem | 244✓ + 120✓ + 421✗ | 2/3 | 785 | 8 cm / 0.8° |
+| frozen10 | margini coerenti | 160✓ + 102✓ + 421✗ | 2/3 | 683 | 6 cm / 1.3° |
+| noguard1 | senza guardie | 130✓ + 85✓ + 206✓ | 3/3 | 421 | 6 cm / 0.8° |
+| noguard2 | + rotta fedele | 95✓ + 110✓ + 192✓ | 3/3 | 397 | 6 cm / 0.9° |
+| fast4 | + fast + tiraggio | 83✓ + 69✓ + 159✓ | 3/3 | 311 | 8 cm / 0.9° |
+| fast5 | idem | 119✓ + 88✓ + 147✓ | 3/3 | 354 | 16 cm / 1.8° |
+| fast6 | + rotta appiccicosa | 84✓ + 85✓ + 151✓ | 3/3 | 320 | 6 cm / 0.6° |
+| rooms2 | corridoio→studio→soggiorno→cucina | 91✓ + 122✓ + 169✓ | 3/3 | 382 | 6 cm / 0.5° |
+| rooms3 | idem | 79✓ + 99✓ + 148✓ | 3/3 | 326 | 6 cm / 0.5° |
+
+      Le tre porte: 624 s al mattino → 311–354 s; le ultime sei sessioni
+      18 viaggi su 18, nessuna caduta; le stanze nuove (studio, soggiorno,
+      cucina, con la tromba in mezzo) 6/6 al primo tentativo, studio →
+      soggiorno a 0,056 m/s resi. Da decidere: QUANDO le guardie tornano
+      accese — oggi battute senza, ma con la tromba già sui libri; una
+      prima passeggiata in una casa nuova non ha libri. Aperti anche: la
+      calibrazione del bordo (registrato 10–16 cm prima), e le tre
+      richieste sulla ricerca al boot.
 - [ ] Opzione: una rotta "appiccicosa" (sera del 2026-09-16, dell'utente).
       La rotta viene ripianificata a ogni fermata e tremola — pochi
       centimetri di posa scelgono un'altra scalinata di costo uguale, un
