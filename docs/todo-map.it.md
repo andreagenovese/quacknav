@@ -2607,6 +2607,16 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       10–16 cm prima del vero (la distanza al centro della zona per un beam
       il cui impronta è a metà sul vuoto) — calibrare contro la verità; la
       gamba della cucina; il residuo +0,2°/min dello sweep.
+- [x] Il gait, in retromarcia, rimisurato (2026-09-16, `backprobe2.py`, da
+      fermo, due volte ciascuno): indietro con yaw +0,7 per 0,8 s gira a
+      +9°/s e si sposta di 1–2 cm; con yaw −0,7 gira a −11,7°/s e si sposta
+      di 1 cm; per 1,5 s il passo con +yaw arretra di 6–10 cm a +12…16°/s
+      mentre quello con −yaw gira a −7,5°/s e non arretra affatto; solo yaw
+      2–3°/s (nulla). Quindi l'appunto del 6 ("retromarcia solo con yaw
+      positivo") era giusto sull'arretrare e sbagliato sul girare: il passo
+      indietro corto gira in entrambi i versi, che è ciò che serve a un giro
+      negli spazi stretti — parte con 0,8 s di quello, yaw verso l'aim
+      (7df79a0), il corpo entro 2 cm.
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro

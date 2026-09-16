@@ -2418,6 +2418,16 @@ nothing: it explores and asks.
       booked 10–16 cm short of the true edge (the zone's centre range for
       a beam whose footprint is half over the hole) — calibrate against the
       truth; the kitchen leg; the residual +0.2°/min of the sweep.
+- [x] The gait, backing, re-measured (2026-09-16, `backprobe2.py`, from
+      standstill, twice each): back with yaw +0.7 for 0.8 s turns +9°/s
+      and moves 1–2 cm; with yaw −0.7 turns −11.7°/s and moves 1 cm; for
+      1.5 s the +yaw step backs 6–10 cm at +12…16°/s while the −yaw one
+      turns −7.5°/s and does not back at all; yaw alone 2–3°/s (nothing).
+      So the note of the 6th ("backing only with a positive yaw") was
+      right about backing and wrong about turning: the short step back
+      turns either way, which is what a turn in tight quarters needs —
+      it starts with 0.8 s of it, yaw toward the aim (7df79a0), the body
+      staying within 2 cm.
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a
