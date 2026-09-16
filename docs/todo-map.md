@@ -2428,6 +2428,15 @@ nothing: it explores and asks.
       turns either way, which is what a turn in tight quarters needs —
       it starts with 0.8 s of it, yaw toward the aim (7df79a0), the body
       staying within 2 cm.
+- [ ] The boot search, two asks (2026-09-16 evening, the user's): (1) in
+      Localize the "no confirmation → fresh map and explore" fallback is
+      meaningless (nothing can ink; "not sure of its position yet" and it
+      stands there — fast2's first boot, 12 refusals in the 0.4 m
+      corridor in 240 s): keep searching instead (brute force, MCL), and
+      let the search's own steps use the shrunken guards; (2) while it
+      searches it must not walk over where it has been — the search
+      needs new viewpoints, so it should explore (frontiers, the trail
+      as places already seen) rather than wander over itself.
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a

@@ -2617,6 +2617,15 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       indietro corto gira in entrambi i versi, che è ciò che serve a un giro
       negli spazi stretti — parte con 0,8 s di quello, yaw verso l'aim
       (7df79a0), il corpo entro 2 cm.
+- [ ] La ricerca al boot, due richieste (sera del 2026-09-16, dell'utente):
+      (1) in Localize il ripiego "nessuna conferma → mappa fresca ed
+      esplora" non ha senso (nulla può inchiostrare; "non è sicura della
+      posizione" e resta lì — primo boot di fast2, 12 rifiuti nel corridoio
+      da 0,4 m in 240 s): continuare a cercare invece (forza bruta, MCL), e
+      far usare ai passi della ricerca i margini ridotti; (2) mentre cerca
+      non deve ripassare dove è già stata — la ricerca ha bisogno di punti
+      di vista nuovi, quindi deve esplorare (frontiere, la scia come luoghi
+      già visti) invece di girovagare su se stessa.
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro
