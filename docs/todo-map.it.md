@@ -2567,6 +2567,46 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       "perso" in localize (una finestra che contraddice la mappa congelata
       in un'area non mappata non è una contraddizione). Le serie di
       comportamento del 15 sono superate: misuravano rumore a 10°.
+- [x] Il pomeriggio del 16: la fiducia, e le sue due cadute. Le regole
+      dell'utente, in ordine: "il duck deve passare a est e a ovest della
+      tromba", "non legare la sua rotta al mio giro — ragiona da solo, gli
+      serve solo più fiducia", "stringi i margini, i rifiuti devono essere
+      quasi nulli". Fatto, ognuno come manopola: inflazione del pianificatore
+      0,10 (`QK_INFLATE_M`, era 0,15), margine del pianificatore attorno a
+      un bordo 0,17 (`QK_DROP_INFLATE` 0,05, era 0,10+0,12), guardiano a
+      0,18 dai muri e 0,25 dal bordo a fine leg (`QK_WALL_MARGIN_M`,
+      `QK_CLIFF_MARGIN_M`; erano 0,25/0,35), passaggio minimo 0,30 misurato
+      muro→(bordo − 0,10) (`QK_PASSAGE_MIN_W`, era 0,50), simulatore del leg
+      a 0,15 dal bordo (0,13 nei leg di passaggio), livello intermedio a
+      0,12 da un ostacolo visto, la bocca delimitata anche dai drop e con
+      0,10 m per lato, niente allargamento in un passaggio, yaw senza calcio
+      per uscire dalla gabbia di un passaggio, la legge del passaggio solo
+      con un drop davanti o di fianco. E la modalità Localize NON era
+      congelata fino alle 14:40 — due delle quattro costruzioni del mapper
+      in robotd non avevano il flag (ora una funzione di config sola) —
+      quindi ogni numero "localize" prima di frozen6 era mapping mascherato;
+      il confronto loc/map del mattino è nullo, quello da frozen6 in poi
+      regge: posa 2–7 cm / < 2°, zero chiusure di loop, cinque sessioni.
+      Viaggi su house2 da frozen6: porta del soggiorno 5/6 (150–245 s),
+      bagno 4/5 (100–122 s), cucina 1/5, attraverso la tromba nei due
+      versi. DUE CADUTE: frozen12 (su pavimento aperto 40 cm a ovest del
+      bordo, durante un allineamento di passaggio che non doveva
+      innescarsi — i drop del bordo sud erano "vicini" un metro dietro; z
+      non registrata, il meccanismo è un'ipotesi: il passo indietro cieco
+      dell'allineamento contro il muro ovest) e frozen13 (giù dal bordo
+      ovest: la nuova esenzione dei libri per i drop entro il margine dal
+      corpo ha lasciato passare il calcio di uno spin oltre il bordo, il
+      controllo "drop sotto il becco" veniva dopo il calcio). Entrambe
+      corrette (f53fe69, d6de279): esenzione solo per drop di fianco o
+      dietro, niente calcio con un drop sotto il becco, posetrack registra
+      z. La lezione da tenere: una regola che toglie un rifiuto dei libri
+      deve dire "mai per un drop davanti". Strumenti del giorno:
+      `costshot.py` (la vista del pianificatore come immagine: margini,
+      libri, rotta), i raggi del guardiano nel viewer
+      (`map_status.cliff.rays`), `poseabs.py`. Aperto: il bordo registrato
+      10–16 cm prima del vero (la distanza al centro della zona per un beam
+      il cui impronta è a metà sul vuoto) — calibrare contro la verità; la
+      gamba della cucina; il residuo +0,2°/min dello sweep.
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro

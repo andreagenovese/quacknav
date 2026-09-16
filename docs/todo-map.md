@@ -2381,6 +2381,43 @@ nothing: it explores and asks.
       lost-in-localize rule (a window contradicting the frozen map in an
       unmapped area is not a contradiction). The behaviour series of the
       15th are superseded: they measured noise at 10°.
+- [x] The afternoon of the 16th: confidence, and its two falls. The user's
+      rules, in order: "the duck must pass east and west of the stairwell",
+      "do not tie its route to my drive — it reasons freely, it only needs
+      more confidence", "shrink the margins, the refusals must be nearly
+      none". Done, each as a knob: planner inflation 0.10 (`QK_INFLATE_M`,
+      was 0.15), planner margin round a rim 0.17 (`QK_DROP_INFLATE` 0.05,
+      was 0.10+0.12), guard 0.18 from a wall and 0.25 from an edge at the
+      leg's end (`QK_WALL_MARGIN_M`, `QK_CLIFF_MARGIN_M`; were 0.25/0.35),
+      passage minimum 0.30 as measured wall-to-(rim − 0.10)
+      (`QK_PASSAGE_MIN_W`, was 0.50), leg simulator 0.15 from a rim (0.13
+      on a passage leg), route check 0.12 from a seen obstacle, the mouth
+      bounded by drops too and needing 0.10 m a side, no widening inside a
+      passage, a kick-less yaw to the axis out of a passage's cage, the
+      passage law only with a drop ahead or beside. And the Localize mode
+      was NOT frozen until 14:40 — two of robotd's four mapper
+      constructions lacked the flag (one config function now) — so every
+      "localize" number before frozen6 was mapping in disguise; the
+      loc-vs-map comparison of the morning is void, the one from frozen6
+      on stands: pose 2–7 cm / < 2°, zero loop closures, five sessions.
+      Journeys on house2 from frozen6: living-room door 5/6 (150–245 s),
+      bathroom 4/5 (100–122 s), kitchen 1/5, through the stairwell both
+      ways. TWO FALLS: frozen12 (on open floor 40 cm west of the rim,
+      during a passage alignment that should not have engaged — the south
+      rim's drops were "near" a metre behind; z was not recorded, the
+      mechanism is a guess: the alignment's blind step back into the west
+      wall) and frozen13 (off the west rim: the books' new exemption for
+      drops the body stands within the margin of let a spin's kick go
+      forward over the rim, the beak check coming after the kick). Both
+      fixed (f53fe69, d6de279): the exemption only for drops beside or
+      behind, no kick with a drop under the beak, posetrack records z.
+      The lesson to keep: a rule that removes a refusal of the books must
+      say "never for a drop ahead". Tools of the day: `costshot.py` (the
+      planner's view as an image: margins, books, route), the guard's rays
+      in the viewer (`map_status.cliff.rays`), `poseabs.py`. Open: the rim
+      booked 10–16 cm short of the true edge (the zone's centre range for
+      a beam whose footprint is half over the hole) — calibrate against the
+      truth; the kitchen leg; the residual +0.2°/min of the sweep.
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a
