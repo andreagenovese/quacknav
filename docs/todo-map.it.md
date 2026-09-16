@@ -2748,6 +2748,25 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       in vista niente di cieco e niente all'indietro; solo calci guardati
       (`map_step`, 0,6 s). Tre boot da allora, nessuna caduta; il mattino
       deve alla scala altri cinque prima di fidarsi della regola.
+- [x] Boot + tutta la casa in un colpo (2026-09-17 00:07, house1tour):
+      boot 116 s (13 passi, 2 rifiuti, due giri da chiusa di 84° e 71°
+      con impulsi misurati), poi camera 23 s, studio 104 s, bagno 99 s,
+      soggiorno 66 s (dal fianco della tromba), cucina 100 s, corridoio
+      35 s — 6/6, 427 s di viaggi, 543 s in tutto, nessun rifiuto, nessuno
+      stallo, nessuna cancellazione, nessuna caduta; 7–20 cm veri dai
+      goal, posa 8–9 cm / 0,6–1,0° a cinque e dieci minuti.
+- [ ] Un boot con la schiena al muro (2026-09-17, spawn-bed: nata in
+      camera rivolta al letto): la prima occhiata era chiusa (0,40 m per
+      lato), gli impulsi non hanno girato nulla (8 per −5°), il corpo è
+      finito con la schiena a 11 cm dal muro nord e lì la guardia leggeva
+      0,20–0,26 m in ogni direzione mentre la verità aveva 0,9 m di
+      pavimento davanti; "un drop in vista" ha vietato il giro cieco, i
+      calci guardati sono stati rifiutati, nove minuti ferma. Due domande
+      per i raggi dei frame (`map_status.cliff.rays`): cosa vede la
+      guardia con un muro alle spalle (tronco inclinato che legge il
+      pavimento come drop?), e perché un impulso non gira nulla quando è
+      inchiodata. Fino ad allora un boot in una stanza arredata non è
+      misurato. `queue-spawn.sh` ha le cinque nascite.
 - [ ] La ricerca al boot, due richieste (sera del 2026-09-16, dell'utente):
       (1) in Localize il ripiego "nessuna conferma → mappa fresca ed
       esplora" non ha senso (nulla può inchiostrare; "non è sicura della

@@ -2555,6 +2555,24 @@ nothing: it explores and asks.
       backwards; guarded kicks only (`map_step`, 0.6 s). Three boots
       since, no fall; the morning owes the ladder five more before the
       rule is trusted.
+- [x] Boot + the whole house in one go (2026-09-17 00:07, house1tour):
+      boot 116 s (13 steps, 2 refusals, two boxed-in turns of 84° and
+      71° by measured pulses), then bedroom 23 s, study 104 s, bathroom
+      99 s, living room 66 s (through the stairwell's side), kitchen
+      100 s, corridor 35 s — 6/6, 427 s of journeys, 543 s all told,
+      no refusal, no stall, no strike, no fall; 7–20 cm truly from the
+      goals, pose 8–9 cm / 0.6–1.0° at five and ten minutes.
+- [ ] A boot with the back to a wall (2026-09-17, spawn-bed: born in
+      the bedroom facing the bed): the first look was boxed in (0.40 m
+      each way), the pulses turned nothing (8 for −5°), the body ended
+      with its back 11 cm from the north wall and there the guard read
+      0.20–0.26 m in every direction while the truth had 0.9 m of floor
+      ahead; "a drop in view" forbade the blind turn, the guarded kicks
+      were refused, nine minutes standing. Two questions for the frame
+      rays (`map_status.cliff.rays`): what the guard sees with a wall at
+      its back (a tilted trunk reading the floor as a drop?), and why a
+      pulse turns nothing when pinned. Until then a boot in a furnished
+      room is not measured. `queue-spawn.sh` has the five spawns.
 - [ ] The boot search, two asks (2026-09-16 evening, the user's): (1) in
       Localize the "no confirmation → fresh map and explore" fallback is
       meaningless (nothing can ink; "not sure of its position yet" and it
