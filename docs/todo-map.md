@@ -2465,12 +2465,33 @@ nothing: it explores and asks.
       stairwell already on the books; a first walk in a new house has no
       books. Also today: the rim calibration is still open (booked 10–16
       cm short), and the boot search's three asks.
-- [ ] Option: a sticky route (2026-09-16 evening, the user's). The route
+- [x] Option: a sticky route (2026-09-16 evening, the user's). The route
       is re-planned at every stand and jitters — a few centimetres of
       pose pick another staircase of equal cost, a drop booked or struck
-      moves it a cell, the pull's corners shift. Keep the current route
-      unless the new one is at least 10 % shorter or the current one has
-      become impassable; the aim then follows one line. To measure.
+      moves it a cell, the pull's corners shift. Done (`QK_KEEP_ROUTE`,
+      on by default, 73781f5): the route is kept and trimmed to the body
+      unless the books changed, a leg was refused, the body is 0.40 m off
+      it, it is no longer passable, or it is 30 s old. Measured fast6:
+      320 s for the three doors, same as fast4 with fewer turns.
+- [x] The default on a frozen map (2026-09-16 night, the user's: "make
+      them the default for journeys on a frozen map"). `Body::frozen_map`
+      reads robotd's maploc mode (`localize`) from the map ack; on a
+      journey there the three rules are on without a knob — no guards,
+      the route followed, fast mode — and `QK_NO_GUARDS`, `QK_FOLLOW_ROUTE`,
+      `QK_FAST` become three-way switches (`1` on, `0` off, unset the
+      default). Mapping and the boot search keep the guards and the
+      stands: a fresh map has no books. MIND: this holds for the real
+      duck too, the day it walks a saved map in `localize` — a journey's
+      legs are blind there, the map and the books are what keeps it up.
+      First tour with no knob at all (tour1, bedroom → study → bathroom):
+      3/3, 67 + 123 + 110 s, bathroom 0.05 m truly. Found there, four
+      times, a phantom: the first leg after a turn in place walks 4 cm in
+      its 1.5 s (the gait warming up), the "stalled" rule read it as a
+      bump and booked an obstacle 0.15 m ahead, the sticky route bent
+      round it in the last centimetres (the user: "the route is re-planned
+      behind the duck"; the red dot in the bathroom doorway on costshot).
+      A bump is now a stall that repeats (`stalls_in_row`); tour2 measures
+      it.
 - [ ] The boot search, two asks (2026-09-16 evening, the user's): (1) in
       Localize the "no confirmation → fresh map and explore" fallback is
       meaningless (nothing can ink; "not sure of its position yet" and it

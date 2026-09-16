@@ -2655,13 +2655,35 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       prima passeggiata in una casa nuova non ha libri. Aperti anche: la
       calibrazione del bordo (registrato 10–16 cm prima), e le tre
       richieste sulla ricerca al boot.
-- [ ] Opzione: una rotta "appiccicosa" (sera del 2026-09-16, dell'utente).
+- [x] Opzione: una rotta "appiccicosa" (sera del 2026-09-16, dell'utente).
       La rotta viene ripianificata a ogni fermata e tremola — pochi
       centimetri di posa scelgono un'altra scalinata di costo uguale, un
       drop registrato o cancellato la sposta di una cella, i corner del
-      tiraggio si muovono. Tenere la rotta attuale a meno che la nuova sia
-      più corta di almeno il 10 % o l'attuale sia diventata impassabile;
-      l'aim segue allora una linea sola. Da misurare.
+      tiraggio si muovono. Fatto (`QK_KEEP_ROUTE`, acceso di default,
+      73781f5): la rotta è tenuta e accorciata al corpo a meno che i libri
+      siano cambiati, una gamba sia stata rifiutata, il corpo sia a 0,40 m
+      da essa, non sia più passabile, o abbia 30 s. Misurata fast6: 320 s
+      per le tre porte, come fast4 con meno svolte.
+- [x] Il default su mappa congelata (notte del 2026-09-16, dell'utente:
+      "rendiamoli default nei viaggi su mappa congelata"). `Body::frozen_map`
+      legge la modalità maploc di robotd (`localize`) dall'ack della mappa;
+      in un viaggio lì le tre regole sono accese senza pomello — niente
+      guardie, rotta seguita, modalità fast — e `QK_NO_GUARDS`,
+      `QK_FOLLOW_ROUTE`, `QK_FAST` diventano interruttori a tre vie (`1`
+      acceso, `0` spento, assente il default). Mappatura e ricerca al boot
+      tengono guardie e fermate: una mappa nuova non ha libri. ATTENZIONE:
+      vale anche per la papera vera, il giorno che camminerà una mappa
+      salvata in `localize` — lì le gambe di un viaggio sono cieche, la
+      mappa e i libri sono ciò che la tiene in piedi. Primo giro senza
+      alcun pomello (tour1, camera → studio → bagno): 3/3, 67 + 123 +
+      110 s, bagno a 0,05 m veri. Trovato lì, quattro volte, un fantasma:
+      la prima gamba dopo un giro sul posto cammina 4 cm nei suoi 1,5 s
+      (il gait che si scalda), la regola dello "stallo" l'ha letta come un
+      urto e ha iscritto un ostacolo a 0,15 m davanti, la rotta appiccicosa
+      gli ha girato attorno negli ultimi centimetri (l'utente: "il tragitto
+      viene ricalcolato indietro rispetto alla papera"; il puntino rosso
+      nella porta del bagno su costshot). Un urto ora è uno stallo che si
+      ripete (`stalls_in_row`); tour2 lo misura.
 - [ ] La ricerca al boot, due richieste (sera del 2026-09-16, dell'utente):
       (1) in Localize il ripiego "nessuna conferma → mappa fresca ed
       esplora" non ha senso (nulla può inchiostrare; "non è sicura della
