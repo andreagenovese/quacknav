@@ -2777,6 +2777,25 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       corridoio 79 / 79 / 78 s (8 passi, nessun rifiuto, posa 3–5 cm).
       Ancora visto: "0,19 m tutt'intorno" per un'occhiata dopo un urto
       (tronco inclinato?) — passa all'occhiata successiva.
+- [x] I libri, mattino del 17 — misurato, poi due falle chiuse. (1) Il
+      residuo della finestra ferma contro la mappa NON misura la verità
+      della posa (rim2, 93 finestre accanto alla verità: Spearman −0,42;
+      `agreecheck.py`): nessun segnale di qualità della posa nell'uscita
+      di maploc, per ora. (2) La falla non era la posa: rim2 (guardie
+      accese, posa 1–10 cm) ha re-iscritto tredici punti del bordo, nove
+      dentro il buco, e il salvataggio del libro ne ha cancellati dodici —
+      contro le CORSIE, che `map_named` fondeva nella scia e che stanno a
+      10–15 cm dal bordo; il libro non poteva mai riavere il bordo. Le
+      corsie sono una lista a sé (790412a); rim3 ne ha re-iscritti undici
+      e li ha tenuti tutti: 51 drop (copia in runs/house2/ground-51.json).
+      (3) La portata dietro un bordo si aggiunge solo dove il raggio lo
+      colpisce di petto. Poi il giro cieco della casa sui 51: 6/6 —
+      camera 47, studio 93, bagno 130, soggiorno 70, cucina 103,
+      corridoio 29 s (472 s; boot 79 s), la verità a 20 cm dal bordo
+      ovest nel punto più vicino (ieri: sopra), posa 8 cm, libro intatto.
+      Il viaggio con le guardie dal fianco della tromba fallisce ancora
+      (rim2/rim3: gambe da 421 e 447 s) — il nodo guardie-vs-tromba del
+      16, oggi non toccato.
 - [ ] La ricerca al boot, due richieste (sera del 2026-09-16, dell'utente):
       (1) in Localize il ripiego "nessuna conferma → mappa fresca ed
       esplora" non ha senso (nulla può inchiostrare; "non è sicura della

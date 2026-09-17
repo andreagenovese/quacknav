@@ -2584,6 +2584,24 @@ nothing: it explores and asks.
       78 s (8 steps, no refusal, pose 3–5 cm). Still seen: "0.19 m all
       round" for one look after a bump (a tilted trunk?) — it clears at
       the next look.
+- [x] The books, morning of the 17th — measured, then two leaks closed.
+      (1) The still window's residual against the map is NOT a measure
+      of the pose's truth (rim2, 93 windows beside the truth: Spearman
+      −0.42; `agreecheck.py`): no pose-quality signal in maploc's
+      output yet. (2) The leak was not the pose: rim2 (guards on, pose
+      1–10 cm) re-booked thirteen rim points, nine inside the hole, and
+      the book's keep struck twelve of them — against the LANES, which
+      `map_named` had merged into the trail, and which lie 10–15 cm from
+      the rim; the book could never regain its rim. Lanes are their own
+      list now (790412a); rim3 re-booked eleven and kept them all: 51
+      drops (a copy in runs/house2/ground-51.json). (3) The reach behind
+      a rim is added only where the ray meets it head-on. Then the blind
+      tour of the house on the 51: 6/6 — bedroom 47, study 93, bathroom
+      130, living room 70, kitchen 103, corridor 29 s (472 s; boot 79 s),
+      the truth 20 cm from the west rim at the closest (yesterday: on
+      it), pose 8 cm, the book untouched. The guarded journey through
+      the stairwell's side still fails (rim2/rim3: 421 s and 447 s
+      legs) — the guards-vs-stairwell knot of the 16th, untouched today.
 - [ ] The boot search, two asks (2026-09-16 evening, the user's): (1) in
       Localize the "no confirmation → fresh map and explore" fallback is
       meaningless (nothing can ink; "not sure of its position yet" and it
