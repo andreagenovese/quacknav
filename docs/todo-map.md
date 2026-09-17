@@ -2602,6 +2602,15 @@ nothing: it explores and asks.
       it), pose 8 cm, the book untouched. The guarded journey through
       the stairwell's side still fails (rim2/rim3: 421 s and 447 s
       legs) — the guards-vs-stairwell knot of the 16th, untouched today.
+- [ ] A DRIVE MODE, as a feature (2026-09-17, the user's: "the human
+      drive is nearly perfect; this mode must exist"). Today it is a
+      private script (`drivesetup.sh`) and the shadow recorder, and the
+      books came from guarded sessions afterwards. Wanted in quacksat:
+      the human drives (app, keyboard, MCP `robot.move`), the duck maps
+      and writes the books as it goes — the guard's drops booked from
+      its stands, the guard as a safety net that refuses the step into
+      the hole even when the human asks for it — and the map is saved
+      with its book at the end. What the tour of 2026-09-16 did by hand.
 - [ ] The boot search, two asks (2026-09-16 evening, the user's): (1) in
       Localize the "no confirmation → fresh map and explore" fallback is
       meaningless (nothing can ink; "not sure of its position yet" and it

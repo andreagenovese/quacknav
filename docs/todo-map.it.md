@@ -2796,6 +2796,16 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       Il viaggio con le guardie dal fianco della tromba fallisce ancora
       (rim2/rim3: gambe da 421 e 447 s) — il nodo guardie-vs-tromba del
       16, oggi non toccato.
+- [ ] Una MODALITÀ GUIDA, come funzione (2026-09-17, dell'utente: "il
+      giro umano è quasi perfetto; questa modalità deve esserci"). Oggi è
+      uno script privato (`drivesetup.sh`) più il registratore ombra, e i
+      libri sono venuti dopo, dalle sessioni con le guardie. Voluta in
+      quacksat: l'umano guida (app, tastiera, `robot.move` via MCP), la
+      papera mappa e scrive i libri strada facendo — i drop della guardia
+      iscritti dalle sue fermate, la guardia come rete di sicurezza che
+      rifiuta il passo nel buco anche se lo chiede l'umano — e la mappa
+      salvata col suo libro alla fine. Ciò che il giro del 2026-09-16 ha
+      fatto a mano.
 - [ ] La ricerca al boot, due richieste (sera del 2026-09-16, dell'utente):
       (1) in Localize il ripiego "nessuna conferma → mappa fresca ed
       esplora" non ha senso (nulla può inchiostrare; "non è sicura della
