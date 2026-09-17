@@ -2755,18 +2755,28 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       35 s — 6/6, 427 s di viaggi, 543 s in tutto, nessun rifiuto, nessuno
       stallo, nessuna cancellazione, nessuna caduta; 7–20 cm veri dai
       goal, posa 8–9 cm / 0,6–1,0° a cinque e dieci minuti.
-- [ ] Un boot con la schiena al muro (2026-09-17, spawn-bed: nata in
-      camera rivolta al letto): la prima occhiata era chiusa (0,40 m per
-      lato), gli impulsi non hanno girato nulla (8 per −5°), il corpo è
-      finito con la schiena a 11 cm dal muro nord e lì la guardia leggeva
-      0,20–0,26 m in ogni direzione mentre la verità aveva 0,9 m di
-      pavimento davanti; "un drop in vista" ha vietato il giro cieco, i
-      calci guardati sono stati rifiutati, nove minuti ferma. Due domande
-      per i raggi dei frame (`map_status.cliff.rays`): cosa vede la
-      guardia con un muro alle spalle (tronco inclinato che legge il
-      pavimento come drop?), e perché un impulso non gira nulla quando è
-      inchiodata. Fino ad allora un boot in una stanza arredata non è
-      misurato. `queue-spawn.sh` ha le cinque nascite.
+- [x] Un boot con la schiena al muro (2026-09-17, spawn-bed: nata in
+      camera rivolta al letto, nove minuti ferma, mai confermata). I raggi
+      (`rays.py`) dicono che lì la guardia vedeva giusto — ostacoli a
+      0,58–0,78 m in tutto il cono, nessun drop — e l'errore era mio:
+      0,58 m era "chiusa" (soglia 0,6), e gli impulsi in retro l'hanno
+      inchiodata al muro dietro. Fatte le due richieste dell'utente: (1)
+      uno SCAN DELL'ORIZZONTE al boot quando la prima occhiata non mostra
+      un metro davanti — quarti di giro sul posto come gira il panorama
+      dell'esploratore (un calcio camminato attraverso la guardia, poi
+      yaw sola a ~30°/s, chiusa sull'odometria; il calcio accorciato a
+      0,5 s su parola dell'utente, e mette ancora il gait in passo: 85–91°
+      per quarto), una fermata e un'occhiata a ciascuno, fermato appena
+      un'occhiata mostra 1,5 m di pavimento; poi un giro verso la
+      direzione più libera di tutte; (2) il giro sul posto è quel
+      calcio-poi-yaw ovunque (prima un passo indietro, cieco e solo senza
+      drop in vista, quando la guardia rifiuta il calcio), gli impulsi in
+      retro solo per un piccolo giro a destra — il gemello gira a sinistra
+      qualunque sia il segno; gambe proporzionate allo spazio (0,45 m ora
+      è una gamba, corta). Camera: 185 s, poi 154 s col calcio corto;
+      corridoio 79 / 79 / 78 s (8 passi, nessun rifiuto, posa 3–5 cm).
+      Ancora visto: "0,19 m tutt'intorno" per un'occhiata dopo un urto
+      (tronco inclinato?) — passa all'occhiata successiva.
 - [ ] La ricerca al boot, due richieste (sera del 2026-09-16, dell'utente):
       (1) in Localize il ripiego "nessuna conferma → mappa fresca ed
       esplora" non ha senso (nulla può inchiostrare; "non è sicura della

@@ -2562,17 +2562,28 @@ nothing: it explores and asks.
       100 s, corridor 35 s — 6/6, 427 s of journeys, 543 s all told,
       no refusal, no stall, no strike, no fall; 7–20 cm truly from the
       goals, pose 8–9 cm / 0.6–1.0° at five and ten minutes.
-- [ ] A boot with the back to a wall (2026-09-17, spawn-bed: born in
-      the bedroom facing the bed): the first look was boxed in (0.40 m
-      each way), the pulses turned nothing (8 for −5°), the body ended
-      with its back 11 cm from the north wall and there the guard read
-      0.20–0.26 m in every direction while the truth had 0.9 m of floor
-      ahead; "a drop in view" forbade the blind turn, the guarded kicks
-      were refused, nine minutes standing. Two questions for the frame
-      rays (`map_status.cliff.rays`): what the guard sees with a wall at
-      its back (a tilted trunk reading the floor as a drop?), and why a
-      pulse turns nothing when pinned. Until then a boot in a furnished
-      room is not measured. `queue-spawn.sh` has the five spawns.
+- [x] A boot with the back to a wall (2026-09-17, spawn-bed: born in
+      the bedroom facing the bed, nine minutes standing, never
+      confirmed). The rays (`rays.py`) said the guard was right there —
+      obstacles at 0.58–0.78 m all round the cone, no drop — and the
+      fault was mine: 0.58 m was "boxed in" (threshold 0.6), and the
+      backing pulses pinned the body to the wall behind. Done, the
+      user's two asks: (1) a SCAN OF THE HORIZON at boot when the first
+      look shows no metre ahead — quarter turns on the spot the way the
+      explorer's panorama turns (a walking kick through the guard, then
+      yaw alone at ~30°/s, closed on the odometry heading; the kick
+      shortened to 0.5 s at the user's word, and it still gets the gait
+      stepping: 85–91° per quarter), a stand and a look at each, stopped
+      as soon as a look shows 1.5 m of floor; then a turn to the freest
+      way of all of them; (2) the on-the-spot turn is that kick-then-yaw
+      everywhere (a step back first, blind and only with no drop in
+      view, when the guard refuses the kick), the backing pulses only
+      for a small turn to the right — the twin spins left whatever the
+      sign; legs sized to the room (0.45 m is a leg now, a short one).
+      Bedroom: 185 s, then 154 s with the short kick; corridor 79 / 79 /
+      78 s (8 steps, no refusal, pose 3–5 cm). Still seen: "0.19 m all
+      round" for one look after a bump (a tilted trunk?) — it clears at
+      the next look.
 - [ ] The boot search, two asks (2026-09-16 evening, the user's): (1) in
       Localize the "no confirmation → fresh map and explore" fallback is
       meaningless (nothing can ink; "not sure of its position yet" and it
