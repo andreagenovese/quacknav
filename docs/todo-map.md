@@ -2780,6 +2780,19 @@ nothing: it explores and asks.
       against 1 in 5 this morning; no fall in any (paper bench 20/30,
       0 falls in 30). What fails now is the go-round's kitchen/living
       door within the budget — the same door as rim14.
+- [x] Evening of the 18th, after retreat-to-turn: the blind six-goal
+      tour re-run 6/6, 534 s (51, 105, 129, 101, 107, 41), no fall —
+      no regression from the day's gait changes (trusted floor is off
+      in the blind mode). Guarded, corridor → study → kitchen → living
+      room: the study 91 s ✓ (through its 0.8 m door), the kitchen
+      198 s ✓ (past the stairwell's north side and the corridor's
+      kitchen door), the living room ✗ — 3.5 min at the stairwell's
+      mouth, the seal, the go-round through the kitchen, the
+      kitchen/living door PASSED in 1.5 min (the first time with the
+      guards), into the living room, and the budget out 1.7 m from the
+      goal. So the go-round works end to end and wants a budget sized to
+      the route (a failed mouth 3.5 min + 10 m at 0.03 m/s), or a
+      quicker seal. `GOTO_MAX_S` for the scripts.
 - [ ] The boot search, two asks (2026-09-16 evening, the user's): (1) in
       Localize the "no confirmation → fresh map and explore" fallback is
       meaningless (nothing can ink; "not sure of its position yet" and it

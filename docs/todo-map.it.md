@@ -2982,6 +2982,19 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       (banco 20/30, 0 cadute su 30). Ciò che fallisce ora è la porta
       cucina/soggiorno del giro intorno entro il budget — la stessa di
       rim14.
+- [x] Sera del 18, dopo "arretrare per girare": il giro cieco a sei goal
+      rifatto 6/6, 534 s (51, 105, 129, 101, 107, 41), nessuna caduta —
+      nessuna regressione dalle modifiche al gait di oggi (il pavimento
+      fidato è spento in modalità cieca). Con le guardie, corridoio →
+      studio → cucina → soggiorno: studio 91 s ✓ (dalla sua porta di
+      0,8 m), cucina 198 s ✓ (oltre il lato nord della tromba e la porta
+      cucina del corridoio), soggiorno ✗ — 3,5 min alla bocca della
+      tromba, il sigillo, il giro dalla cucina, la porta cucina/soggiorno
+      PASSATA in 1,5 min (la prima volta con le guardie), dentro il
+      soggiorno, e il budget scaduto a 1,7 m dal goal. Quindi il giro
+      intorno funziona da capo a fondo e vuole un budget proporzionato
+      alla rotta (una bocca fallita 3,5 min + 10 m a 0,03 m/s), o un
+      sigillo più rapido. `GOTO_MAX_S` per gli script.
 - [ ] La ricerca al boot, due richieste (sera del 2026-09-16, dell'utente):
       (1) in Localize il ripiego "nessuna conferma → mappa fresca ed
       esplora" non ha senso (nulla può inchiostrare; "non è sicura della
