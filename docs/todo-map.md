@@ -2706,6 +2706,30 @@ nothing: it explores and asks.
       by the seal (rim14: the route through the kitchen, budget 600 s
       to finish it), and the drive mode to write the books. The passage
       stays open as a study, not a task: `queue-rim7.sh` replays it.
+- [ ] TRUSTED FLOOR — the user's idea (2026-09-18 afternoon): "in
+      exploration, plan with Dijkstra to the farthest known point and
+      follow the route as the blind journeys do; if it works it applies
+      everywhere". Measured on the bench before anything (thirty runs,
+      explore then the living room past the stairwell): guards on 14/30,
+      0 falls; blind legs with the rim NOT on the books 23/30 but 7
+      falls; blind with the rim on the books 6/30, 3 falls — all three
+      blind kicks/pulses of 0.6–1 s at the east rim; MuJoCo blind on the
+      frozen map with its books 54/54 legs, 0 falls. So the blind
+      journey trusts not Dijkstra but Dijkstra on a map whose holes are
+      on the books, with a 6 cm pose. The form that holds: a leg is
+      blind only over floor the sensor has judged from a stand (seen,
+      the rim booked) or the body has walked; guarded elsewhere; kicks
+      and pulses near a booked drop stay guarded. At the stairwell: a
+      stand at the mouth books the rim, the blind leg walks the passage
+      20 cm from it — what the guard refuses today (1 in 5) — provided
+      the rim is booked with a good pose (rim1's 17 cm was poison). The
+      target stays the frontier (the farthest point is the boot's ask).
+      What it brings: narrow passages in exploration and in houses
+      without books, fewer refusals; not fewer stands (the mapper inks
+      standing). PLAN (Monday 2026-09-21, with the guided drives): the
+      gating on the paper twin, thirty runs, falls the veto; then MuJoCo
+      on a fresh house from the corridor, against explmap1 (46 min,
+      the south corridor at 22 min).
 - [ ] The boot search, two asks (2026-09-16 evening, the user's): (1) in
       Localize the "no confirmation → fresh map and explore" fallback is
       meaningless (nothing can ink; "not sure of its position yet" and it

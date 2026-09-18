@@ -2905,6 +2905,30 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       dalla cucina, budget 600 s per finirla), e la modalità guida per
       scrivere i libri. Il passaggio resta aperto come studio, non come
       compito: `queue-rim7.sh` lo ripete.
+- [ ] PAVIMENTO FIDATO — l'idea dell'utente (2026-09-18 pomeriggio): "in
+      esplorazione usare Dijkstra verso il punto conosciuto più lontano e
+      seguire il tragitto come nei giri ciechi; se funziona vale ovunque".
+      Misurata sul banco prima di tutto (trenta prove, esplora poi il
+      soggiorno oltre la tromba): guardie accese 14/30, 0 cadute; gambe
+      cieche col bordo NON sui libri 23/30 ma 7 cadute; cieche col bordo
+      sui libri 6/30, 3 cadute — tutte calci/impulsi ciechi da 0,6–1 s
+      sul bordo est; MuJoCo cieca su mappa congelata coi libri 54/54
+      gambe, 0 cadute. Dunque il giro cieco non si fida di Dijkstra ma di
+      Dijkstra su una mappa che ha i buchi sui libri, con una posa da
+      6 cm. La forma che regge: una gamba è cieca solo sul pavimento che
+      il sensore ha giudicato da una fermata (visto, bordo iscritto) o
+      che il corpo ha percorso; guardata altrove; calci e impulsi vicino
+      a un drop iscritto restano guardati. Alla tromba: una fermata alla
+      bocca iscrive il bordo, la gamba cieca percorre il passaggio a 20 cm
+      — ciò che la guardia oggi rifiuta (1 su 5) — purché il bordo sia
+      iscritto con la posa buona (i 17 cm di rim1 erano veleno). Il
+      bersaglio resta la frontiera (il punto più lontano è la richiesta
+      del boot). Cosa porta: passaggi stretti in esplorazione e nelle case
+      senza libri, meno rifiuti; non meno fermate (il mapper inchiostra da
+      fermo). PIANO (lunedì 2026-09-21, coi giri guidati): il gating sul
+      gemello di carta, trenta prove, cadute = veto; poi MuJoCo su una
+      casa fresca dal corridoio, contro explmap1 (46 min, corridoio sud al
+      22°).
 - [ ] La ricerca al boot, due richieste (sera del 2026-09-16, dell'utente):
       (1) in Localize il ripiego "nessuna conferma → mappa fresca ed
       esplora" non ha senso (nulla può inchiostrare; "non è sicura della
