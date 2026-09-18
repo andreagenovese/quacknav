@@ -2724,9 +2724,13 @@ nothing: it explores and asks.
       20 cm from it — what the guard refuses today (1 in 5) — provided
       the rim is booked with a good pose (rim1's 17 cm was poison). The
       target stays the frontier (the farthest point is the boot's ask).
-      What it brings: narrow passages in exploration and in houses
-      without books, fewer refusals; not fewer stands (the mapper inks
-      standing). PLAN (Monday 2026-09-21, with the guided drives): the
+      The user's own words on it (later that day): "the stands come
+      first in exploration; the idea hooks in after the duck has mapped
+      walls and holes correctly" — so a route to the next frontier is
+      blind over the stretch already mapped (walls on the map, holes on
+      the books) and guarded, with its stand, only on the last stretch
+      into the unknown. What it brings: narrow passages in exploration
+      and in houses without books, fewer refusals; the stands stay. PLAN (Monday 2026-09-21, with the guided drives): the
       gating on the paper twin, thirty runs, falls the veto; then MuJoCo
       on a fresh house from the corridor, against explmap1 (46 min,
       the south corridor at 22 min).
