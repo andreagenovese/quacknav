@@ -2859,6 +2859,36 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       corridoio stretto, come chiede l'utente, le gambe dovrebbero essere
       lunghe con la tenuta accesa — un esperimento per la legge del
       passaggio (una gamba tenuta da 3 s invece di due da 1,5).
+- [ ] Il nodo della tromba, il 18, sera e notte: sonda D fatta
+      (allineamento ±30° → +0,4…+5,5° girando a destra, −8…−13° a
+      sinistra, dentro la tolleranza di 11° — da stringere a ~7° per la
+      sinistra); la gamba tenuta da 3 s c'è (`QK_PASSAGE_HELD`) e su
+      MuJoCo non è stata esercitata: rim14 ha sigillato la bocca dopo i
+      rifiuti ed È ANDATA INTORNO dalla cucina — la prima volta — poi 2
+      min alla porta cucina/soggiorno (0,8 m, presa di sbieco, lo stipite
+      nel cono) e il budget di 420 s è scaduto a 1,5 m (`GOTO_MAX_S` in
+      speed_test.py, 600 per il giro lungo); rim15 con 600 s: alla bocca
+      l'"asse allontanato dal drop" (tre passi da 0,17 rad) ha messo
+      l'asse nel muro e ogni allineamento fallito è costato 70 s, quattro
+      di fila. La scala della tromba, guardie accese, corridoio →
+      soggiorno → corridoio (gambe in s, ✓ entro 0,35 m): rim2
+      421✗+64✓+49✓ · rim3 26✓+447✗+142✓ · rim4 24✓+459✗+64✓ · rim5
+      17✓+150✓+421✗ · rim6 24✓+423✓+422✗ · **rim7 22✓+213✓+216✓** · rim8
+      48✓+433✗+109✓ · rim9 6✓+420✗+119✓ · rim10 21✓+453✗+144✓ · rim11
+      24✓+237✓+434✗ · rim12 25✓+424✗+440✗ · rim13 27✓+453✗+441✗ · rim14
+      20✓+423✗+424✗ · rim15 27✓+461✗. LA MIGLIORE: rim7 (commit 67b44a1 —
+      giro calcio-poi-yaw, passo per fare spazio, margine dal bordo 0,15
+      nel passaggio, vecchio allineamento a impulsi, niente hug, niente
+      sigillo, pianificatore a 0,17 dal punto del bordo), l'unica andata e
+      ritorno; rim11 (muro come guida) la migliore andata dopo di lei.
+      Tutto ciò che è venuto dopo rim11 (allineamento a calcio, sigillo,
+      asse del muro dell'hug, gamba tenuta) ha misurato peggio su MuJoCo e
+      non meglio sul banco con l'impulso misurato (10/30 in ogni caso).
+      Per migliorare da rim7: rifare la configurazione di rim7 tre volte
+      per conoscerne il tasso vero (rim8 era lo stesso codice e ha
+      fallito), poi cambiare UNA cosa alla volta, prima sul banco — il
+      costo dell'allineamento (70 s a fallimento) e l'asse spinto nel muro
+      sono i due guasti con un nome.
 - [ ] La ricerca al boot, due richieste (sera del 2026-09-16, dell'utente):
       (1) in Localize il ripiego "nessuna conferma → mappa fresca ed
       esplora" non ha senso (nulla può inchiostrare; "non è sicura della

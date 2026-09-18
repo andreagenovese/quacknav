@@ -2662,6 +2662,35 @@ nothing: it explores and asks.
       a wall and walk a narrow corridor straight, as the user asked, the
       legs would have to be long ones with the hold on — an experiment
       for the passage law (one 3 s held leg instead of two of 1.5 s).
+- [ ] The stairwell knot, the 18th, evening and night: probe D done
+      (alignment ±30° → +0.4…+5.5° turning right, −8…−13° turning left,
+      inside the 11° tolerance — to tighten to ~7° for left turns); the
+      held 3 s passage leg is in (`QK_PASSAGE_HELD`) and untested on
+      MuJoCo: rim14 sealed the mouth after the refusals and WENT ROUND
+      through the kitchen — the first time — then 2 min at the
+      kitchen/living door (0.8 m, taken on the diagonal, the jamb in the
+      cone) and the 420 s budget ran out 1.5 m short (`GOTO_MAX_S` in
+      speed_test.py, 600 for the go-round); rim15 with 600 s: at the
+      mouth the "axis turned away from the drop" (three steps of 0.17
+      rad) put the axis into the wall and each failed alignment cost
+      70 s, four in a row. The stairwell ladder, guards on, corridor →
+      living room → corridor (legs in s, ✓ within 0.35 m):
+      rim2 421✗+64✓+49✓ · rim3 26✓+447✗+142✓ · rim4 24✓+459✗+64✓ ·
+      rim5 17✓+150✓+421✗ · rim6 24✓+423✓+422✗ · **rim7 22✓+213✓+216✓** ·
+      rim8 48✓+433✗+109✓ · rim9 6✓+420✗+119✓ · rim10 21✓+453✗+144✓ ·
+      rim11 24✓+237✓+434✗ · rim12 25✓+424✗+440✗ · rim13 27✓+453✗+441✗ ·
+      rim14 20✓+423✗+424✗ · rim15 27✓+461✗. THE BEST: rim7 (commit
+      67b44a1 — kick-then-yaw spin, the make-room step, the passage edge
+      margin 0.15, the old pulse alignment, no hug, no seal, the planner
+      0.17 from a rim point), the only round trip; rim11 (the wall as
+      the guide) the best outbound after it. Everything after rim11
+      (kick alignment, seal, hug's wall axis, the held leg) measured
+      worse on MuJoCo and no better on the bench with the measured
+      pulse (10/30 either way). To improve from rim7: re-run rim7's
+      configuration three times to know its true rate (rim8 was the
+      same code and failed), then change ONE thing at a time on the
+      bench first — the alignment's cost (70 s a failure) and the axis
+      bias into the wall are the two named faults.
 - [ ] The boot search, two asks (2026-09-16 evening, the user's): (1) in
       Localize the "no confirmation → fresh map and explore" fallback is
       meaningless (nothing can ink; "not sure of its position yet" and it
