@@ -2734,6 +2734,35 @@ nothing: it explores and asks.
       gating on the paper twin, thirty runs, falls the veto; then MuJoCo
       on a fresh house from the corridor, against explmap1 (46 min,
       the south corridor at 22 min).
+- [x] TRUSTED FLOOR, built and measured (2026-09-18 afternoon/evening,
+      commits 6e702e9, e889ffc, 091a7f4). `explore/trusted.rs`: 5 cm
+      cells the body walked (0.10 around the trail) or a stand's frames
+      judged as floor (along each bearing to 0.9 m, or 0.12 short of the
+      drop edge / obstacle seen); a leg whose gait-model path, flank
+      included, lies on them — and whose path the BOOKS clear (a bearing
+      between two columns grazes a rim and "sees floor" 7 cm past it) —
+      walks blind; kicks and pulses never; mapping and the guarded
+      journey (`QK_TRUSTED_FLOOR`). The user's precision honoured: the
+      stands stay, the guard keeps the last stretch into the unknown.
+      Also from it: a step back onto the body's own trail is allowed
+      with a drop in view (the boot search stood seven minutes at the
+      north rim with no way out, rim16). Paper bench: explore + living
+      room 17–20/30 (median 88–98 s, 0 refusals) against 14/30 (117 s),
+      0 falls in 150 runs; exploration alone the same coverage, the
+      south corridor past the stairwell reached twice as often. MuJoCo,
+      guards on, corridor → living room → corridor: rim18 3/3 (28, 287,
+      155 s, 34 blind legs, 7 refusals, 18 cm from the rim); trust1
+      out ✗; trust2 out ✓ 151 s (the guarded record), back ✗; trust3
+      out ✗ — but sealed the mouth, went round through the kitchen on 42
+      blind legs and ran out of budget at the kitchen/living door. So
+      the passage itself is walked blind when the body reaches its mouth
+      aligned; the failures are all the same one — at the mouth with the
+      hole in view the passage law asks for an 80° turn, the kick is
+      refused, the pulses turn 10°, each alignment costs 70 s and
+      fails. NEXT (Monday): "retreat to turn" — with a drop in view and
+      the kick refused, back along the trail (trusted) 0.3 m to where
+      the drop is out of the guard's lane, turn there with the kick,
+      come in aligned; and the kitchen/living door for the go-round.
 - [ ] The boot search, two asks (2026-09-16 evening, the user's): (1) in
       Localize the "no confirmation → fresh map and explore" fallback is
       meaningless (nothing can ink; "not sure of its position yet" and it

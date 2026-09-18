@@ -2934,6 +2934,36 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       gemello di carta, trenta prove, cadute = veto; poi MuJoCo su una
       casa fresca dal corridoio, contro explmap1 (46 min, corridoio sud al
       22°).
+- [x] PAVIMENTO FIDATO, costruito e misurato (2026-09-18 pomeriggio/sera,
+      commit 6e702e9, e889ffc, 091a7f4). `explore/trusted.rs`: celle da
+      5 cm percorse dal corpo (0,10 attorno alla scia) o giudicate
+      pavimento dai frame di una fermata (lungo ogni raggio fino a 0,9 m,
+      o 0,12 prima del bordo / ostacolo visto); una gamba la cui traiettoria
+      nel modello del gait, fianco compreso, sta lì sopra — e che i LIBRI
+      lasciano libera (un raggio tra due colonne sfiora il bordo e "vede
+      pavimento" 7 cm oltre) — cammina cieca; calci e impulsi mai;
+      mappatura e viaggio guardato (`QK_TRUSTED_FLOOR`). La precisazione
+      dell'utente rispettata: le fermate restano, la guardia tiene l'ultimo
+      tratto verso l'ignoto. Ne discende anche: un passo indietro sulla
+      propria scia è permesso con un drop in vista (la ricerca al boot è
+      stata ferma sette minuti sul bordo nord senza via d'uscita, rim16).
+      Banco: esplora + soggiorno 17–20/30 (mediana 88–98 s, 0 rifiuti)
+      contro 14/30 (117 s), 0 cadute in 150 corse; esplorazione da sola
+      stessa copertura, corridoio sud oltre la tromba raggiunto il doppio
+      delle volte. MuJoCo, guardie accese, corridoio → soggiorno →
+      corridoio: rim18 3/3 (28, 287, 155 s, 34 gambe cieche, 7 rifiuti,
+      18 cm dal bordo); trust1 andata ✗; trust2 andata ✓ 151 s (record con
+      le guardie), ritorno ✗; trust3 andata ✗ — ma ha sigillato la bocca,
+      è andata intorno dalla cucina con 42 gambe cieche ed è scaduta alla
+      porta cucina/soggiorno. Quindi il passaggio in sé si percorre cieco
+      quando il corpo arriva alla bocca allineato; i fallimenti sono tutti
+      lo stesso — alla bocca col buco in vista la legge del passaggio
+      chiede un giro di 80°, il calcio è rifiutato, gli impulsi girano 10°,
+      ogni allineamento costa 70 s e fallisce. PROSSIMO (lunedì):
+      "arretrare per girare" — con un drop in vista e il calcio rifiutato,
+      indietro sulla scia (fidata) di 0,3 m fin dove il drop esce dalla
+      corsia della guardia, girare lì col calcio, rientrare allineata; e la
+      porta cucina/soggiorno per il giro intorno.
 - [ ] La ricerca al boot, due richieste (sera del 2026-09-16, dell'utente):
       (1) in Localize il ripiego "nessuna conferma → mappa fresca ed
       esplora" non ha senso (nulla può inchiostrare; "non è sicura della
