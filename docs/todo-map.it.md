@@ -2834,6 +2834,31 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       `--known` per il gemello di carta (mappa piena dall'inizio, come
       house2), poi il sigillo misurato lì e su MuJoCo; i viaggi ciechi non
       sono toccati da tutto questo (house3tour 6/6, 499 s).
+- [x] Camminare dritto a colpetti — misurato, formula registrata, tenuta
+      spenta (2026-09-18, dell'utente: "se tira a destra colpetti a
+      sinistra, brevissimi, e raddrizza"). `straightprobe.py`/
+      `straightrun.sh` (gemello nuovo per gruppo, in soggiorno verso sud):
+      ad anello aperto a vx 0,3 col trim 0,08 il gait deriva +3,5°/s in
+      media (−0,1 … +10 — il trim del 6 ora sovracorregge), 1–14 cm di
+      deriva laterale al metro; un colpetto di ±1,0 sul filo dentro una
+      camminata gira ≈ 50°/s × durata (0,2 s → 10°, 0,3 s → 15°, a
+      sinistra un po' più che a destra, erratico oltre 0,3 s: +5 / −18 /
+      −48 a 0,5 s); chiuso sulla yaw odometrica ogni 0,2 s — soglia 3°,
+      colpetti 0,2 s: 1–3 cm/m, rotta −2 … −7°, 6–9 colpetti in 4 s; 5° /
+      0,15 s: 1–3 cm/m, ±4° (un −13), 0–3 colpetti; 4° / 0,1 s: 3–13
+      cm/m. Quindi: soglia 4°, colpetto 0,2 s. Nell'esecutore delle gambe
+      (`timed_move_held`, `QK_HOLD_HEADING=1`) e nel modello del gemello
+      di carta. Sul banco nessun cambio al passaggio della tromba (8/30
+      contro 10/30, rumore). Su MuJoCo il giro cieco a sei goal: 634 s con
+      la tenuta su ogni gamba non ad arco, 682 s sulle sole gambe dritte,
+      contro 472–499 s — le gambe dell'esploratore durano 1–1,5 s, la
+      deriva tocca la soglia una volta a gamba e il colpetto da 10°
+      risponde: uno zigzag. Tenuta SPENTA di default; la formula è per le
+      camminate dritte lunghe (una gamba di corridoio da 3 s e più, una
+      modalità guida). Per allinearsi al muro e percorrere dritto un
+      corridoio stretto, come chiede l'utente, le gambe dovrebbero essere
+      lunghe con la tenuta accesa — un esperimento per la legge del
+      passaggio (una gamba tenuta da 3 s invece di due da 1,5).
 - [ ] La ricerca al boot, due richieste (sera del 2026-09-16, dell'utente):
       (1) in Localize il ripiego "nessuna conferma → mappa fresca ed
       esplora" non ha senso (nulla può inchiostrare; "non è sicura della

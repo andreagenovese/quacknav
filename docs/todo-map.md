@@ -2638,6 +2638,30 @@ nothing: it explores and asks.
       full from the start, as house2 is), then the seal measured there
       and on MuJoCo; the blind journeys are untouched by all this
       (house3tour 6/6, 499 s).
+- [x] Walking straight by taps — measured, the formula recorded, kept
+      off (2026-09-18, the user's: "if it pulls right, brief taps to the
+      left, and it straightens"). `straightprobe.py`/`straightrun.sh`
+      (a fresh twin per group, in the living room facing south):
+      open loop at vx 0.3 with the 0.08 trim the gait drifts +3.5°/s on
+      average (−0.1 … +10 — the trim of the 6th over-corrects now),
+      1–14 cm of lateral drift per metre; a tap of ±1.0 on the wire
+      inside a walk turns ≈ 50°/s × its length (0.2 s → 10°, 0.3 s →
+      15°, left a little more than right, erratic beyond 0.3 s: +5 /
+      −18 / −48 at 0.5 s); closed on the odometry yaw every 0.2 s —
+      threshold 3°, taps 0.2 s: 1–3 cm/m, heading −2 … −7°, 6–9 taps in
+      4 s; 5° / 0.15 s: 1–3 cm/m, ±4° (one −13), 0–3 taps; 4° / 0.1 s:
+      3–13 cm/m. So: threshold 4°, tap 0.2 s. Built into the leg
+      executor (`timed_move_held`, `QK_HOLD_HEADING=1`) and modelled in
+      the paper twin. On the paper bench no change to the stairwell
+      passage (8/30 against 10/30, noise). On MuJoCo the blind six-goal
+      tour: 634 s held on every non-arc leg, 682 s on straight legs
+      alone, against 472–499 s — the explorer's legs are 1–1.5 s, the
+      drift meets the threshold once a leg and the 10° tap answers it:
+      a zigzag. Kept OFF by default; the formula is for long straight
+      walks (a corridor leg of 3 s and more, a drive mode). To align to
+      a wall and walk a narrow corridor straight, as the user asked, the
+      legs would have to be long ones with the hold on — an experiment
+      for the passage law (one 3 s held leg instead of two of 1.5 s).
 - [ ] The boot search, two asks (2026-09-16 evening, the user's): (1) in
       Localize the "no confirmation → fresh map and explore" fallback is
       meaningless (nothing can ink; "not sure of its position yet" and it
