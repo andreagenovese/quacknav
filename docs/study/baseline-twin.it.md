@@ -60,6 +60,21 @@ Nessun rifiuto, nessuno stallo, nessun drop cancellato, nessuna caduta;
 il libro invariato dopo un giro cieco (un percorso cieco non cancella
 nulla e non deposita corsie).
 
+## 2026-09-18, le modalità separate (commit b288348)
+
+`explore.rs` è diventato `explore/` — mod.rs (il ciclo), journey.rs,
+mapping.rs, guarded.rs, recover.rs, gait.rs, books.rs, mode.rs — e una
+politica per modalità: mappatura e viaggio cieco tengono il
+comportamento di questa baseline, il viaggio guardato da solo porta gli
+esperimenti della legge del passaggio del 17/18. Giro cieco a sei goal
+dopo: house7tour 604 s (40, 108, 139, 87, 192, 38), house8tour 512 s
+(43, 94, 115, 78, 152, 30), entrambi 6/6, nessuna caduta, posa 8–14 cm
+— la gamba della cucina è quella che varia (100–192 s). Prima della
+separazione la falla era costata 693 s (house6tour). Il viaggio
+guardato dal fianco della tromba: la configurazione esatta di rim7
+ripetuta cinque volte, 0/5 — una su cinque in ogni configurazione
+provata (`queue-rim7.sh`, `paper30.sh`).
+
 ## Fallimenti noti, oggi invariati
 
 Un viaggio CON le guardie dal fianco della tromba (rim2, rim3: gambe da

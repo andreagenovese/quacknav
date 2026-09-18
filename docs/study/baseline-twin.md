@@ -58,6 +58,20 @@ the goal when the job says it arrived).
 No refusal, no stall, no drop struck, no fall; the book unchanged after
 a blind tour (a blind trail strikes nothing and lays no lane).
 
+## 2026-09-18, the modes apart (commit b288348)
+
+`explore.rs` became `explore/` — mod.rs (the loop), journey.rs,
+mapping.rs, guarded.rs, recover.rs, gait.rs, books.rs, mode.rs — and a
+policy per mode: mapping and the blind journey keep this baseline's
+behaviour, the guarded journey alone carries the passage-law
+experiments of the 17th/18th. Blind six-goal tour after: house7tour
+604 s (40, 108, 139, 87, 192, 38), house8tour 512 s (43, 94, 115, 78,
+152, 30), both 6/6, no fall, pose 8–14 cm — the kitchen leg the one
+that varies (100–192 s). Before the separation the leak had cost
+693 s (house6tour). The guarded journey through the stairwell's side:
+rim7's exact configuration replayed five times, 0/5 — one in five in
+every configuration tried (`queue-rim7.sh`, `paper30.sh`).
+
 ## Known failing, unchanged today
 
 A journey WITH the guards through the stairwell's side (rim2, rim3:
