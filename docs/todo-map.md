@@ -2691,6 +2691,21 @@ nothing: it explores and asks.
       same code and failed), then change ONE thing at a time on the
       bench first — the alignment's cost (70 s a failure) and the axis
       bias into the wall are the two named faults.
+- [ ] rim7 replayed (2026-09-18 midday): its exact configuration
+      (`QUACKSAT_PASSAGE_HUG=0 QK_ALIGN_KICK=0 QK_PASSAGE_HELD=0
+      QK_PASSAGE_CLIFF_MARGIN_M=0.15 QK_SEAL=0`, and the planner's drop
+      radius 0.12 by `QK_DROP_PLAN_RADIUS_M`) five more times on MuJoCo,
+      guards on, corridor → living room → corridor: the living room 0/5
+      (459, 420, 425, 436, 424 s), no fall. With rim8, six replicas and
+      no round trip: rim7's 3/3 was one draw in six. VERDICT, final for
+      this month: the guarded passage beside the stairwell is a 1-in-5
+      affair in every configuration tried (rim2–15 and the replicas),
+      and the bench with the measured pulse agrees; it is the gait
+      (no precise turn in place beside a drop), not the rules. What
+      stands: journeys blind on the books (6/6, 472–499 s), the go-round
+      by the seal (rim14: the route through the kitchen, budget 600 s
+      to finish it), and the drive mode to write the books. The passage
+      stays open as a study, not a task: `queue-rim7.sh` replays it.
 - [ ] The boot search, two asks (2026-09-16 evening, the user's): (1) in
       Localize the "no confirmation → fresh map and explore" fallback is
       meaningless (nothing can ink; "not sure of its position yet" and it

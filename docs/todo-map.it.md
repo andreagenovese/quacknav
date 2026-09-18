@@ -2889,6 +2889,22 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       fallito), poi cambiare UNA cosa alla volta, prima sul banco — il
       costo dell'allineamento (70 s a fallimento) e l'asse spinto nel muro
       sono i due guasti con un nome.
+- [ ] rim7 riprodotta (2026-09-18, mezzogiorno): la sua configurazione
+      esatta (`QUACKSAT_PASSAGE_HUG=0 QK_ALIGN_KICK=0 QK_PASSAGE_HELD=0
+      QK_PASSAGE_CLIFF_MARGIN_M=0.15 QK_SEAL=0`, e il raggio del drop del
+      pianificatore 0,12 con `QK_DROP_PLAN_RADIUS_M`) altre cinque volte su
+      MuJoCo, guardie accese, corridoio → soggiorno → corridoio: soggiorno
+      0/5 (459, 420, 425, 436, 424 s), nessuna caduta. Con rim8, sei
+      repliche e nessuna andata e ritorno: il 3/3 di rim7 era un'estrazione
+      su sei. VERDETTO, definitivo per questo mese: il passaggio con le
+      guardie accanto alla tromba riesce una volta su cinque in ogni
+      configurazione provata (rim2–15 e le repliche), e il banco con
+      l'impulso misurato concorda; è il gait (niente giro preciso sul posto
+      accanto a un drop), non le regole. Ciò che regge: i viaggi ciechi sui
+      libri (6/6, 472–499 s), il giro intorno col sigillo (rim14: la rotta
+      dalla cucina, budget 600 s per finirla), e la modalità guida per
+      scrivere i libri. Il passaggio resta aperto come studio, non come
+      compito: `queue-rim7.sh` lo ripete.
 - [ ] La ricerca al boot, due richieste (sera del 2026-09-16, dell'utente):
       (1) in Localize il ripiego "nessuna conferma → mappa fresca ed
       esplora" non ha senso (nulla può inchiostrare; "non è sicura della
