@@ -2763,6 +2763,23 @@ nothing: it explores and asks.
       the kick refused, back along the trail (trusted) 0.3 m to where
       the drop is out of the guard's lane, turn there with the kick,
       come in aligned; and the kitchen/living door for the go-round.
+- [x] RETREAT TO TURN, built and measured (2026-09-18 evening, commits
+      7568b6e, 36b27d9). The kick refused beside a drop backs along the
+      trail — validated on the trusted floor, the trail being too sparse
+      (fifty points, the nearest behind 12–15 cm off) — about 0.3 m,
+      then kicks there; no idle yaw beside a drop (it turned 2°/s for
+      10 s a try, 70 s an alignment); backing pulses allowed on trusted
+      floor whatever the drop's distance; the route check ignores an
+      obstacle the sensor sees beside a route on trusted floor (the
+      west wall, thirteen re-plans at the mouth). MuJoCo, guards on,
+      corridor → living room → corridor: retreat6 3/3 (28, 132, 173 s
+      — the guarded record, rim7 was 213/216), retreat7 3/3 (24, 237,
+      227 s), retreat8 out ✗ (sealed, went round through the kitchen,
+      ran out at 600 s). With rim18 and trust2: the guarded passage
+      beside the stairwell is now 4 of 6 outbound and 3 of 5 round trips,
+      against 1 in 5 this morning; no fall in any (paper bench 20/30,
+      0 falls in 30). What fails now is the go-round's kitchen/living
+      door within the budget — the same door as rim14.
 - [ ] The boot search, two asks (2026-09-16 evening, the user's): (1) in
       Localize the "no confirmation → fresh map and explore" fallback is
       meaningless (nothing can ink; "not sure of its position yet" and it

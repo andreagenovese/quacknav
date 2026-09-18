@@ -2964,6 +2964,24 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       indietro sulla scia (fidata) di 0,3 m fin dove il drop esce dalla
       corsia della guardia, girare lì col calcio, rientrare allineata; e la
       porta cucina/soggiorno per il giro intorno.
+- [x] ARRETRARE PER GIRARE, costruito e misurato (sera del 2026-09-18,
+      commit 7568b6e, 36b27d9). Il calcio rifiutato accanto a un drop
+      arretra lungo la scia — validata sul pavimento fidato, perché la scia
+      è troppo rada (cinquanta punti, il più vicino dietro a 12–15 cm) — di
+      circa 0,3 m, poi calcia lì; niente yaw a vuoto accanto a un drop
+      (girava 2°/s per 10 s a tentativo, 70 s per allineamento); impulsi in
+      retro ammessi sul pavimento fidato qualunque sia la distanza del
+      drop; il controllo della rotta ignora un ostacolo visto accanto a una
+      rotta su pavimento fidato (il muro ovest, tredici ripianificazioni
+      alla bocca). MuJoCo, guardie accese, corridoio → soggiorno →
+      corridoio: retreat6 3/3 (28, 132, 173 s — record con le guardie, rim7
+      era 213/216), retreat7 3/3 (24, 237, 227 s), retreat8 andata ✗
+      (sigillo, giro dalla cucina, scaduta a 600 s). Con rim18 e trust2: il
+      passaggio guardato accanto alla tromba è ora 4 andate su 6 e 3
+      andata-e-ritorno su 5, contro 1 su 5 stamattina; nessuna caduta
+      (banco 20/30, 0 cadute su 30). Ciò che fallisce ora è la porta
+      cucina/soggiorno del giro intorno entro il budget — la stessa di
+      rim14.
 - [ ] La ricerca al boot, due richieste (sera del 2026-09-16, dell'utente):
       (1) in Localize il ripiego "nessuna conferma → mappa fresca ed
       esplora" non ha senso (nulla può inchiostrare; "non è sicura della
