@@ -2611,6 +2611,33 @@ nothing: it explores and asks.
       its stands, the guard as a safety net that refuses the step into
       the hole even when the human asks for it — and the map is saved
       with its book at the end. What the tour of 2026-09-16 did by hand.
+- [ ] The stairwell knot, 2026-09-17/18 — where it stands. Done and kept:
+      the wall as the guide (hug on by default, the axis the wall's own
+      line from the map, the route on the wall's side with 0.25 of a rim
+      point); a refused kick makes room first, and nothing blind or
+      backwards with a drop in view or on the books within 0.8 m (pulses
+      only beyond 0.35); a drop that leaves no room is a drop refusal;
+      the alignment by a guarded kick then yaw (turnprobe: the walking
+      pulse turned −1…+18° with its sign, +13° against it, 6 cm forward
+      each; kick-then-yaw 9–28°/s the right way, 5 cm); a rim refused
+      three times running is sealed for the planner, lanes and all, so
+      the route goes round. MuJoCo, guards on, corridor → living room →
+      corridor: rim7 3/3 (213/216 s), rim8 1/3, rim11 half (237 s out),
+      rim12/13 0/3 — one in three. The paper twin (`paper30.sh`, the
+      user's rule: thirty trials before MuJoCo) with the pulse modelled
+      as measured says the same: 10/30 with either alignment; with the
+      ideal pulse 21/30 against 15/30, so that number was the model's.
+      The edge margin swept 0.25 → 0.08 on the bench: no fall, no gain
+      (0.25 the fastest). VERDICT: a 0.6 m passage beside a hole, with
+      guards, is at the gait's limit — it cannot turn precisely near a
+      drop — and succeeds one time in three whatever the primitive. The
+      seal is the answer (go round through the kitchen), but the paper
+      twin cannot test it: its own exploration never maps the living
+      room (32–36 % coverage in 900 s), and `--books` journeys wander in
+      the unknown. NEXT: a `--known` world for the paper twin (the map
+      full from the start, as house2 is), then the seal measured there
+      and on MuJoCo; the blind journeys are untouched by all this
+      (house3tour 6/6, 499 s).
 - [ ] The boot search, two asks (2026-09-16 evening, the user's): (1) in
       Localize the "no confirmation → fresh map and explore" fallback is
       meaningless (nothing can ink; "not sure of its position yet" and it

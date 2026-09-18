@@ -2806,6 +2806,34 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       rifiuta il passo nel buco anche se lo chiede l'umano — e la mappa
       salvata col suo libro alla fine. Ciò che il giro del 2026-09-16 ha
       fatto a mano.
+- [ ] Il nodo della tromba, 2026-09-17/18 — dove sta. Fatto e tenuto: il
+      muro come guida (hug acceso di default, l'asse è la linea del muro
+      dalla mappa, la rotta dal lato del muro con 0,25 da un punto del
+      bordo); un calcio rifiutato prima fa spazio, e nulla di cieco o
+      all'indietro con un drop in vista o sui libri entro 0,8 m
+      (pulsazioni solo oltre 0,35); un drop che non lascia spazio è un
+      rifiuto da drop; l'allineamento con calcio guardato poi yaw
+      (turnprobe: l'impulso camminato girava −1…+18° col suo segno, +13°
+      contro, 6 cm avanti ogni volta; calcio-poi-yaw 9–28°/s nel verso
+      giusto, 5 cm); un bordo rifiutato tre volte di fila è sigillato per
+      il pianificatore, corsie comprese, e la rotta gira intorno. MuJoCo,
+      guardie accese, corridoio → soggiorno → corridoio: rim7 3/3
+      (213/216 s), rim8 1/3, rim11 metà (237 s andata), rim12/13 0/3 —
+      una su tre. Il gemello di carta (`paper30.sh`, regola dell'utente:
+      trenta prove prima di MuJoCo) con l'impulso modellato come misurato
+      dice lo stesso: 10/30 con entrambi gli allineamenti; con l'impulso
+      ideale 21/30 contro 15/30, quindi quel numero era del modello. Il
+      margine dal bordo scandito 0,25 → 0,08 sul banco: nessuna caduta,
+      nessun guadagno (0,25 il più veloce). VERDETTO: un passaggio di
+      0,6 m accanto a un buco, con le guardie, è al limite del gait — non
+      sa girare di precisione vicino a un drop — e riesce una volta su tre
+      qualunque sia il primitivo. Il sigillo è la risposta (girare dalla
+      cucina), ma il gemello di carta non può misurarlo: la sua
+      esplorazione non mappa mai il soggiorno (32–36 % in 900 s), e i
+      viaggi con `--books` vagano nell'ignoto. PROSSIMO: un mondo
+      `--known` per il gemello di carta (mappa piena dall'inizio, come
+      house2), poi il sigillo misurato lì e su MuJoCo; i viaggi ciechi non
+      sono toccati da tutto questo (house3tour 6/6, 499 s).
 - [ ] La ricerca al boot, due richieste (sera del 2026-09-16, dell'utente):
       (1) in Localize il ripiego "nessuna conferma → mappa fresca ed
       esplora" non ha senso (nulla può inchiostrare; "non è sicura della
