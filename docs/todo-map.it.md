@@ -2923,9 +2923,14 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       — ciò che la guardia oggi rifiuta (1 su 5) — purché il bordo sia
       iscritto con la posa buona (i 17 cm di rim1 erano veleno). Il
       bersaglio resta la frontiera (il punto più lontano è la richiesta
-      del boot). Cosa porta: passaggi stretti in esplorazione e nelle case
-      senza libri, meno rifiuti; non meno fermate (il mapper inchiostra da
-      fermo). PIANO (lunedì 2026-09-21, coi giri guidati): il gating sul
+      del boot). Le parole dell'utente (più tardi lo stesso giorno): "in
+      esplorazione le fermate sono prioritarie; l'idea si aggancia dopo
+      che la papera ha mappato correttamente muri e buche" — quindi una
+      rotta verso la prossima frontiera è cieca sul tratto già mappato
+      (muri sulla mappa, buche sui libri) e guardata, con la sua fermata,
+      solo sull'ultimo tratto verso l'ignoto. Cosa porta: passaggi stretti
+      in esplorazione e nelle case senza libri, meno rifiuti; le fermate
+      restano. PIANO (lunedì 2026-09-21, coi giri guidati): il gating sul
       gemello di carta, trenta prove, cadute = veto; poi MuJoCo su una
       casa fresca dal corridoio, contro explmap1 (46 min, corridoio sud al
       22°).
