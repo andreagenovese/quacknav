@@ -83,3 +83,46 @@ knot of 2026-09-16. It is what a new house with no books would meet.
 `private/drives/runs/<label>/` keeps each run's pose track and logs
 (spawn-*, look*, scan*, house1tour, house2tour, rim2, rim3);
 `private/drives/daytable.py` tabulates a set of them.
+
+## Where the negatives still are (2026-09-19)
+
+Holding: the boot from the corridor (65–79 s, six spawns, no fall); the
+blind journeys on the frozen map with its books (eleven six-goal tours,
+66 of 66 legs, no fall, 472–604 s); the modes apart. Still negative,
+by severity:
+
+1. **The books and the pose.** A book is worth the pose it was written
+   with: at 17 cm of pose error a stand booked thirty phantoms and
+   sealed the corridor (rim1); there is NO pose-quality signal (the
+   still window's residual does not correlate with the truth error,
+   `agreecheck.py`). The gravest open risk for the real duck.
+2. **The stairwell's mouth, guards on.** One time in three the duck
+   cannot turn beside the hole; the seal comes after 3.5 min
+   (trust1/3, retreat8, study1). Mitigated (3 of 5 round trips, from
+   1 in 5), not solved.
+3. **The go-round.** Works end to end, does not fit the budget (a
+   failed mouth plus 10 m; rim14, retreat8, study1). Easy: a budget
+   sized to the route, or a quicker seal.
+4. **The boot in furnished rooms.** Kitchen 375 s (no metre of floor
+   between island and stools), bedroom 154 s; "0.19 m all round" for a
+   look after a bump.
+5. **Lost in localize.** Lost mid-journey, relocalised 77° off (lane1,
+   2026-09-16); not seen since, no rule for it.
+6. **Low obstacles.** The cube and the ball are dragged along: neither
+   the boot nor the journeys see them.
+7. **Fresh exploration** not re-measured on MuJoCo after this week's
+   changes (explmap1: 46 min, the south corridor at 22 min); the rim
+   calibration (booked 10–16 cm short) never done.
+8. **The left-turn alignment** stops 8–13° short, inside the 11°
+   tolerance (`alignprobe.py`).
+9. **The blind journeys' variance**: the study and the bathroom walk
+   2.3–2.6× the straight line; the kitchen 100–192 s. Time, not safety.
+10. **The bench**: the paper twin never maps the living room (32 % in
+    900 s), so it cannot measure the seal or the go-round; a `--known`
+    world is missing.
+11. **Upstream**: PR 202 closed; the worktree's fixes (frame/head
+    pairing, frozen localize) have no PR to attach to.
+12. **The drive mode** is a private script and a recorder, not a
+    feature.
+
+Safety lives in 1, 5 and 6; the rest is time or tooling.

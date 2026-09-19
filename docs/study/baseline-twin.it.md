@@ -86,3 +86,46 @@ ciò che incontrerebbe una casa nuova senza libri.
 `private/drives/runs/<etichetta>/` conserva la traccia di posa e i log di
 ogni corsa (spawn-*, look*, scan*, house1tour, house2tour, rim2, rim3);
 `private/drives/daytable.py` ne tabula un insieme.
+
+## Dove restano i negativi (2026-09-19)
+
+Regge: il boot dal corridoio (65–79 s, sei nascite, nessuna caduta); i
+viaggi ciechi su mappa congelata coi libri (undici giri a sei goal, 66
+gambe su 66, nessuna caduta, 472–604 s); le modalità separate. Ancora
+negativo, per gravità:
+
+1. **I libri e la posa.** Un libro vale la posa con cui è scritto: a
+   17 cm di errore una fermata ha iscritto trenta fantasmi e sigillato
+   il corridoio (rim1); NON c'è un segnale di qualità della posa (il
+   residuo della finestra ferma non correla con l'errore vero,
+   `agreecheck.py`). Il rischio aperto più grave per la papera vera.
+2. **La bocca della tromba, guardie accese.** Una volta su tre la papera
+   non riesce a girarsi accanto al buco; il sigillo arriva dopo 3,5 min
+   (trust1/3, retreat8, study1). Mitigato (3 andata-e-ritorno su 5, da
+   1 su 5), non risolto.
+3. **Il giro intorno.** Funziona da capo a fondo, non sta nel budget
+   (una bocca fallita più 10 m; rim14, retreat8, study1). Facile: un
+   budget proporzionato alla rotta, o un sigillo più rapido.
+4. **Il boot nelle stanze arredate.** Cucina 375 s (nessun metro di
+   pavimento tra isola e sgabelli), camera 154 s; "0,19 m tutt'intorno"
+   per un'occhiata dopo un urto.
+5. **Persa in localize.** Persa a metà viaggio, rilocalizzata a 77°
+   (lane1, 2026-09-16); non più vista, nessuna regola.
+6. **Ostacoli bassi.** Cubetto e palla trascinati: né il boot né i
+   viaggi li vedono.
+7. **Esplorazione fresca** non rimisurata su MuJoCo dopo le modifiche
+   della settimana (explmap1: 46 min, corridoio sud al 22°); la
+   calibrazione del bordo (iscritto 10–16 cm corto) mai fatta.
+8. **L'allineamento a sinistra** si ferma corto di 8–13°, dentro la
+   tolleranza di 11° (`alignprobe.py`).
+9. **La varianza dei viaggi ciechi**: studio e bagno camminano 2,3–2,6×
+   la linea; cucina 100–192 s. Tempo, non sicurezza.
+10. **Il banco**: il gemello di carta non mappa mai il soggiorno (32 %
+    in 900 s), quindi non misura sigillo e giro intorno; manca un mondo
+    `--known`.
+11. **Upstream**: PR 202 chiusa; le correzioni del worktree (pairing
+    frame/testa, localize congelato) non hanno più una PR.
+12. **La modalità guida** è uno script privato e un registratore, non
+    una funzione.
+
+La sicurezza sta in 1, 5 e 6; il resto è tempo o strumenti.
