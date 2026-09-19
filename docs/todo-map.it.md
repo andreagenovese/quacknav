@@ -3039,6 +3039,31 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       ripara solo quando una feature entra in vista, e la rinuncia lo
       lascia lì — il goal viene mancato; il viaggio dovrebbe chiudersi con
       una fermata-e-conferma al goal.
+- [x] Punto 6, ostacoli bassi e dinamici (pomeriggio del 2026-09-19;
+      dell'utente: "in casa la gente sposta e lascia cose sul
+      pavimento"). Misurato prima (`lowprobe.py`, un cubetto di 7 cm e una
+      palla di 8 cm a 0,3–1,1 m davanti): da fermi entrambi letti come
+      ostacoli a 0,22 m da 0,3 e 0,37 da 0,5 — visti bene; oltre 0,6 m
+      sono nella nuvola ma il "più vicino" della guardia è un muro; in
+      cammino nulla (i frame non erano giudicati). Il gemello ha avuto due
+      op per questo (`place_object`, `object`; `placeobj.py`,
+      `objtruth.py`, `dyntest.sh`: un cubetto posato davanti alla papera in
+      cammino, la sua verità letta alla fine). Costruito: la guardia degli
+      ostacoli in cammino — gamba cieca rifiutata per qualcosa di basso in
+      una corsia larga quanto il corpo, entro l'avanzamento della gamba +
+      0,25, in un cono di ±15°, visto da due frame, non su un muro mappato;
+      e una cosa entro 0,35 m chiude la modalità cieca anche per i calci.
+      La scala che l'ha formata: dyn1 (0,6 m) fermata a 0,30; dyn2 (0,4 m,
+      portata fissa) ci è passata sopra; dyn3 fermata a 0,28; house15tour
+      27 rifiuti su stipiti a 17–27° → il cono; dyn4 (corsia 0,08) mancato
+      → 0,12; house16tour la porta cucina 272 s → muri mappati esclusi;
+      dyn7 il calcio del giro ci è passato sopra → niente calci ciechi con
+      una cosa davanti; dyn8, dyn9: cubetto intatto, goal raggiunto. Giro
+      cieco dopo 517 s, 6/6, nessuna caduta; banco 29/30. Ciò che resta,
+      onestamente: una cosa che compare di fianco o dietro la spazzata
+      della testa non è vista; una persona che si muove è un muro che si
+      muove — il controllo della rotta ripianifica intorno a ciò che una
+      fermata vede, nulla insegue un bersaglio.
 - [ ] La ricerca al boot, due richieste (sera del 2026-09-16, dell'utente):
       (1) in Localize il ripiego "nessuna conferma → mappa fresca ed
       esplora" non ha senso (nulla può inchiostrare; "non è sicura della

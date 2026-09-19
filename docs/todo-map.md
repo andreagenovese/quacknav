@@ -2836,6 +2836,30 @@ nothing: it explores and asks.
       corridor is repaired only when a feature comes into view, and
       the give-up leaves it in place — the goal is then missed; the
       journey should end with a stand-and-confirm at the goal.
+- [x] Point 6, low and dynamic obstacles (2026-09-19 afternoon; the
+      user's: "people move things and leave them on the floor").
+      Measured first (`lowprobe.py`, a cube of 7 cm and a ball of 8 cm
+      placed 0.3–1.1 m ahead): standing, both read as obstacles at
+      0.22 m from 0.3 and 0.37 from 0.5 — seen well; past 0.6 m they
+      are in the cloud but the guard's "nearest" is a wall; walking,
+      nothing at all (the frames were not judged). The twin got two
+      ops for this (`place_object`, `object`; `placeobj.py`,
+      `objtruth.py`, `dyntest.sh`: a cube dropped ahead of the walking
+      duck, its truth read at the end). Built: the walking obstacle
+      guard — the blind leg refused for something low in a body-wide
+      lane, within the leg's advance + 0.25, in a ±15° cone, seen by
+      two frames, not on a mapped wall; and a thing within 0.35 m ends
+      the blind mode for kicks too. The ladder that shaped it: dyn1
+      (0.6 m) stopped at 0.30; dyn2 (0.4 m, fixed reach) walked over;
+      dyn3 stopped at 0.28; house15tour 27 refusals on jambs at 17–27°
+      → the cone; dyn4 (lane 0.08) missed it → 0.12; house16tour the
+      kitchen door 272 s → mapped walls exempt; dyn7 the turn's kick
+      walked over it → kicks blind no more with a thing ahead; dyn8,
+      dyn9: the cube untouched, the goal reached. Blind tour after
+      517 s, 6/6, no fall; bench 29/30. What remains, honestly: a thing
+      that appears beside the body or behind the head's sweep is not
+      seen; a moving person is a wall that moves — the route check
+      re-plans round what a stand sees, nothing follows a target.
 - [ ] The boot search, two asks (2026-09-16 evening, the user's): (1) in
       Localize the "no confirmation → fresh map and explore" fallback is
       meaningless (nothing can ink; "not sure of its position yet" and it
