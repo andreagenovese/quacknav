@@ -2793,6 +2793,23 @@ nothing: it explores and asks.
       goal. So the go-round works end to end and wants a budget sized to
       the route (a failed mouth 3.5 min + 10 m at 0.03 m/s), or a
       quicker seal. `GOTO_MAX_S` for the scripts.
+- [x] Point 1, the books and the pose (2026-09-19 morning). A
+      pose-quality signal was built and measured: at every stand the
+      seen obstacles against the mapped walls — the median distance and
+      a scan-match round the pose (±0.30 m, ±10°; `explore/fit.rs`,
+      `fitcheck.py`). Three sessions, 64 stands beside the truth (poses
+      1–17 cm): no correlation (ρ −0.39, −0.48, +0.03). VERDICT: an 8×8
+      ToF on a 5 cm map cannot tell a 3 cm pose from a 17 cm one at a
+      stand; there is no per-stand pose signal to gate the books with.
+      Kept as a diagnostic in the log and the status. What stops rim1's
+      phantoms instead, by the user's trusted-floor rule: a drop point
+      that falls on floor the body WALKED is not booked (a hole is not
+      where the duck has stood; the seen floor does not qualify — it
+      shares the frame's pose error). Bench 20/30, 0 falls; veto1 on
+      MuJoCo the books 51 → 58, nothing vetoed at 6–13 cm of pose. The
+      residual risk stays what it was: a frozen map with a standing pose
+      15 cm+ off books the rim 15 cm off, and only the human drive or a
+      second session at a better pose corrects it.
 - [ ] The boot search, two asks (2026-09-16 evening, the user's): (1) in
       Localize the "no confirmation → fresh map and explore" fallback is
       meaningless (nothing can ink; "not sure of its position yet" and it

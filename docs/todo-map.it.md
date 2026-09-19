@@ -2995,6 +2995,23 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       intorno funziona da capo a fondo e vuole un budget proporzionato
       alla rotta (una bocca fallita 3,5 min + 10 m a 0,03 m/s), o un
       sigillo più rapido. `GOTO_MAX_S` per gli script.
+- [x] Punto 1, i libri e la posa (mattino del 2026-09-19). Un segnale di
+      qualità della posa è stato costruito e misurato: a ogni fermata gli
+      ostacoli visti contro i muri mappati — distanza mediana e uno
+      scan-match intorno alla posa (±0,30 m, ±10°; `explore/fit.rs`,
+      `fitcheck.py`). Tre sessioni, 64 fermate accanto alla verità (pose
+      1–17 cm): nessuna correlazione (ρ −0,39, −0,48, +0,03). VERDETTO: un
+      ToF 8×8 su una mappa a 5 cm non distingue a una fermata una posa a
+      3 cm da una a 17; non c'è un segnale per fermata con cui vincolare i
+      libri. Tenuto come diagnostica nel log e nello stato. Ciò che ferma i
+      fantasmi di rim1, con la regola del pavimento fidato dell'utente: un
+      punto di drop che cade su pavimento PERCORSO dal corpo non viene
+      iscritto (un buco non è dove la papera ha camminato; il pavimento
+      visto non vale — ha lo stesso errore di posa del frame). Banco 20/30,
+      0 cadute; veto1 su MuJoCo libri 51 → 58, nulla vietato a 6–13 cm di
+      posa. Il rischio residuo resta quello: una mappa congelata con la
+      posa da fermi a 15 cm e oltre iscrive il bordo 15 cm spostato, e solo
+      il giro umano o una seconda sessione con posa migliore lo corregge.
 - [ ] La ricerca al boot, due richieste (sera del 2026-09-16, dell'utente):
       (1) in Localize il ripiego "nessuna conferma → mappa fresca ed
       esplora" non ha senso (nulla può inchiostrare; "non è sicura della
