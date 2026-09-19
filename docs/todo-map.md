@@ -2860,6 +2860,35 @@ nothing: it explores and asks.
       that appears beside the body or behind the head's sweep is not
       seen; a moving person is a wall that moves — the route check
       re-plans round what a stand sees, nothing follows a target.
+- [ ] Point 7, fresh exploration re-measured (2026-09-19 evening; the
+      `roomgrow` session as explmap1, 46 min: first look 600 s, then the
+      living-room door, the bathroom door and the kitchen). explmap2:
+      40 min, 6 rooms of 7 (never the study), walls 56 % (explmap1 70 %),
+      pose up to 35 cm / 8° — six minutes held against the west wall
+      beside the stairwell by the 0.8 m no-backing rule, the sensor
+      saying 0.19 m ahead all along: the SHORT step back is now judged
+      by the books' path check (fixed). explmap3: 50 min, all 7 rooms,
+      walls 61 %, pose 4–12 cm / ≤ 1.4°, no fall — but "a passage too
+      narrow" refused two hundred times on one spot from an eight-second
+      -old frame: repeated, the duck turns toward the freer side (fixed).
+      explmap4: at 5.6 min the duck walked INTO THE BEDROOM between the
+      bed and the nightstands (pose 12 cm, right) and maploc declared
+      tracking lost — "scans contradict the map, residual 0.35" — every
+      thirty seconds for the rest of the session (quarantined, lost,
+      gave up, resumed unverified, contradicted again); quacksat, told
+      "not sure of its position", did nothing for four minutes and the
+      three room legs were refused. NEW and serious for furnished
+      houses: maploc's watchdog reads low furniture seen close (a 20 cm
+      bed) as a contradiction of the map and cannot get out of it in
+      mapping mode; the pose was right throughout. Not a regression of
+      this week's changes (explmap1 never went that deep into the
+      bedroom); the map-quality gap (56–61 % against 70 %) is partly the
+      route the duck happened to take (west first) and partly the stalls
+      above. NEXT: (a) maploc's lost rule in mapping mode — a
+      contradiction from things under 30 cm is furniture, not a lost
+      pose (upstream ask); (b) quacksat: when maploc stays lost with the
+      pose stable and the fit good, carry on mapping rather than stand;
+      (c) re-run explmap ×3 for the true rate.
 - [ ] The boot search, two asks (2026-09-16 evening, the user's): (1) in
       Localize the "no confirmation → fresh map and explore" fallback is
       meaningless (nothing can ink; "not sure of its position yet" and it

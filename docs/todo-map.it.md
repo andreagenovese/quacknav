@@ -3064,6 +3064,36 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       della testa non è vista; una persona che si muove è un muro che si
       muove — il controllo della rotta ripianifica intorno a ciò che una
       fermata vede, nulla insegue un bersaglio.
+- [ ] Punto 7, esplorazione fresca rimisurata (sera del 2026-09-19; la
+      sessione `roomgrow` come explmap1, 46 min: prima occhiata 600 s, poi
+      porta del soggiorno, porta del bagno e cucina). explmap2: 40 min, 6
+      stanze su 7 (mai lo studio), muri 56 % (explmap1 70 %), posa fino a
+      35 cm / 8° — sei minuti ferma contro il muro ovest accanto alla
+      tromba per il divieto di retro entro 0,8 m, col sensore che diceva
+      0,19 m davanti: il passo indietro CORTO ora è giudicato dal controllo
+      di traiettoria dei libri (corretto). explmap3: 50 min, tutte e 7 le
+      stanze, muri 61 %, posa 4–12 cm / ≤ 1,4°, nessuna caduta — ma "un
+      passaggio troppo stretto" rifiutato duecento volte sullo stesso punto
+      da un frame vecchio otto secondi: ripetuto, la papera gira verso il
+      lato più libero (corretto). explmap4: al 5,6° minuto la papera è
+      entrata IN CAMERA tra il letto e i comodini (posa 12 cm, giusta) e
+      maploc ha dichiarato il tracking perso — "le scansioni contraddicono
+      la mappa, residuo 0,35" — ogni trenta secondi per il resto della
+      sessione (quarantena, persa, rinuncia, ripresa non verificata, di
+      nuovo contraddizione); quacksat, avvisata "non sicura della
+      posizione", è rimasta ferma quattro minuti e le tre gambe delle
+      stanze sono state rifiutate. NUOVO e serio per le case arredate: il
+      watchdog di maploc legge l'arredo basso visto da vicino (un letto da
+      20 cm) come contraddizione della mappa e in modalità mappatura non ne
+      esce; la posa era giusta per tutto il tempo. Non è una regressione
+      delle modifiche della settimana (explmap1 non era mai entrata così a
+      fondo in camera); il divario di qualità della mappa (56–61 % contro
+      70 %) è in parte la rotta che la papera ha preso (ovest prima) e in
+      parte gli stalli sopra. PROSSIMO: (a) la regola "persa" di maploc in
+      mappatura — una contraddizione da cose sotto 30 cm è arredo, non
+      posa persa (richiesta upstream); (b) quacksat: quando maploc resta
+      persa con posa stabile e fit buono, continuare a mappare invece di
+      stare ferma; (c) rifare explmap ×3 per il tasso vero.
 - [ ] La ricerca al boot, due richieste (sera del 2026-09-16, dell'utente):
       (1) in Localize il ripiego "nessuna conferma → mappa fresca ed
       esplora" non ha senso (nulla può inchiostrare; "non è sicura della
