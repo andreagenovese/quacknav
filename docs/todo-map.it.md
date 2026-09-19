@@ -3012,6 +3012,33 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       posa. Il rischio residuo resta quello: una mappa congelata con la
       posa da fermi a 15 cm e oltre iscrive il bordo 15 cm spostato, e solo
       il giro umano o una seconda sessione con posa migliore lo corregge.
+- [x] Punto 5, persa in localize (2026-09-19). Tre parti. (1) maploc
+      (worktree 6bbd19d): la ricerca globale senza rinuncia del boot
+      finisce con la conferma — una "persa" successiva cerca entro un
+      metro e rinuncia dopo otto finestre, così l'alias a 77° di lane1
+      dall'altra parte della casa non può ripetersi. (2) L'esploratore: su
+      mappa congelata i libri sopravvivono a un salto della posa (sono
+      della mappa; svuotarli mandava la gamba cieca successiva sulla tromba
+      senza nulla sui libri). (3) La scoperta, con uno strumento di
+      rapimento sul gemello (`kidnap.py`, `losttest.sh`: la papera spostata
+      di 0,6 m lungo il corridoio a metà viaggio, senza avviso): l'errore
+      di posa lì è INVISIBILE a maploc — uno spostamento longitudinale in
+      un corridoio non ha una feature che lo riveli; maploc si è dichiarata
+      persa, ha cercato vicino, ha proposto la posa creduta stessa, ha
+      ripreso non verificata, e i 0,6 m sono rimasti fino alla fine (lost3,
+      lost6). Ciò che ha tenuto in piedi la papera: il sensore. I frame ora
+      si giudicano anche in cammino (marchiati `moving`; ogni query da
+      fermi invariata), una gamba cieca è rifiutata per un buco vero nella
+      sua corsia, e un buco in vista entro un metro chiude la modalità
+      cieca per tutto finché non esce dalla vista. lost4 (senza frame in
+      cammino) è caduta; lost5 (impulsi ciechi dopo il rifiuto) è caduta;
+      lost6: nessuna caduta, soggiorno raggiunto a 35–48 cm dal bordo con
+      0,65 m di errore, goal mancato di 0,5 m senza saperlo. Banco: cieca
+      coi libri 29–30/30, 0 cadute in 90 corse. Giro cieco 566 s, 6/6.
+      RESTA APERTO, di maploc: un errore di posa lungo un corridoio si
+      ripara solo quando una feature entra in vista, e la rinuncia lo
+      lascia lì — il goal viene mancato; il viaggio dovrebbe chiudersi con
+      una fermata-e-conferma al goal.
 - [ ] La ricerca al boot, due richieste (sera del 2026-09-16, dell'utente):
       (1) in Localize il ripiego "nessuna conferma → mappa fresca ed
       esplora" non ha senso (nulla può inchiostrare; "non è sicura della

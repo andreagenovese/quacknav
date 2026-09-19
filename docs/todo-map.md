@@ -2810,6 +2810,32 @@ nothing: it explores and asks.
       residual risk stays what it was: a frozen map with a standing pose
       15 cm+ off books the rim 15 cm off, and only the human drive or a
       second session at a better pose corrects it.
+- [x] Point 5, lost in localize (2026-09-19). Three parts. (1) maploc
+      (worktree 6bbd19d): the boot's global, never-give-up search ended
+      with the confirmation — a later "lost" searches within a metre and
+      gives up after eight windows, so lane1's 77° alias across the flat
+      cannot recur. (2) The explorer: on a frozen map the books survive a
+      pose jump (they are the map's own; clearing them sent the next
+      blind leg over the stairwell with nothing on the books). (3) The
+      finding, from a kidnap tool on the twin (`kidnap.py`,
+      `losttest.sh`: the duck carried 0.6 m along the corridor
+      mid-journey, unannounced): the pose error is INVISIBLE to maploc
+      there — a longitudinal shift in a corridor has no feature to
+      catch it; maploc declared lost, searched locally, proposed the
+      belief itself, resumed unverified, and the 0.6 m stayed to the
+      end (lost3, lost6). What kept the duck safe instead: the sensor.
+      The frames are now judged while walking too (flagged \`moving\`;
+      every standing query unchanged), a blind leg is refused for a
+      true hole in its lane, and a hole in view within a metre ends the
+      blind walk for everything until it is out of view. lost4 (no
+      walking frames) fell; lost5 (blind pulses after the refusal)
+      fell; lost6: no fall, the living room reached 35–48 cm from the
+      rim with the 0.65 m error, the goal missed by 0.5 m unknowingly.
+      Bench: blind with the books 29–30/30, 0 falls in 90 runs. Blind
+      tour 566 s, 6/6. LEFT OPEN, maploc's: a pose error along a
+      corridor is repaired only when a feature comes into view, and
+      the give-up leaves it in place — the goal is then missed; the
+      journey should end with a stand-and-confirm at the goal.
 - [ ] The boot search, two asks (2026-09-16 evening, the user's): (1) in
       Localize the "no confirmation → fresh map and explore" fallback is
       meaningless (nothing can ink; "not sure of its position yet" and it
