@@ -2824,7 +2824,7 @@ nothing: it explores and asks.
       catch it; maploc declared lost, searched locally, proposed the
       belief itself, resumed unverified, and the 0.6 m stayed to the
       end (lost3, lost6). What kept the duck safe instead: the sensor.
-      The frames are now judged while walking too (flagged \`moving\`;
+      The frames are now judged while walking too (flagged `moving`;
       every standing query unchanged), a blind leg is refused for a
       true hole in its lane, and a hole in view within a metre ends the
       blind walk for everything until it is out of view. lost4 (no
