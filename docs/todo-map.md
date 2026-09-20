@@ -2860,7 +2860,7 @@ nothing: it explores and asks.
       that appears beside the body or behind the head's sweep is not
       seen; a moving person is a wall that moves — the route check
       re-plans round what a stand sees, nothing follows a target.
-- [ ] Point 7, fresh exploration re-measured (2026-09-19 evening; the
+- [x] Point 7, fresh exploration re-measured (2026-09-19 evening; the
       `roomgrow` session as explmap1, 46 min: first look 600 s, then the
       living-room door, the bathroom door and the kitchen). explmap2:
       40 min, 6 rooms of 7 (never the study), walls 56 % (explmap1 70 %),
@@ -2889,6 +2889,69 @@ nothing: it explores and asks.
       pose (upstream ask); (b) quacksat: when maploc stays lost with the
       pose stable and the fit good, carry on mapping rather than stand;
       (c) re-run explmap ×3 for the true rate.
+      DONE (2026-09-19 night → 20): (a) maploc's watchdog counts long
+      beams only (≥ 0.7 m; a contradiction from things under 30 cm is
+      furniture, worktree d22e403) — explmap5 with it: 44 min, 6 rooms
+      of 7 (never the bedroom), walls 58 %, ZERO "tracking lost" in the
+      session, pose 5–27 cm mid-session, no fall; (b) quacksat: an
+      untrusted pose that stands still 20 s with a fit under 0.10 is
+      "stable untrusted" — it maps on, guarded, a stand and a fit each
+      turn (`STABLE_UNTRUSTED_S/FIT_M`); (c) the true rate wants more
+      sessions (explmap2–5: 6/7, 7/7, ✗ lost, 6/7; walls 56–61 %).
+- [x] The night of the 19th → 20th, the remaining points in one pass
+      (the user's standing instruction: fix, test, no regression, commit).
+      Built and measured, paper twin first (blind 29/30 and guarded
+      15/30, both identical to the last commit, 0 falls) then MuJoCo:
+      (3) the go-round's budget — a sealed rim adds 300 s to the
+      journey's budget once (`GO_ROUND_EXTRA_S`); (4) the kitchen boot —
+      a fresh look boxed in where the scan saw room takes the scan's
+      leg; the backing pulses that turn 5° from standstill for a 34°
+      want (four rounds, 100 s) fall through to the kick and the yaw
+      the long way round; the kitchen 375 → 344/332 s; (8) the left
+      alignment — a tighter left tolerance (0.12 rad) cost the paper
+      twin arrivals (27/30 blind, 13/30 guarded against 29 and 15), so
+      it is a knob (`QK_ALIGN_TOL_LEFT_RAD`, default the common 0.2)
+      for the twin, not a default; (10) the paper twin's `--known`
+      world: the map is the world's own, frozen, no exploration — the
+      journey benches at last (`KNOWN=1 paper30.sh`): blind 20/30 from
+      the corridor, guarded 0/30 — the seal comes after three refusals
+      and the budget grows, but the paper kitchen's island and stools
+      close the kitchen/living door from the north (a 0.2 m gap), so
+      the go-round has no way there: the world's geometry, not the
+      explorer's; the arrival — "arrived" judged on the pose AFTER the
+      stand: a correction that moves it off the goal sends the journey
+      on, once (the fit was tried as the judge and failed every arrival
+      at 0.16–0.20 for nothing, house18tour 645 s — it does not
+      correlate with the truth, point 1); the blind leg asks for a
+      trusted pose. New negative from the boot ladder: born in the
+      office, the duck WEDGED on the office door's post — 0.10 m all
+      round, the backing moving nothing, the pose still to the
+      centimetre for eight minutes (spawn-off, no confirmation in
+      700 s; 128 s the day before). Fix: boxed in three times running
+      without moving and no drop in view, a walking kick with the yaw,
+      blind (`wedged`); the office 117 s after. MuJoCo after all of it:
+      the blind six-goal tour house19tour 6/6, 549 s (41, 103, 132,
+      87, 133, 53), no fall; the boot ladder — bedroom 111 s (154),
+      living room 112 s (83), bathroom 159 s (125, a scan for a 0.98 m
+      first look), office 117 s (128), kitchen 332 s (375); pose at five
+      minutes 4–8 cm. Guarded, corridor → living room → corridor:
+      goround1 out — sealed at 3 min, the budget grew to 900 s, at the
+      kitchen/living door at 7.5 min when `speed_test.py`'s own 460 s
+      wait cut it (fixed: the script waits the budget plus the
+      extension); goround2 out ✗ — TEN MINUTES at the mouth and no seal:
+      172 turns refused beside the drop ("no way back; no turn here")
+      and only a LEG refused for the drop counted toward the seal —
+      fixed, twelve turns refused beside a drop without a leg between
+      seal the rim as the legs do (`TURNS_REFUSED_SEAL`); goround2 back
+      — sealed, went round through the kitchen and spent 14 min at the
+      kitchen/living door FROM THE KITCHEN SIDE ("no way to the goal
+      from here", the route flapping 3.0/5.25 m with the pose): the
+      stools before that door are the paper world's 0.2 m gap in
+      MuJoCo too. So the go-round via the kitchen is a way only from the
+      living room's side; from the kitchen's it is the negative of the
+      night. goround3, with the turn-seal: 3/3 (28, 246, 266 s) — out
+      through the passage, back sealed at the south-west rim and round
+      the short way. No fall in any run.
 - [ ] The boot search, two asks (2026-09-16 evening, the user's): (1) in
       Localize the "no confirmation → fresh map and explore" fallback is
       meaningless (nothing can ink; "not sure of its position yet" and it

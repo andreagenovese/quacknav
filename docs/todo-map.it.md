@@ -3064,7 +3064,7 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       della testa non è vista; una persona che si muove è un muro che si
       muove — il controllo della rotta ripianifica intorno a ciò che una
       fermata vede, nulla insegue un bersaglio.
-- [ ] Punto 7, esplorazione fresca rimisurata (sera del 2026-09-19; la
+- [x] Punto 7, esplorazione fresca rimisurata (sera del 2026-09-19; la
       sessione `roomgrow` come explmap1, 46 min: prima occhiata 600 s, poi
       porta del soggiorno, porta del bagno e cucina). explmap2: 40 min, 6
       stanze su 7 (mai lo studio), muri 56 % (explmap1 70 %), posa fino a
@@ -3094,6 +3094,72 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       posa persa (richiesta upstream); (b) quacksat: quando maploc resta
       persa con posa stabile e fit buono, continuare a mappare invece di
       stare ferma; (c) rifare explmap ×3 per il tasso vero.
+      FATTO (notte del 2026-09-19 → 20): (a) il cane da guardia di maploc
+      conta solo i raggi lunghi (≥ 0,7 m; una contraddizione da cose sotto
+      i 30 cm è mobilia, worktree d22e403) — explmap5 con questo: 44 min,
+      6 stanze su 7 (mai la camera), muri 58 %, ZERO "tracking lost"
+      nella sessione, posa 5–27 cm a metà sessione, nessuna caduta;
+      (b) quacksat: una posa non fidata che sta ferma 20 s con un fit
+      sotto 0,10 è "stabile non fidata" — continua a mappare, con le
+      guardie, una sosta e un fit a ogni giro (`STABLE_UNTRUSTED_S/FIT_M`);
+      (c) il tasso vero vuole altre sessioni (explmap2–5: 6/7, 7/7, ✗
+      persa, 6/7; muri 56–61 %).
+- [x] La notte del 19 → 20, i punti rimasti in un passaggio (l'istruzione
+      permanente dell'utente: correggi, testa, nessuna regressione,
+      commit). Costruiti e misurati, prima la carta (cieco 29/30 e
+      guardato 15/30, entrambi identici all'ultimo commit, 0 cadute) poi
+      MuJoCo: (3) il budget del giro largo — un bordo sigillato aggiunge
+      300 s al budget del viaggio, una volta (`GO_ROUND_EXTRA_S`); (4) il
+      boot in cucina — un'occhiata fresca chiusa dove la scansione aveva
+      visto spazio prende la gamba della scansione; gli impulsi di retro
+      che girano 5° da fermi per una richiesta di 34° (quattro giri,
+      100 s) passano al calcio e allo yaw per il giro lungo; la cucina
+      375 → 344/332 s; (8) l'allineamento a sinistra — una tolleranza
+      sinistra più stretta (0,12 rad) costava arrivi alla carta (27/30
+      cieco, 13/30 guardato contro 29 e 15), quindi è un knob
+      (`QK_ALIGN_TOL_LEFT_RAD`, di default lo 0,2 comune) per il gemello,
+      non un default; (10) il mondo `--known` del gemello di carta: la
+      mappa è quella del mondo, congelata, niente esplorazione — le
+      bench dei viaggi, finalmente (`KNOWN=1 paper30.sh`): cieco 20/30
+      dal corridoio, guardato 0/30 — il sigillo arriva dopo tre rifiuti
+      e il budget cresce, ma l'isola e gli sgabelli della cucina di carta
+      chiudono la porta cucina/soggiorno da nord (un varco di 0,2 m),
+      quindi il giro largo lì non ha strada: geometria del mondo, non
+      l'esploratore; l'arrivo — "arrivata" giudicato sulla posa DOPO la
+      sosta: una correzione che la sposta via dal goal manda avanti il
+      viaggio, una volta (il fit era stato provato come giudice e falliva
+      ogni arrivo a 0,16–0,20 per nulla, house18tour 645 s — non correla
+      con la verità, punto 1); la gamba cieca chiede una posa fidata.
+      Negativo nuovo dalla scala di boot: nata nello studio, la papera si
+      è INCASTRATA sullo stipite della porta dello studio — 0,10 m tutto
+      attorno, la retromarcia non muoveva nulla, la posa ferma al
+      centimetro per otto minuti (spawn-off, nessuna conferma in 700 s;
+      128 s il giorno prima). Correzione: chiusa tre volte di fila senza
+      muoversi e senza buche in vista, un calcio camminato con lo yaw,
+      cieco (`wedged`); lo studio 117 s dopo. MuJoCo dopo tutto questo:
+      il giro cieco a sei goal house19tour 6/6, 549 s (41, 103, 132, 87,
+      133, 53), nessuna caduta; la scala di boot — camera 111 s (154),
+      soggiorno 112 s (83), bagno 159 s (125, una scansione per una
+      prima occhiata di 0,98 m), studio 117 s (128), cucina 332 s (375);
+      posa a cinque minuti 4–8 cm. Guardato, corridoio → soggiorno →
+      corridoio: goround1 andata — sigillo a 3 min, budget cresciuto a
+      900 s, alla porta cucina/soggiorno a 7,5 min quando l'attesa di
+      460 s di `speed_test.py` l'ha tagliata (corretto: lo script aspetta
+      il budget più l'estensione); goround2 andata ✗ — DIECI MINUTI alla
+      bocca e nessun sigillo: 172 giri rifiutati accanto alla buca
+      ("nessuna via indietro; nessun giro qui") e solo una GAMBA
+      rifiutata per la buca contava per il sigillo — corretto, dodici
+      giri rifiutati accanto a una buca senza una gamba in mezzo
+      sigillano il bordo come le gambe (`TURNS_REFUSED_SEAL`); goround2
+      ritorno — sigillo, giro largo per la cucina e 14 min alla porta
+      cucina/soggiorno DAL LATO CUCINA ("nessuna via al goal da qui", la
+      rotta che oscilla 3,0/5,25 m con la posa): gli sgabelli davanti a
+      quella porta sono il varco da 0,2 m del mondo di carta anche in
+      MuJoCo. Quindi il giro largo per la cucina è una via solo dal lato
+      soggiorno; dal lato cucina è il negativo della notte. goround3,
+      con il sigillo per giri: 3/3 (28, 246, 266 s) — andata per il
+      passaggio, ritorno sigillato al bordo sud-ovest e attorno per la
+      via corta. Nessuna caduta in nessuna corsa.
 - [ ] La ricerca al boot, due richieste (sera del 2026-09-16, dell'utente):
       (1) in Localize il ripiego "nessuna conferma → mappa fresca ed
       esplora" non ha senso (nulla può inchiostrare; "non è sicura della

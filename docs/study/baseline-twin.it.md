@@ -30,6 +30,13 @@ posetrack a cinque minuti.
 | camera (2,0, 2,5, −1,57), schiena al muro | 154 s | 11 | 0 | 7 cm / 0,1° |
 | cucina (−2,5, 2,0, 3,14), isola e sgabelli | 375 s | 11 | 0 | 8 cm / 0,7° |
 
+Rifatta la notte del 2026-09-20 (tag baseline-twin-2026-09-20): camera
+111 s, soggiorno 112 s, bagno 159 s (una scansione per una prima
+occhiata di 0,98 m), studio 117 s — dopo un boot INCASTRATO sullo
+stipite della porta dello studio per otto minuti, ora liberato da un
+calcio camminato cieco — cucina 344/332 s; posa a cinque minuti 4–8 cm;
+nessuna caduta.
+
 Nessuna caduta. Il pavimento sono i cancelli di maploc (un metro di
 corda, tre finestre di vantaggio, mezzo metro per confermare; fermate da
 sei secondi): circa 65 s. La cucina è quella da tenere d'occhio: lo scan
@@ -129,3 +136,26 @@ negativo, per gravità:
     una funzione.
 
 La sicurezza sta in 1, 5 e 6; il resto è tempo o strumenti.
+
+### Notte del 2026-09-20, dopo il passaggio sulla lista
+
+Chiusi o spostati: 3 (un bordo sigillato aggiunge 300 s al budget, una
+volta); 4 (la cucina 375 → 332 s: il verdetto della scansione sopra
+un'occhiata chiusa, gli impulsi da 5° passano al calcio e allo yaw; il
+boot incastrato su uno stipite si libera con un calcio cieco); 5, 6 e 1
+(il 19); 7 (il cane da guardia di maploc conta solo i raggi lunghi —
+explmap5 zero "tracking lost"; quacksat continua a mappare con una posa
+non fidata ma stabile); 8 (un knob, non un default: la carta non ha il
+bias a sinistra e la tolleranza più stretta le costava); 10 (`--known`:
+la carta misura il sigillo, e mostra la cucina di carta chiusa da nord
+dalla sua stessa mobilia, quindi la bench del giro largo vuole il mondo
+ritoccato). Ancora aperti: 2 (la bocca, una su tre), 9 (varianza), 11
+(upstream), 12 (modalità guida — lunedì); l'arrivo ora è giudicato sulla
+posa dopo la sosta. Giro a sei goal dopo tutto: house19tour 6/6, 549 s,
+nessuna caduta. Negativo nuovo: il giro largo per la cucina raggiunge la
+porta cucina/soggiorno dal lato CUCINA e resta lì (goround2 ritorno,
+14 min; gli sgabelli davanti alla porta) — il giro largo è una via solo
+dal lato soggiorno. E il sigillo ora arriva anche dai giri rifiutati
+accanto alla buca (dodici di fila), non solo dalle gambe (goround2
+andata: dieci minuti, 172 giri rifiutati, nessun sigillo). Andata e
+ritorno con questo: goround3 3/3 (28, 246, 266 s), nessuna caduta.

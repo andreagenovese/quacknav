@@ -29,6 +29,12 @@ minutes.
 | bedroom (2.0, 2.5, −1.57), back to the wall | 154 s | 11 | 0 | 7 cm / 0.1° |
 | kitchen (−2.5, 2.0, 3.14), island and stools | 375 s | 11 | 0 | 8 cm / 0.7° |
 
+Re-run 2026-09-20 night (tag baseline-twin-2026-09-20): bedroom 111 s,
+living room 112 s, bathroom 159 s (a scan for a 0.98 m first look),
+office 117 s — after one boot WEDGED on the office door's post for
+eight minutes, now escaped by a blind walking kick — kitchen 344/332 s;
+pose at five minutes 4–8 cm; no fall.
+
 No fall in any. The floor is maploc's gates (a metre of chord, a lead of
 three windows, half a metre to confirm; six-second stands): about 65 s.
 The kitchen is the one to watch: the scan finds no metre of floor and
@@ -126,3 +132,25 @@ by severity:
     feature.
 
 Safety lives in 1, 5 and 6; the rest is time or tooling.
+
+### 2026-09-20 night, after the pass over the list
+
+Closed or moved: 3 (a sealed rim adds 300 s to the budget, once); 4 (the
+kitchen 375 → 332 s: the scan's verdict over a boxed-in look, the
+5°-pulses fall through to the kick and yaw; the boot wedged on a door
+post escapes by a blind kick); 5, 6 and 1 (the 19th); 7 (maploc's
+watchdog counts long beams only — explmap5 zero "tracking lost";
+quacksat maps on with a stable untrusted pose); 8 (a knob, not a
+default: the paper twin has no left bias and paid for the tighter
+tolerance); 10 (`--known`: the paper twin measures the seal, and shows
+the paper kitchen sealed from the north by its own furniture, so the
+go-round bench needs the world touched). Still open: 2 (the mouth, one
+in three), 9 (variance), 11 (upstream), 12 (drive mode — Monday), and
+the arrival is now judged on the pose after the stand. Six-goal tour
+after all of it: house19tour 6/6, 549 s, no fall. New negative: the
+go-round through the kitchen reaches the kitchen/living door from the
+KITCHEN side and stands there (goround2 back, 14 min; the stools before
+the door) — the go-round is a way only from the living room's side. And
+the seal now also comes from turns refused beside the drop (twelve in a
+row), not legs alone (goround2 out: ten minutes, 172 refused turns, no
+seal). Round trip with it: goround3 3/3 (28, 246, 266 s), no fall.
