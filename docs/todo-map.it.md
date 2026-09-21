@@ -3160,6 +3160,89 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       con il sigillo per giri: 3/3 (28, 246, 266 s) — andata per il
       passaggio, ritorno sigillato al bordo sud-ovest e attorno per la
       via corta. Nessuna caduta in nessuna corsa.
+- [x] Punto 2, la bocca della tromba — le tre prove e quella che ha
+      retto (pomeriggio del 2026-09-20; dell'utente: "proviamo tutte e
+      tre, analizziamo, poi decidiamo"; poi "procediamo con la D,
+      risolviamo i problemi sul gemello"). Misurato sul mondo noto del
+      gemello di carta, guardie accese, sigillo spento, così si misura
+      il solo passaggio (riferimento 24/30, 396 s, 83 rifiuti): (A) una
+      sosta di approccio 0,5 m prima della bocca, allineamento lì —
+      20/30, peggio, rimossa; (B) `QK_MOUTH_AIM`, fuori dalla linea
+      centrale alla bocca la mira è la linea 0,4 m avanti — 29/30,
+      116 s, 0 rifiuti, ma su MuJoCo non si attiva mai, perché i libri
+      coprono tutto il bordo e il passaggio non è mai letto "alla
+      bocca"; un knob; (C) `QK_TRUSTED_KICK`, il calcio corto cieco su
+      pavimento fidato col buco in vista — 28/30, non più veloce; un
+      knob. Ciò su cui MuJoCo falliva davvero (mouthB1): l'ASSE del
+      passaggio oscillava tra −2,0 e −2,9 da una sosta all'altra — la
+      linea del muro letta come la direzione del raggio più vicino
+      ruotata di 90°, a 10–13 cm da un muro seghettato dalle celle di
+      5 cm, una cella valendo 25–50° — cinquanta allineamenti, le gambe
+      dritte dentro il muro. (D) `QK_WALL_FIT`: la linea stimata sulle
+      CELLE di muro (la facciata entro 0,25 m dalla più vicina, una PCA
+      sui centri delle celle; i colpi dei raggi sono quantizzati a mezza
+      cella e davano qualche grado a caso, 5/30), e la direzione tenuta
+      piegata verso la linea (inseguimento 0,5 m avanti, ±0,35 rad) —
+      l'asse esatto da solo camminava a 8 cm dal bordo, perché i 15° di
+      inclinazione dell'asse vecchio erano per caso la correzione
+      laterale (3/30). D: 30/30, 106 s, 0 rifiuti; B+D uguale; il bench
+      standard 15 → 18–23/30. D è il default del viaggio guardato.
+      MuJoCo con D (guardie accese, corridoio → soggiorno → corridoio,
+      boot da 60 s ogni volta): asse stabile (3–4 allineamenti per
+      andata contro 8–10), e ogni fallimento un difetto a sé, corretto
+      man mano — (i) una gamba da 3 s rifiutata per un bordo a 0,58 m
+      per UN centimetro, tre volte in un secondo sul posto, e il sigillo
+      per questo (mouthD3): le gambe, cieche e guardate, si accorciano
+      per finire al margine dal bordo visto (`BLIND_LEG_MIN_S`; solo il
+      viaggio guardato, il cieco ripianifica ed è più veloce), e un
+      rifiuto per drop conta di nuovo per il sigillo solo dopo 5 cm di
+      moto o 5 s (`DROP_REFUSAL_MOVED_M/AGAIN_S`); (ii) il bordo
+      sigillato con la papera a 0,42 m dal punto, dentro l'inflazione, e
+      "nessuna via al goal" per sempre (rimD1): la partenza del planner
+      cerca una cella percorribile fino a 1,5 m (`START_REACH_FAR_M`);
+      (iii) la fine di un muro a 0,13 m incolpata a un bordo a 0,56 m
+      ("no room" nomina il drop se ce n'è uno entro 0,6 m), sei rifiuti
+      per drop sul posto, allargato, sigillato, mandata attorno alla
+      casa (rimD3): il rifiuto nomina il limite più vicino; (iv) i
+      viaggi guardati SCRIVEVANO il libro di terra — i 58 drop di house2
+      sono diventati 66 in tre corse, i punti di rifiuto della guardia
+      iscritti con la posa del momento, fino a 0,7 m dentro il
+      corridoio, e rimE2 è stata rifiutata per loro: su mappa congelata
+      con libro di terra un drop si iscrive solo entro 0,20 m da uno già
+      iscritto (`DROP_CONFIRM_M`), e il libro riportato a 58
+      (`runs/house2/ground-58-2026-09-20.json`). Andata-ritorno: mouthD
+      ✗✓ ✓✗ ✗(giro ✓)✓; rimD ✗✓ ✓✓ ✓✗; rimE1 ✓✓ (271, 226 s, nessun
+      sigillo); nessuna caduta. Resta aperto alla bocca: l'approccio dal
+      lato est del corridoio arriva 12 cm a est della linea sul drop
+      d'angolo (mouthD1) — la rotta, non la legge.
+      SERA: i libri e la posa, ancora. Anche iscritto solo entro 0,20 m
+      da un drop già nei libri, il bordo veniva RE-ISCRITTO spostato
+      dell'errore di posa di ogni corsa e camminava dentro il passaggio
+      (39 → 58 → 62 in tre corse; rimG3 dieci minuti senza più una
+      corsia fra libri e muro): un viaggio su mappa congelata col suo
+      libro di terra ora non iscrive alcun drop — il libro di terra lo
+      scrive la sessione di mappatura. E la posa nel passaggio varia da
+      corsa a corsa: 3–5 cm medi nelle corse passate (retreat6,
+      goround3, rimE1), 7–9 cm medi con punte di 13–17 cm in quelle no
+      (rimD1, rimF1, rimG1) — maploc ha tenuto un errore laterale di
+      16 cm per 80 s senza correggerlo (un solo muro, dall'altra parte
+      il buco). Il gemello di carta ha avuto `--bias dx,dy` (un offset
+      costante del frame della mappa, posa riportata = verità + bias) e
+      lo riproduce: con D il passaggio nel mondo noto è 30/30 a 10 cm,
+      25/30 a 15 cm ovest, 13/30 a 15 cm est, 13/30 a 20 cm; i lati dal
+      sensore in min con la mappa 26, 9, 0/30; in sostituzione
+      (`QUACKSAT_PASSAGE_SENSOR=2`, nuovo) 24, 6, 13/30 — il ToF guarda
+      avanti e il muro di fianco lo vede solo a tratti. Nessuna caduta
+      in 720 prove: la guardia regge, il planner non passa. Quindi il
+      punto 2 ora è un enunciato: LA BOCCA PASSA SE LA POSA È ENTRO
+      10 CM; oltre è di maploc, non della legge del passaggio (punto 1).
+      I dodici andata-ritorno della giornata: il passaggio 1 su 2; i tre
+      di chiusura sul libro a 39 con i viaggi che non scrivono: rimH —
+      3/3 andata-ritorno, SEI passaggi su sei, nessun sigillo, nessuna
+      caduta, il libro ancora a 39 (andata 304, 223, 196 s; ritorno 169,
+      155, 248 s; posa nel passaggio 7 cm medi, 11 cm max). Il record
+      guardato resta quello di retreat6 (132/173 s); il passaggio ora si
+      fa ogni volta che la posa lo permette.
 - [ ] La ricerca al boot, due richieste (sera del 2026-09-16, dell'utente):
       (1) in Localize il ripiego "nessuna conferma → mappa fresca ed
       esplora" non ha senso (nulla può inchiostrare; "non è sicura della

@@ -154,3 +154,19 @@ the door) — the go-round is a way only from the living room's side. And
 the seal now also comes from turns refused beside the drop (twelve in a
 row), not legs alone (goround2 out: ten minutes, 172 refused turns, no
 seal). Round trip with it: goround3 3/3 (28, 246, 266 s), no fall.
+
+### 2026-09-20/21, point 2 closed (tag baseline-twin-2026-09-21)
+
+The passage law's axis is the wall's line fitted to its cells, the
+heading held bent toward the line (`QK_WALL_FIT`, the guarded default);
+legs are cut short of a drop the sensor sees; a rim seals after twelve
+refused turns or three refusals with motion between; the planner's
+start reaches 1.5 m out of an inflation; "no room" blames the nearer
+limit; journeys on a frozen map book no drops; house2's ground book is
+the user's 39-drop one. Guarded, corridor → living room → corridor, the
+39 book: rimH 3/3 round trips, six passages of six, no seal (out 304,
+223, 196 s; back 169, 155, 248 s), no fall. The passage passes when the
+pose is within 10 cm (paper twin `--bias`: 30/30 at 10 cm, 25 and 13/30
+at 15, 13/30 at 20); beyond that it is maploc's. Paper: guarded 23/30
+(15 before), blind 29/30 unchanged, known world 30/30 with the seal on
+(0/30 before).

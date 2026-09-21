@@ -2952,6 +2952,85 @@ nothing: it explores and asks.
       night. goround3, with the turn-seal: 3/3 (28, 246, 266 s) — out
       through the passage, back sealed at the south-west rim and round
       the short way. No fall in any run.
+- [x] Point 2, the stairwell's mouth — the three tries and the one that
+      held (2026-09-20 afternoon; the user's: "try all three, analyse,
+      then decide"; then "go with D, fix the problems on the twin").
+      Measured on the paper twin's known world, guards on, seal off, so
+      the passage alone is measured (reference 24/30, 396 s, 83
+      refusals): (A) an approach stand 0.5 m before the mouth, aligned
+      there — 20/30, worse, removed; (B) `QK_MOUTH_AIM`, off the centre
+      line at the mouth the aim is the line 0.4 m ahead — 29/30, 116 s,
+      0 refusals, but never engaged on MuJoCo, whose books cover the
+      whole rim so the passage is never read "at its mouth"; a knob;
+      (C) `QK_TRUSTED_KICK`, the short kick blind over trusted floor
+      with the hole in view — 28/30, no faster; a knob. What MuJoCo
+      actually failed on (mouthB1): the passage AXIS flapped between
+      −2.0 and −2.9 from stand to stand — the wall's line read as the
+      nearest ray's bearing turned by 90°, at 10–13 cm from a wall
+      jagged by its 5 cm cells, one cell being 25–50° — fifty
+      alignments, the straight legs into the wall. (D) `QK_WALL_FIT`:
+      the line fitted to the wall's CELLS (the face within 0.25 m of the
+      nearest, a PCA on the cell centres; ray hits are quantised to half
+      a cell and fitted a few degrees off, 5/30), and the heading held
+      bent toward the line (pure pursuit 0.5 m ahead, ±0.35 rad) — the
+      exact axis alone walked 8 cm from the rim, since the 15° the old
+      axis was skewed by had been the lateral correction by accident
+      (3/30). D: 30/30, 106 s, 0 refusals; B+D the same; the standard
+      bench 15 → 18–23/30. D is the guarded journey's default. MuJoCo
+      with D (guards on, corridor → living room → corridor, the 60 s
+      boot each): the axis stable (3–4 alignments an outbound leg
+      against 8–10), and each failure a defect of its own, fixed as
+      found — (i) a 3 s leg refused for a rim 0.58 m ahead by ONE
+      centimetre, three times in a second on the spot, and the seal of
+      it (mouthD3): legs, blind and guarded, are cut to end the margin
+      short of the drop the sensor sees (`BLIND_LEG_MIN_S`; the guarded
+      journey's alone, the blind one re-plans faster), and a drop
+      refusal counts toward the seal again only after 5 cm of motion or
+      5 s (`DROP_REFUSAL_MOVED_M/AGAIN_S`); (ii) the rim sealed with the
+      body 0.42 m from the seal point, inside its inflation, and "no way
+      to the goal" for good (rimD1): the planner's start reaches 1.5 m
+      for a passable cell (`START_REACH_FAR_M`); (iii) a wall's end
+      0.13 m ahead blamed on a rim 0.56 m beyond ("no room" names the
+      drop whenever one is within 0.6 m), six drop refusals on the spot,
+      widened, sealed, sent round the house (rimD3): the refusal names
+      the nearer limit; (iv) the guarded journeys WROTE the ground book
+      — house2's 58 drops became 66 in three runs, the guard's refusal
+      points booked with the pose of the moment, up to 0.7 m into the
+      corridor, and rimE2 was refused for them: on a frozen map with a
+      ground book a drop is booked only within 0.20 m of a booked one
+      (`DROP_CONFIRM_M`), and the book restored to 58
+      (`runs/house2/ground-58-2026-09-20.json`). Round trips: mouthD
+      ✗✓ ✓✗ ✗(round ✓)✓; rimD ✗✓ ✓✓ ✓✗; rimE1 ✓✓ (271, 226 s, no seal);
+      no fall in any. Still open at the mouth: the approach from the
+      corridor's east side lands 12 cm east of the line at the corner
+      drop (mouthD1) — the route, not the law.
+      EVENING: the books and the pose, again. Even booked only within
+      0.20 m of a booked drop the rim was RE-BOOKED shifted by each run's
+      pose error and crept into the passage (39 → 58 → 62 in three
+      runs; rimG3 ten minutes with no lane left between the books and
+      the wall): a journey on a frozen map with its ground book now
+      books no drop at all — the ground book is the mapping session's
+      to write. And the pose in the passage varies run by run: 3–5 cm
+      mean in the runs that passed (retreat6, goround3, rimE1), 7–9 cm
+      mean with 13–17 cm peaks in the ones that did not (rimD1, rimF1,
+      rimG1) — maploc tracked a 16 cm lateral error for 80 s without
+      correcting it (one wall, the other side the hole). The paper twin
+      got `--bias dx,dy` (a constant offset of the map's frame, the pose
+      reported = truth + bias) and reproduces it: with D the known-world
+      passage is 30/30 at 10 cm, 25/30 at 15 cm west, 13/30 at 15 cm
+      east, 13/30 at 20 cm; the sensor's sides in min with the map's
+      26, 9, 0/30; replacing the map's (`QUACKSAT_PASSAGE_SENSOR=2`,
+      new) 24, 6, 13/30 — the ToF looks ahead and sees the wall beside
+      only at times. No fall in 720 runs: the guard holds, the planner
+      does not pass. So point 2 is now a statement: THE MOUTH PASSES
+      WHEN THE POSE IS WITHIN 10 CM; beyond that it is maploc's, not the
+      passage law's (point 1). The day's twelve round trips: the
+      passage 1 in 2; the closing three on the 39-drop book with
+      journeys writing none: rimH — 3/3 round trips, SIX passages of
+      six, no seal, no fall, the book still 39 (out 304, 223, 196 s;
+      back 169, 155, 248 s; pose in the passage 7 cm mean, 11 cm max).
+      The guarded record stands: retreat6's 132/173 s; the passage is
+      now taken whenever the pose allows it.
 - [ ] The boot search, two asks (2026-09-16 evening, the user's): (1) in
       Localize the "no confirmation → fresh map and explore" fallback is
       meaningless (nothing can ink; "not sure of its position yet" and it

@@ -159,3 +159,20 @@ dal lato soggiorno. E il sigillo ora arriva anche dai giri rifiutati
 accanto alla buca (dodici di fila), non solo dalle gambe (goround2
 andata: dieci minuti, 172 giri rifiutati, nessun sigillo). Andata e
 ritorno con questo: goround3 3/3 (28, 246, 266 s), nessuna caduta.
+
+### 2026-09-20/21, punto 2 chiuso (tag baseline-twin-2026-09-21)
+
+L'asse della legge del passaggio è la linea del muro stimata sulle sue
+celle, la direzione tenuta piegata verso la linea (`QK_WALL_FIT`, il
+default guardato); le gambe si accorciano prima di un bordo visto dal
+sensore; un bordo si sigilla dopo dodici giri rifiutati o tre rifiuti
+con moto in mezzo; la partenza del planner esce da un'inflazione fino a
+1,5 m; "no room" incolpa il limite più vicino; i viaggi su mappa
+congelata non iscrivono drop; il libro di terra di house2 è quello a 39
+dell'utente. Guardato, corridoio → soggiorno → corridoio, libro a 39:
+rimH 3/3 andata-ritorno, sei passaggi su sei, nessun sigillo (andata
+304, 223, 196 s; ritorno 169, 155, 248 s), nessuna caduta. Il passaggio
+passa se la posa è entro 10 cm (carta `--bias`: 30/30 a 10 cm, 25 e
+13/30 a 15, 13/30 a 20); oltre è di maploc. Carta: guardato 23/30 (15
+prima), cieco 29/30 invariato, mondo noto 30/30 col sigillo acceso
+(0/30 prima).
