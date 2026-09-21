@@ -3105,6 +3105,36 @@ nothing: it explores and asks.
       with a drop ahead of the beak take a blind step back from it (away
       from a drop that is ahead is away from it; the rule against blind
       backing was for a drop beside, look9).
+- [x] Monday evening: the turns in place beside the rim — measured, and
+      not the cause. Eleven runs' pose tracks (1 Hz) beside their logs:
+      168 turns in the passage zone (43 alignments, 94 turns to the
+      aim, 31 "no room") change the pose error by −0.4…0 cm each,
+      1272 s of rotation −0.002 cm/s — the turns add nothing. The 16
+      rises above 10 cm decompose as: walking +56.6 cm in 451 s
+      (0.125 cm/s, 2.5× the average), turning +19.3 in 314 s, standing
+      +12.9 in 612 s — THE STANDS DO NOT CORRECT in the passage (the
+      walls run with the motion and constrain nothing along it);
+      corrections come as rare jumps (19 toward the truth, 4 away, in
+      eleven runs). The error vector at the peaks is always the same,
+      (+0.02…+0.05, +0.07…+0.10): the map pose lags 8–10 cm BEHIND the
+      body along the corridor's axis. Two hypotheses measured, both
+      dead: (1) the head sweep at stands (`MAPLOC_SWEEP=false`, three
+      round trips): 4.8/9.1/6.7 cm mean against base 7.0/8.9/7.8 —
+      noise — and one run lost tracking for 247 s and failed its return
+      with 84 seals (the sweep is what relocalises); (2) the odometry's
+      scale, 0.98 of the truth on the duck's short legs against 1.01
+      under the human's continuous drive: `MAPLOC_ODOM_SCALE=1.02` in
+      the worktree's robotd (the knob verified in the process's
+      environment) left the tracked pose at 0.984 of the truth and made
+      the passage worse (11.1 cm mean, offset +0.10 north, the return
+      failed) — the lag is the SCAN MATCHER's, pulling the pose back
+      along a corridor, not the odometry's: maploc's, upstream. What
+      remains true for the mouth: the pose in the passage is 5–9 cm
+      mean with 12–14 cm peaks whatever quacksat does about stands,
+      legs, turns or the head; the dense stops (this afternoon) buy
+      robustness, not accuracy. Also today: a Claude session's end
+      wipes its `/tmp` scratchpad and `/tmp/dsm` with it — the book and
+      the map come back from `runs/house2/`.
 - [ ] The boot search, two asks (2026-09-16 evening, the user's): (1) in
       Localize the "no confirmation → fresh map and explore" fallback is
       meaningless (nothing can ink; "not sure of its position yet" and it

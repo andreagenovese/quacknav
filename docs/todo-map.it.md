@@ -3320,6 +3320,36 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       davanti al becco fanno un passo indietro cieco (allontanarsi da una
       buca davanti è allontanarsi; la regola contro la retro cieca era per
       la buca di fianco, look9).
+- [x] Lunedì sera: i giri sul posto accanto al bordo — misurati, e non
+      sono la causa. Le tracce di posa (1 Hz) di undici corse accanto ai
+      loro log: 168 giri nel tratto (43 allineamenti, 94 giri verso la
+      mira, 31 "no room") cambiano l'errore di −0,4…0 cm ciascuno,
+      1272 s di rotazione −0,002 cm/s — i giri non aggiungono nulla. I
+      16 picchi sopra i 10 cm si scompongono così: cammino +56,6 cm in
+      451 s (0,125 cm/s, 2,5× la media), giri +19,3 in 314 s, soste
+      +12,9 in 612 s — LE SOSTE NON CORREGGONO nel tratto (i muri corrono
+      col moto e non vincolano nulla lungo di esso); le correzioni
+      arrivano a salti rari (19 verso la verità, 4 via, in undici
+      corse). Il vettore d'errore ai picchi è sempre lo stesso,
+      (+0,02…+0,05, +0,07…+0,10): la posa di mappa resta 8–10 cm
+      INDIETRO rispetto al corpo lungo l'asse del corridoio. Due ipotesi
+      misurate, entrambe cadute: (1) la scansione della testa nelle soste
+      (`MAPLOC_SWEEP=false`, tre andata-ritorno): 4,8/9,1/6,7 cm medi
+      contro base 7,0/8,9/7,8 — rumore — e una corsa ha perso il tracking
+      per 247 s e fallito il ritorno con 84 sigilli (la scansione è ciò
+      che rilocalizza); (2) la scala dell'odometria, 0,98 della verità
+      sulle gambe corte della papera contro 1,01 nella guida umana
+      continua: `MAPLOC_ODOM_SCALE=1.02` nel robotd del worktree (knob
+      verificato nell'ambiente del processo) ha lasciato la posa a 0,984
+      della verità e peggiorato il passaggio (11,1 cm medi, offset +0,10
+      a nord, ritorno fallito) — il ritardo è dello SCAN MATCHER, che
+      tira indietro la posa lungo un corridoio, non dell'odometria: di
+      maploc, upstream. Quel che resta vero per la bocca: la posa nel
+      tratto è 5–9 cm medi con picchi di 12–14 qualunque cosa quacksat
+      faccia su soste, gambe, giri o testa; le soste fitte (il
+      pomeriggio) comprano robustezza, non precisione. Inoltre oggi: la
+      fine di una sessione di Claude cancella il suo scratchpad in `/tmp`
+      e `/tmp/dsm` con esso — libro e mappa tornano da `runs/house2/`.
 - [ ] La ricerca al boot, due richieste (sera del 2026-09-16, dell'utente):
       (1) in Localize il ripiego "nessuna conferma → mappa fresca ed
       esplora" non ha senso (nulla può inchiostrare; "non è sicura della
