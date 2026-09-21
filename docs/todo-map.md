@@ -3031,6 +3031,52 @@ nothing: it explores and asks.
       back 169, 155, 248 s; pose in the passage 7 cm mean, 11 cm max).
       The guarded record stands: retreat6's 132/173 s; the passage is
       now taken whenever the pose allows it.
+- [x] Monday 2026-09-21 morning: the blind journeys resumed, the books
+      put right, and the guided drive that writes them (the user's plan).
+      Two FALLS at the stairwell's north-west corner on the blind tour,
+      both of the night's own making: the 39-drop book (the user's of
+      the 17th, `ground-after-tour2`) has NO west-rim points — the early
+      blind tours passed the rim within `STRIKE_M` 0.15 and the trail
+      strike deleted them, as the user recalled — and the night had
+      turned every booking off on a frozen map, the stands' votes and
+      the refusals' points alike; the eleven tours that never fell had
+      both (house20tour, every booking off; house22tour, the refusals'
+      off: the refused rim never on the books, the route stayed, the
+      passage leg walked into the hole). Now: the blind journey books as
+      it always did; only the GUARDED journey books nothing from a
+      refusal (where the creep was measured); the 66 book (the night's,
+      12 west points of which 8 are 15–25 cm into the passage) boxed
+      the duck in the passage (house21tour: refused by a booked drop
+      5 cm off, no step back allowed); the 51 book (the 17th, 11:00,
+      seven west points at x −0.39…−0.51 — the rim is at −0.40) is the
+      right one: house24tour 6/6, 519 s, no fall, the book unchanged.
+      The user's two eyes on the route: (1) the pulled route cut to the
+      rim — the pull may stray 0.20 m from Dijkstra's — so a straight
+      run now comes no nearer a booked drop than the route it replaces
+      (pinning it to a cell of Dijkstra's beside drops instead made the
+      aim zigzag on the staircase, known world 7/30); (2) Dijkstra
+      itself hugged the rim because LANE cells (the walked trail, laid
+      along the rim by the blind tours) were exempt from the graded
+      price near walls and drops — lanes pay it now. Paper: known world
+      blind 20 → 22/30, guarded with the seal 30/30 unchanged. THE
+      GUIDED DRIVE: `robot.map_explore {"watch": true}` — a watch job
+      commands nothing, follows the trail, and at every stop of 2 s
+      votes the frames' drops as a leg's stand does; `drivewatch.sh`
+      boots on the saved map and hands the twin to `teleop.py`. The
+      user drove the stairwell (stairwell1, 29 stops): 3 rim points
+      voted (the north-west corner, two on the south-west), and the
+      strike at 0.15 struck EIGHT true rim points the drive had passed
+      20–30 cm from — the user's rule: struck only where it walked with
+      its body — `STRIKE_M` 0.06, which struck the two points really
+      walked over (17 and 26 cm into the floor). The guided book: 52
+      (`runs/house2/ground-52-guided-2026-09-21.json`, the reference
+      now): house25tour 6/6, 485 s, no fall, the book unchanged. Seen
+      on it: the duck's FLANK hit a low cube 15–20 cm beside a blind
+      leg (obj_3 at the passage's north mouth) — the walking obstacle
+      guard looks in the lane ahead only; side obstacles on blind legs
+      stay open (point 6). Also: macOS purges `/tmp/dsm/maps/` of files
+      not touched for three days at midnight (house2.session vanished);
+      a copy lives in `runs/house2/`.
 - [ ] The boot search, two asks (2026-09-16 evening, the user's): (1) in
       Localize the "no confirmation → fresh map and explore" fallback is
       meaningless (nothing can ink; "not sure of its position yet" and it

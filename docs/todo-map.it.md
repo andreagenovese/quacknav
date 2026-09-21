@@ -3243,6 +3243,55 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       155, 248 s; posa nel passaggio 7 cm medi, 11 cm max). Il record
       guardato resta quello di retreat6 (132/173 s); il passaggio ora si
       fa ogni volta che la posa lo permette.
+- [x] Lunedì 2026-09-21 mattina: ripresi i viaggi ciechi, rimessi a
+      posto i libri, e il giro guidato che li scrive (il piano
+      dell'utente). Due CADUTE all'angolo nord-ovest della tromba nel
+      giro cieco, entrambe fatte dalla notte: il libro a 39 (quello
+      dell'utente del 17, `ground-after-tour2`) NON ha punti sul bordo
+      ovest — i primi giri ciechi passavano il bordo entro `STRIKE_M`
+      0,15 e il colpo della scia li ha cancellati, come l'utente
+      ricordava — e la notte aveva spento ogni iscrizione su mappa
+      congelata, voti delle soste e punti dei rifiuti insieme; gli
+      undici giri senza cadute avevano entrambi (house20tour, tutto
+      spento; house22tour, solo i rifiuti spenti: il bordo rifiutato mai
+      nei libri, la rotta è rimasta, la gamba di passaggio è entrata nel
+      buco). Ora: il viaggio cieco iscrive come ha sempre fatto; solo il
+      viaggio GUARDATO non iscrive nulla da un rifiuto (dove lo
+      strisciamento è stato misurato); il libro a 66 (della notte, 12
+      punti ovest di cui 8 a 15–25 cm dentro il passaggio) ha chiuso la
+      papera nel passaggio (house21tour: rifiutata da un drop iscritto a
+      5 cm, nessun passo indietro concesso); il libro a 51 (del 17,
+      11:00, sette punti ovest a x −0,39…−0,51 — il bordo è a −0,40) è
+      quello giusto: house24tour 6/6, 519 s, nessuna caduta, libro
+      invariato. I due occhi dell'utente sulla rotta: (1) la rotta tirata
+      tagliava fino al bordo — il tiraggio può scostarsi 0,20 m da
+      Dijkstra — quindi un tratto raddrizzato ora non si avvicina a un
+      drop iscritto più della rotta che sostituisce (inchiodarla a una
+      cella di Dijkstra vicino ai drop faceva zigzagare la mira sulla
+      scala, mondo noto 7/30); (2) Dijkstra stesso stava al bordo perché
+      le celle di CORSIA (la scia camminata, posata lungo il bordo dai
+      giri ciechi) erano esenti dal prezzo di vicinanza a muri e drop —
+      ora le corsie lo pagano. Carta: mondo noto cieco 20 → 22/30,
+      guardato col sigillo 30/30 invariato. IL GIRO GUIDATO:
+      `robot.map_explore {"watch": true}` — un job di sorveglianza non
+      comanda nulla, segue la scia, e a ogni fermata di 2 s vota i drop
+      dei frame come la sosta di una gamba; `drivewatch.sh` fa il boot
+      sulla mappa salvata e passa il gemello a `teleop.py`. L'utente ha
+      guidato la tromba (stairwell1, 29 soste): 3 punti di bordo votati
+      (l'angolo nord-ovest, due a sud-ovest), e il colpo a 0,15 ha
+      cancellato OTTO punti veri del bordo a cui la guida era passata a
+      20–30 cm — la regola dell'utente: cancellato solo dove ci è
+      passata col corpo — `STRIKE_M` 0,06, che ha cancellato i due punti
+      davvero calpestati (17 e 26 cm dentro il pavimento). Il libro
+      guidato: 52 (`runs/house2/ground-52-guided-2026-09-21.json`, ora
+      il riferimento): house25tour 6/6, 485 s, nessuna caduta, libro
+      invariato. Visto su di esso: il FIANCO della papera ha urtato un
+      cubetto basso a 15–20 cm di lato durante una gamba cieca (obj_3
+      alla bocca nord del passaggio) — la guardia degli ostacoli in
+      cammino guarda solo la corsia davanti; gli ostacoli di lato nelle
+      gambe cieche restano aperti (punto 6). Inoltre: macOS svuota
+      `/tmp/dsm/maps/` dei file non toccati da tre giorni a mezzanotte
+      (house2.session sparita); una copia sta in `runs/house2/`.
 - [ ] La ricerca al boot, due richieste (sera del 2026-09-16, dell'utente):
       (1) in Localize il ripiego "nessuna conferma → mappa fresca ed
       esplora" non ha senso (nulla può inchiostrare; "non è sicura della
