@@ -3077,6 +3077,34 @@ nothing: it explores and asks.
       stay open (point 6). Also: macOS purges `/tmp/dsm/maps/` of files
       not touched for three days at midnight (house2.session vanished);
       a copy lives in `runs/house2/`.
+- [x] Monday afternoon: the guided drive's derived data, and dense
+      stops beside the drops. From stairwell1 (293 s, 11.5 m, five marks
+      round the stairwell): the lane the user kept — the body's centre
+      0.35 m from the true rim in the west passage (0.31–0.41), 0.30–0.31
+      in the east and south, i.e. the flank 20–24 cm from the rim, what
+      the guard asks, and 0.19 from the west wall (the wall as the
+      guide); the pose while driving slowly with a stop every 30–40 cm —
+      4.8 cm mean over the drive, 1.6 cm mean (2 max) in the west
+      passage against 7–17 cm on the guarded journeys; the three rim
+      points voted came from the two stands with the pose at 1–2 cm, and
+      are exact or 7–11 cm conservative. Measured (the user's: measure
+      first, change if better): legs ≤ 2 s and stands of 6 s within 1 m
+      of a booked drop, A/B on the guarded round trip, three pairs
+      interleaved on the 52 book — passages 6/6 against 5/6, no seal
+      against 30 (base3: sealed, the way round failed, 901 s), refusals
+      3/13/14 against 17/28/56, the pose in the passage 5.6–6.5 cm mean
+      against 7.0–8.9, the 12–14 cm peaks unchanged, the successful
+      passages a quarter slower (median 283 s against 224). Not the
+      2 cm of the drive: the peaks come from elsewhere (the turns in
+      place, 16–29 an outbound leg either way). Made the guarded
+      journey's default (`DROP_STAND_S`, `DROP_LEG_S`; the knobs stay);
+      mapping and the blind journey untouched. Also from the afternoon:
+      the boot search stood nine minutes 45 cm north of the stairwell,
+      the same look every six seconds — the turn's kick refused, silently,
+      with the drop ahead (dense1's first try): three such looks running
+      with a drop ahead of the beak take a blind step back from it (away
+      from a drop that is ahead is away from it; the rule against blind
+      backing was for a drop beside, look9).
 - [ ] The boot search, two asks (2026-09-16 evening, the user's): (1) in
       Localize the "no confirmation → fresh map and explore" fallback is
       meaningless (nothing can ink; "not sure of its position yet" and it

@@ -3292,6 +3292,34 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       gambe cieche restano aperti (punto 6). Inoltre: macOS svuota
       `/tmp/dsm/maps/` dei file non toccati da tre giorni a mezzanotte
       (house2.session sparita); una copia sta in `runs/house2/`.
+- [x] Lunedì pomeriggio: i dati derivati dal giro guidato, e le soste
+      fitte accanto ai drop. Da stairwell1 (293 s, 11,5 m, cinque
+      marcatori attorno alla tromba): la corsia tenuta dall'utente — il
+      centro del corpo a 0,35 m dal bordo vero nel passaggio ovest
+      (0,31–0,41), 0,30–0,31 a est e a sud, cioè il fianco a 20–24 cm dal
+      bordo, quel che chiede la guardia, e 0,19 dal muro ovest (il muro
+      come guida); la posa guidando piano con una sosta ogni 30–40 cm —
+      4,8 cm medi su tutto il giro, 1,6 cm medi (2 max) nel passaggio
+      ovest contro 7–17 cm dei viaggi guardati; i tre punti di bordo
+      votati vengono dalle due soste con posa a 1–2 cm, e sono esatti o
+      7–11 cm conservativi. Misurato (l'utente: prima misure, modifiche
+      se migliora): gambe ≤ 2 s e soste da 6 s entro 1 m da un drop
+      iscritto, A/B sull'andata-ritorno guardato, tre coppie interlacciate
+      sul libro 52 — passaggi 6/6 contro 5/6, nessun sigillo contro 30
+      (base3: sigillo, giro largo fallito, 901 s), rifiuti 3/13/14 contro
+      17/28/56, posa nel tratto 5,6–6,5 cm medi contro 7,0–8,9, i picchi
+      di 12–14 cm invariati, i passaggi riusciti un quarto più lenti
+      (mediana 283 s contro 224). Non i 2 cm della guida: i picchi
+      vengono da altro (i giri sul posto, 16–29 per andata in entrambi i
+      casi). Reso default del viaggio guardato (`DROP_STAND_S`,
+      `DROP_LEG_S`; i knob restano); mappatura e viaggio cieco intatti.
+      Sempre dal pomeriggio: la ricerca al boot è stata nove minuti ferma
+      45 cm a nord della tromba, lo stesso sguardo ogni sei secondi — il
+      calcio del giro rifiutato, in silenzio, con la buca davanti (il
+      primo tentativo di dense1): tre sguardi così di fila con una buca
+      davanti al becco fanno un passo indietro cieco (allontanarsi da una
+      buca davanti è allontanarsi; la regola contro la retro cieca era per
+      la buca di fianco, look9).
 - [ ] La ricerca al boot, due richieste (sera del 2026-09-16, dell'utente):
       (1) in Localize il ripiego "nessuna conferma → mappa fresca ed
       esplora" non ha senso (nulla può inchiostrare; "non è sicura della
