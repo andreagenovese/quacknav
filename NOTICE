@@ -1,8 +1,15 @@
-quacksat
+quack-nav
 Copyright 2026 Andrea Genovese
 
 This product includes software developed as an independent project for the
 Pollen Robotics Microduck. It is not affiliated with, endorsed by, or
 supported by Pollen Robotics or Hugging Face.
+
+The `maploc` crate is derived from Pollen Robotics' `maploc`
+(https://github.com/pollen-robotics/microduck, pull request 127,
+Apache-2.0), with modifications by Andrea Genovese: the Localize mode, the
+map library, the boot search and the corrections recorded in
+docs/study/upstream-asks.md; `maploc/src/flat.rs` adapts a function of the
+same repository's `kinematics` crate.
 
 Licensed under the Apache License, Version 2.0.
