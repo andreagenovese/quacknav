@@ -3350,6 +3350,42 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       pomeriggio) comprano robustezza, non precisione. Inoltre oggi: la
       fine di una sessione di Claude cancella il suo scratchpad in `/tmp`
       e `/tmp/dsm` con esso — libro e mappa tornano da `runs/house2/`.
+- [x] Martedì 2026-09-22: ostacoli di lato nelle gambe cieche (il
+      cubetto preso col fianco alla bocca del passaggio, house25tour).
+      Una prova costruita apposta: `sidetest.sh` / `sidetrial.py` — boot
+      sulla mappa salvata, un go_to cieco all'estremo del corridoio, e
+      quando il corpo cammina verso il goal (moto vero stabile ed entro
+      30° dal goal) un cubo da 7 cm viene messo 0,45 m avanti e 10–16 cm
+      di lato rispetto al moto; il verdetto è se il cubo si è mosso e
+      quanto il centro del corpo si è avvicinato (piazzarlo sulla rotta
+      istantanea o su quella pianificata lo metteva a 0,37–0,44 m dal
+      percorso vero — il percorso cieco si scosta 20 cm dalla rotta). La
+      scala sul lato destro, dove la gait vira, col codice del 21: 16 cm
+      COLPITO (trascinato 1,9 m) e pulita, 13 cm pulita, 10 cm COLPITO
+      (spinto 36 cm, mai visto). Tre cause, nei log: (1) il cono ±15°
+      della guardia cieca escludeva un cubo a 0,25 m a 18° dentro la
+      corsia di 12 cm — il cono ora si allarga a corta distanza fino
+      all'angolo della corsia (`QK_BLIND_CONE_LANE=0` per il vecchio);
+      (2) una cosa bassa si legge 10–17 cm più vicina del vero, e la
+      rotta attorno al punto iscritto passava sul cubo — iscritto 12 cm
+      oltre la lettura, un po' più largo (`LOW_BOOK_PUSH_M`); (3) UN
+      DIFETTO: il rifiuto della gamba cieca viene dai frame IN CAMMINO,
+      ma `note_obstacle_ahead` interrogava quelli da fermo, non trovava
+      nulla, iscriveva il muro della mappa a due metri, e la rotta
+      ripianificata passava dritta sul cubo ("planning anew,
+      same_books=true", sideB013r) — ora si interrogano i frame in
+      cammino quando quelli da fermo non hanno nulla. La scala con tutte
+      e tre: 6/6 pulite (16/13/10 cm due volte), centro del corpo a
+      0,12–0,28 m dal cubo; con (1)+(2) sole 2 colpi su 4. Quel che
+      resta: un cubo da 7 cm che compare a metà gamba sotto il becco può
+      non essere visto in cammino — il riproiettore conta un raggio come
+      pavimento dall'85 % dell'altezza del sensore, 4,5 cm a 30 cm, e il
+      dondolio del tronco in cammino fa lampeggiare una cima da 7 cm a
+      cavallo della soglia (due prove a 10 cm con 0 rifiuti): un limite
+      del sensore per cose sotto ~9 cm, non di una regola. Carta
+      invariata (guardato 22/30, cieco 25/30); giro cieco a sei goal
+      house26tour 6/6, 495 s (41, 119, 135, 60, 108, 32), nessuna
+      caduta, libro 52 → 53 (un voto di sosta).
 - [ ] La ricerca al boot, due richieste (sera del 2026-09-16, dell'utente):
       (1) in Localize il ripiego "nessuna conferma → mappa fresca ed
       esplora" non ha senso (nulla può inchiostrare; "non è sicura della

@@ -3135,6 +3135,40 @@ nothing: it explores and asks.
       robustness, not accuracy. Also today: a Claude session's end
       wipes its `/tmp` scratchpad and `/tmp/dsm` with it — the book and
       the map come back from `runs/house2/`.
+- [x] Tuesday 2026-09-22: side obstacles on blind legs (the cube the
+      flank hit at the passage's mouth, house25tour). A test built for
+      it: `sidetest.sh` / `sidetrial.py` — boot on the saved map, a blind
+      go_to to the corridor's far end, and once the body walks toward it
+      (its true motion steady and within 30° of the goal) a 7 cm cube
+      is dropped 0.45 m ahead and 10–16 cm beside the motion; the
+      verdict is whether the cube moved and how near the body's centre
+      came (placing by the momentary heading or by the planned route
+      put the cube 0.37–0.44 m off the true path — the blind path
+      strays 20 cm from its route). The ladder on the right side, where
+      the gait veers, with the code of the 21st: 16 cm HIT (dragged
+      1.9 m) and clear, 13 cm clear, 10 cm HIT (kicked 36 cm, never
+      seen). Three causes, in the logs: (1) the blind guard's ±15° cone
+      excluded a cube 0.25 m ahead at 18° inside the 12 cm lane — the
+      cone now widens at short range to the lane's own angle
+      (`QK_BLIND_CONE_LANE=0` for the old); (2) a low thing is read
+      10–17 cm nearer than it is, and the route round the booked point
+      crossed the cube — booked 12 cm beyond the range read, a little
+      wider (`LOW_BOOK_PUSH_M`); (3) A DEFECT: the blind leg's refusal
+      comes from the WALKING frames, but `note_obstacle_ahead` asked
+      the standing ones, found nothing, booked the map's wall two
+      metres on, and the re-planned route went straight over the cube
+      ("planning anew, same_books=true", sideB013r) — the walking
+      frames are asked when the standing ones have nothing. The ladder
+      with all three: 6/6 clear (16/13/10 cm twice), the body's centre
+      0.12–0.28 m from the cube; with (1)+(2) alone 2 hits in 4. What
+      stays: a 7 cm cube appearing mid-leg under the beak can go
+      unseen while walking — the reprojector counts a beam as floor
+      from 85 % of the sensor's height, 4.5 cm at 30 cm, and the
+      walking trunk's bounce flickers a 7 cm top across it (two 10 cm
+      trials with 0 refusals): a sensor limit for things under ~9 cm,
+      not a rule's. Paper unchanged (guarded 22/30, blind 25/30);
+      blind six-goal tour house26tour 6/6, 495 s (41, 119, 135, 60,
+      108, 32), no fall, the book 52 → 53 (one stand's vote).
 - [ ] The boot search, two asks (2026-09-16 evening, the user's): (1) in
       Localize the "no confirmation → fresh map and explore" fallback is
       meaningless (nothing can ink; "not sure of its position yet" and it
