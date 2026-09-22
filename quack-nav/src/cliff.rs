@@ -348,7 +348,7 @@ impl CliffStatus {
         self.frames += 1;
         self.recent.push(frame);
         // Kept for [`KEEP`]: every judgement here filters by [`MEMORY`],
-        // and a passage's side boundaries (`crate::passage`) look
+        // and a passage's side boundaries (`tools::passage_here`) look
         // back a whole head sweep.
         self.recent.retain(|f| now.duration_since(f.at) <= KEEP);
     }
