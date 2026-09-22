@@ -1,0 +1,19 @@
+[package]
+name = "quack-duck"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "The Microduck's robotd lane: a JSON-RPC client over the unix socket, the gait's limits, and the body commands both a voice satellite and a navigator send"
+
+[dependencies]
+anyhow.workspace = true
+duck-ipc-proto.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tempfile = "3"
