@@ -1,0 +1,33 @@
+[workspace]
+resolver = "3"
+members = [
+    "quack-duck",
+    "quack-nav",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+# duck-ipc-proto needs 1.89 (edition 2024 + File::try_lock).
+rust-version = "1.89"
+license = "Apache-2.0"
+repository = "https://github.com/andreagenovese/quack-nav"
+authors = ["Andrea Genovese <info@rstonline.it>"]
+
+[workspace.dependencies]
+# Pinned to the release running on the board; bump deliberately.
+duck-ipc-proto = { git = "https://github.com/pollen-robotics/microduck.git", tag = "daemon-v0.10.0" }
+# Pollen's head geometry (pure Rust, MJCF embedded): the cliff guard reprojects
+# depth frames exactly as robotd does. Same tag as the proto crate.
+kinematics = { git = "https://github.com/pollen-robotics/microduck.git", tag = "daemon-v0.10.0" }
+quack-duck = { path = "quack-duck" }
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = "0.9"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[profile.release]
+# The board has four Cortex-A55 cores and the planner runs on one of them.
+opt-level = 3
