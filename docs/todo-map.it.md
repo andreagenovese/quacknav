@@ -3386,6 +3386,35 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       invariata (guardato 22/30, cieco 25/30); giro cieco a sei goal
       house26tour 6/6, 495 s (41, 119, 135, 60, 108, 32), nessuna
       caduta, libro 52 → 53 (un voto di sosta).
+- [x] La ricerca al boot accanto alla tromba (pomeriggio del
+      2026-09-22; la scala delle nascite con una settima, "north": 0,10,
+      −0,30 rivolta a sud, 45 cm dal bordo, dove due boot si erano
+      piantati e uno era caduto). Nove prove lì. Cosa hanno mostrato i
+      log, in ordine: (1) un settore che la testa non ha ancora spazzato
+      legge "0,00 libero", che la ricerca leggeva come "qui il pavimento
+      finisce" — rivolta a est si dichiarava chiusa con sinistra e
+      avanti mai guardati, e la sua uscita calciava alla cieca verso il
+      buco a 8 cm: un `Look` ora dice se ogni settore è stato guardato, e
+      uno non guardato fa stare ferma a guardare invece di decidere;
+      (2) il calcio cieco dell'uscita "incastrata" va solo verso un lato
+      che la testa HA guardato e che mostra `WEDGE_KICK_FREE_M` di
+      pavimento; (3) il conteggio dei giri che non muovono nulla veniva
+      dal valore di ritorno di `turn_to`, che sulla via degli impulsi
+      restituisce la direzione chiesta qualunque cosa abbiano fatto gli
+      impulsi — ora è misurato dall'odometria; (4) LA CADUTA (north6): il
+      passo indietro cieco era concesso ogni volta che la scia stava
+      dietro, bordo o no — e un punto della scia stava proprio SUL bordo,
+      così un impulso di retro da 1,5 s col bordo a 0,10 m davanti ce
+      l'ha portata dentro. Nessuna retromarcia cieca finché il sensore
+      vede una buca, scia o no, e il calcio dell'uscita solo senza nulla
+      in vista. La scala dopo le correzioni, nove boot "north" in tutto:
+      confermata a 272, 218, 345, 659, 217 s, quattro stalli a 700 s, UNA
+      caduta (quella ora corretta); le sei nascite ordinarie invariate
+      (corridoio 88 s, cucina 331, camera 112, soggiorno 70, bagno 129,
+      studio 119, nessuna caduta). Quel che resta: da quel punto la
+      ricerca si pianta ancora circa una volta su due — gira sul posto
+      fra verdetti "chiusa" di 0,10–0,44 m senza fare corda, e solo i
+      cancelli di maploc possono chiuderla.
 - [ ] La ricerca al boot, due richieste (sera del 2026-09-16, dell'utente):
       (1) in Localize il ripiego "nessuna conferma → mappa fresca ed
       esplora" non ha senso (nulla può inchiostrare; "non è sicura della

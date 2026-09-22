@@ -3169,6 +3169,33 @@ nothing: it explores and asks.
       not a rule's. Paper unchanged (guarded 22/30, blind 25/30);
       blind six-goal tour house26tour 6/6, 495 s (41, 119, 135, 60,
       108, 32), no fall, the book 52 → 53 (one stand's vote).
+- [x] The boot search beside the stairwell (2026-09-22 afternoon; the
+      spawn ladder with a seventh birth, "north": 0.10, −0.30 facing
+      south, 45 cm from the rim, where two boots had stuck and one had
+      fallen). Nine trials there. What the logs showed, in order:
+      (1) a sector the head has not swept yet reads "0.00 free", which
+      the search read as "the floor ends here" — facing east it called
+      itself boxed in with left and ahead unlooked, and its escape
+      kicked blind toward the hole 8 cm away: a `Look` now says whether
+      every sector was looked at, and an unlooked one stands to look
+      instead of deciding; (2) the wedged escape's blind kick goes only
+      toward a side the head HAS looked at and that shows
+      `WEDGE_KICK_FREE_M` of floor; (3) the stuck-turn count was read
+      from `turn_to`'s return, which on the pulse path returns the
+      bearing asked for whatever the pulses did — measured from the
+      odometry now; (4) THE FALL (north6): the blind step back was
+      allowed whenever the trail lay behind, rim or no rim — and the
+      trail's own point was where the body had stood ON the edge, so a
+      1.5 s backing pulse with the rim 0.10 m ahead carried it in. No
+      blind backing at all while the sensor sees a drop, trail or not,
+      and the wedged kick only with nothing seen. The ladder after the
+      fixes, nine "north" boots in all: confirmed at 272, 218, 345, 659,
+      217 s, four stalls at 700 s, ONE fall (the one now fixed); the six
+      ordinary births unchanged (corridor 88 s, kitchen 331, bedroom
+      112, living room 70, bathroom 129, office 119, no fall). What
+      remains: from that spot the search still stalls about half the
+      time — it turns in place among "boxed in" verdicts of 0.10–0.44 m
+      without making chord, and only maploc's own gates can end it.
 - [ ] The boot search, two asks (2026-09-16 evening, the user's): (1) in
       Localize the "no confirmation → fresh map and explore" fallback is
       meaningless (nothing can ink; "not sure of its position yet" and it
