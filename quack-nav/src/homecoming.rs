@@ -967,7 +967,7 @@ fn wipe(robot: &Arc<Mutex<Robot>>) -> Result<(), String> {
 }
 
 /// One tool call on the shared robot. The lock is held for the call and
-/// nothing more: the MCP server and the wake word want it too.
+/// nothing more: whoever calls in over the daemon's socket wants it too.
 fn call(robot: &Arc<Mutex<Robot>>, name: &str, args: &Value) -> Result<Value, String> {
     let mut robot = robot.lock().expect("robot poisoned");
     tools::execute(name, args, &mut robot)
