@@ -1,8 +1,8 @@
 # Study: padd as the model for quacksat's robotd client
 
 Source: `pollen-robotics/microduck` @ clone of 2026-08-31. Blueprint for
-`quacksat-core`'s client. Companion notes: `microduck-speaker-path.md`,
-`microduck-mic-path.md`.
+`quacksat-core`'s client. Companion notes (in quacksat):
+`microduck-speaker-path.md`, `microduck-mic-path.md`.
 
 ## padd in one paragraph
 

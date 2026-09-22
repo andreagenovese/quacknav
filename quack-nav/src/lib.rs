@@ -1,6 +1,6 @@
 //! quack-nav: where the Microduck is, and how it gets somewhere else.
 //!
-//! Three pieces, none of them about voice:
+//! Eight pieces (and their [`config`]), none of them about voice:
 //!
 //! - [`map`] — the `robot.map` client: robotd's on-board `maploc` publishes
 //!   a pose and an occupancy grid once a second; this keeps the newest one
@@ -12,11 +12,12 @@
 //!   against the floor, because a map of walls cannot see a staircase.
 //! - [`frontier`] — where the known floor meets the unknown, and the path
 //!   there: what "map everything" loops over.
-//! - [`tools`] — `where_am_i`, `remember_place`, `forget_place`,
-//!   `list_places` as an agent-neutral catalog (JSON Schema) plus an
-//!   executor, ready to be projected onto OpenAI tools, MCP, or anything
-//!   else by whoever hosts them.
-//!
+//! - [`passage`] — threading a narrow passage: two side boundaries and
+//!   the steering that keeps the body between them.
+//! - [`tools`] — the twelve `robot.*` tools (the places, the map, the
+//!   explorer, `go_to`, saved maps and `map_match`) as an agent-neutral
+//!   catalog (JSON Schema) plus an executor, ready to be projected onto
+//!   OpenAI tools, MCP, or anything else by whoever hosts them.
 //! - [`explore`] — the jobs that drive: map a house, walk to a goal on a
 //!   map already made, and the rules that keep a leg off the stairs.
 //! - [`homecoming`] — waking up in a house the duck has mapped before.

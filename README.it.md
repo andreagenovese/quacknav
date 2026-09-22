@@ -109,8 +109,8 @@ places_path = "/var/lib/quack-nav/places.json"
 enabled = true          # riconosce la casa all'avvio e si riprende la sua mappa
 ```
 
-`systemd/quack-navd.service` e `systemd/sysusers.d/` lo installano come
-servizio non privilegiato accanto a robotd.
+`quack-nav/systemd/quack-navd.service` e `quack-nav/systemd/sysusers.d/`
+lo installano come servizio non privilegiato accanto a robotd.
 
 ## Stato
 

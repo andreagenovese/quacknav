@@ -213,6 +213,19 @@ impl Costmap {
     /// run 70). A cell the map inks as wall is not a lane: the map may be
     /// right and the pose wrong.
     fn build(grid: &Grid, extra_walls: &[ExtraWall], inflate_m: f64, lanes: &[(f64, f64)]) -> Self {
+        Self::build_priced(grid, extra_walls, inflate_m, lanes, cost_lane())
+    }
+
+    /// [`Costmap::build`] with a lane cell's price handed in rather than
+    /// read from `QK_COST_LANE`: the knob is read once per process, so a
+    /// test that set it raced every other test's first plan.
+    fn build_priced(
+        grid: &Grid,
+        extra_walls: &[ExtraWall],
+        inflate_m: f64,
+        lanes: &[(f64, f64)],
+        lane_cost: u32,
+    ) -> Self {
         let r = (inflate_m / grid.cell_m).ceil() as isize;
         let mut cost = vec![0u32; grid.rows * grid.cols];
         let mut lane = vec![false; grid.rows * grid.cols];
@@ -238,7 +251,7 @@ impl Costmap {
                         *radius >= DROP_WALL_M && ((wx - bx).powi(2) + (wy - by).powi(2)).sqrt() < LANE_YIELDS_TO_DROP_M
                     });
                     if !rim_near {
-                        cost[row * grid.cols + col] = cost_lane().max(1);
+                        cost[row * grid.cols + col] = lane_cost.max(1);
                         continue;
                     }
                 }
@@ -648,7 +661,23 @@ pub fn path_to(
     inflate_m: f64,
     lanes: &[(f64, f64)],
 ) -> Option<Vec<(f64, f64)>> {
-    let map = Costmap::build(grid, extra_walls, inflate_m, lanes);
+    path_to_priced(grid, x, y, goal, extra_walls, inflate_m, lanes, cost_lane())
+}
+
+/// [`path_to`] with a lane cell's price handed in (see
+/// [`Costmap::build_priced`]).
+#[allow(clippy::too_many_arguments)]
+fn path_to_priced(
+    grid: &Grid,
+    x: f64,
+    y: f64,
+    goal: (f64, f64),
+    extra_walls: &[ExtraWall],
+    inflate_m: f64,
+    lanes: &[(f64, f64)],
+    lane_cost: u32,
+) -> Option<Vec<(f64, f64)>> {
+    let map = Costmap::build_priced(grid, extra_walls, inflate_m, lanes, lane_cost);
     // A start deep inside the inflation — a rim sealed with the body
     // beside it (rimD1, 2026-09-20: "no way to the goal" from 0.42 m
     // of the seal point, for good) — still gets out: the nearest
@@ -947,10 +976,9 @@ mod tests {
         let refs: Vec<&str> = rows.iter().map(String::as_str).collect();
         let g = room(&refs, 0.1);
         let lane: Vec<(f64, f64)> = (5..=36).map(|i| (i as f64 * 0.1 + 0.05, 0.75)).collect();
-        // The preference is a knob (off by default): the test sets it.
-        unsafe { std::env::set_var("QK_COST_LANE", "5") };
-        let free = path_to(&g, 0.5, 1.15, (3.6, 1.15), &[], INFLATE_M, &[]).unwrap();
-        let laned = path_to(&g, 0.5, 1.15, (3.6, 1.15), &[], INFLATE_M, &lane).unwrap();
+        // The preference is a knob (off by default): the test prices it.
+        let free = path_to_priced(&g, 0.5, 1.15, (3.6, 1.15), &[], INFLATE_M, &[], 5).unwrap();
+        let laned = path_to_priced(&g, 0.5, 1.15, (3.6, 1.15), &[], INFLATE_M, &lane, 5).unwrap();
         let on_lane = |p: &Vec<(f64, f64)>| p.iter().filter(|(x, y)| *x > 1.0 && *x < 3.0 && (y - 0.75).abs() < 0.12).count();
         assert_eq!(on_lane(&free), 0, "{free:?}");
         assert!(on_lane(&laned) >= 10, "{laned:?}");

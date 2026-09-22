@@ -2,8 +2,8 @@
 
 Fonte: `pollen-robotics/microduck` @ clone del 2026-08-31 (workspace
 v0.10.0, edition 2024, rust-version 1.89). Note complementari:
-`microduck-client-pattern.md`, `microduck-speaker-path.md`,
-`microduck-mic-path.md`.
+`microduck-client-pattern.md`; quelle della voce, `microduck-speaker-path.md`
+e `microduck-mic-path.md`, sono rimaste in quacksat.
 
 ## duck-ipc-proto
 
@@ -141,4 +141,4 @@ v0.10.0, edition 2024, rust-version 1.89). Note complementari:
 Invece di riprodurre l'audio da sé, quacksat potrebbe pilotare
 `robot.sound` + `robot.mouth` e lasciare che robotd sia la voce — funziona
 solo per i versi dell'anatra (enum chiuso), non per il TTS; vedi
-`microduck-speaker-path.md`.
+`microduck-speaker-path.md` in quacksat.

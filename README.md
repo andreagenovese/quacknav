@@ -108,8 +108,8 @@ places_path = "/var/lib/quack-nav/places.json"
 enabled = true          # recognise the house at boot, and take its map back
 ```
 
-`systemd/quack-navd.service` and `systemd/sysusers.d/` install it as an
-unprivileged service beside robotd.
+`quack-nav/systemd/quack-navd.service` and `quack-nav/systemd/sysusers.d/`
+install it as an unprivileged service beside robotd.
 
 ## Status
 
