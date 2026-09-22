@@ -11,7 +11,7 @@ edition = "2024"
 # duck-ipc-proto needs 1.89 (edition 2024 + File::try_lock).
 rust-version = "1.89"
 license = "Apache-2.0"
-repository = "https://github.com/andreagenovese/quack-nav"
+repository = "https://github.com/andreagenovese/quacknav"
 authors = ["Andrea Genovese <info@rstonline.it>"]
 
 [workspace.dependencies]
