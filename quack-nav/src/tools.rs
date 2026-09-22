@@ -6,10 +6,11 @@
 //! claims to [`execute`]; quacksat does exactly that, and a standalone
 //! daemon would serve the same four over its own MCP endpoint.
 
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use duck_ipc_proto as proto;
 use serde_json::{Value, json};
 
+use std::time::Instant;
 
 use crate::cliff::{CliffWatch, StreamState};
 use crate::config::MapConfig;
@@ -31,6 +32,35 @@ pub struct Places {
     pub map_config: MapConfig,
     /// The `[gait]` section: yaw trim and per-side gains for every walk.
     pub gait: quack_duck::gait::GaitConfig,
+}
+
+/// Every lane the navigation acts on: robotd's request lane, and the
+/// map, registry, cliff guard and explore job beside it.
+pub struct Robot {
+    /// The request lane; `None` while robotd is unreachable.
+    pub control: Option<quack_duck::Control>,
+    /// The map lane, the registry, the guard and the explore job.
+    pub places: Places,
+}
+
+impl Robot {
+    pub fn connect(config: &MapConfig, robotd_socket: &str, gait: quack_duck::gait::GaitConfig) -> Self {
+        let control = match quack_duck::Control::connect(robotd_socket) {
+            Ok(control) => Some(control),
+            Err(e) => {
+                tracing::warn!(error = %e, "robotd unreachable — the navigation runs without the robot");
+                None
+            }
+        };
+        let mut places = Places::connect(config, robotd_socket);
+        places.gait = gait;
+        Self { control, places }
+    }
+
+    /// No robotd, no map, an in-memory registry (tests, dry runs).
+    pub fn detached() -> Self {
+        Self { control: None, places: Places::detached() }
+    }
 }
 
 impl Places {
@@ -94,42 +124,13 @@ impl Places {
     }
 }
 
-/// Every lane the navigation acts on: robotd's request lane, and the
-/// map, registry, cliff guard and explore job beside it.
-pub struct Robot {
-    /// The request lane; `None` while robotd is unreachable.
-    pub control: Option<quack_duck::Control>,
-    /// The map lane, the registry, the guard and the explore job.
-    pub places: Places,
-}
-
-impl Robot {
-    pub fn connect(config: &MapConfig, robotd_socket: &str, gait: quack_duck::gait::GaitConfig) -> Self {
-        let control = match quack_duck::Control::connect(robotd_socket) {
-            Ok(control) => Some(control),
-            Err(e) => {
-                tracing::warn!(error = %e, "robotd unreachable — the navigation runs without the robot");
-                None
-            }
-        };
-        let mut places = Places::connect(config, robotd_socket);
-        places.gait = gait;
-        Self { control, places }
-    }
-
-    /// No robotd, no map, an in-memory registry (tests, dry runs).
-    pub fn detached() -> Self {
-        Self { control: None, places: Places::detached() }
-    }
-}
-
 /// The tool names this crate executes, in catalog order.
 pub const TOOLS: [&str; 5] = [
-    "places.where_am_i",
-    "places.remember_place",
-    "places.forget_place",
-    "places.list_places",
-    "places.map_status",
+    "robot.where_am_i",
+    "robot.remember_place",
+    "robot.forget_place",
+    "robot.list_places",
+    "robot.map_status",
 ];
 
 fn handles_places(name: &str) -> bool {
@@ -141,16 +142,16 @@ fn handles_places(name: &str) -> bool {
 fn catalog_places() -> Vec<Value> {
     vec![
         json!({
-            "name": "places.where_am_i",
+            "name": "robot.where_am_i",
             "description": "Where the duck is in the house, by name. Returns the nearest \
         remembered place and the distance to it (at_place = inside that place), or known=false \
         when the duck cannot trust its position yet (seated, just carried, still looking around, \
         no map). Use when asked where you are or before deciding where to go. The duck only knows \
-        places somebody taught it with places.remember_place; it does not recognize rooms by sight.",
+        places somebody taught it with robot.remember_place; it does not recognize rooms by sight.",
             "parameters": {"type": "object", "properties": {}}
         }),
         json!({
-            "name": "places.remember_place",
+            "name": "robot.remember_place",
             "description": "Teach the duck the name of the spot it is standing in right now \
         (the user says \"this is the kitchen\" → remember_place name=\"kitchen\"). Teaching the \
         same name again from another spot of the same room widens the place. Fails while the duck \
@@ -166,7 +167,7 @@ fn catalog_places() -> Vec<Value> {
             }
         }),
         json!({
-            "name": "places.forget_place",
+            "name": "robot.forget_place",
             "description": "Forget a remembered place by name.",
             "parameters": {
                 "type": "object",
@@ -175,20 +176,20 @@ fn catalog_places() -> Vec<Value> {
             }
         }),
         json!({
-            "name": "places.list_places",
+            "name": "robot.list_places",
             "description": "The places the duck knows by name, each with its distance from \
         where the duck is now when that is known. A stale place belongs to a map that was reset \
         since it was taught: it needs teaching again before it can be recognized.",
             "parameters": {"type": "object", "properties": {}}
         }),
         json!({
-            "name": "places.map_status",
+            "name": "robot.map_status",
             "description": "How the duck's map of the house is doing: whether mapping is on, \
         whether the duck trusts its position, how much has been mapped (windows = stops that \
         reached the map, submaps = patches of about 4 m), the free distance ahead/left/right/behind \
         before a known wall (clearance; 'unknown' means unexplored), whether a drop — stairs or a hole, \
         invisible to the map — is in view (cliff), and a hint on what to do next. Use it \
-        when asked about the map, at the start of a mapping tour, and after a few places.map_step \
+        when asked about the map, at the start of a mapping tour, and after a few robot.map_step \
         calls to tell the user how it is going.",
             "parameters": {"type": "object", "properties": {}}
         }),
@@ -198,8 +199,8 @@ fn catalog_places() -> Vec<Value> {
 /// Execute one of [`TOOLS`]. `Err(text)` is the LLM-readable reason.
 fn execute_places(name: &str, args: &Value, places: &mut Places) -> Result<Value, String> {
     match name {
-        "places.where_am_i" => where_am_i(places),
-        "places.remember_place" => {
+        "robot.where_am_i" => where_am_i(places),
+        "robot.remember_place" => {
             let name = require_str(args, "name")?;
             let radius = args.get("radius_m").and_then(Value::as_f64);
             let fix = located(places)?;
@@ -214,7 +215,7 @@ fn execute_places(name: &str, args: &Value, places: &mut Places) -> Result<Value
                 "pose": pose_json(fix.pose),
             }))
         }
-        "places.forget_place" => {
+        "robot.forget_place" => {
             let name = require_str(args, "name")?;
             let forgotten = places
                 .registry
@@ -222,7 +223,7 @@ fn execute_places(name: &str, args: &Value, places: &mut Places) -> Result<Value
                 .map_err(|e| format!("cannot forget `{name}`: {e}"))?;
             Ok(json!({"forgotten": forgotten, "name": name}))
         }
-        "places.list_places" => {
+        "robot.list_places" => {
             let here = located(places).ok().map(|fix| fix.pose);
             let listed: Vec<Value> = places
                 .registry
@@ -243,7 +244,7 @@ fn execute_places(name: &str, args: &Value, places: &mut Places) -> Result<Value
                 .collect();
             Ok(json!({"places": listed, "position_known": here.is_some()}))
         }
-        "places.map_status" => map_status(places),
+        "robot.map_status" => map_status(places),
         other => Err(format!("unknown tool `{other}`")),
     }
 }
@@ -257,7 +258,7 @@ fn map_status(places: &mut Places) -> Result<Value, String> {
     let status = map.snapshot();
     let (enabled, mode) = match &status.support {
         MapSupport::Unsupported => {
-            return Err("this places's software has no map (robotd predates the map API)".into());
+            return Err("this robot's software has no map (robotd predates the map API)".into());
         }
         MapSupport::Supported { enabled, mode } => (*enabled, mode.clone()),
         MapSupport::Unknown => (false, None),
@@ -268,7 +269,7 @@ fn map_status(places: &mut Places) -> Result<Value, String> {
             "hint": if status.latest.is_none() && matches!(status.support, MapSupport::Unknown) {
                 "no answer from robotd yet: it may be down or still starting"
             } else {
-                "mapping is disabled on this places ([maploc] in robotd.toml); nothing can be mapped until it is enabled"
+                "mapping is disabled on this robot ([maploc] in robotd.toml); nothing can be mapped until it is enabled"
             },
         }));
     }
@@ -418,7 +419,7 @@ struct Fix {
 /// Why there is no trusted position right now — the text the agent reads.
 enum NoFix {
     /// The map lane is missing, unsupported, disabled or silent: the
-    /// tool cannot work on this places as configured.
+    /// tool cannot work on this robot as configured.
     Unavailable(String),
     /// The lane works, the mapper just cannot vouch for the pose now.
     Untrusted(String),
@@ -436,12 +437,12 @@ fn locate(places: &mut Places) -> Result<Fix, NoFix> {
     match &status.support {
         MapSupport::Unsupported => {
             return Err(NoFix::Unavailable(
-                "this places's software has no map (robotd predates the map API)".into(),
+                "this robot's software has no map (robotd predates the map API)".into(),
             ));
         }
         MapSupport::Supported { enabled: false, .. } => {
             return Err(NoFix::Unavailable(
-                "mapping is disabled on this places ([maploc] in robotd.toml)".into(),
+                "mapping is disabled on this robot ([maploc] in robotd.toml)".into(),
             ));
         }
         MapSupport::Supported { .. } | MapSupport::Unknown => {}
@@ -580,13 +581,13 @@ mod tests {
                 .unwrap_or_default();
             assert!(!err.starts_with("unknown tool"), "{name}: {err}");
         }
-        assert!(!handles_places("places.move"));
+        assert!(!handles_places("robot.move"));
         assert_eq!(
-            execute_places("places.move", &json!({}), &mut places),
-            Err("unknown tool `places.move`".into())
+            execute_places("robot.move", &json!({}), &mut places),
+            Err("unknown tool `robot.move`".into())
         );
         assert_eq!(
-            execute_places("places.remember_place", &json!({}), &mut places),
+            execute_places("robot.remember_place", &json!({}), &mut places),
             Err("name is required".into())
         );
     }
@@ -594,7 +595,7 @@ mod tests {
     #[test]
     fn map_status_narrates_the_map() {
         let mut places = Places::detached();
-        let err = execute_places("places.map_status", &json!({}), &mut places).unwrap_err();
+        let err = execute_places("robot.map_status", &json!({}), &mut places).unwrap_err();
         assert!(err.contains("no map lane"), "{err}");
 
         let watch = MapWatch::detached();
@@ -604,14 +605,14 @@ mod tests {
             mode: None,
         }));
         places.map = Some(watch);
-        let off = execute_places("places.map_status", &json!({}), &mut places).unwrap();
+        let off = execute_places("robot.map_status", &json!({}), &mut places).unwrap();
         assert_eq!(off["mapping"], false);
         assert!(off["hint"].as_str().unwrap().contains("disabled"));
 
         let mut seated = frame(1, 0.0, 0.0, true, true);
         seated.windows = 0;
         let mut places = mapped(seated);
-        let s = execute_places("places.map_status", &json!({}), &mut places).unwrap();
+        let s = execute_places("robot.map_status", &json!({}), &mut places).unwrap();
         assert_eq!(s["mapping"], true);
         assert_eq!(s["mode"], "stop_and_scan");
         assert!(s["hint"].as_str().unwrap().contains("stand it up"));
@@ -623,7 +624,7 @@ mod tests {
             .as_ref()
             .unwrap()
             .push(MapEvent::Frame(Box::new(nothing)));
-        let s = execute_places("places.map_status", &json!({}), &mut places).unwrap();
+        let s = execute_places("robot.map_status", &json!({}), &mut places).unwrap();
         assert!(s["hint"].as_str().unwrap().contains("six seconds"));
 
         places
@@ -631,7 +632,7 @@ mod tests {
             .as_ref()
             .unwrap()
             .push(MapEvent::Frame(Box::new(frame(3, 0.5, 0.5, true, false))));
-        let s = execute_places("places.map_status", &json!({}), &mut places).unwrap();
+        let s = execute_places("robot.map_status", &json!({}), &mut places).unwrap();
         assert_eq!(s["windows"], 10);
         assert_eq!(s["submaps"], 3);
         assert_eq!(s["cells"]["free"], 0);
@@ -643,17 +644,17 @@ mod tests {
     #[test]
     fn without_a_map_lane_the_tools_say_so() {
         let mut places = Places::detached();
-        let err = execute_places("places.where_am_i", &json!({}), &mut places).unwrap_err();
+        let err = execute_places("robot.where_am_i", &json!({}), &mut places).unwrap_err();
         assert!(err.contains("no map lane"), "{err}");
         let err = execute_places(
-            "places.remember_place",
+            "robot.remember_place",
             &json!({"name": "cucina"}),
             &mut places,
         )
         .unwrap_err();
         assert!(err.contains("no map lane"), "{err}");
         // Listing works regardless: it is the registry, not the map.
-        let listed = execute_places("places.list_places", &json!({}), &mut places).unwrap();
+        let listed = execute_places("robot.list_places", &json!({}), &mut places).unwrap();
         assert_eq!(listed["position_known"], false);
         assert_eq!(listed["places"].as_array().unwrap().len(), 0);
 
@@ -664,20 +665,20 @@ mod tests {
             mode: None,
         }));
         places.map = Some(watch);
-        let err = execute_places("places.where_am_i", &json!({}), &mut places).unwrap_err();
+        let err = execute_places("robot.where_am_i", &json!({}), &mut places).unwrap_err();
         assert!(err.contains("disabled"), "{err}");
     }
 
     #[test]
     fn an_untrusted_pose_is_an_honest_answer_not_an_error() {
         let mut places = mapped(frame(1, 0.0, 0.0, false, false));
-        let answer = execute_places("places.where_am_i", &json!({}), &mut places).unwrap();
+        let answer = execute_places("robot.where_am_i", &json!({}), &mut places).unwrap();
         assert_eq!(answer["known"], false);
         assert!(answer["reason"].as_str().unwrap().contains("not sure"));
         // Teaching, on the other hand, must refuse: a place at a guessed
         // pose would be a lie the registry keeps.
         let err = execute_places(
-            "places.remember_place",
+            "robot.remember_place",
             &json!({"name": "cucina"}),
             &mut places,
         )
@@ -685,7 +686,7 @@ mod tests {
         assert!(err.starts_with("no trusted position"), "{err}");
 
         let mut places = mapped(frame(1, 0.0, 0.0, true, true));
-        let answer = execute_places("places.where_am_i", &json!({}), &mut places).unwrap();
+        let answer = execute_places("robot.where_am_i", &json!({}), &mut places).unwrap();
         assert_eq!(answer["known"], false);
         assert!(answer["reason"].as_str().unwrap().contains("seated"));
     }
@@ -694,7 +695,7 @@ mod tests {
     fn teach_then_recognize_then_walk_away() {
         let mut places = mapped(frame(1, 1.0, 2.0, true, false));
         let taught = execute_places(
-            "places.remember_place",
+            "robot.remember_place",
             &json!({"name": "Cucina", "radius_m": 1.0}),
             &mut places,
         )
@@ -702,7 +703,7 @@ mod tests {
         assert_eq!(taught["remembered"], "Cucina");
         assert_eq!(taught["pose"]["x"], 1.0);
 
-        let here = execute_places("places.where_am_i", &json!({}), &mut places).unwrap();
+        let here = execute_places("robot.where_am_i", &json!({}), &mut places).unwrap();
         assert_eq!(here["known"], true);
         assert_eq!(here["place"], "Cucina");
         assert_eq!(here["at_place"], true);
@@ -715,23 +716,23 @@ mod tests {
             .as_ref()
             .unwrap()
             .push(MapEvent::Frame(Box::new(frame(2, 4.0, 2.0, true, false))));
-        let there = execute_places("places.where_am_i", &json!({}), &mut places).unwrap();
+        let there = execute_places("robot.where_am_i", &json!({}), &mut places).unwrap();
         assert_eq!(there["place"], "Cucina");
         assert_eq!(there["at_place"], false);
         assert_eq!(there["distance_m"], 3.0);
 
-        let listed = execute_places("places.list_places", &json!({}), &mut places).unwrap();
+        let listed = execute_places("robot.list_places", &json!({}), &mut places).unwrap();
         assert_eq!(listed["places"][0]["distance_m"], 3.0);
         assert_eq!(listed["places"][0]["stale"], false);
 
         let gone = execute_places(
-            "places.forget_place",
+            "robot.forget_place",
             &json!({"name": "cucina"}),
             &mut places,
         )
         .unwrap();
         assert_eq!(gone["forgotten"], true);
-        let here = execute_places("places.where_am_i", &json!({}), &mut places).unwrap();
+        let here = execute_places("robot.where_am_i", &json!({}), &mut places).unwrap();
         assert_eq!(here["known"], true);
         assert!(here["place"].is_null());
     }
@@ -740,7 +741,7 @@ mod tests {
     fn a_map_reset_turns_places_stale() {
         let mut places = mapped(frame(1, 0.0, 0.0, true, false));
         execute_places(
-            "places.remember_place",
+            "robot.remember_place",
             &json!({"name": "studio"}),
             &mut places,
         )
@@ -754,17 +755,16 @@ mod tests {
             .as_ref()
             .unwrap()
             .push(MapEvent::Frame(Box::new(wiped)));
-        let here = execute_places("places.where_am_i", &json!({}), &mut places).unwrap();
+        let here = execute_places("robot.where_am_i", &json!({}), &mut places).unwrap();
         assert_eq!(here["known"], true);
         assert!(here["place"].is_null(), "a stale place never matches");
         assert_eq!(here["stale_places"], 1);
         assert_eq!(here["places_known"], 0);
-        let listed = execute_places("places.list_places", &json!({}), &mut places).unwrap();
+        let listed = execute_places("robot.list_places", &json!({}), &mut places).unwrap();
         assert_eq!(listed["places"][0]["stale"], true);
         assert!(listed["places"][0]["distance_m"].is_null());
     }
 }
-
 
 // ---- the navigation's own tools (split from quacksat's tools.rs, 2026-09-22) ----
 
@@ -889,6 +889,7 @@ pub fn handles(name: &str) -> bool {
     handles_places(name)
         || matches!(
             name,
+            "nav.take_question"|
             "robot.map_step"
                 | "robot.map_explore"
                 | "robot.go_to"
@@ -905,9 +906,29 @@ pub fn handles(name: &str) -> bool {
 /// Execute one navigation tool.
 pub fn execute(name: &str, args: &Value, robot: &mut Robot) -> Result<Value, String> {
     if handles_places(name) {
-        return execute_places(name, args, &mut robot.places);
+        let mut result = execute_places(name, args, &mut robot.places)?;
+        // The map's numbers carry the explore job's state: what the
+        // caller polls to know whether the duck is still walking.
+        if name == "robot.map_status"
+            && let Some(map) = result.as_object_mut()
+        {
+            map.insert("explore".into(), robot.places.explore.status().to_json());
+        }
+        return Ok(result);
     }
     match name {
+        // The explorer's "where are we?", handed to whoever can speak:
+        // the satellite polls this and puts the answer on the record
+        // with `robot.remember_place` (the split of 2026-09-22 — the
+        // question is raised here, the voice is over there).
+        "nav.take_question" => Ok(match robot.places.explore.take_question() {
+            Some(q) => json!({
+                "asking": true,
+                "phrase": robot.places.map_config.ask_phrase,
+                "pose": {"x": round2(q.pose.0), "y": round2(q.pose.1), "yaw": round2(q.pose.2)},
+            }),
+            None => json!({"asking": false}),
+        }),
         "robot.map_step" => map_step(robot, args),
         "robot.map_explore" => map_explore(robot, args),
         "robot.go_to" => go_to(robot, args),

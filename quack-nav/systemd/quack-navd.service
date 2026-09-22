@@ -1,0 +1,57 @@
+[Unit]
+Description=quack-navd — the Microduck's navigation daemon
+# After, not Requires/BindsTo: a down robotd must not keep the daemon
+# from starting and retrying — it reconnects in-process, and a tool says
+# so meanwhile (the padd pattern, ADR 0003).
+After=robotd.service local-fs.target
+Wants=robotd.service
+
+[Service]
+Type=exec
+ExecStart=/usr/local/bin/quack-navd /etc/robot/quack-nav.toml
+Restart=always
+RestartSec=5s
+Environment=RUST_LOG=info
+StandardOutput=journal
+StandardError=journal
+
+# Unprivileged (padd pattern): `robot` reaches robotd's 0660 socket and
+# tofd's. No audio: this daemon has nothing to say.
+User=quacknav
+Group=quacknav
+SupplementaryGroups=robot
+RuntimeDirectory=quack-nav
+StateDirectory=quack-nav
+
+# Resource fence: the navigation must never cost robotd its 50 Hz loop.
+# It walks the duck, so it is not niced as hard as the satellite — but
+# the control loop still wins every contest for a core.
+# Nice matches robotd's own mapping worker (the loop wins every contest
+# for a core); CPUWeight halves our share under contention; the memory
+# caps are a first guess for a 1 GB board (wake-word runtime plus audio
+# buffers should sit well under 128 MB) — to be measured on hardware.
+Nice=5
+CPUWeight=70
+MemoryHigh=256M
+MemoryMax=320M
+
+# Hardening block copied from padd.service; AF_INET/AF_INET6 added for the
+# network backends. No MemoryDenyWriteExecute: the wake-word ML runtime may
+# need executable mappings. Not PrivateDevices: ALSA needs /dev/snd.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
+LockPersonality=yes
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+CapabilityBoundingSet=
+
+[Install]
+WantedBy=multi-user.target
