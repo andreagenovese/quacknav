@@ -205,6 +205,10 @@ mod tests {
             odom: proto::OdomState::default(),
             theremin: None,
             chorale: None,
+            t_ns: 0,
+            imu: None,
+            frames: None,
+            skeleton: Vec::new(),
         }
     }
 

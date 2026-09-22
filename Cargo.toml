@@ -16,10 +16,10 @@ authors = ["Andrea Genovese <info@rstonline.it>"]
 
 [workspace.dependencies]
 # Pinned to the release running on the board; bump deliberately.
-duck-ipc-proto = { git = "https://github.com/pollen-robotics/microduck.git", tag = "daemon-v0.10.0" }
+duck-ipc-proto = { git = "https://github.com/pollen-robotics/microduck.git", tag = "daemon-v0.14.4" }
 # Pollen's head geometry (pure Rust, MJCF embedded): the cliff guard reprojects
 # depth frames exactly as robotd does. Same tag as the proto crate.
-kinematics = { git = "https://github.com/pollen-robotics/microduck.git", tag = "daemon-v0.10.0" }
+kinematics = { git = "https://github.com/pollen-robotics/microduck.git", tag = "daemon-v0.14.4" }
 quack-duck = { path = "quack-duck" }
 anyhow = "1"
 serde = { version = "1", features = ["derive"] }

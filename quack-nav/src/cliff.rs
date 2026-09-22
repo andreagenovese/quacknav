@@ -697,6 +697,7 @@ mod tests {
         proto::TofFrame {
             seq: 1,
             at_us: 0,
+            t_ns: 0,
             rows: ROWS as u8,
             cols: COLS as u8,
             distance_mm,
@@ -831,6 +832,7 @@ mod tests {
         let frame = proto::TofFrame {
             seq: 1,
             at_us: 0,
+            t_ns: 0,
             rows: 4,
             cols: 4,
             distance_mm: vec![500; 16],
