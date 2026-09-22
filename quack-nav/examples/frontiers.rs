@@ -1,6 +1,6 @@
 //! Explain the frontier finder on a saved `map.frame`.
 //!
-//!     cargo run -p quack-places --example frontiers -- <frame.json> [x,y,r ...]
+//!     cargo run -p quack-nav --example frontiers -- <frame.json> [x,y,r ...]
 //!
 //! Extra `x,y,r` arguments are local obstacles (world metres, radius) the
 //! planner must keep clear of, as the explore job records them.

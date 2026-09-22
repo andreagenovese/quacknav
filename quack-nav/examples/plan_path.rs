@@ -1,6 +1,6 @@
 //! The route `go_to` would take, printed as JSON — for drawing it.
 //!
-//!     cargo run -p quack-places --example plan_path -- <frame.json> <x> <y> <goal_x> <goal_y>
+//!     cargo run -p quack-nav --example plan_path -- <frame.json> <x> <y> <goal_x> <goal_y>
 
 use quack_nav::frontier::{INFLATE_M, path_to};
 use quack_nav::map::MapFrame;

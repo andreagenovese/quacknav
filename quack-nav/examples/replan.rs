@@ -1,7 +1,7 @@
 //! Replan on a saved `map.frame` from a given pose, with the explore
 //! job's books and its walked trail, with and without the lanes.
 //!
-//!     cargo run -p quack-places --example replan -- <frame.json> <x> <y> <local.json> <trail.json> [inflate_m]
+//!     cargo run -p quack-nav --example replan -- <frame.json> <x> <y> <local.json> <trail.json> [inflate_m]
 //!
 //! `local.json` is `[[[x, y], r], ...]` (the books, drops with r ≥ 0.10
 //! mapped to the planner radius 0.12 as the job does), `trail.json` is

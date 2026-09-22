@@ -2,7 +2,7 @@
 //! `robot.map` client, for checking a robot (or the MuJoCo twin) before
 //! any backend is involved.
 //!
-//!     cargo run -p quack-places --example map_watch -- [socket] [frames]
+//!     cargo run -p quack-nav --example map_watch -- [socket] [frames]
 //!
 //! Defaults: `/run/robotd.sock`, 5 frames. Prints one line per frame and,
 //! after the last one, the grid as text (`#` wall, `.` free, space unknown,
