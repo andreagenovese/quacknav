@@ -25,16 +25,16 @@ export MICRODUCK_RL=~/src/microduck_rl    # con la sua .venv
 export POLICY_DIR=~/policies              # il set alpha: alpha_walking.onnx, alpha_stand.onnx,
                                           # alpha_sitstand.onnx, alpha_ground_pick.onnx,
                                           # ball_kick_left.onnx, ball_kick_right.onnx, roulade.onnx
-export VIEWER_DIR=...                     # facoltativo: body_with_map.py + maploc_overlay.py
 ```
 
 I numeri qui sono stati misurati con il set alpha; Pollen pubblica le
 policy di serie sull'Hub di Hugging Face.
 
-`VIEWER_DIR` disegna nel viewer la mappa, la rotta, i raggi del sensore
-di profondità e la corsia della guardia (la `sim-maploc/` del fork di
-robotd, con il supporto a `QUACK_NAV_SOCKET`). Senza, gira il body server
-semplice e il viewer mostra solo l'anatra.
+Il viewer disegna la mappa, la rotta, i raggi del sensore di profondità
+e la corsia della guardia (`viewer/`: l'overlay `sim-maploc` della PR 202,
+di Peter Schade, con le aggiunte del fork e `QUACK_NAV_SOCKET`);
+`VIEWER=off` fa girare il body server semplice e mostra solo l'anatra,
+`VIEWER_DIR` punta a un'altra copia.
 
 ## Farlo girare
 

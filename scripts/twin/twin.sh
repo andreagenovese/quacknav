@@ -13,9 +13,10 @@
 #   POLICY_DIR    alpha_walking.onnx, alpha_stand.onnx, alpha_sitstand.onnx,
 #                 alpha_ground_pick.onnx, ball_kick_left/right.onnx, roulade.onnx
 # Optional:
-#   VIEWER_DIR    a directory with body_with_map.py and maploc_overlay.py (the
-#                 map, the route, the ToF rays drawn in the viewer); without
-#                 it the plain body server runs and the viewer shows the duck
+#   VIEWER        on (default): the viewer draws the map, the route, the ToF
+#                 rays and the guard's lane (scripts/twin/viewer); off: the
+#                 plain body server, the duck alone
+#   VIEWER_DIR    another body_with_map.py + maploc_overlay.py to use instead
 #   STATE         runtime directory (default /tmp/quack-twin)
 #   PORT          the simulator's port (default 7872)
 #   MAPLOC_MODE   stop_and_scan (default) or localize
@@ -92,7 +93,8 @@ record_dir = "$STATE/rec"
 socket = "$STATE/map.sock"
 TOML
   scene=$MICRODUCK_RL/src/mjlab_microduck/robot/microduck/scene_apartment.xml
-  if [ -n "${VIEWER_DIR:-}" ]; then
+  VIEWER_DIR=${VIEWER_DIR:-$HERE/viewer}
+  if [ "${VIEWER:-on}" = on ]; then
     # The overlay reads the map on quack-navd's map socket (robotd's own
     # dialect) and the plan, the rays and the guard's lane from
     # quack-navd's robot.map_status; both come up later, and both retry.
