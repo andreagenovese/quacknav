@@ -143,7 +143,13 @@ pub struct Host {
     mode: MaplocMode,
     /// Where rendered maps go.
     pub subscribers: Subscribers,
+    /// Whether the navigation is driving the body right now — the head is
+    /// the sweep's only then (see [`sweep`]). Set by the host once the
+    /// explore job exists ([`Host::set_driving`]); nothing drives before.
+    driving: Arc<Mutex<Option<DrivingProbe>>>,
 }
+
+type DrivingProbe = Arc<dyn Fn() -> bool + Send + Sync>;
 
 impl Host {
     /// Feed one `robot.state` tick. Never blocks: a full channel drops the
@@ -256,6 +262,17 @@ impl Host {
     pub fn mode(&self) -> MaplocMode {
         self.mode
     }
+
+    /// Tell the sweep how to know that the navigation drives the body (an
+    /// explore job, a journey, the homecoming's exploring).
+    pub fn set_driving(&self, probe: impl Fn() -> bool + Send + Sync + 'static) {
+        *self.driving.lock().expect("driving probe poisoned") = Some(Arc::new(probe));
+    }
+
+    pub fn driving(&self) -> bool {
+        let probe = self.driving.lock().expect("driving probe poisoned").clone();
+        probe.is_some_and(|p| p())
+    }
 }
 
 /// Start the worker, its two feeds and the head sweep. The server is the
@@ -266,7 +283,14 @@ pub fn spawn(config: &MaplocConfig, robotd_socket: &str, tof_socket: &str) -> Ho
     let maps = Arc::new(maps_dir(&map_path));
     let searching = Arc::new(AtomicBool::new(false));
     let subscribers = Subscribers::default();
-    let host = Host { tx, searching: searching.clone(), maps, mode: config.mode, subscribers: subscribers.clone() };
+    let host = Host {
+        tx,
+        searching: searching.clone(),
+        maps,
+        mode: config.mode,
+        subscribers: subscribers.clone(),
+        driving: Arc::default(),
+    };
 
     let worker_config = config.clone();
     std::thread::Builder::new()

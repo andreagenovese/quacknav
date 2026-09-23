@@ -37,6 +37,9 @@ pub struct Body {
     pub fallen: bool,
     /// The step label, `robot.state.policy`.
     pub policy: String,
+    /// The head as commanded (`robot.state.head`, robotd's slewed slot):
+    /// whoever wrote it last, the sweep or somebody else.
+    pub commanded_head: [f64; 4],
     pub at: Instant,
 }
 
@@ -92,6 +95,7 @@ struct Tick {
     joints: Vec<f64>,
     safety: Safety,
     policy: String,
+    head: [f64; 4],
     imu: Option<serde_json::Value>,
 }
 
@@ -192,6 +196,7 @@ fn state_lane(path: &str, host: &Host, body: &SharedBody, said: &mut bool) -> an
             sitting: sample.sitting,
             fallen: sample.fallen,
             policy: tick.policy,
+            commanded_head: tick.head,
             at: Instant::now(),
         });
         host.observe(sample);

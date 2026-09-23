@@ -31,10 +31,12 @@ fn main() -> anyhow::Result<()> {
     // The mapper, when this daemon hosts it (`[maploc]`): the released robotd
     // publishes what it needs, and the rest of the navigation reads the map
     // on the socket it serves, in robotd's own dialect.
-    if config.maploc.enabled {
-        let host = quack_nav::mapd::spawn(&config.maploc, &config.robotd_socket, &config.map.tof_socket);
+    let mapper = config.maploc.enabled.then(|| {
+        quack_nav::mapd::spawn(&config.maploc, &config.robotd_socket, &config.map.tof_socket)
+    });
+    if let Some(host) = &mapper {
         quack_nav::mapd::server::serve(host.clone(), &config.maploc.socket)?;
-        save_on_signal(host, config.maploc.socket.clone(), config.socket.clone())?;
+        save_on_signal(host.clone(), config.maploc.socket.clone(), config.socket.clone())?;
     }
     let robot = Arc::new(Mutex::new(Robot::connect(
         &config.map,
@@ -42,6 +44,11 @@ fn main() -> anyhow::Result<()> {
         config.map_socket(),
         config.gait.clone(),
     )));
+    // The head sweep is the navigation's only while the navigation drives.
+    if let Some(host) = &mapper {
+        let explore = robot.lock().expect("robot poisoned").places.explore.clone();
+        host.set_driving(move || explore.running());
+    }
 
     // Waking up in a house the duck has mapped before: the daemon's own
     // business now, not the satellite's.
