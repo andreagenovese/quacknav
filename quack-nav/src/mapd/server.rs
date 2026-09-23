@@ -25,6 +25,7 @@ const BAD_NAME: &str = "a map name is 1 to 64 letters, digits, '-' or '_'";
 pub fn serve(host: Host, path: &str) -> anyhow::Result<()> {
     let _ = std::fs::remove_file(path);
     let listener = UnixListener::bind(path)?;
+    crate::sockets::share(path)?;
     tracing::info!(socket = path, mode = host.mode().as_str(), "maploc: serving the map");
     std::thread::Builder::new()
         .name("maploc-serve".into())

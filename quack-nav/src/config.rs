@@ -227,7 +227,7 @@ impl NavdConfig {
 impl Default for NavdConfig {
     fn default() -> Self {
         Self {
-            socket: "/run/quack-nav.sock".into(),
+            socket: "/run/quack-nav/nav.sock".into(),
             robotd_socket: "/run/robotd.sock".into(),
             map: MapConfig::default(),
             gait: quack_duck::gait::GaitConfig::default(),

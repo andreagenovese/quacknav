@@ -26,10 +26,10 @@ satellite vocale, un agente, un bridge ROS, uno script.
 
 ```sh
 # il catalogo che annuncia
-printf '{"jsonrpc":"2.0","id":1,"method":"nav.catalog","params":{}}\n' | nc -U /run/quack-nav.sock
+printf '{"jsonrpc":"2.0","id":1,"method":"nav.catalog","params":{}}\n' | nc -U /run/quack-nav/nav.sock
 
 # dove sono?
-printf '{"jsonrpc":"2.0","id":2,"method":"nav.call","params":{"name":"robot.where_am_i","args":{}}}\n' | nc -U /run/quack-nav.sock
+printf '{"jsonrpc":"2.0","id":2,"method":"nav.call","params":{"name":"robot.where_am_i","args":{}}}\n' | nc -U /run/quack-nav/nav.sock
 
 # mappa la casa, poi vai in cucina
 … {"name":"robot.map_explore","args":{}}
@@ -97,7 +97,7 @@ target/release/quack-navd /etc/robot/quack-nav.toml
 ```
 
 ```toml
-socket = "/run/quack-nav.sock"
+socket = "/run/quack-nav/nav.sock"
 robotd_socket = "/run/robotd.sock"
 
 [map]

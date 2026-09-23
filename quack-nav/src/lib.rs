@@ -38,6 +38,7 @@ pub mod map;
 pub mod mapd;
 pub mod passage;
 pub mod places;
+pub mod sockets;
 pub mod tools;
 
 pub use cliff::CliffWatch;

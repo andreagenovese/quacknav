@@ -51,6 +51,7 @@ fn main() -> anyhow::Result<()> {
 
     let _ = std::fs::remove_file(&config.socket);
     let listener = UnixListener::bind(&config.socket)?;
+    quack_nav::sockets::share(&config.socket)?;
     tracing::info!(socket = %config.socket, "listening");
     for stream in listener.incoming() {
         match stream {

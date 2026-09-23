@@ -20,6 +20,10 @@ StandardError=journal
 User=quacknav
 Group=quacknav
 SupplementaryGroups=robot
+# /run/quack-nav/nav.sock and map.sock: under ProtectSystem=strict this is
+# the one place in /run the daemon may create a file. It hands both to the
+# `robot` group at 0660, as robotd and tofd do theirs, so quacksat (or any
+# caller in `robot`) can connect.
 RuntimeDirectory=quack-nav
 StateDirectory=quack-nav
 
