@@ -10,6 +10,8 @@ The `maploc` crate is derived from Pollen Robotics' `maploc`
 Apache-2.0), with modifications by Andrea Genovese: the Localize mode, the
 map library, the boot search and the corrections recorded in
 docs/study/upstream-asks.md; `maploc/src/flat.rs` adapts a function of the
-same repository's `kinematics` crate.
+same repository's `kinematics` crate. `scripts/twin/scan_walk.py` is
+Peter Schade's route from the same repository's pull request 202
+(Apache-2.0), with its sockets made arguments.
 
 Licensed under the Apache License, Version 2.0.
