@@ -1,8 +1,8 @@
 //! The paper twin: the explorer, run against a kinematic model of the duck
 //! in the apartment's boxes, thousands of times an hour.
 //!
-//!     cargo run --release -p quacksat-core --example paper_twin -- \
-//!         quacksat-core/examples/apartment.world.json OUT_DIR [--seed N] \
+//!     cargo run --release -p quack-nav --example paper_twin -- \
+//!         quack-nav/examples/apartment.world.json OUT_DIR [--seed N] \
 //!         [--budget S] [--noise M] [--kidnap P] [--runs K]
 //!         [--goto X,Y [--books] [--known]] [--bias DX,DY]
 //!

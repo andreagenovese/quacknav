@@ -149,6 +149,7 @@ impl Job {
                 .and_then(|c| c.odom_yaw)
                 .or_else(|| robot.frame().map(|f| f.yaw))
         };
+        let mut stuck = 0;
         for _ in 0..PANO_STEPS {
             // A panorama is a minute and a half of standing and turning,
             // and it used to see a stop request only when it was over: a
@@ -166,12 +167,28 @@ impl Job {
             // spins about 30°/s for 15 cm of drift. On the twin the spin
             // goes left whatever the sign; the sign is kept for a duck
             // that honours it.
-            if robot
-                .step(&json!({"vx": 0.3, "vyaw": PANO_SPIN, "walk_s": PANO_KICK_S, "stop_s": 0.0}))
-                .is_err()
-            {
-                // Nothing to kick into: spin from where it stands anyway.
+            if let Err(why) = robot.step(&json!({"vx": 0.3, "vyaw": PANO_SPIN, "walk_s": PANO_KICK_S, "stop_s": 0.0})) {
+                // A refused kick used to fall through to the yaw alone,
+                // which does not turn this gait: the beak stayed on the
+                // drop that refused it, and every step after was refused
+                // the same way — four steps of 6.9 s turning 4° in all at
+                // the start of a run on the twin (2026-09-23, a drop
+                // 0.65 m ahead of the spawn; the night before the same
+                // steps had happened to face elsewhere). The careful turn
+                // knows the ways round a refused kick; two steps in a row
+                // that still do not turn end the panorama here.
+                tracing::info!(why, "map explore: panorama kick refused; the careful turn instead");
+                self.spin(robot, PANO_SPIN.signum(), PANO_STEP_RAD);
+                let turned = yaw_now(robot).is_some_and(|y| wrap(y - yaw0).abs() >= PANO_STEP_RAD - PANO_LEAD_RAD);
+                stuck = if turned { 0 } else { stuck + 1 };
+                if stuck >= 2 {
+                    tracing::info!("map explore: the panorama cannot turn here; ending it");
+                    return;
+                }
+                let _ = stand(robot, PANO_STAND_S);
+                continue;
             }
+            stuck = 0;
             let started = robot.now();
             // Stop early by what the gait keeps turning after the command
             // ends (about 20° at this rate, measured: 45° steps came out
