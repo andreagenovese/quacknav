@@ -1,6 +1,6 @@
 # ADR 0005: Mapping and localization — consume robotd's maploc
 
-- Status: accepted
+- Status: accepted; amended by ADR 0007 (2026-09-23: the mapper is hosted in quack-navd against the released robotd)
 - Date: 2026-09-04
 - Inputs: `docs/todo-map.md` (2026-08-31 version, now superseded),
   upstream PR 127 "Maploc: mapping & localization as a robotd-hosted
