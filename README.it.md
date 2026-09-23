@@ -102,19 +102,36 @@ robotd_socket = "/run/robotd.sock"
 
 [map]
 enabled = true
-tof_socket = "/run/tofd.sock"
+tof_socket = "/run/tofd/tof.sock"
 places_path = "/var/lib/quack-nav/places.json"
 
 [homecoming]
 enabled = true          # riconosce la casa all'avvio e si riprende la sua mappa
+
+[maploc]
+enabled = true          # ospita qui il mapper, con il robotd ufficiale
+mode = "stop_and_scan"  # oppure "localize" quando la casa è mappata
+map_path = "/var/lib/quack-nav/maploc.session"
 ```
+
+Con `[maploc]` acceso, `quack-navd` fa girare da sé il `maploc` di Pollen
+(il crate `maploc` di questo workspace): legge `robot.state` e lo stream
+di profondità di tofd, muove la testa a ogni sosta e serve la mappa su
+`/run/quack-nav/map.sock` nel dialetto `robot.map*` di robotd. In robotd
+non cambia niente — la daemon-v0.14.4 pubblica tutto ciò che serve al
+mapper. Spento, la mappa arriva da un robotd che ospita maploc da sé.
 
 `quack-nav/systemd/quack-navd.service` e `quack-nav/systemd/sysusers.d/`
 lo installano come servizio non privilegiato accanto a robotd.
 
 ## Stato
 
-Misurato sul gemello MuJoCo (`microduck_rl` + robotd con maploc); la
-papera fisica arriva a dicembre 2026. Il maploc upstream che consuma è
-la PR 127, ancora aperta: finché non entra, a rispondere a `robot.map`
-è un robotd costruito da quel branch.
+Misurato sul gemello MuJoCo (`microduck_rl` + robotd); la papera fisica
+arriva a dicembre 2026. Due modi di farlo girare:
+
+- **robotd ufficiale** (daemon-v0.14.4) con `[maploc] enabled`: il
+  mapper sta in `quack-navd`. Sul gemello, 2026-09-23: esplora, riconosce
+  la casa salvata all'avvio (78 s), va in cucina (37 s).
+- **Un robotd che ospita maploc** — la PR 127 upstream, ancora aperta,
+  più la libreria di mappe di `docs/study/upstream-asks.md` §5, che vive su
+  un fork di `pollen-robotics/microduck` — con `[maploc]` spento.

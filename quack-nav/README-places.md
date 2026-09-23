@@ -31,6 +31,7 @@ hosts it on a socket of its own.
 | `passage` | threading a narrow passage: two side boundaries and the steering that keeps the body between them |
 | `explore` | the jobs that drive: map a house, walk to a goal on a map already made, and the rules that keep a leg off the stairs |
 | `homecoming` | waking up in a house the duck has mapped before: load the newest saved map, confirm the pose, or explore and ask again |
+| `mapd` | the mapper itself, when robotd does not host it: `maploc` fed from `robot.state` and tofd's stream, the head panned at stops, the map and its library served in robotd's `robot.map*` dialect on a socket of its own (`[maploc]`) |
 | `config` | the `[map]` section (`enabled`, `places_path`, `cliff_guard`, `tof_socket`, `explore_max_s`, `ask_phrase`, `explore_turn`), `[homecoming]`, and the daemon's own file (`NavdConfig`) |
 
 Wire shape pinned to upstream API v17 (`MAP_API_VERSION`); the types are
@@ -43,7 +44,7 @@ The usual way is the daemon: `quack-navd` answers `nav.catalog` and
 In process, the same crate:
 
 ```rust
-let mut robot = quack_nav::tools::Robot::connect(&config.map, &config.robotd_socket, config.gait.clone());
+let mut robot = quack_nav::tools::Robot::connect(&config.map, &config.robotd_socket, config.map_socket(), config.gait.clone());
 // splice the catalog into your own …
 let mut tools = my_tools();
 tools.extend(quack_nav::tools::catalog());
@@ -62,7 +63,8 @@ A name is matched without regard to case, never translated: `cucina`
 and `kitchen` are two places. A model that hosts the tools may translate
 on its own (qwen3:8b taught `kitchen` when told "questa è la cucina",
 and asked for `kitchen` again on "vieni in cucina", on the twin,
-2026-09-22) — consistent, but its choice, not the registry's.
+2026-09-22; the next morning it kept `cucina` both ways) — its choice,
+and not always the same one, never the registry's.
 
 ## Watching a robot
 

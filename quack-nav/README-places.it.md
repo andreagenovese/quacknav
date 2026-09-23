@@ -31,6 +31,7 @@ dalla lane del robot (`quack-duck`) e da serde, nient'altro, e
 | `passage` | infilare un passaggio stretto: due confini laterali e la sterzata che tiene il corpo fra loro |
 | `explore` | i lavori che guidano: mappare una casa, camminare verso una meta su una mappa già fatta, e le regole che tengono una gamba lontana dalle scale |
 | `homecoming` | svegliarsi in una casa già mappata: caricare l'ultima mappa salvata, confermare la posa, oppure esplorare e richiedere |
+| `mapd` | il mapper stesso, quando robotd non lo ospita: `maploc` alimentato da `robot.state` e dallo stream di tofd, la testa che scandisce a ogni sosta, la mappa e la sua libreria servite nel dialetto `robot.map*` di robotd su un socket suo (`[maploc]`) |
 | `config` | la sezione `[map]` (`enabled`, `places_path`, `cliff_guard`, `tof_socket`, `explore_max_s`, `ask_phrase`, `explore_turn`), `[homecoming]`, e il file del demone (`NavdConfig`) |
 
 Forma del filo fissata all'API upstream v17 (`MAP_API_VERSION`); i tipi
@@ -45,7 +46,7 @@ Di solito lo si usa attraverso il demone: `quack-navd` risponde a
 stesso crate:
 
 ```rust
-let mut robot = quack_nav::tools::Robot::connect(&config.map, &config.robotd_socket, config.gait.clone());
+let mut robot = quack_nav::tools::Robot::connect(&config.map, &config.robotd_socket, config.map_socket(), config.gait.clone());
 // innesta il catalogo nel tuo …
 let mut tools = my_tools();
 tools.extend(quack_nav::tools::catalog());
@@ -65,8 +66,9 @@ Un nome si confronta senza badare alle maiuscole, mai tradotto:
 `cucina` e `kitchen` sono due luoghi. Un modello che ospita gli
 strumenti può tradurre di suo (qwen3:8b ha insegnato `kitchen` a
 "questa è la cucina", e ha chiesto di nuovo `kitchen` a "vieni in
-cucina", sul gemello, 2026-09-22) — coerente, ma è una scelta sua, non
-del registro.
+cucina", sul gemello, 2026-09-22; la mattina dopo ha tenuto `cucina`
+in tutti e due i casi) — una scelta sua, e non sempre la stessa, mai del
+registro.
 
 ## Guardare un robot
 

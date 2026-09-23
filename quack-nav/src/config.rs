@@ -195,7 +195,7 @@ impl Default for MaplocConfig {
             wipe_on_boot: false,
             search_sweep: true,
             record_dir: None,
-            socket: "/run/quack-nav-map.sock".into(),
+            socket: "/run/quack-nav/map.sock".into(),
         }
     }
 }
