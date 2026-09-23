@@ -24,6 +24,8 @@ quack-duck.workspace = true
 serde.workspace = true
 # quack-navd saves the mapping session on SIGTERM (src/bin/quack-navd.rs).
 signal-hook = "0.3"
+# The maploc worker renices its own thread (src/mapd/mod.rs), Linux only.
+libc = "0.2"
 serde_json.workspace = true
 toml.workspace = true
 tracing.workspace = true

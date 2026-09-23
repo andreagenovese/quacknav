@@ -211,6 +211,7 @@ dependencies = [
  "anyhow",
  "duck-ipc-proto",
  "kinematics",
+ "libc",
  "maploc",
  "quack-duck",
  "serde",

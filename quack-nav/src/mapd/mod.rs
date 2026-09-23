@@ -295,7 +295,10 @@ pub fn spawn(config: &MaplocConfig, robotd_socket: &str, tof_socket: &str) -> Ho
     let worker_config = config.clone();
     std::thread::Builder::new()
         .name("maploc".into())
-        .spawn(move || worker(&worker_config, rx, &subscribers, &searching))
+        .spawn(move || {
+            lower_this_thread(WORKER_NICE_STEP);
+            worker(&worker_config, rx, &subscribers, &searching)
+        })
         .expect("spawning the maploc thread cannot fail");
 
     let body = feed::spawn(host.clone(), robotd_socket.to_owned(), tof_socket.to_owned());
@@ -303,6 +306,32 @@ pub fn spawn(config: &MaplocConfig, robotd_socket: &str, tof_socket: &str) -> Ho
         sweep::spawn(host.clone(), body, robotd_socket.to_owned());
     }
     host
+}
+
+/// How far below the rest of the daemon the mapper runs. robotd's loop is
+/// at nice 0 and quack-navd's unit puts the daemon at 5; the fork ran this
+/// worker inside robotd at 10, so a relocalize search or a `map_match` —
+/// seconds of a full core — weighed a tenth of the control loop when the
+/// board's four cores were all busy. Here too: 5 + 5. The explorer, the
+/// guard and the feeds stay at the daemon's own level, the explorer
+/// because it steers, the feeds because they only read and hand on.
+const WORKER_NICE_STEP: i32 = 5;
+
+/// Lower the calling thread's priority by `step`. Linux only: there
+/// `setpriority(PRIO_PROCESS, 0)` means the calling thread, elsewhere the
+/// whole process, which would slow the explorer with it.
+fn lower_this_thread(step: i32) {
+    #[cfg(target_os = "linux")]
+    // SAFETY: plain syscalls on the calling thread; a failure leaves the
+    // priority as it was, which is only less polite.
+    unsafe {
+        let now = libc::getpriority(libc::PRIO_PROCESS, 0);
+        if libc::setpriority(libc::PRIO_PROCESS, 0, now + step) != 0 {
+            tracing::debug!("maploc: the worker could not lower its priority");
+        }
+    }
+    #[cfg(not(target_os = "linux"))]
+    let _ = step;
 }
 
 /// The map library lives beside the working session, so an installation
@@ -997,6 +1026,22 @@ mod tests {
             sitting: false,
             fallen: false,
         }
+    }
+
+    /// The renice is the worker's alone: the thread that asked is lower,
+    /// the rest of the daemon is where it was.
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn only_the_worker_thread_is_lowered() {
+        let before = unsafe { libc::getpriority(libc::PRIO_PROCESS, 0) };
+        let inside = std::thread::spawn(|| {
+            lower_this_thread(WORKER_NICE_STEP);
+            unsafe { libc::getpriority(libc::PRIO_PROCESS, 0) }
+        })
+        .join()
+        .unwrap();
+        assert_eq!(inside, before + WORKER_NICE_STEP);
+        assert_eq!(unsafe { libc::getpriority(libc::PRIO_PROCESS, 0) }, before);
     }
 
     #[test]

@@ -28,20 +28,22 @@ RuntimeDirectory=quack-nav
 StateDirectory=quack-nav
 
 # Resource fence: the navigation must never cost robotd its 50 Hz loop.
-# It walks the duck, so it is not niced as hard as the satellite — but
-# the control loop still wins every contest for a core.
-# Nice matches robotd's own mapping worker (the loop wins every contest
-# for a core); CPUWeight halves our share under contention; the memory
-# caps are a first guess for a 1 GB board (wake-word runtime plus audio
-# buffers should sit well under 128 MB) — to be measured on hardware.
+# robotd runs at nice 0 with no real-time class (daemon-v0.14.4). This
+# daemon walks the duck, so it sits at 5, not lower — the explorer steers
+# and the cliff guard must answer in time — and the maploc worker lowers
+# its own thread by 5 more (src/mapd/mod.rs), nice 10, where the fork ran
+# it inside robotd: a relocalize search or a map_match is seconds of a
+# full core. CPUWeight 70 (of 100) trims our share under contention. Memory: ~20 MB
+# resident after four minutes of mapping on the twin (2026-09-23); the
+# caps leave room for a house many times that and for map_match, which
+# renders every saved map.
 Nice=5
 CPUWeight=70
 MemoryHigh=256M
 MemoryMax=320M
 
-# Hardening block copied from padd.service; AF_INET/AF_INET6 added for the
-# network backends. No MemoryDenyWriteExecute: the wake-word ML runtime may
-# need executable mappings. Not PrivateDevices: ALSA needs /dev/snd.
+# Hardening block copied from padd.service. Unix sockets only: robotd,
+# tofd, and the callers of this daemon's own two.
 NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=yes
