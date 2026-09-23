@@ -48,13 +48,18 @@ erediterebbe.
 
 ### 2. La navigazione risponde su un socket
 
-`quack-navd` ascolta su `/run/quack-nav.sock` e parla il filo di
+`quack-navd` ascolta su `/run/quack-nav/nav.sock` e parla il filo di
 robotd: NDJSON, JSON-RPC 2.0, una connessione per chiamante. Due metodi:
 `nav.catalog` restituisce il catalogo dei tool (JSON Schema, la forma
 dell'ADR 0004), `nav.call` ne esegue uno. Il demone possiede la lane
 della mappa, la guardia, il registro, il lavoro di esplorazione e
 l'homecoming, e legge il suo `/etc/robot/quack-nav.toml` — `[map]`,
 `[gait]` e `[homecoming]` si sono spostate lì col codice.
+
+(2026-09-23: scritto prima come `/run/quack-nav.sock`, che la unit non
+privilegiata non può creare con `ProtectSystem=strict`; il socket sta
+nella sua `RuntimeDirectory`, modo 0660, gruppo `robot`, come quelli di
+robotd e tofd.)
 
 ### 3. Il satellite sonda, e funziona anche senza
 

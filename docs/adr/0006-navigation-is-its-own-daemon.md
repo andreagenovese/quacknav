@@ -47,13 +47,18 @@ keeps the satellite free of a dependency it would otherwise inherit.
 
 ### 2. The navigation answers on a socket
 
-`quack-navd` listens on `/run/quack-nav.sock` and speaks robotd's own
+`quack-navd` listens on `/run/quack-nav/nav.sock` and speaks robotd's own
 wire: NDJSON, JSON-RPC 2.0, one connection per caller. Two methods:
 `nav.catalog` returns the tool catalog (JSON Schema, the shape ADR 0004
 defined), `nav.call` executes one of them. The daemon owns the map
 lane, the guard, the registry, the explore job and the homecoming, and
 reads its own `/etc/robot/quack-nav.toml` — `[map]`, `[gait]` and
 `[homecoming]` moved there with the code.
+
+(2026-09-23: first written as `/run/quack-nav.sock`, which the
+unprivileged unit cannot create under `ProtectSystem=strict`; the socket
+lives in its `RuntimeDirectory`, mode 0660, group `robot`, as robotd's
+and tofd's do.)
 
 ### 3. The satellite probes, and works without it
 
