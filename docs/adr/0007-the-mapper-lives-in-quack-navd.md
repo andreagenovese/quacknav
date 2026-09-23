@@ -102,6 +102,29 @@ relocalize search weighs a tenth of the control loop under contention.
 - Left open: a foreign head pose made of yaw alone is not told from the
   sweep's own; `setpriority` under the unit's `SystemCallFilter` and the
   sockets' group are to be checked on the physical duck.
+- Measured the same evening against the fork, on the twin (`scripts/twin/`):
+  - a 30-minute autonomous exploration: 82 legs, 157 submaps, no fall, the
+    control loop at 50 Hz with no missed tick; its walls 0.043 m from the
+    true ones (house2's recording, replayed through today's mapper: 0.061),
+    and `map_match` finds it inside house2 at a near-identity transform with
+    a 0.030 m wall residual;
+  - the pose on the same map (house2, localize), at the same eight points
+    of the flat: 0.050 m mean and 0.077 max here, 0.086 and 0.223 on the
+    fork — no loss of accuracy;
+  - the gait under the same commands is the fork's (from an open spot, the
+    yaw rate within 0.06 rad/s at every command): the `[gait]` trims
+    stand;
+  - blind journeys round six goals: the fork 16/18 and 12/12 over five
+    rounds, no fall; here 12/18 on the explored map and one fall, 4/6 on
+    house2 and a fall in the round after — **both falls in the passage beside the stairwell**, one
+    with the pose 17 cm off towards the hole. Not traced to the port (the
+    pose is better here elsewhere, and the fork failed that goal too) and
+    not ruled out on so few runs: the passage is the open risk.
+- Found the same evening: the gait turns in place from a standstill above a
+  dead zone the explorer never crossed (`yaw_max` 0.9): 30°/s at +1.2 rad/s,
+  50–60°/s at ±1.5, the body within 4 cm (`scripts/twin/turnprobe.py`). The
+  explorer's kick-then-yaw, and the backing manoeuvres beside a drop where
+  both falls happened, may not be needed.
 - Found on the way, not caused by it: the panorama's turn froze when its
   kick was refused (fixed, 495e8b7), and the example config's tofd
   socket and default socket paths were wrong for the board.

@@ -108,6 +108,30 @@ quando i core sono contesi.
 - Resta aperto: una posa estranea fatta solo di yaw non si distingue da
   quella della scansione; `setpriority` sotto il `SystemCallFilter` della
   unit e il gruppo dei socket sono da verificare sulla papera fisica.
+- Misurato la stessa sera contro il fork, sul gemello (`scripts/twin/`):
+  - un'esplorazione autonoma di 30 minuti: 82 tratti, 157 submap, nessuna
+    caduta, il loop di controllo a 50 Hz senza tick persi; i suoi muri a
+    0,043 m da quelli veri (la registrazione di house2, rigiocata con il
+    mapper di oggi: 0,061), e `map_match` la trova dentro house2 con una
+    trasformazione quasi identica e uno scarto dei muri di 0,030 m;
+  - la posa sulla stessa mappa (house2, localize), negli stessi otto punti
+    della casa: 0,050 m di media e 0,077 di massimo qui, 0,086 e 0,223 sul
+    fork — nessuna perdita di precisione;
+  - la camminata con gli stessi comandi è quella del fork (da un punto
+    libero, lo yaw entro 0,06 rad/s a ogni comando): le tarature di
+    `[gait]` restano;
+  - viaggi ciechi su sei mete: il fork 16/18 e 12/12 in cinque round, nessuna
+    caduta; qui 12/18 sulla mappa esplorata e una caduta, 4/6 su house2 e una
+    caduta nel round dopo — **entrambe le cadute nel passaggio accanto alla tromba delle
+    scale**, una con la posa spostata di 17 cm verso il buco. Non ricondotte al
+    porting (altrove la posa qui è migliore, e anche il fork ha mancato quella
+    meta) e non escluse con così pochi giri: il passaggio è il rischio aperto.
+- Trovato la stessa sera: la camminata gira sul posto da ferma sopra una zona
+  morta che l'esploratore non ha mai superato (`yaw_max` 0,9): 30°/s a
+  +1,2 rad/s, 50–60°/s a ±1,5, il corpo entro 4 cm
+  (`scripts/twin/turnprobe.py`). Il colpetto seguito dallo yaw
+  dell'esploratore, e le manovre all'indietro accanto a un dislivello dove sono
+  avvenute entrambe le cadute, potrebbero non servire.
 - Trovato per strada, non causato da questo: la rotazione del panorama
   si bloccava quando il suo colpetto veniva rifiutato (corretto,
   495e8b7), e il socket di tofd dell'esempio e i percorsi di default dei

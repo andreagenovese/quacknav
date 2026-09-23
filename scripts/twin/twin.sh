@@ -22,6 +22,9 @@
 #   MAPLOC_MODE   stop_and_scan (default) or localize
 #   HOMECOMING    on or off (default off)
 #   WIPE          on (default: a fresh map each boot) or off
+#   SCENE         the MuJoCo scene (default: the apartment). Other scenes may
+#                 include another robot model (scene_walk.xml does, and the duck
+#                 tips over on it); keep robot_allcollisions.xml
 #   ASK_PHRASE    what the explorer asks at a nameless area (default
 #                 "Qui dove siamo?"; the daemon's own default is English)
 set -eu
@@ -95,7 +98,7 @@ search_sweep = true
 record_dir = "$STATE/rec"
 socket = "$STATE/map.sock"
 TOML
-  scene=$MICRODUCK_RL/src/mjlab_microduck/robot/microduck/scene_apartment.xml
+  scene=${SCENE:-$MICRODUCK_RL/src/mjlab_microduck/robot/microduck/scene_apartment.xml}
   VIEWER_DIR=${VIEWER_DIR:-$HERE/viewer}
   if [ "${VIEWER:-on}" = on ]; then
     # The overlay reads the map on quack-navd's map socket (robotd's own
