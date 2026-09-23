@@ -798,6 +798,12 @@ fn main() -> anyhow::Result<()> {
         // keep both routes for the picture.
         let mut goto_out = json!(null);
         if let Some(goal) = goto {
+            // `--start x,y`: the journey begins there, whatever the mapping
+            // left (a spot the mapping rarely ends on — beside the hole).
+            if let Some((sx, sy)) = pair("--start") {
+                twin.x = sx;
+                twin.y = sy;
+            }
             let start = (twin.x, twin.y);
             let mapped_at = twin.elapsed().as_secs_f64();
             let planned: Vec<(f64, f64)> = twin

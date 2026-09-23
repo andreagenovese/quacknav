@@ -891,7 +891,7 @@ fn pure_turn(robot: &Arc<Mutex<Robot>>, sign: f64, want: f64) -> Option<f64> {
     // (see `explore::Job::turn_in_place`).
     let edge_near = || {
         let robot = robot.lock().expect("robot poisoned");
-        robot.places.cliff.as_ref().is_some_and(|c| c.snapshot().nearest(Instant::now()).is_some_and(|d| d.edge_min_m < 0.25))
+        robot.places.cliff.as_ref().is_some_and(|c| c.snapshot().nearest_hole_m(Instant::now()).is_some_and(|m| m < crate::passage::BODY_HALF_M + crate::passage::LEG_DRIFT_M))
     };
     if edge_near() {
         tracing::info!("homecoming: a drop this near; no turn in place here");

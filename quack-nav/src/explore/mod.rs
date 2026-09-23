@@ -862,6 +862,13 @@ pub struct Job {
     passage_narrow: bool,
     /// Narrow-passage refusals in a row, and where the body stood.
     narrow_refusals: (u32, (f64, f64)),
+    /// A fall was seen and the pose has not been trusted for
+    /// [`BOOKS_AFTER_FALL_S`] since (the instant it was trusted again, if
+    /// it is): no drop goes on the books meanwhile (see `drops_bookable`).
+    fell: Option<Option<Instant>>,
+    /// Whether a drop may go on the books now: the pose trusted, the duck
+    /// on its feet, no fall pending confirmation. Set each turn.
+    drops_bookable: bool,
     /// Turns in place refused beside a drop in a row (the kick refused,
     /// no way back) without a leg between (see `TURNS_REFUSED_SEAL`).
     turns_refused_at_drop: u32,
@@ -1010,6 +1017,8 @@ impl Job {
             passage_at_mouth: false,
             passage_narrow: false,
             narrow_refusals: (0, (f64::NAN, f64::NAN)),
+            fell: None,
+            drops_bookable: true,
             budget_extended: false,
             goal_confirmed: false,
             kept_route: None,
@@ -1112,6 +1121,7 @@ impl Job {
                 tracing::info!(frozen, "map explore: the live map is {}", if frozen { "frozen: a journey trusts the planner" } else { "live: guards and stands" });
                 self.frozen = frozen;
             }
+            self.note_fall(robot, &frame);
             if self.watch {
                 self.watch_turn(handle, robot, &frame);
                 robot.sleep(WATCH_TICK);
@@ -1664,12 +1674,21 @@ impl Job {
             // clear: a stride while mapping, a metre on a journey (see
             // [`GOAL_LOOKAHEAD_M`]).
             let ahead_m = if self.goal.is_some() { goal_lookahead_m(self.follow()) } else { lookahead_m() };
+            // Beside a drop, booked or seen, the route itself: the aim a
+            // step along it, neither the string pulled nor an old aim
+            // held. The grid path keeps the planner's margin from the
+            // books; a straight line to a point two metres on did not —
+            // the aim of the fall of 2026-09-23 was held 2 m ahead from
+            // before the stairwell to its rim, the green line bending
+            // round it unwalked (the user's eye).
+            let near_drop = self.drop_within_any(&*robot, STRING_NEAR_DROP_M).is_some();
             let aim = if !self.follow()
+                && !near_drop
                 && grid.lane_clear(x, y, straight, look, lane_half_m())
                 && self.clear_of_local(x, y, straight, look, lane_half_m())
             {
                 f.stand
-            } else if smooth_path() {
+            } else if smooth_path() && !near_drop {
                 self.farthest_clear(grid, (x, y), &f.path)
                     .or_else(|| waypoint(&f.path, ahead_m, grid.cell_m))
                     .unwrap_or(f.stand)
@@ -1678,7 +1697,7 @@ impl Job {
             };
             // Hold it unless it is reached, blocked, or bettered — only on a
             // journey; a mapping job's aim is its frontier's business.
-            let aim = if self.goal.is_some() && hold_aim_enabled() {
+            let aim = if self.goal.is_some() && hold_aim_enabled() && !near_drop {
                 self.hold_aim(grid, (x, y), yaw, aim, f.stand)
             } else {
                 aim
@@ -1853,7 +1872,7 @@ impl Job {
                     .as_ref()
                     .and_then(|l| l.get("want"))
                     .and_then(Value::as_f64)
-                    .unwrap_or(std::f64::consts::FRAC_PI_2);
+                    .unwrap_or(NO_ROOM_TURN_RAD);
                 self.note_obstacle_ahead(robot, grid, pose);
                 // By the route, not by a fixed quarter turn toward the
                 // job's hand: the obstacle is ahead, the route says which
@@ -1864,6 +1883,18 @@ impl Job {
                 if spin_rad(self.follow()) > 0.0 && err.abs() > deadband_rad() {
                     let ok = self.align(robot, (aim.1 - y).atan2(aim.0 - x));
                     tracing::info!(at = ?(x, y, yaw), err_deg = format!("{:.0}", err.to_degrees()), ok, "map explore: no room ahead, turning in place to the aim");
+                    let _ = stand(robot, self.turn_stand_s());
+                } else if let Some(h) = self.route_heading_anew(grid, (x, y), self.goal.unwrap_or(f.stand))
+                    && wrap(h - yaw).abs() > deadband_rad()
+                {
+                    // The aim on the nose runs into what was just booked:
+                    // the route planned again with it says which way and
+                    // how far — no fixed quarter or eighth turn (the
+                    // user's, 2026-09-23: "the angle from the Dijkstra
+                    // route, that is all").
+                    self.kept_route = None;
+                    let ok = self.align(robot, h);
+                    tracing::info!(at = ?(x, y, yaw), err_deg = format!("{:.0}", wrap(h - yaw).to_degrees()), ok, "map explore: no room ahead, turning in place to the route planned anew");
                     let _ = stand(robot, self.turn_stand_s());
                 } else {
                     tracing::info!(at = ?(x, y, yaw), sign, want, "map explore: no room ahead, turning in place");
@@ -2065,13 +2096,20 @@ impl Job {
     /// clear of the lane the body would sweep. `None` when not even the
     /// first step is clear — then the caller falls back to the old fixed
     /// waypoint, which is what the guards will refuse or shorten anyway.
+    /// The heading of a route to `to` planned now, with the books as they
+    /// stand: toward its point a step along. `None` when there is none.
+    fn route_heading_anew(&self, grid: &Grid, from: (f64, f64), to: (f64, f64)) -> Option<f64> {
+        let path = path_to(grid, from.0, from.1, to, &self.planner_walls(), inflate_m(), &self.lanes())?;
+        let p = waypoint(&path, goal_lookahead_m(true), grid.cell_m)?;
+        (dist2(p, from) >= grid.cell_m).then(|| (p.1 - from.1).atan2(p.0 - from.0))
+    }
     fn farthest_clear(
         &self,
         grid: &Grid,
         from: (f64, f64),
         path: &[(f64, f64)],
     ) -> Option<(f64, f64)> {
-        let horizon = straight_look_m();
+        let horizon = straight_look_m().min(string_pull_m());
         for p in path.iter().rev() {
             let d = dist2(from, *p);
             if d > horizon || d < grid.cell_m {
@@ -2249,7 +2287,7 @@ impl Job {
             // Too narrow to go on: turn — an arc with room, in place without.
             let away = no_room_turn(self);
             if arc_room_s < 1.0 {
-                return Some(json!({"spin": away.signum(), "want": std::f64::consts::FRAC_PI_2}));
+                return Some(json!({"spin": away.signum(), "want": NO_ROOM_TURN_RAD}));
             }
             return Some(json!({"vx": 0.3, "vyaw": away, "walk_s": 1.5, "stop_s": stop_s}));
         }
@@ -2280,7 +2318,7 @@ impl Job {
             return Some(json!({"vx": 0.3, "vyaw": away, "walk_s": 1.5, "stop_s": stop_s}));
         }
         // No room even for a tight arc: turn in place.
-        Some(json!({"spin": away.signum(), "want": std::f64::consts::FRAC_PI_2}))
+        Some(json!({"spin": away.signum(), "want": NO_ROOM_TURN_RAD}))
     }
     /// Whether the straight lane from `(x, y)` along `heading` for `len_m`
     /// passes clear of every obstacle and drop the sensor put on the

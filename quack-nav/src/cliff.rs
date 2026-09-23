@@ -51,6 +51,10 @@ pub const MIN_DOWNWARD: f64 = 0.15;
 /// Drops in one frame below this count are noise.
 pub const MIN_BEAMS: usize = 2;
 /// How long a seen drop stays on the books while the body stands.
+/// Where the bottom row itself is over a drop the edge is somewhere
+/// between the beak and that beam's floor distance; taken this much short
+/// of it (about a row's spacing on the floor).
+const EDGE_UNKNOWN_M: f64 = 0.10;
 pub const MEMORY: Duration = Duration::from_secs(3);
 /// How long frames are kept at all — a head sweep and a little, for the
 /// readers that need both sides of the body.
@@ -379,6 +383,28 @@ impl CliffStatus {
             .filter(|d| wrap(d.bearing - bearing).abs() <= half_angle)
             .min_by(|a, b| a.range_m.total_cmp(&b.range_m))
             .copied()
+    }
+
+    /// How near the nearest true hole the recent stand frames saw comes
+    /// to the body, in metres: its edge where the sensor bounds it, else
+    /// (the bottom row itself over the drop, `edge_min_m` zero) a beam's
+    /// spacing short of where the floor was expected. A wall's foot — a
+    /// drop with an obstacle at its bearing and range — is not a hole.
+    /// Reading `edge_min_m` as the distance put every such drop at the
+    /// beak: no turn in place was allowed anywhere near the stairwell, and
+    /// a duck that stopped beside it could neither turn nor walk (paper
+    /// twin, 2026-09-23: 678 refusals on the spot).
+    pub fn nearest_hole_m(&self, now: Instant) -> Option<f64> {
+        self.recent
+            .iter()
+            .filter(|f| now.duration_since(f.at) <= MEMORY && !f.moving)
+            .flat_map(|f| {
+                f.drops.iter().filter(move |d| {
+                    !f.obstacles.iter().any(|o| wrap(o.bearing - d.bearing).abs() < 0.2 && (o.range_m - d.range_m).abs() < 0.25)
+                })
+            })
+            .map(|d| if d.edge_min_m > 0.0 { d.edge_min_m } else { (d.range_m - EDGE_UNKNOWN_M).max(0.0) })
+            .min_by(f64::total_cmp)
     }
 
     /// Any drop on the books, nearest first.

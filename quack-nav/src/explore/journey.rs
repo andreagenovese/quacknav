@@ -76,6 +76,25 @@ pub(super) fn lookahead_m() -> f64 {
 pub(super) fn goal_lookahead_m(follow: bool) -> f64 {
     knob("QK_GOAL_LOOKAHEAD_M", if follow { 0.3 } else { GOAL_LOOKAHEAD_M })
 }
+/// The turn in place when there is no room for a leg and no aim to turn
+/// to: an eighth of a circle, then the next plan says where. A quarter
+/// turn was the old way's, when every turn cost a kick and a stand; the
+/// turn in place costs a second, and a quarter turn often overshot the
+/// way on and came back (the user's eye on the twin, 2026-09-23).
+pub(super) const NO_ROOM_TURN_RAD: f64 = std::f64::consts::FRAC_PI_4;
+/// How far along the path the string may be pulled (see
+/// [`smooth_path`]): a metre. At two (the straight look) the aim cut the
+/// grid path's corners by up to a body's width and was held there for
+/// metres; the planned route is the one with the margins in it (the
+/// user's, 2026-09-23: "the duck should stay truer to the green line").
+pub(super) const STRING_PULL_M: f64 = 1.0;
+pub(super) fn string_pull_m() -> f64 {
+    static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
+    *V.get_or_init(|| knob("QK_STRING_PULL_M", STRING_PULL_M))
+}
+/// Within this of a drop, booked or seen, no string is pulled and no aim
+/// held: the aim is a step along the route.
+pub(super) const STRING_NEAR_DROP_M: f64 = 0.6;
 pub(super) fn straight_look_m() -> f64 {
     static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
     *V.get_or_init(|| knob("QK_STRAIGHT_LOOK_M", STRAIGHT_LOOK_M))

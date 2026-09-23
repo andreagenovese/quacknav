@@ -186,7 +186,7 @@ pub(super) const TURN_LEAD_RAD: f64 = 0.10;
 pub(super) const TURN_CHUNK_S: f64 = 0.15;
 /// No turn in place with a drop this near, on any side: the body is
 /// 0.19 m wide and its legs swing as it turns (see [`Job::turn_in_place`]).
-pub(super) const TURN_CLEAR_M: f64 = 0.25;
+pub(super) const TURN_CLEAR_M: f64 = crate::passage::BODY_HALF_M + crate::passage::LEG_DRIFT_M;
 
 /// `QK_TURN_IN_PLACE=0` turns the old way (kick, then yaw) everywhere.
 pub(crate) fn turn_in_place_on() -> bool {
@@ -275,7 +275,7 @@ impl Job {
                 .map(|(p, _)| dist2(*p, (x, y)))
                 .fold(f64::INFINITY, f64::min)
         });
-        let seen = robot.cliff().and_then(|c| c.nearest(robot.now())).map_or(f64::INFINITY, |d| d.edge_min_m);
+        let seen = robot.cliff().and_then(|c| c.nearest_hole_m(robot.now())).unwrap_or(f64::INFINITY);
         let near = booked.min(seen);
         (near < radius).then_some(near)
     }

@@ -30,6 +30,13 @@ pub(super) const OBSTACLE_RADIUS_M: f64 = 0.05;
 /// A drop edge on the books gets this radius (plus the planner's inflation):
 /// 0.45 made a 0.6 m disc that sealed the 0.54 m passage beside the stairwell.
 pub(super) const DROP_RADIUS_M: f64 = 0.10;
+/// After a fall, how long the pose must stay trusted before a drop goes
+/// on the books again. A fall throws the pose (0.3 m off at the fall of
+/// 2026-09-23 on the twin, and the window that "confirmed" it after was
+/// no better), and every rim the duck saw next went on the books where
+/// that pose had it: drops in the free corridor beside the stairwell,
+/// and a route of 9.85 m for a goal 4.46 m away.
+pub(super) const BOOKS_AFTER_FALL_S: f64 = 20.0;
 /// How far past a drop edge the hole is assumed to continue, away from the
 /// duck. A sighting is one point on the rim; the void behind it is not
 /// sensed at all, and the map cannot hold it either — a stairwell reads as
@@ -160,6 +167,31 @@ impl Job {
             wrap(o.bearing - d.bearing).abs() < EDGE_BEARING_RAD
                 && (o.range_m - d.range_m).abs() < EDGE_RANGE_M
         })
+    }
+
+    /// Keep `drops_bookable` in step: a fall (the duck seated or down
+    /// while the job runs) holds the drop books shut until the pose has
+    /// been trusted for [`BOOKS_AFTER_FALL_S`] on end.
+    pub(super) fn note_fall(&mut self, robot: &dyn Body, frame: &MapFrame) {
+        let trusted = robot.pose_trusted() && !frame.seated;
+        if frame.seated {
+            if self.fell.is_none() {
+                tracing::info!("map explore: a fall; no drop goes on the books until the pose is trusted again");
+            }
+            self.fell = Some(None);
+        } else if let Some(since) = self.fell {
+            let now = robot.now();
+            match (trusted, since) {
+                (false, _) => self.fell = Some(None),
+                (true, None) => self.fell = Some(Some(now)),
+                (true, Some(t)) if (now - t).as_secs_f64() >= BOOKS_AFTER_FALL_S => {
+                    tracing::info!("map explore: the pose trusted again since the fall; drops go on the books again");
+                    self.fell = None;
+                }
+                _ => {}
+            }
+        }
+        self.drops_bookable = trusted && self.fell.is_none();
     }
 
     pub(super) fn record_drops(&mut self, robot: &dyn Body) {
@@ -339,6 +371,11 @@ impl Job {
 
     /// Record what the sensor met, once per spot.
     pub(super) fn remember_local(&mut self, point: (f64, f64), radius: f64) {
+        // A drop where an untrusted pose puts it is a phantom, and the
+        // planner keeps wide of it for the rest of the run.
+        if radius >= DROP_RADIUS_M && !self.drops_bookable {
+            return;
+        }
         if self
             .local
             .iter()
