@@ -1,6 +1,6 @@
 //! quack-nav: where the Microduck is, and how it gets somewhere else.
 //!
-//! Eight pieces (and their [`config`]), none of them about voice:
+//! Nine pieces (and their [`config`]), none of them about voice:
 //!
 //! - [`map`] — the `robot.map` client: robotd's on-board `maploc` publishes
 //!   a pose and an occupancy grid once a second; this keeps the newest one
@@ -21,6 +21,8 @@
 //! - [`explore`] — the jobs that drive: map a house, walk to a goal on a
 //!   map already made, and the rules that keep a leg off the stairs.
 //! - [`homecoming`] — waking up in a house the duck has mapped before.
+//! - [`mapd`] — the mapper itself (`maploc`), hosted in `quack-navd` when
+//!   robotd does not host it, served in robotd's `robot.map*` dialect.
 //!
 //! The crate depends on the duck's IPC types, its head geometry crate
 //! (`kinematics`, pure Rust), the robot lane (`quack-duck`) and serde,
@@ -33,6 +35,7 @@ pub mod explore;
 pub mod frontier;
 pub mod homecoming;
 pub mod map;
+pub mod mapd;
 pub mod passage;
 pub mod places;
 pub mod tools;

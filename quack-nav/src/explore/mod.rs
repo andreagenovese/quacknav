@@ -742,6 +742,7 @@ impl ExploreHandle {
                 cliff: places.cliff.clone(),
                 explore: ExploreHandle::new(),
                 robotd_socket: robotd_socket.to_owned(),
+                map_socket: places.map_socket.clone(),
                 map_config: MapConfig::default(),
                 gait,
             },

@@ -28,7 +28,20 @@ fn main() -> anyhow::Result<()> {
     let config = NavdConfig::load(&path)?;
     tracing::info!(config = %path, socket = %config.socket, robotd = %config.robotd_socket, "quack-navd");
 
-    let robot = Arc::new(Mutex::new(Robot::connect(&config.map, &config.robotd_socket, config.gait.clone())));
+    // The mapper, when this daemon hosts it (`[maploc]`): the released robotd
+    // publishes what it needs, and the rest of the navigation reads the map
+    // on the socket it serves, in robotd's own dialect.
+    if config.maploc.enabled {
+        let host = quack_nav::mapd::spawn(&config.maploc, &config.robotd_socket, &config.map.tof_socket);
+        quack_nav::mapd::server::serve(host.clone(), &config.maploc.socket)?;
+        save_on_signal(host, config.maploc.socket.clone(), config.socket.clone())?;
+    }
+    let robot = Arc::new(Mutex::new(Robot::connect(
+        &config.map,
+        &config.robotd_socket,
+        config.map_socket(),
+        config.gait.clone(),
+    )));
 
     // Waking up in a house the duck has mapped before: the daemon's own
     // business now, not the satellite's.
@@ -48,6 +61,24 @@ fn main() -> anyhow::Result<()> {
             Err(e) => tracing::warn!(error = %e, "a caller could not be accepted"),
         }
     }
+    Ok(())
+}
+
+/// SIGTERM and SIGINT save the mapping session before the process goes:
+/// the autosave runs once a minute, and a `systemctl restart` should not
+/// cost up to a minute of walking (robotd's shutdown path did the same).
+fn save_on_signal(host: quack_nav::mapd::Host, map_socket: String, socket: String) -> anyhow::Result<()> {
+    use signal_hook::consts::{SIGINT, SIGTERM};
+    let mut signals = signal_hook::iterator::Signals::new([SIGTERM, SIGINT])?;
+    std::thread::Builder::new().name("signals".into()).spawn(move || {
+        if let Some(signal) = signals.forever().next() {
+            tracing::info!(signal, "shutting down; saving the map");
+            host.shutdown();
+            let _ = std::fs::remove_file(&map_socket);
+            let _ = std::fs::remove_file(&socket);
+            std::process::exit(0);
+        }
+    })?;
     Ok(())
 }
 

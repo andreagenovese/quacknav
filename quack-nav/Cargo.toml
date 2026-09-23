@@ -18,8 +18,12 @@ path = "src/bin/quack-navd.rs"
 anyhow.workspace = true
 duck-ipc-proto.workspace = true
 kinematics.workspace = true
+# The SLAM, hosted in quack-navd when `[maploc] enabled` (see src/mapd).
+maploc = { workspace = true, features = ["kinematics"] }
 quack-duck.workspace = true
 serde.workspace = true
+# quack-navd saves the mapping session on SIGTERM (src/bin/quack-navd.rs).
+signal-hook = "0.3"
 serde_json.workspace = true
 toml.workspace = true
 tracing.workspace = true

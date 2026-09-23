@@ -132,6 +132,74 @@ impl Default for HomecomingConfig {
     }
 }
 
+/// When to paint scans into the map (`[maploc] mode`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MaplocMode {
+    /// Integrate only while the robot stands still: the frames of a stop
+    /// are voted against each other before any of them inks the map.
+    StopAndScan,
+    /// Also integrate while walking: more coverage, blurrier walls.
+    Continuous,
+    /// The map is what it is: nothing is inked, the pose is corrected
+    /// against the map as saved. For a house mapped once and driven many
+    /// times.
+    Localize,
+}
+
+impl MaplocMode {
+    /// The spelling `robot.map` reports, as robotd's own `[maploc]` did.
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::StopAndScan => "stop_and_scan",
+            Self::Continuous => "continuous",
+            Self::Localize => "localize",
+        }
+    }
+}
+
+/// The mapper hosted in this daemon (`[maploc]`, see [`crate::mapd`]).
+///
+/// Off by default, and then the map comes from robotd's own `robot.map`,
+/// as it did from the robotd fork. On, `quack-navd` runs `maploc` itself
+/// against the released robotd — `robot.state` and tofd's stream in, the
+/// same `robot.map*` dialect out on [`MaplocConfig::socket`] — and the
+/// rest of the navigation reads its map there. The fields are robotd's
+/// `[maploc]`, moved.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct MaplocConfig {
+    pub enabled: bool,
+    pub mode: MaplocMode,
+    /// Where the working session persists (autosaved each minute and on
+    /// shutdown); the library of named maps is `maps/` beside it.
+    pub map_path: String,
+    /// Start from a clean slate instead of the saved session.
+    pub wipe_on_boot: bool,
+    /// Pan the head at every stop and while the pose is suspect: a stop
+    /// then sees ~150° instead of one 45° wedge.
+    pub search_sweep: bool,
+    /// When set, every tick and frame the mapper consumed is appended to a
+    /// `.mdlg` here, for `maploc`'s `evaluate` bench.
+    pub record_dir: Option<String>,
+    /// Where the map is served, in robotd's `robot.map*` dialect.
+    pub socket: String,
+}
+
+impl Default for MaplocConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            mode: MaplocMode::StopAndScan,
+            map_path: "/var/lib/quack-nav/maploc.session".into(),
+            wipe_on_boot: false,
+            search_sweep: true,
+            record_dir: None,
+            socket: "/run/quack-nav-map.sock".into(),
+        }
+    }
+}
+
 /// The navigation daemon's own config file (`/etc/robot/quack-nav.toml`).
 /// The satellite's `[map]`, `[gait]` and `[homecoming]` sections moved
 /// here when the navigation left quacksat (2026-09-22).
@@ -145,6 +213,15 @@ pub struct NavdConfig {
     pub map: MapConfig,
     pub gait: quack_duck::gait::GaitConfig,
     pub homecoming: HomecomingConfig,
+    pub maploc: MaplocConfig,
+}
+
+impl NavdConfig {
+    /// Where `robot.map` and the map library answer: this daemon's own map
+    /// socket when it hosts the mapper, robotd's otherwise.
+    pub fn map_socket(&self) -> &str {
+        if self.maploc.enabled { &self.maploc.socket } else { &self.robotd_socket }
+    }
 }
 
 impl Default for NavdConfig {
@@ -155,6 +232,7 @@ impl Default for NavdConfig {
             map: MapConfig::default(),
             gait: quack_duck::gait::GaitConfig::default(),
             homecoming: HomecomingConfig::default(),
+            maploc: MaplocConfig::default(),
         }
     }
 }

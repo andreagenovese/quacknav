@@ -28,6 +28,9 @@ pub struct Places {
     pub explore: crate::explore::ExploreHandle,
     /// Where robotd listens — the explore job opens its own lane there.
     pub robotd_socket: String,
+    /// Where `robot.map` and the map library answer: robotd's socket, or
+    /// quack-navd's own when it hosts the mapper (`[maploc]`).
+    pub map_socket: String,
     /// The `[map]` section: the explore budget and the asking phrase.
     pub map_config: MapConfig,
     /// The `[gait]` section: yaw trim and per-side gains for every walk.
@@ -44,7 +47,12 @@ pub struct Robot {
 }
 
 impl Robot {
-    pub fn connect(config: &MapConfig, robotd_socket: &str, gait: quack_duck::gait::GaitConfig) -> Self {
+    pub fn connect(
+        config: &MapConfig,
+        robotd_socket: &str,
+        map_socket: &str,
+        gait: quack_duck::gait::GaitConfig,
+    ) -> Self {
         let control = match quack_duck::Control::connect(robotd_socket) {
             Ok(control) => Some(control),
             Err(e) => {
@@ -52,7 +60,7 @@ impl Robot {
                 None
             }
         };
-        let mut places = Places::connect(config, robotd_socket);
+        let mut places = Places::connect(config, robotd_socket, map_socket);
         places.gait = gait;
         Self { control, places }
     }
@@ -67,10 +75,10 @@ impl Places {
     /// Start the map lane (if enabled) and load the registry. Nothing here
     /// is fatal: a missing robotd or registry file degrades to "the tool
     /// says so" at call time.
-    pub fn connect(config: &MapConfig, robotd_socket: &str) -> Self {
+    pub fn connect(config: &MapConfig, robotd_socket: &str, map_socket: &str) -> Self {
         let map = config
             .enabled
-            .then(|| MapWatch::spawn(robotd_socket.to_owned()));
+            .then(|| MapWatch::spawn(map_socket.to_owned()));
         let registry = match Registry::load(&config.places_path) {
             Ok(registry) => {
                 tracing::info!(
@@ -93,6 +101,7 @@ impl Places {
             cliff,
             explore: crate::explore::ExploreHandle::new().with_ground(&config.places_path),
             robotd_socket: robotd_socket.to_owned(),
+            map_socket: map_socket.to_owned(),
             map_config: config.clone(),
             gait: quack_duck::gait::GaitConfig::default(),
         }
@@ -118,6 +127,7 @@ impl Places {
             cliff: None,
             explore: crate::explore::ExploreHandle::new(),
             robotd_socket: String::new(),
+            map_socket: String::new(),
             map_config: MapConfig::default(),
             gait: quack_duck::gait::GaitConfig::default(),
         }
@@ -934,24 +944,24 @@ pub fn execute(name: &str, args: &Value, robot: &mut Robot) -> Result<Value, Str
         "robot.go_to" => go_to(robot, args),
         "robot.map_save" => {
             let name = map_name(args)?;
-            let saved = map_library(&mut robot.control, "robot.map_save", Some(name.clone()))?;
+            let saved = map_library(&robot.places.map_socket, "robot.map_save", Some(name.clone()))?;
             if let Some(n) = name.get("name").and_then(Value::as_str) {
                 robot.places.explore.name_live_map(n);
                 robot.places.explore.keep_ground();
             }
             Ok(saved)
         }
-        "robot.map_list" => map_library(&mut robot.control, "robot.map_list", None),
+        "robot.map_list" => map_library(&robot.places.map_socket, "robot.map_list", None),
         "robot.map_load" => {
             let name = map_name(args)?;
-            let loaded = map_library(&mut robot.control, "robot.map_load", Some(name.clone()))?;
+            let loaded = map_library(&robot.places.map_socket, "robot.map_load", Some(name.clone()))?;
             if let Some(n) = name.get("name").and_then(Value::as_str) {
                 robot.places.explore.map_named(n);
             }
             Ok(loaded)
         }
         "robot.map_match" => map_library(
-            &mut robot.control,
+            &robot.places.map_socket,
             "robot.map_match",
             match args.get("name") {
                 Some(_) => Some(map_name(args)?),
@@ -960,13 +970,13 @@ pub fn execute(name: &str, args: &Value, robot: &mut Robot) -> Result<Value, Str
         ),
         "robot.map_adopt" => {
             let name = map_name(args)?;
-            let adopted = map_library(&mut robot.control, "robot.map_adopt", Some(name.clone()))?;
+            let adopted = map_library(&robot.places.map_socket, "robot.map_adopt", Some(name.clone()))?;
             if let Some(n) = name.get("name").and_then(Value::as_str) {
                 robot.places.explore.map_named(n);
             }
             Ok(adopted)
         }
-        "robot.map_wipe" => map_library(&mut robot.control, "robot.map_wipe", None),
+        "robot.map_wipe" => map_library(&robot.places.map_socket, "robot.map_wipe", None),
         "robot.move" => {
             robot.places.not_exploring()?;
             let params = quack_duck::body::move_params(args);
@@ -1136,22 +1146,15 @@ fn map_name(args: &Value) -> Result<Value, String> {
 /// Spelled by method name rather than through a typed `proto::Call`: the
 /// three are prototyped on a local robotd branch and asked of upstream in
 /// docs/study/upstream-asks.md, and a robotd without them says so.
-fn map_library(
-    control: &mut Option<quack_duck::Control>,
-    method: &str,
-    params: Option<Value>,
-) -> Result<Value, String> {
-    let control = quack_duck::body::with_robot(control)?;
-    let response = control
-        .request_method(method, params)
-        .map_err(|e| format!("robotd: {e}"))?;
+fn map_library(map_socket: &str, method: &str, params: Option<Value>) -> Result<Value, String> {
+    let response = library_request(map_socket, method, params).map_err(|e| format!("the map: {e}"))?;
     if let Some(error) = &response.error {
         return Err(if error.code == proto::code::METHOD_NOT_FOUND {
             "this robot's software has no map library yet (robotd is older than the \
-             map_save/map_list/map_load calls)"
+             map_save/map_list/map_load calls, and quack-navd is not hosting the mapper)"
                 .to_string()
         } else {
-            format!("robotd refused {method}: {error}")
+            format!("the map refused {method}: {error}")
         });
     }
     let result = response.result.unwrap_or(Value::Null);
@@ -1168,6 +1171,39 @@ fn map_library(
             .and_then(Value::as_str)
             .unwrap_or("the robot refused")
             .to_string()),
+    }
+}
+
+/// One request on its own connection to the map socket. The library is
+/// asked rarely, and a lane of its own means neither a robotd that came up
+/// late nor a map socket that restarted leaves it dead; the timeout is
+/// `map_match`'s, which searches every saved map (the host allows 120 s).
+fn library_request(path: &str, method: &str, params: Option<Value>) -> anyhow::Result<proto::Response> {
+    use std::io::{BufRead, Write};
+    let stream = std::os::unix::net::UnixStream::connect(path)?;
+    stream.set_read_timeout(Some(std::time::Duration::from_secs(130)))?;
+    stream.set_write_timeout(Some(std::time::Duration::from_secs(3)))?;
+    let mut request = json!({"jsonrpc": "2.0", "id": 1, "method": method});
+    if let Some(params) = params {
+        request["params"] = params;
+    }
+    let mut line = serde_json::to_vec(&request)?;
+    line.push(b'\n');
+    (&stream).write_all(&line)?;
+    let mut reader = std::io::BufReader::new(&stream);
+    loop {
+        let mut line = String::new();
+        if reader.read_line(&mut line)? == 0 {
+            anyhow::bail!("the map socket closed the connection");
+        }
+        // Notifications (a `map.frame` on a shared socket) are skipped.
+        if serde_json::from_str::<proto::Request>(&line).is_ok() {
+            continue;
+        }
+        let response: proto::Response = serde_json::from_str(&line)?;
+        if response.id == Some(proto::Id::Number(1)) {
+            return Ok(response);
+        }
     }
 }
 
