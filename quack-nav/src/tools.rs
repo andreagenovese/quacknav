@@ -814,9 +814,10 @@ pub fn catalog() -> Vec<Value> {
         "name": "robot.map_explore",
         "description": "Map everything: the duck walks on its own to wherever the known floor \
     meets the unknown, stands to map it, and repeats until nothing reachable is left or the \
-    time budget runs out. Starts in the background and returns at once; follow it with \
-    robot.map_status (explore.state, frontiers_left, legs) and tell the user how it goes. \
-    While it runs, robot.move and robot.map_step are refused. Call with stop=true to stop it. \
+    time budget runs out — minutes. Starts in the background and returns at once: answer \
+    the user now (\"I'm exploring\") and end your turn; do not wait for it or poll it in \
+    the same reply. When the user asks how it is going, robot.map_status tells \
+    (explore.state, frontiers_left, legs). While it runs, robot.move and robot.map_step are refused. Call with stop=true to stop it. \
     When the duck reaches a nameless area it asks the user where it is; answer by calling \
     robot.remember_place with the name the user gives.",
         "parameters": {
@@ -834,9 +835,11 @@ pub fn catalog() -> Vec<Value> {
     bedroom\", \"back to your dock\". Walks to a place the duck knows, or to a point on \
     its map. Give `place` (a name from robot.list_places) or `x` and `y` in map metres. It plans the \
     cheapest way on the map it has — it does not explore — and walks it with the same \
-    guards as robot.map_step, so stairs and unmapped obstacles still stop it. Starts in \
-    the background and returns at once; follow it with robot.map_status (explore.state, \
-    explore.target_distance_m) and tell the user when it arrives. While it runs, \
+    guards as robot.map_step, so stairs and unmapped obstacles still stop it. The walk \
+    takes a minute or more. Starts in the background and returns at once: answer the \
+    user now (\"on my way\") and end your turn; do not wait for the arrival or poll it in \
+    the same reply. When the user asks, robot.map_status tells (explore.state, \
+    explore.target_distance_m, explore.reason once it is done). While it runs, \
     robot.move and robot.map_step are refused. Call with stop=true to stop it.",
         "parameters": {
             "type": "object",

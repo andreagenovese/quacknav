@@ -51,7 +51,8 @@ sessione, le mappe salvate e una registrazione `.mdlg` di ogni giro;
 tenerlo corto, su macOS il percorso di un socket unix è al massimo di 104
 byte. `MAPLOC_MODE` (`stop_and_scan` o `localize`), `HOMECOMING`
 (`on`/`off`) e `WIPE` (`on`/`off`) preparano un avvio su una casa
-salvata. Per parlarci, puntare `[nav] socket` di un satellite vocale su
+salvata; `ASK_PHRASE` è ciò che l'esploratore chiede in una zona senza
+nome (default "Qui dove siamo?"). Per parlarci, puntare `[nav] socket` di un satellite vocale su
 `$STATE/nav.sock` e il suo `robotd_socket` su `$STATE/robotd.sock`.
 
 ## Misurare

@@ -22,6 +22,8 @@
 #   MAPLOC_MODE   stop_and_scan (default) or localize
 #   HOMECOMING    on or off (default off)
 #   WIPE          on (default: a fresh map each boot) or off
+#   ASK_PHRASE    what the explorer asks at a nameless area (default
+#                 "Qui dove siamo?"; the daemon's own default is English)
 set -eu
 HERE=${0:A:h}
 REPO=${HERE:h:h}
@@ -70,6 +72,7 @@ robotd_socket = "$SOCK"
 enabled = true
 tof_socket = "$TOFSOCK"
 places_path = "$STATE/places.json"
+ask_phrase = "${ASK_PHRASE:-Qui dove siamo?}"
 
 [gait]
 yaw_trim = 0.08

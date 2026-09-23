@@ -50,7 +50,8 @@ scripts/twin/twin.sh down
 session, the saved maps and a `.mdlg` recording of every run; keep it
 short, a unix socket's path is at most 104 bytes on macOS. `MAPLOC_MODE`
 (`stop_and_scan` or `localize`), `HOMECOMING` (`on`/`off`) and `WIPE`
-(`on`/`off`) set up a boot on a saved house. To talk to it, point a
+(`on`/`off`) set up a boot on a saved house; `ASK_PHRASE` is what the
+explorer asks at a nameless area (default "Qui dove siamo?"). To talk to it, point a
 voice satellite's `[nav] socket` at `$STATE/nav.sock` and its
 `robotd_socket` at `$STATE/robotd.sock`.
 
