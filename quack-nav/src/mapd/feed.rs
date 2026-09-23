@@ -3,13 +3,17 @@
 //!
 //! In the fork the control loop built [`OdomSample`] itself. Every field
 //! of it is on `robot.state` since API v24 except two verdicts, rebuilt
-//! here the way robotd reaches them (daemon-v0.14.4, `robotd/src/main.rs`):
+//! here from the step label, `robot.state.policy`:
 //!
-//!   - `moving`: the policy step is busy (a skill, a rise, a pick), the
-//!     robot is homing or riding a fall, or the smoothed twist it applied
-//!     is not exactly zero — robotd's `twist_magnitude() > 0.0`, which
-//!     `move.applied` publishes. Of the step labels only `walk`, `stand`,
-//!     `sit` and `held` can be still.
+//!   - `moving`: the walking network drove, or a scripted move is mid-flight
+//!     (a skill, a rise, a pick), or the robot is homing or riding a fall —
+//!     every label but `stand`, `sit` and `held`. This is the fork's rule
+//!     (`step.busy || step.label == "walk"`), not the release's: daemon-v0.14.4
+//!     still says `twist_magnitude() > 0.0`, and the smoothed twist decays
+//!     towards zero for a minute without reaching it, so a duck that stopped
+//!     read as moving and no stop reached the map (the twin, 2026-09-23:
+//!     39 windows in three minutes of exploring). The fork had met that
+//!     once already, with a gamepad idling just off zero.
 //!   - `sitting`: the step label is `sit`.
 
 use std::io::{BufRead, BufReader, Write};
@@ -88,8 +92,6 @@ struct Tick {
     joints: Vec<f64>,
     safety: Safety,
     policy: String,
-    #[serde(rename = "move")]
-    movement: Movement,
     imu: Option<serde_json::Value>,
 }
 
@@ -113,20 +115,13 @@ impl Default for Safety {
     }
 }
 
-#[derive(Debug, Default, Deserialize)]
-#[serde(default)]
-struct Movement {
-    applied: [f64; 3],
-}
-
 /// Index of `neck_pitch` in `robot.state.joints` (`JOINT_NAMES` order):
 /// the four head joints follow the left leg's five.
 const HEAD_JOINTS: usize = 5;
 
-/// robotd's own "is the robot doing something" — see the module doc.
-pub fn moving(policy: &str, applied: [f64; 3]) -> bool {
-    let twist = applied.iter().map(|v| v * v).sum::<f64>().sqrt();
-    twist > 0.0 || !matches!(policy, "walk" | "stand" | "sit" | "held")
+/// "Is the robot doing something", from the step label — see the module doc.
+pub fn moving(policy: &str) -> bool {
+    !matches!(policy, "stand" | "sit" | "held")
 }
 
 fn sample(tick: &Tick) -> Option<OdomSample> {
@@ -140,7 +135,7 @@ fn sample(tick: &Tick) -> Option<OdomSample> {
         trunk_z: tick.odom.position[2],
         head: [head[0], head[1], head[2], head[3]],
         t_ns: tick.t_ns,
-        moving: moving(&tick.policy, tick.movement.applied),
+        moving: moving(&tick.policy),
         sitting: tick.policy == "sit",
         fallen: tick.safety.fallen,
     })
@@ -236,16 +231,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn moving_is_robotds_verdict_rebuilt() {
-        assert!(!moving("stand", [0.0; 3]));
-        assert!(!moving("walk", [0.0; 3]));
-        assert!(!moving("sit", [0.0; 3]));
-        assert!(!moving("held", [0.0; 3]));
-        // The smoothed twist's tail still counts, as `> 0.0` does in robotd.
-        assert!(moving("stand", [2.8e-16, 0.0, 0.0]));
-        assert!(moving("walk", [0.1, 0.0, 0.3]));
-        for busy in ["rise", "ground_pick", "homing", "limp_fall", "limp_pose", "kick_left", "roulade"] {
-            assert!(moving(busy, [0.0; 3]), "{busy}");
+    fn moving_is_the_forks_verdict_rebuilt() {
+        // Standing is still whatever tail the smoothed twist has left.
+        for still in ["stand", "sit", "held"] {
+            assert!(!moving(still), "{still}");
+        }
+        for busy in ["walk", "rise", "ground_pick", "homing", "limp_fall", "limp_pose", "kick_left", "roulade"] {
+            assert!(moving(busy), "{busy}");
         }
     }
 
