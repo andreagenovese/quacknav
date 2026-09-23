@@ -951,6 +951,7 @@ fn round2(v: f64) -> f64 {
 mod books;
 mod fit;
 mod gait;
+pub(crate) use gait::turn_in_place_on;
 mod guarded;
 mod journey;
 mod mapping;

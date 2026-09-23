@@ -178,6 +178,18 @@ pub(super) const SPIN_LEFT_ONLY: bool = false;
 /// A spin keeps turning 5–10° after the command ends and settles in
 /// 0.5 s (measured): stop this early and let it coast.
 pub(super) const SPIN_LEAD_RAD: f64 = 0.15;
+/// A pure turn in place stops this short of its goal: the command's
+/// slew brings the yaw under the dead zone within a tick or two, so the
+/// body coasts little — the chunk's own length is most of the overshoot.
+pub(super) const TURN_LEAD_RAD: f64 = 0.10;
+/// Command chunk of a turn in place: at 50–60°/s, 0.15 s is 8–9°.
+pub(super) const TURN_CHUNK_S: f64 = 0.15;
+
+/// `QK_TURN_IN_PLACE=0` turns the old way (kick, then yaw) everywhere.
+pub(crate) fn turn_in_place_on() -> bool {
+    static V: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *V.get_or_init(|| std::env::var("QK_TURN_IN_PLACE").map(|v| v != "0").unwrap_or(true))
+}
 pub(super) const STALLED_RAD: f64 = 0.15;
 
 impl Job {
@@ -201,12 +213,64 @@ impl Job {
         }
     }
 
+    /// A pure turn in place: yaw alone past the gait's dead zone
+    /// ([`quack_duck::body::TURN_IN_PLACE_RAD_S`]), no kick, the body
+    /// within a few centimetres — so nothing ahead, a drop least of all,
+    /// can refuse it. Closed on the odometry's yaw in short chunks, with
+    /// the depth sensor's watch between them as [`Job::spin`] keeps it.
+    /// Returns how far it turned toward `sign` (radians), or `None` when
+    /// it is switched off (`QK_TURN_IN_PLACE=0`) or there is no yaw to
+    /// close on; the caller falls back on the kick when it turned short.
+    /// No stand at the end: the caller's.
+    pub(super) fn turn_in_place(&mut self, robot: &mut dyn Body, sign: f64, want: f64) -> Option<f64> {
+        if !turn_in_place_on() {
+            return None;
+        }
+        let yaw_now = |robot: &dyn Body| robot.cliff().and_then(|c| c.odom_yaw).or_else(|| robot.frame().map(|f| f.yaw));
+        let yaw0 = yaw_now(robot)?;
+        let vyaw = quack_duck::body::TURN_IN_PLACE_RAD_S * sign.signum();
+        let goal = (want - TURN_LEAD_RAD).max(0.05);
+        // 30°/s is the slowest measured side; a turn that has not got there
+        // in twice its time is not turning.
+        let budget = 2.0 * want / 0.5 + 1.0;
+        let started = robot.now();
+        let mut turned = 0.0_f64;
+        while (robot.now() - started).as_secs_f64() < budget {
+            let _ = robot.blind_move(&json!({"vx": 0.0, "vyaw": vyaw, "duration_s": TURN_CHUNK_S}));
+            if let Some(y) = yaw_now(robot) {
+                turned = wrap(y - yaw0) * sign.signum();
+                if turned >= goal {
+                    break;
+                }
+            }
+            if spin_watch()
+                && robot
+                    .cliff()
+                    .and_then(|c| c.drop_within(robot.now(), 0.0, SPIN_WATCH_FOV_RAD))
+                    .is_some_and(|d| d.edge_min_m < SPIN_WATCH_M)
+            {
+                tracing::info!("map explore: an edge came near while turning in place; stopping the turn");
+                break;
+            }
+        }
+        tracing::debug!(want_deg = format!("{:.0}", want.to_degrees()), turned_deg = format!("{:.0}", turned.to_degrees()), "map explore: turned in place");
+        Some(turned)
+    }
+
     /// Turn in place toward `sign` by about `want` radians, closed on the
-    /// fastest yaw there is (as [`Job::panorama`] does): a walking kick
-    /// first when there is room for one, a short step back otherwise —
-    /// the gait does not turn from a standstill — then yaw only, in short
-    /// chunks, and a mapping stand where it ends.
+    /// fastest yaw there is (as [`Job::panorama`] does): first the pure
+    /// turn in place ([`Job::turn_in_place`]); when that is off or turns
+    /// short, the old way — a walking kick when there is room for one, a
+    /// short step back otherwise, then yaw only, in short chunks — and a
+    /// mapping stand where it ends.
     pub(super) fn spin(&mut self, robot: &mut dyn Body, sign: f64, want: f64) {
+        if let Some(turned) = self.turn_in_place(robot, sign, want) {
+            if turned >= 0.7 * (want - TURN_LEAD_RAD).max(0.05) {
+                let _ = stand(robot, self.turn_stand_s());
+                return;
+            }
+            tracing::info!(turned_deg = format!("{:.0}", turned.to_degrees()), want_deg = format!("{:.0}", want.to_degrees()), "map explore: the turn in place fell short; the kick then");
+        }
         let yaw_now = |robot: &dyn Body| {
             robot
                 .cliff()
@@ -676,8 +740,15 @@ impl Job {
                 self.spin(robot, e.signum(), e.abs());
                 continue;
             }
-            // A fine correction: a short guarded kick, then yaw alone
-            // closed on the heading. The walking pulse it replaced turned
+            // A fine correction: a pure turn in place when the gait turns
+            // so — nothing to refuse it at the mouth of a passage — else
+            // a short guarded kick, then yaw alone closed on the heading.
+            if let Some(turned) = self.turn_in_place(robot, e.signum(), e.abs())
+                && turned > 0.5 * e.abs()
+            {
+                continue;
+            }
+            // The kick: the walking pulse it replaced turned
             // by anything from −1° to +18° with the sign it was given and
             // by +13° against it, and advanced 6 cm every time (turnprobe,
             // 2026-09-18) — at the mouth of a passage that was the whole

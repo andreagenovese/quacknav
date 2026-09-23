@@ -714,6 +714,17 @@ fn odom_yaw(robot: &Arc<Mutex<Robot>>) -> Option<f64> {
 /// small enough for the backing pulses and no drop is in view. Then a
 /// stand. Returns what was turned, radians, signed.
 fn turn_to(robot: &Arc<Mutex<Robot>>, bearing: f64, ahead: f64) -> f64 {
+    // A pure turn in place the short way first: past the gait's dead zone
+    // it turns 30–60°/s with the body within a few centimetres, so nothing
+    // at the beak refuses it and nothing blind is walked. What follows —
+    // pulses, the kick — is for a gait that does not turn so.
+    if let Some(turned) = pure_turn(robot, bearing.signum(), bearing.abs())
+        && turned >= 0.7 * bearing.abs()
+    {
+        let _ = call(robot, "robot.map_step", &json!({"vx": 0.0, "vyaw": 0.0, "walk_s": 0.0, "stop_s": 3.0}));
+        tracing::info!(want_deg = format!("{:.0}", bearing.to_degrees()), turned_deg = format!("{:.0}", (turned * bearing.signum()).to_degrees()), "homecoming: turned in place");
+        return turned * bearing.signum();
+    }
     let drop_seen = {
         let robot = robot.lock().expect("robot poisoned");
         robot.places.cliff.as_ref().is_some_and(|c| c.snapshot().nearest(Instant::now()).is_some())
@@ -867,6 +878,41 @@ fn scan_around(robot: &Arc<Mutex<Robot>>, first: Look, trail: &[(f64, f64)]) -> 
 /// PULSES of [`PULSE_S`] with a pause between, each measured on the
 /// odometry heading, up to [`PULSES_MAX`]. A step back first with
 /// something at the beak. Then a stand.
+/// Yaw alone past the dead zone, closed on the odometry in short chunks,
+/// stopped by an edge the sensor sees near the beak. How far it turned
+/// toward `sign`; `None` when switched off (`QK_TURN_IN_PLACE=0`) or with
+/// no odometry to close on. See `explore::Job::turn_in_place`.
+fn pure_turn(robot: &Arc<Mutex<Robot>>, sign: f64, want: f64) -> Option<f64> {
+    if !crate::explore::turn_in_place_on() {
+        return None;
+    }
+    let yaw0 = odom_yaw(robot)?;
+    let goal = (want - 0.10).max(0.05);
+    let started = Instant::now();
+    let budget = Duration::from_secs_f64(2.0 * want / 0.5 + 1.0);
+    let mut turned = 0.0_f64;
+    while started.elapsed() < budget {
+        let _ = call(robot, "robot.move", &json!({"vx": 0.0, "vyaw": quack_duck::body::TURN_IN_PLACE_RAD_S * sign.signum(), "duration_s": 0.15}));
+        if let Some(y) = odom_yaw(robot) {
+            turned = (y - yaw0).sin().atan2((y - yaw0).cos()) * sign.signum();
+            if turned >= goal {
+                break;
+            }
+        }
+        let edge_near = {
+            let robot = robot.lock().expect("robot poisoned");
+            robot.places.cliff.as_ref().is_some_and(|c| {
+                c.snapshot().drop_within(Instant::now(), 0.0, 0.9).is_some_and(|d| d.edge_min_m < 0.30)
+            })
+        };
+        if edge_near {
+            tracing::info!("homecoming: an edge came near while turning in place; stopping the turn");
+            break;
+        }
+    }
+    Some(turned)
+}
+
 fn turn_in_place(robot: &Arc<Mutex<Robot>>, sign: f64, want: f64, ahead: f64, at_beak: bool) -> Result<Value, String> {
     // A drop in view: nothing blind, nothing backwards — the guard does
     // not look behind, and a backing pulse beside the stairwell put

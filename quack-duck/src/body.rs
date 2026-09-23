@@ -19,6 +19,16 @@ pub const MAX_MOVE_DURATION_S: f64 = 3.0;
 /// 0.2, 53 cm at 0.3). A cap under that made `robot.move` inert.
 pub const MAX_SPEED_M_S: f64 = 0.3;
 pub const MAX_YAW_RAD_S: f64 = 1.0;
+/// Turning from a standstill (vx and vy both 0) is allowed past
+/// [`MAX_YAW_RAD_S`]: the walking policy has a dead zone there and does not
+/// turn at all below it — 2–4°/s at 0.7 and 0.9 — while above it it turns
+/// in place, the body within 4 cm: 30°/s at +1.2, 50–60°/s at ±1.5 (the
+/// right side's threshold is higher: −1.2 barely turns). Measured on the
+/// MuJoCo twin, fork and daemon-v0.14.4 alike, 2026-09-23
+/// (scripts/twin/turnprobe.py).
+pub const MAX_TURN_IN_PLACE_RAD_S: f64 = 1.6;
+/// What a turn in place asks for: past both sides' thresholds.
+pub const TURN_IN_PLACE_RAD_S: f64 = 1.5;
 pub const MAX_LOOK_XY_M: f64 = 3.0;
 pub const MIN_LOOK_Z_M: f64 = -0.2;
 pub const MAX_LOOK_Z_M: f64 = 2.0;
@@ -57,17 +67,19 @@ pub fn step_advance_m(vx: f64, vyaw: f64, walk_s: f64) -> f64 {
 /// The yaw rate of a full turning arc.
 pub const MAX_ARC_YAW_RAD_S: f64 = 0.7;
 
+/// The yaw a command may carry: more for a turn in place than for a walk.
+pub fn yaw_cap(vx: f64, vy: f64) -> f64 {
+    if vx == 0.0 && vy == 0.0 { MAX_TURN_IN_PLACE_RAD_S } else { MAX_YAW_RAD_S }
+}
+
 pub fn move_params(args: &Value) -> proto::MoveParams {
-    proto::MoveParams {
-        vx: clamp(number(args, "vx"), MAX_SPEED_M_S),
-        vy: clamp(number(args, "vy"), MAX_SPEED_M_S),
-        vyaw: clamp(number(args, "vyaw"), MAX_YAW_RAD_S),
-    }
+    let (vx, vy) = (clamp(number(args, "vx"), MAX_SPEED_M_S), clamp(number(args, "vy"), MAX_SPEED_M_S));
+    proto::MoveParams { vx, vy, vyaw: clamp(number(args, "vyaw"), yaw_cap(vx, vy)) }
 }
 
 /// The `[gait]` corrections, applied last, to what is actually sent.
 pub fn trimmed(gait: &crate::gait::GaitConfig, mut params: proto::MoveParams) -> proto::MoveParams {
-    params.vyaw = clamp(gait.yaw(params.vx, params.vyaw), MAX_YAW_RAD_S);
+    params.vyaw = clamp(gait.yaw(params.vx, params.vyaw), yaw_cap(params.vx, params.vy));
     params
 }
 
@@ -193,4 +205,23 @@ pub fn request(control: &mut Option<Control>, call: &proto::Call) -> Result<prot
         *control = None;
         format!("robot lost: {e}")
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn a_turn_in_place_may_ask_past_the_walking_cap() {
+        let still = move_params(&json!({"vx": 0.0, "vyaw": TURN_IN_PLACE_RAD_S}));
+        assert_eq!(still.vyaw, TURN_IN_PLACE_RAD_S);
+        let walking = move_params(&json!({"vx": 0.3, "vyaw": TURN_IN_PLACE_RAD_S}));
+        assert_eq!(walking.vyaw, MAX_YAW_RAD_S);
+        let sideways = move_params(&json!({"vy": 0.2, "vyaw": -2.0}));
+        assert_eq!(sideways.vyaw, -MAX_YAW_RAD_S);
+        // The trim leaves a standstill alone, so a turn in place is sent as asked.
+        let gait = crate::gait::GaitConfig { yaw_trim: 0.08, ..Default::default() };
+        assert_eq!(trimmed(&gait, still).vyaw, TURN_IN_PLACE_RAD_S);
+    }
 }

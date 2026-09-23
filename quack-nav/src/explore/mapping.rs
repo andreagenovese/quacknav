@@ -160,6 +160,16 @@ impl Job {
                 return;
             }
             let Some(yaw0) = yaw_now(robot) else { break };
+            // A pure turn in place first, past the gait's dead zone: no
+            // kick to be refused, the body within a few centimetres. The
+            // kick below is what is left for a gait that does not turn so.
+            if let Some(turned) = self.turn_in_place(robot, PANO_SPIN.signum(), PANO_STEP_RAD)
+                && turned >= PANO_STEP_RAD - PANO_LEAD_RAD
+            {
+                stuck = 0;
+                let _ = stand(robot, PANO_STAND_S);
+                continue;
+            }
             // The gait does not turn in place from a standstill at all
             // (measured: 1–2° in 6 s, any yaw); it does once stepping, so
             // a one-second walking kick first — through map_step, so it is

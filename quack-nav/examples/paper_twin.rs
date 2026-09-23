@@ -10,7 +10,8 @@
 //! `tools::plan_step` (every guard of `robot.map_step`). What is modelled,
 //! from what the MuJoCo twin measured: the gait (0.114 m/s at vx 0.3,
 //! 0.65 rad/s per unit of yaw, a right veer, no turning in place from a
-//! standstill, backing up only with a positive yaw), the depth sensor as
+//! standstill below the dead zone and 30–58°/s past it (`in_place_rate`),
+//! backing up only with a positive yaw), the depth sensor as
 //! eight columns of rays with the head sweep at a stand, the map as cells
 //! seen from stands, the pose as truth plus a random walk that the stands
 //! pull back — and, if asked, a kidnap now and then to exercise the guards.
@@ -442,6 +443,9 @@ impl PaperTwin {
                 // stepping, any yaw (measured 2026-09-08: +0.7 then -0.7
                 // backed 0.23 m turning -87°, then straight -13°).
                 if vyaw > 0.3 || can_spin { (-BACK_SPEED, 0.6 * vyaw) } else { (0.0, 0.0) }
+            } else if let Some(w) = spinning.then(|| in_place_rate(vyaw)).flatten() {
+                // Past the dead zone: a turn in place from a standstill.
+                (0.0, w)
             } else if spinning && can_spin && vyaw.abs() > 0.3 {
                 // Sign honoured (right turns measured on the twin, 2026-09-06).
                 (0.0, SPIN_RATE * vyaw.signum())
@@ -875,4 +879,18 @@ fn main() -> anyhow::Result<()> {
         );
     }
     Ok(())
+}
+
+/// Turning from a standstill past the gait's dead zone, as measured on the
+/// MuJoCo twin (scripts/twin/turnprobe.py, 2026-09-23, fork and
+/// daemon-v0.14.4 alike): nothing below it, 30°/s at +1.2, ~51°/s at +1.5,
+/// ~58°/s at −1.5, while −1.2 barely turns (5°/s) — the right side's
+/// threshold is higher.
+fn in_place_rate(vyaw: f64) -> Option<f64> {
+    match vyaw {
+        v if v >= 1.45 => Some(51f64.to_radians()),
+        v if v >= 1.15 => Some(30f64.to_radians()),
+        v if v <= -1.45 => Some(-58f64.to_radians()),
+        _ => None,
+    }
 }
