@@ -182,6 +182,9 @@ pub(super) const DROP_REFUSAL_AGAIN_S: f64 = 5.0;
 /// the refused legs do (each costs a plan and a stand, 3–5 s; goround2
 /// spent ten minutes on 172 of them, 2026-09-20).
 pub(super) const TURNS_REFUSED_SEAL: u32 = 12;
+/// ... and so many, in any mode, that end the waiting there (see
+/// `walk_leg`): the way on ahead, or the aim given up.
+pub(super) const TURNS_REFUSED_ESCAPE: u32 = 4;
 /// A booked drop this near a widened point is widened with it: the
 /// sensor's point and the book's are the same rim seen twice.
 pub(super) const WIDEN_MATCH_M: f64 = 0.25;

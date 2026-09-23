@@ -1724,6 +1724,31 @@ impl Job {
                 aim
             };
             let err = wrap((aim.1 - y).atan2(aim.0 - x) - yaw);
+            // Stuck beside a drop: no turn in place this near the rim, the
+            // kick refused, no way back — and the duck stood there, while
+            // the standing gait crept it toward the hole, until it fell in
+            // (casa_arredata, 2026-09-23: 49 refusals in three minutes
+            // 0.12 m from the stairwell, 6 cm crept, a fall standing
+            // still). Never wait at a rim: the way on ahead, guarded, out
+            // of its reach to turn there; else the aim is given up.
+            if self.turns_refused_at_drop >= TURNS_REFUSED_ESCAPE {
+                self.turns_refused_at_drop = 0;
+                self.going = None;
+                let leg = json!({"vx": 0.3, "vyaw": 0.0, "walk_s": 1.5, "stop_s": self.turn_stand_s(), "gap": true, "steer": false,
+                                 "passage": passage_lane(), "cliff_margin_m": passage_cliff_margin_m()});
+                let walked = self.guarded_step(robot, pose, &leg);
+                tracing::info!(at = ?(x, y, yaw), walked = walked.is_ok(), why = walked.as_ref().err().map(String::as_str).unwrap_or(""),
+                               "map explore: stuck beside a drop, no turn and no way back; the way on ahead, to turn out of the rim's reach");
+                if walked.is_err() {
+                    if self.goal.is_some() {
+                        return Some((State::Failed, "stuck beside a drop: no turn there, no way back and none ahead".into()));
+                    }
+                    if let Some((t, _)) = self.target.take() {
+                        self.refused.push((t, BLOCK_REFUSED_M));
+                    }
+                }
+                return None;
+            }
             // Turn, then go — and stay going until the error is well past
             // the entry, not merely past it (see `GO_EXIT_RAD`).
             let going = commit() && self.gate(aim, err);
