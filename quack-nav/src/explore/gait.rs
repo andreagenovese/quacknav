@@ -184,6 +184,9 @@ pub(super) const SPIN_LEAD_RAD: f64 = 0.15;
 pub(super) const TURN_LEAD_RAD: f64 = 0.10;
 /// Command chunk of a turn in place: at 50–60°/s, 0.15 s is 8–9°.
 pub(super) const TURN_CHUNK_S: f64 = 0.15;
+/// No turn in place with a drop this near, on any side: the body is
+/// 0.19 m wide and its legs swing as it turns (see [`Job::turn_in_place`]).
+pub(super) const TURN_CLEAR_M: f64 = 0.25;
 
 /// `QK_TURN_IN_PLACE=0` turns the old way (kick, then yaw) everywhere.
 pub(crate) fn turn_in_place_on() -> bool {
@@ -228,6 +231,14 @@ impl Job {
         }
         let yaw_now = |robot: &dyn Body| robot.cliff().and_then(|c| c.odom_yaw).or_else(|| robot.frame().map(|f| f.yaw));
         let yaw0 = yaw_now(robot)?;
+        // The legs swing while the body turns: nowhere near a drop, on any
+        // side. Beside the stairwell's rim an alignment turned in place
+        // 9 cm from the edge and the duck went in (twin, 2026-09-23); the
+        // edge was beside it, where the watch ahead does not look.
+        if let Some(near) = self.drop_within_any(robot, TURN_CLEAR_M) {
+            tracing::info!(near_m = format!("{near:.2}"), "map explore: a drop this near; no turn in place here");
+            return Some(0.0);
+        }
         let vyaw = quack_duck::body::TURN_IN_PLACE_RAD_S * sign.signum();
         let goal = (want - TURN_LEAD_RAD).max(0.05);
         // 30°/s is the slowest measured side; a turn that has not got there
@@ -243,18 +254,30 @@ impl Job {
                     break;
                 }
             }
-            if spin_watch()
-                && robot
-                    .cliff()
-                    .and_then(|c| c.drop_within(robot.now(), 0.0, SPIN_WATCH_FOV_RAD))
-                    .is_some_and(|d| d.edge_min_m < SPIN_WATCH_M)
-            {
+            if spin_watch() && self.drop_within_any(robot, TURN_CLEAR_M).is_some() {
                 tracing::info!("map explore: an edge came near while turning in place; stopping the turn");
                 break;
             }
         }
         tracing::debug!(want_deg = format!("{:.0}", want.to_degrees()), turned_deg = format!("{:.0}", turned.to_degrees()), "map explore: turned in place");
         Some(turned)
+    }
+
+    /// The nearest drop within `radius` of the body, on any side: a booked
+    /// one (its point, from the map's pose) or an edge the sensor sees
+    /// (any bearing, recent stand frames). `None` when there is none that
+    /// near.
+    pub(super) fn drop_within_any(&self, robot: &dyn Body, radius: f64) -> Option<f64> {
+        let booked = robot.frame().map(|f| f.pose()).map_or(f64::INFINITY, |(x, y, _)| {
+            self.local
+                .iter()
+                .filter(|(_, r)| *r >= DROP_RADIUS_M)
+                .map(|(p, _)| dist2(*p, (x, y)))
+                .fold(f64::INFINITY, f64::min)
+        });
+        let seen = robot.cliff().and_then(|c| c.nearest(robot.now())).map_or(f64::INFINITY, |d| d.edge_min_m);
+        let near = booked.min(seen);
+        (near < radius).then_some(near)
     }
 
     /// Turn in place toward `sign` by about `want` radians, closed on the

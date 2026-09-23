@@ -887,6 +887,16 @@ fn pure_turn(robot: &Arc<Mutex<Robot>>, sign: f64, want: f64) -> Option<f64> {
         return None;
     }
     let yaw0 = odom_yaw(robot)?;
+    // Nowhere near a drop, on any side: the legs swing as the body turns
+    // (see `explore::Job::turn_in_place`).
+    let edge_near = || {
+        let robot = robot.lock().expect("robot poisoned");
+        robot.places.cliff.as_ref().is_some_and(|c| c.snapshot().nearest(Instant::now()).is_some_and(|d| d.edge_min_m < 0.25))
+    };
+    if edge_near() {
+        tracing::info!("homecoming: a drop this near; no turn in place here");
+        return Some(0.0);
+    }
     let goal = (want - 0.10).max(0.05);
     let started = Instant::now();
     let budget = Duration::from_secs_f64(2.0 * want / 0.5 + 1.0);
@@ -899,13 +909,7 @@ fn pure_turn(robot: &Arc<Mutex<Robot>>, sign: f64, want: f64) -> Option<f64> {
                 break;
             }
         }
-        let edge_near = {
-            let robot = robot.lock().expect("robot poisoned");
-            robot.places.cliff.as_ref().is_some_and(|c| {
-                c.snapshot().drop_within(Instant::now(), 0.0, 0.9).is_some_and(|d| d.edge_min_m < 0.30)
-            })
-        };
-        if edge_near {
+        if edge_near() {
             tracing::info!("homecoming: an edge came near while turning in place; stopping the turn");
             break;
         }

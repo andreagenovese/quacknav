@@ -129,6 +129,20 @@ pub(super) fn passage_lane() -> bool {
 // passage once the body hugged the wall; two of thirty runs ended stuck in
 // it (paper twin, 2026-09-08). The west passage is 0.54.
 pub(super) const PASSAGE_MIN_W_M: f64 = 0.30;
+/// Beside a drop the way must also leave the pose's error on each side:
+/// 5–8 cm on the twin, 17 cm at the worst on the day an alignment 9 cm
+/// from the stairwell's rim went in (2026-09-23). With it the passage is
+/// 0.46 m at the least — the stairwell's real one is 0.54.
+pub(super) const PASSAGE_POSE_MARGIN_M: f64 = 0.08;
+use crate::passage::{BODY_HALF_M as BODY_HALF_M_NAV, LEG_DRIFT_M as LEG_DRIFT_M_NAV};
+/// The same narrow passage refused this many times without the body moving
+/// is no way at all: the frontier is dropped, the journey ends.
+pub(super) const NARROW_REFUSALS_MAX: u32 = 3;
+/// A rim the sensor sees this near beside the body goes on the books at
+/// once, so the next plan keeps off it: the passage law measured the
+/// stairwell's west rim 0.11 m to the right, the books held nothing
+/// there, and the route ran along it.
+pub(super) const RIM_BOOK_M: f64 = 0.35;
 /// `QK_PASSAGE_MIN_W`: 0.30 since 2026-09-16 (was 0.50, then 0.42): the
 /// width is measured wall-to-(rim point − its 0.10 radius), so the 0.44 m
 /// strip east of the twin's stairwell reads 0.30–0.34 and the 0.55 m
@@ -287,6 +301,7 @@ impl Job {
     /// the left. Each side's free width is the nearer of the map's wall
     /// and the drops on the books beside or just ahead of the duck.
     pub(super) fn passage(&mut self, robot: &dyn Body, grid: &Grid, (x, y, yaw): (f64, f64, f64), path: &[(f64, f64)], stand: Option<(f64, f64)>) -> Option<(f64, f64, f64)> {
+        self.passage_narrow = false;
         let drops: Vec<(f64, f64)> = self
             .local
             .iter()
@@ -472,10 +487,12 @@ impl Job {
         // axis. The map's wall and the drops on the books are in map
         // coordinates and move with the pose error (10–30 cm in run 73);
         // the passage is 0.54 m wide and the guard's lane leaves 5 cm.
+        let mut sensed_drop_near = f64::INFINITY;
         if passage_sensor() && let Some(cliff) = robot.cliff() {
             let now = robot.now();
             let (mut s_left, mut s_right) = (f64::INFINITY, f64::INFINITY);
             let (mut s_drop_near, mut s_drop_side) = (f64::INFINITY, 0.0);
+            let mut rims: Vec<(f64, f64)> = Vec::new();
             for f in cliff.recent.iter().filter(|f| now.duration_since(f.at) <= crate::cliff::MEMORY && !f.moving) {
                 for o in &f.obstacles {
                     let a = yaw + o.bearing - h;
@@ -498,8 +515,25 @@ impl Job {
                         s_drop_side = lat.signum();
                     }
                     if lat > 0.0 { s_left = s_left.min(free) } else { s_right = s_right.min(free) }
+                    if free < RIM_BOOK_M {
+                        let b = yaw + d.bearing;
+                        rims.push((x + r * b.cos(), y + r * b.sin()));
+                    }
                 }
             }
+            // What the sensor sees of the rim this near goes on the books
+            // now, not at the next stand: the route is planned from them.
+            let mut booked = 0;
+            for p in rims {
+                if !self.local.iter().any(|(q, rr)| *rr >= DROP_RADIUS_M && dist2(*q, p) < 0.08) {
+                    self.remember_local(p, DROP_RADIUS_M);
+                    booked += 1;
+                }
+            }
+            if booked > 0 {
+                tracing::info!(booked, "map explore: passage: the rim the sensor sees beside the body goes on the books");
+            }
+            sensed_drop_near = s_drop_near;
             if passage_sensor_replaces() {
                 if s_left.is_finite() {
                     left = s_left;
@@ -522,10 +556,22 @@ impl Job {
             tracing::debug!(left, right, axis = h, "map explore: passage: sides not both bounded or too wide");
             return None;
         }
-        if left + right < passage_min_w_m() {
-            // Too narrow for the body and its lane: not a passage. The
-            // planner sees drops wide enough not to route through here.
-            tracing::debug!(left, right, axis = h, "map explore: passage: too narrow");
+        // Beside a drop the way must leave the pose's error too — a drop
+        // the sensor sees right beside the body now, not one on the books
+        // somewhere near (that read a kitchen corner by the stairwell as a
+        // passage too narrow to leave, 806 times, on the paper twin).
+        let beside_drop = sensed_drop_near < BODY_HALF_M_NAV + LEG_DRIFT_M_NAV + PASSAGE_POSE_MARGIN_M;
+        let min_w = passage_min_w_m() + if beside_drop { 2.0 * PASSAGE_POSE_MARGIN_M } else { 0.0 };
+        if left + right < min_w {
+            if beside_drop {
+                // Not a passage to walk: the planner assumed the drops kept
+                // it off this line, and here they did not — the leg is
+                // refused and the route planned around (the caller).
+                self.passage_narrow = true;
+                tracing::info!(left, right, min_w, axis = h, "map explore: passage beside a drop narrower than the body, its drift and the pose's margin; not walked");
+            } else {
+                tracing::debug!(left, right, axis = h, "map explore: passage: too narrow");
+            }
             return None;
         }
         self.passage_axis = Some(h);

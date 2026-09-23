@@ -857,6 +857,11 @@ pub struct Job {
     /// Whether the passage law last read the sides at the mouth ahead
     /// (see `passage`).
     passage_at_mouth: bool,
+    /// The last `passage()` found the way beside a drop narrower than the
+    /// body, its drift and the pose's margin: the leg is not to be walked.
+    passage_narrow: bool,
+    /// Narrow-passage refusals in a row, and where the body stood.
+    narrow_refusals: (u32, (f64, f64)),
     /// Turns in place refused beside a drop in a row (the kick refused,
     /// no way back) without a leg between (see `TURNS_REFUSED_SEAL`).
     turns_refused_at_drop: u32,
@@ -1003,6 +1008,8 @@ impl Job {
             passage_refusals: 0,
             turns_refused_at_drop: 0,
             passage_at_mouth: false,
+            passage_narrow: false,
+            narrow_refusals: (0, (f64::NAN, f64::NAN)),
             budget_extended: false,
             goal_confirmed: false,
             kept_route: None,
@@ -1789,6 +1796,37 @@ impl Job {
                     tracing::info!(at = ?(x, y, yaw), axis, offset, vyaw, "map explore: passage beside a drop: straight leg");
                     passage_leg = Some(leg);
                 }
+            }
+            // 2b'. Beside a drop and too narrow for the pose's margin: not
+            // walked. The drops beside it are widened for the planner (the
+            // guard's refusal does the same) and the route is planned again;
+            // with no way round the journey fails rather than brushing the
+            // rim (the twin, 2026-09-23: three falls in that passage).
+            if self.passage_narrow {
+                let near: Vec<(f64, f64)> = self
+                    .local
+                    .iter()
+                    .filter(|(p, r)| *r >= DROP_RADIUS_M && dist2(*p, (x, y)) < 0.6)
+                    .map(|(p, _)| *p)
+                    .collect();
+                self.widened.extend(near.iter().copied());
+                self.going = None;
+                let (n, at) = self.narrow_refusals;
+                let n = if dist2(at, (x, y)) < 0.10 { n + 1 } else { 1 };
+                self.narrow_refusals = (n, (x, y));
+                tracing::info!(at = ?(x, y, yaw), widened = near.len(), in_a_row = n, "map explore: planning around the narrow passage");
+                if n >= NARROW_REFUSALS_MAX {
+                    self.narrow_refusals = (0, (f64::NAN, f64::NAN));
+                    if let Some((t, _)) = self.target.take() {
+                        // Exploring: this frontier is not reachable safely today.
+                        self.refused.push((t, BLOCK_REFUSED_M));
+                        tracing::info!("map explore: the narrow passage is no way; the frontier is dropped");
+                    } else {
+                        return Some((State::Failed, "no safe way past the drop: the passage beside it is narrower than the body and the pose's margin".into()));
+                    }
+                }
+                let _ = stand(robot, self.turn_stand_s());
+                return None;
             }
             // 2c. The aim well off the nose: turn in place to it first,
             // closed on the yaw, then plan again — the human driver aligns
