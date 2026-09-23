@@ -512,6 +512,14 @@ impl ExploreHandle {
                     .collect()
             })
             .unwrap_or_default();
+        // A drop's radius is DROP_RADIUS_M; wider ones are obstacles an old
+        // rule booked a centimetre too wide and so saved as drops (see
+        // `LOW_BOOK_RADIUS_MAX_M`). They are not drops: left out.
+        let before = drops.len();
+        let drops: Vec<((f64, f64), f64)> = drops.into_iter().filter(|(_, r)| *r <= DROP_RADIUS_M + 0.005).collect();
+        if drops.len() < before {
+            tracing::info!(map = name, left_out = before - drops.len(), "map explore: obstacles saved as drops by the old rule; left out of the books");
+        }
         // The passages walked on this map: trail points beside its drops,
         // kept as lanes — cells the body stood on, passable to the planner
         // whatever the margins say. A 0.54 m passage with a 0.25 m drop
@@ -2339,6 +2347,14 @@ mod tests {
     use super::*;
     use crate::frontier::INFLATE_M;
     use crate::map::Cell;
+
+    /// A low thing booked ahead, however far it is pushed, stays an
+    /// obstacle: the books tell the two apart by the radius alone.
+    #[test]
+    fn a_low_thing_booked_ahead_is_never_a_drop() {
+        let widest = (OBSTACLE_RADIUS_M + guarded::LOW_BOOK_PUSH_M / 2.0).min(guarded::LOW_BOOK_RADIUS_MAX_M);
+        assert!(widest < DROP_RADIUS_M, "{widest}");
+    }
 
     /// A flat with one wall across it and two doorways: a near one at
     /// x ≈ 3.0 and a far one at x ≈ 0.6. Everything else is known floor.

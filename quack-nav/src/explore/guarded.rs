@@ -95,6 +95,13 @@ pub(super) fn blind_cone_rad(range_m: f64) -> f64 {
 /// round the booked point crossed the cube. The same ladder as above.
 /// `QK_LOW_BOOK_PUSH_M` to measure.
 pub(super) const LOW_BOOK_PUSH_M: f64 = 0.12;
+/// ... and never as wide as a drop: the books tell a drop from an obstacle
+/// by the radius alone (`r >= DROP_RADIUS_M`), and 0.05 + 0.12 / 2 = 0.11
+/// made every low thing booked this way a drop — for the planner's drop
+/// margin, the turn rules, and the ground book it was saved into. Nine of
+/// house2's eleven drops far from the stairwell were these (2026-09-23;
+/// the user's: "phantom drops on the books inhibit the navigation").
+pub(super) const LOW_BOOK_RADIUS_MAX_M: f64 = DROP_RADIUS_M - 0.01;
 pub(super) fn low_book_push_m() -> f64 {
     static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
     *V.get_or_init(|| knob("QK_LOW_BOOK_PUSH_M", LOW_BOOK_PUSH_M))
@@ -861,7 +868,7 @@ impl Job {
         let b = yaw + hit.0;
         let push = low_book_push_m();
         let (range, radius) = if push > 0.0 && !self.on_mapped_wall(robot, (x, y, yaw), hit.0, hit.1) {
-            (hit.1 + push, OBSTACLE_RADIUS_M + push / 2.0)
+            (hit.1 + push, (OBSTACLE_RADIUS_M + push / 2.0).min(LOW_BOOK_RADIUS_MAX_M))
         } else {
             (hit.1, OBSTACLE_RADIUS_M)
         };
