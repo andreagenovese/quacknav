@@ -845,7 +845,8 @@ pub fn catalog() -> Vec<Value> {
     says how much of the house is mapped (percent, sessions, done). When the house is already \
     mapped the call does not start and says so — tell the user. Only when the user explicitly \
     asks to map the house again from nothing, confirm with them first that the current map will \
-    be replaced, then call with fresh=true. When the user says the exploration is complete \
+    be replaced, then call with fresh=true: the first call only says what would be lost; ask the \
+    user, and on their yes call again with fresh=true and confirmed=true. When the user says the exploration is complete \
     (\"esplorazione completata\", \"basta così, la casa è mappata\"), call with complete=true: \
     the map is saved, closed and declared complete as it is, and from then on the duck only \
     navigates on it.",
@@ -853,7 +854,8 @@ pub fn catalog() -> Vec<Value> {
             "type": "object",
             "properties": {
                 "stop": {"type": "boolean", "description": "stop a running exploration"},
-                "fresh": {"type": "boolean", "description": "a new map from nothing, replacing the saved one when this session saves; only after the user confirmed"},
+                "fresh": {"type": "boolean", "description": "a new map from nothing, replacing the saved one when this session saves; without confirmed it only answers what would be lost"},
+                "confirmed": {"type": "boolean", "description": "with fresh: the user has confirmed, after being told what is lost"},
                 "complete": {"type": "boolean", "description": "the user declares the exploration complete: stop, save, close the map as it is"},
                 "save_as": {"type": "string", "description": "the map's name; default the current map's, else \"casa\""},
                 "watch": {"type": "boolean", "description": "do not walk: somebody else drives the duck, and it only books what it sees at each stop (the guided drive that writes the books)"},
@@ -1165,6 +1167,19 @@ fn map_explore(robot: &mut Robot, args: &Value) -> Result<Value, String> {
             "done": true,
             "progress": progress,
             "reason": "the house is already mapped: nothing is left to explore. A new map from nothing replaces it only if the user asks for one (fresh: true)",
+        }));
+    }
+    // A new map replaces the one the user has: never on one sentence. The
+    // first call answers what it would lose and waits for `confirmed` — on
+    // the twin (2026-09-24) the assistant took "redo the map from scratch"
+    // for the confirmation the description asked it to seek, and started.
+    if fresh && !args.get("confirmed").and_then(Value::as_bool).unwrap_or(false) {
+        return Ok(json!({
+            "started": false,
+            "needs_confirmation": true,
+            "map_name": name,
+            "progress": progress,
+            "reason": "a new map from nothing replaces the saved one (its named places are lost) when its first session saves: ask the user to confirm, then call again with fresh=true and confirmed=true",
         }));
     }
     if fresh {
