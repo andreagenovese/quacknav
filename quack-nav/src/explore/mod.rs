@@ -547,6 +547,24 @@ impl ExploreHandle {
         }
     }
 
+    /// The user says the exploration is complete (`robot.map_explore`
+    /// `complete`): the map `name` is declared done whatever its share —
+    /// the share is kept beside the verdict — and nothing explores it
+    /// again unless a new map is asked for.
+    pub fn declare_done(&self, name: &str, percent: f64) -> Value {
+        let mut file = self.ground_file();
+        let mut progress = file.get(&format!("{name}.progress")).cloned().unwrap_or(json!({}));
+        progress["done"] = json!(true);
+        progress["declared_by_user"] = json!(true);
+        progress["percent"] = json!(percent.round());
+        file.insert(format!("{name}.progress"), progress.clone());
+        self.write_ground_file(file);
+        self.name_live_map(name);
+        self.update(|s| s.progress = Some(progress.clone()));
+        tracing::info!(map = name, percent = format!("{percent:.0}"), "map explore: the user declares the exploration complete");
+        progress
+    }
+
     /// The name of the map whose books are on the books now, if any.
     pub fn map_name(&self) -> Option<String> {
         self.ground.lock().expect("ground poisoned").map.clone()
@@ -885,7 +903,7 @@ pub struct Session {
 /// floor it knows plus the unknown still reachable from a frontier inside
 /// the map's walls. Unknown pockets walled in on every side (the inside
 /// of a sofa, a box) are not left to explore, and are not counted.
-fn explored_share(grid: &Grid) -> (f64, usize, usize) {
+pub(crate) fn explored_share(grid: &Grid) -> (f64, usize, usize) {
     let (rows, cols) = (grid.rows, grid.cols);
     let (mut r0, mut r1, mut c0, mut c1) = (rows, 0, cols, 0);
     for r in 0..rows {

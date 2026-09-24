@@ -200,7 +200,9 @@ fn catalog_places() -> Vec<Value> {
         before a known wall (clearance; 'unknown' means unexplored), whether a drop — stairs or a hole, \
         invisible to the map — is in view (cliff), and a hint on what to do next. Use it \
         when asked about the map, at the start of a mapping tour, and after a few robot.map_step \
-        calls to tell the user how it is going.",
+        calls to tell the user how it is going. house.percent_mapped is how much of the house \
+        is mapped (an estimate, on the low side); house.done says the exploration is over — answer \
+        \"how far along is the map\" with it.",
             "parameters": {"type": "object", "properties": {}}
         }),
     ]
@@ -336,8 +338,25 @@ fn map_status(places: &mut Places) -> Result<Value, String> {
         "clearance": clearance,
         "cliff": cliff_json(places.cliff.as_ref(), Instant::now()),
         "places_known": places.registry.current().count(),
+        "house": house_json(places, grid.as_ref()),
         "hint": hint,
     }))
+}
+
+/// How much of the house the duck has mapped, live from the map in hand,
+/// and what the exploration's books say: sessions, and whether it is done
+/// (found nothing left, or declared complete by the user).
+fn house_json(places: &Places, grid: Option<&crate::map::Grid>) -> Value {
+    let live = grid.map(|g| (crate::explore::explored_share(g).0 * 100.0).round());
+    let progress = places.explore.status().progress;
+    let field = |k: &str| progress.as_ref().and_then(|p| p.get(k)).cloned().unwrap_or(Value::Null);
+    json!({
+        "map": places.explore.map_name(),
+        "percent_mapped": live,
+        "sessions": field("sessions"),
+        "done": field("done").as_bool().unwrap_or(false),
+        "declared_by_user": field("declared_by_user").as_bool().unwrap_or(false),
+    })
 }
 
 /// What the cliff guard sees: `guard` says whether it can see at all,
@@ -826,12 +845,16 @@ pub fn catalog() -> Vec<Value> {
     says how much of the house is mapped (percent, sessions, done). When the house is already \
     mapped the call does not start and says so — tell the user. Only when the user explicitly \
     asks to map the house again from nothing, confirm with them first that the current map will \
-    be replaced, then call with fresh=true.",
+    be replaced, then call with fresh=true. When the user says the exploration is complete \
+    (\"esplorazione completata\", \"basta così, la casa è mappata\"), call with complete=true: \
+    the map is saved, closed and declared complete as it is, and from then on the duck only \
+    navigates on it.",
         "parameters": {
             "type": "object",
             "properties": {
                 "stop": {"type": "boolean", "description": "stop a running exploration"},
                 "fresh": {"type": "boolean", "description": "a new map from nothing, replacing the saved one when this session saves; only after the user confirmed"},
+                "complete": {"type": "boolean", "description": "the user declares the exploration complete: stop, save, close the map as it is"},
                 "save_as": {"type": "string", "description": "the map's name; default the current map's, else \"casa\""},
                 "watch": {"type": "boolean", "description": "do not walk: somebody else drives the duck, and it only books what it sees at each stop (the guided drive that writes the books)"},
                 "max_s": {"type": "number", "description": "time budget in seconds; default from the config"}
@@ -1083,6 +1106,9 @@ const LANE_HALF_M: f64 = 0.16;
 
 /// The robot as the tools see it.
 fn map_explore(robot: &mut Robot, args: &Value) -> Result<Value, String> {
+    if args.get("complete").and_then(Value::as_bool).unwrap_or(false) {
+        return map_explore_complete(robot, args);
+    }
     if args.get("stop").and_then(Value::as_bool).unwrap_or(false) {
         let was_running = robot.places.explore.running();
         robot.places.explore.request_stop();
@@ -1176,6 +1202,43 @@ fn map_explore(robot: &mut Robot, args: &Value) -> Result<Value, String> {
         "max_s": max_s,
         "from": {"x": (frame.x * 100.0).round() / 100.0, "y": (frame.y * 100.0).round() / 100.0},
         "map": {"submaps": frame.n_submaps, "windows": frame.windows},
+    }))
+}
+
+/// "Esplorazione completata": the running session stopped (and saved, as
+/// every session is), the map saved again under its name, declared done
+/// with the share it has, and frozen — from here on the duck navigates.
+/// Refused while the duck does not know where it is: the mapper will not
+/// save a map on a guessed pose.
+fn map_explore_complete(robot: &mut Robot, args: &Value) -> Result<Value, String> {
+    if robot.places.explore.running() {
+        robot.places.explore.request_stop();
+        let deadline = Instant::now() + std::time::Duration::from_secs(20);
+        while robot.places.explore.running() && Instant::now() < deadline {
+            std::thread::sleep(std::time::Duration::from_millis(200));
+        }
+    }
+    let name = match args.get("save_as").and_then(Value::as_str) {
+        Some(n) => map_name(&json!({"name": n}))?.get("name").and_then(Value::as_str).unwrap_or_default().to_string(),
+        None => robot.places.explore.map_name().unwrap_or_else(|| "casa".to_string()),
+    };
+    map_library(&robot.places.map_socket, crate::mapd::wire::METHOD_ROBOT_MAP_SAVE, Some(json!({"name": name})))?;
+    let percent = robot
+        .places
+        .map
+        .as_ref()
+        .and_then(|m| m.snapshot().latest.and_then(|f| f.grid().ok()))
+        .map_or(0.0, |g| crate::explore::explored_share(&g).0 * 100.0);
+    let progress = robot.places.explore.declare_done(&name, percent);
+    robot.places.explore.keep_ground();
+    let frozen = map_library(&robot.places.map_socket, crate::mapd::wire::METHOD_QUACK_MAP_FREEZE, Some(json!({"on": true}))).is_ok();
+    Ok(json!({
+        "complete": true,
+        "map_name": name,
+        "percent_mapped": percent.round(),
+        "frozen": frozen,
+        "progress": progress,
+        "hint": "the map is closed as it is: the duck explores it no more and navigates on it — blind where it knows the floor, guarded where it does not; a new map from nothing only if the user asks for one (robot.map_explore fresh=true)",
     }))
 }
 
