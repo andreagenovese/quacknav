@@ -153,6 +153,11 @@ pub(super) fn back_sides() -> bool {
 pub(super) const BACK_SHORT_S: f64 = 0.8;
 /// Yaw while backing: see [`Job::back_off`].
 pub(super) const BACK_VYAW: f64 = 0.7;
+/// A drop nearer the body than this is left before anything else (see
+/// `Job::off_the_rim`): the body's half-width and two centimetres.
+pub(super) const RIM_OFF_M: f64 = 0.12;
+/// Tries in a row at getting off a rim before the job's own ways decide.
+pub(super) const RIM_OFF_TRIES: u32 = 3;
 /// The straight leg after the step back or a panorama, toward open floor.
 pub(super) const BACK_ON_S: f64 = 2.0;
 pub(super) const BACK_EVERY: Duration = Duration::from_secs(10);
@@ -674,6 +679,91 @@ impl Job {
     /// forward 0.12 m/s at vx 0.3 and 0.65 rad/s per unit of yaw; backing
     /// 0.08 m/s with 0.6 of the yaw, and only with a positive yaw at all
     /// (measured on the twin).
+    /// The nearest drop to the body — booked (from the map's pose) or seen
+    /// (the nearest true hole of the recent stand frames) — as its
+    /// distance and its bearing off the nose.
+    pub(super) fn nearest_drop_bearing(&self, robot: &dyn Body, (x, y, yaw): (f64, f64, f64)) -> Option<(f64, f64)> {
+        let booked = self
+            .local
+            .iter()
+            .filter(|(_, r)| *r >= DROP_RADIUS_M)
+            .map(|((dx, dy), _)| (dist2((x, y), (*dx, *dy)), wrap((dy - y).atan2(dx - x) - yaw)))
+            .min_by(|a, b| a.0.total_cmp(&b.0));
+        let seen = robot.cliff().and_then(|c| {
+            let now = robot.now();
+            c.recent
+                .iter()
+                .filter(|f| now.duration_since(f.at) <= crate::cliff::MEMORY && !f.moving)
+                .flat_map(|f| {
+                    f.drops.iter().filter(move |d| {
+                        !f.obstacles.iter().any(|o| wrap(o.bearing - d.bearing).abs() < 0.2 && (o.range_m - d.range_m).abs() < 0.25)
+                    })
+                })
+                .map(|d| (if d.edge_min_m > 0.0 { d.edge_min_m } else { (d.range_m - 0.10).max(0.0) }, d.bearing))
+                .min_by(|a, b| a.0.total_cmp(&b.0))
+        });
+        match (booked, seen) {
+            (Some(a), Some(b)) => Some(if a.0 <= b.0 { a } else { b }),
+            (a, b) => a.or(b),
+        }
+    }
+
+    /// Off the rim first: a drop this near the body (see [`RIM_OFF_M`])
+    /// is never stood beside. The standing gait creeps — on the twin a
+    /// centimetre every twenty seconds or so — and both falls of
+    /// 2026-09-23/24 were a duck standing still 3–12 cm from the rim, every
+    /// turn refused that near and no way back, for one to three minutes.
+    /// So before anything else the body moves away from it: backing when
+    /// the drop is ahead, on when it is behind, an arc turning away when
+    /// it is beside — each only if the books put no drop nearer on the way.
+    /// True when it moved.
+    pub(super) fn off_the_rim(&mut self, robot: &mut dyn Body, pose: (f64, f64, f64)) -> bool {
+        let Some((near, bearing)) = self.nearest_drop_bearing(&*robot, pose) else { return false };
+        if near >= RIM_OFF_M {
+            self.rim_offs = 0;
+            return false;
+        }
+        if self.rim_offs >= RIM_OFF_TRIES {
+            return false;
+        }
+        self.rim_offs += 1;
+        let (vx, vyaw, secs) = if bearing.abs() <= 1.05 {
+            (-0.3, BACK_VYAW, 1.5)
+        } else if bearing.abs() >= 2.1 {
+            (0.3, 0.0, 1.0)
+        } else {
+            (0.3, -0.5 * bearing.signum(), 1.0)
+        };
+        // Along the way, no booked drop nearer than the one it leaves.
+        let nearer = self.local.iter().filter(|(_, r)| *r >= DROP_RADIUS_M).any(|((dx, dy), _)| {
+            let (v, w) = if vx > 0.0 { (GAIT_M_PER_S, 0.65 * vyaw) } else { (-BACK_M_PER_S, 0.6 * vyaw) };
+            let (mut px, mut py, mut h) = pose;
+            let mut t = 0.0;
+            let mut hit = false;
+            while t < secs {
+                px += v * 0.1 * h.cos();
+                py += v * 0.1 * h.sin();
+                h += w * 0.1;
+                hit |= dist2((px, py), (*dx, *dy)) < near.min(DROP_RADIUS_M) - 0.01;
+                t += 0.1;
+            }
+            hit
+        });
+        if nearer {
+            tracing::info!(near_m = format!("{near:.2}"), bearing_deg = format!("{:.0}", bearing.to_degrees()), "map explore: a rim this near, and no way off it the books allow");
+            return false;
+        }
+        tracing::info!(near_m = format!("{near:.2}"), bearing_deg = format!("{:.0}", bearing.to_degrees()), vx, vyaw, secs, "map explore: a rim this near: off it first");
+        let _ = if vx < 0.0 {
+            robot.blind_move(&json!({"vx": vx, "vyaw": vyaw, "duration_s": secs}))
+        } else {
+            let leg = json!({"vx": vx, "vyaw": vyaw, "walk_s": secs, "stop_s": 0.0});
+            self.guarded_step(robot, pose, &leg)
+        };
+        self.going = None;
+        true
+    }
+
     pub(super) fn drop_on_motion(&self, pose: (f64, f64, f64), vx: f64, vyaw: f64, secs: f64) -> Option<(f64, f64)> {
         self.drop_on_motion_margin(pose, vx, vyaw, secs, DROP_PATH_MARGIN_M)
     }

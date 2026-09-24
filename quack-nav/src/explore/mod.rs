@@ -37,7 +37,7 @@ use crate::frontier::{
     frontiers_with, largest_frontier, waypoint,
 };
 use crate::cliff::CliffStatus;
-use crate::map::{Blocked, Grid, MapFrame, MapSupport};
+use crate::map::{Blocked, Cell, Grid, MapFrame, MapSupport};
 use crate::places::Registry;
 use crate::{MapConfig, Places};
 use serde_json::{Value, json};
@@ -48,6 +48,19 @@ use crate::tools::{Robot, execute};
 /// The stand at each step of the look-around after a fall: the mapper's
 /// floor for a still window is six seconds (see `homecoming::STAND_S`).
 const RELOCATE_STAND_S: f64 = 6.0;
+/// Beside a drop, a way narrower than this is a passage and its aim goes
+/// to the middle (see `Job::centred`), by this much at most.
+const CENTRE_WIDTH_M: f64 = 0.9;
+const CENTRE_MAX_M: f64 = 0.15;
+
+/// What ends the floor on one side of a way (see `Job::side_free`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Side {
+    Wall,
+    Drop,
+    Unknown,
+    Open,
+}
 
 /// What the explorer needs of a body: a guarded mapping step, a blind
 /// move, the newest map frame, the cliff guard's view, and a clock. The
@@ -880,6 +893,8 @@ pub struct Job {
     fell: Option<Option<Instant>>,
     /// Steps of the look-around after a fall (see `relocate_step`).
     relocate_steps: u32,
+    /// Moves off a rim in a row (see `off_the_rim`).
+    rim_offs: u32,
     /// Whether a drop may go on the books now: the pose trusted, the duck
     /// on its feet, no fall pending confirmation. Set each turn.
     drops_bookable: bool,
@@ -1033,6 +1048,7 @@ impl Job {
             narrow_refusals: (0, (f64::NAN, f64::NAN)),
             fell: None,
             relocate_steps: 0,
+            rim_offs: 0,
             drops_bookable: true,
             budget_extended: false,
             goal_confirmed: false,
@@ -1682,6 +1698,10 @@ impl Job {
         let iteration_began = robot.now();
         let (x, y, yaw) = pose;
         let to_target = dist2((x, y), f.stand);
+        if switch("QK_RIM_OFF").unwrap_or(true) && self.off_the_rim(robot, pose) {
+            let _ = stand(robot, self.turn_stand_s());
+            return None;
+        }
         // The middle level: the route against the sensor, before a leg.
         if self.route_contradicted(&*robot, pose, &f.path) {
             let _ = stand(robot, self.turn_stand_s());
@@ -1719,6 +1739,16 @@ impl Job {
             } else {
                 waypoint(&f.path, ahead_m, grid.cell_m).unwrap_or(f.stand)
             };
+            // Beside a drop, the middle of the way: the aim slid across
+            // the heading to where the wall (or the thing) on one side and
+            // the rim on the other are as far. The planner keeps the rim
+            // wider than a wall (the drop's radius and the widening), so
+            // its route between them runs along the wall: at house2's
+            // living-room door, between the jamb and the stairwell's west
+            // rim (0.54 m), the body walked 7 cm off the jamb, the sensor
+            // saw it in the lane, and "no room" 75 times on the spot
+            // (2026-09-24).
+            let aim = if near_drop && switch("QK_CENTRE").unwrap_or(true) { self.centred(grid, (x, y), aim) } else { aim };
             // Hold it unless it is reached, blocked, or bettered — only on a
             // journey; a mapping job's aim is its frontier's business.
             let aim = if self.goal.is_some() && hold_aim_enabled() && !near_drop {
@@ -2172,6 +2202,50 @@ impl Job {
             let turned = self.turn_in_place(robot, 1.0, PANO_STEP_RAD);
             tracing::info!(turned_deg = ?turned.map(|t| format!("{:.0}", t.to_degrees())), steps = self.relocate_steps, "map explore: after a fall, turning to look elsewhere");
         }
+    }
+
+    /// How far the floor goes from `p` along `heading`, up to `max_m`, and
+    /// what ends it: a wall on the map, a booked drop's radius, unknown
+    /// map, or nothing within reach.
+    fn side_free(&self, grid: &Grid, p: (f64, f64), heading: f64, max_m: f64) -> (f64, Side) {
+        let (c, s) = (heading.cos(), heading.sin());
+        let mut d = 0.0;
+        while d < max_m {
+            let q = (p.0 + d * c, p.1 + d * s);
+            if self.local.iter().any(|(b, r)| *r >= DROP_RADIUS_M && dist2(*b, q) < *r) {
+                return (d, Side::Drop);
+            }
+            match grid.at(q.0, q.1) {
+                Some(Cell::Free) => {}
+                Some(Cell::Wall) => return (d, Side::Wall),
+                _ => return (d, Side::Unknown),
+            }
+            d += 0.025;
+        }
+        (max_m, Side::Open)
+    }
+
+    /// `aim` slid across the way from `from` to it, into the middle of a
+    /// passage beside a drop (see the use in `walk_leg`): only where a
+    /// booked drop ends one side and a wall on the map the other, less
+    /// than [`CENTRE_WIDTH_M`] apart — half the difference, at most
+    /// [`CENTRE_MAX_M`]. An unknown side is no side: sliding toward it
+    /// cost the paper twin two journeys in thirty (2026-09-24).
+    fn centred(&self, grid: &Grid, from: (f64, f64), aim: (f64, f64)) -> (f64, f64) {
+        let h = (aim.1 - from.1).atan2(aim.0 - from.0);
+        let (l, lk) = self.side_free(grid, aim, h + std::f64::consts::FRAC_PI_2, CENTRE_WIDTH_M);
+        let (r, rk) = self.side_free(grid, aim, h - std::f64::consts::FRAC_PI_2, CENTRE_WIDTH_M);
+        let beside_drop = matches!((lk, rk), (Side::Drop, Side::Wall) | (Side::Wall, Side::Drop));
+        if !beside_drop || l + r >= CENTRE_WIDTH_M {
+            return aim;
+        }
+        let shift = ((l - r) / 2.0).clamp(-CENTRE_MAX_M, CENTRE_MAX_M);
+        if shift.abs() < 0.03 {
+            return aim;
+        }
+        let a = (aim.0 - shift * h.sin(), aim.1 + shift * h.cos());
+        tracing::info!(left_m = format!("{l:.2}"), right_m = format!("{r:.2}"), shift_m = format!("{shift:.2}"), "map explore: beside a drop, the aim to the middle of the way");
+        a
     }
 
     /// The heading of a route to `to` planned now, with the books as they
