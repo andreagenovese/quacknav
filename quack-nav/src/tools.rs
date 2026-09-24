@@ -1180,6 +1180,10 @@ fn map_explore(robot: &mut Robot, args: &Value) -> Result<Value, String> {
         }
         tracing::info!(map = name, "map explore: a new map from nothing; the saved one is replaced when this session saves");
     }
+    // What the answer reports is the map as it is now — after `fresh`, the
+    // new one, not what was read before the wipe.
+    let progress = robot.places.explore.status().progress;
+    let frame = map.snapshot().latest.clone().unwrap_or(frame);
     let session = Some(crate::explore::Session {
         save_as: name.clone(),
         battery_min_pct: args.get("battery_min_pct").and_then(Value::as_f64).unwrap_or(25.0),
