@@ -1042,29 +1042,12 @@ const PULSE_RAD: f64 = 0.16;
 const PULSES_MAX: u32 = 8;
 
 fn wipe(robot: &Arc<Mutex<Robot>>) -> Result<(), String> {
-    let mut robot = robot.lock().expect("robot poisoned");
-    let control = robot
-        .control
-        .as_mut()
-        .ok_or_else(|| "robot unreachable".to_string())?;
-    // By method name like the rest of the map library: `robot.map_wipe`
-    // is upstream's, but the released proto crate this satellite builds
-    // against predates it.
-    let response = control
-        .request_method("robot.map_wipe", None)
-        .map_err(|e| format!("robotd: {e}"))?;
-    if let Some(error) = &response.error {
-        return Err(format!("robotd refused robot.map_wipe: {error}"));
-    }
-    let result = response.result.unwrap_or(Value::Null);
-    match result.get("accepted").and_then(Value::as_bool) {
-        Some(true) => Ok(()),
-        _ => Err(result
-            .get("reason")
-            .and_then(Value::as_str)
-            .unwrap_or("the robot refused")
-            .to_string()),
-    }
+    // On the map socket, as every map-library call: robotd's when it hosts
+    // the mapper, quack-navd's own when `[maploc]` does. Asked of robotd's
+    // lane, the wipe was "unknown method" against the released robotd
+    // (casa_arredata on the twin, 2026-09-25) — the fresh map never came.
+    let socket = robot.lock().expect("robot poisoned").places.map_socket.clone();
+    tools::map_library(&socket, crate::map::METHOD_ROBOT_MAP_WIPE, None).map(|_| ())
 }
 
 /// One tool call on the shared robot. The lock is held for the call and
