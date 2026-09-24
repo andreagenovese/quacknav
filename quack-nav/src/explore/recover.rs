@@ -113,11 +113,16 @@ impl Job {
                     let _ = stand(robot, self.turn_stand_s());
                 }
                 self.spins_since_leg = 0;
-                return None;
-            }
-            self.last_back = None;
-            if self.boxed_in(robot, grid, pose) {
-                let _ = self.back_off(robot, grid, None);
+                // Counted like any refusal below — returning here left the
+                // streak and the target's count untouched, and the same leg
+                // was refused 1815 times in half an hour north of
+                // casa_arredata's stairwell (2026-09-24): no unseal, no
+                // no-go, no other frontier ever.
+            } else {
+                self.last_back = None;
+                if self.boxed_in(robot, grid, pose) {
+                    let _ = self.back_off(robot, grid, None);
+                }
             }
         } else if e.starts_with("a drop") {
             // The drop that refused the step is the one in the lane ahead;
@@ -210,7 +215,17 @@ impl Job {
         } else {
             robot.sleep(WAIT);
         }
-        if let Some((t, n)) = &mut self.target {
+        // A refusal for what stands beside the body — "no room", something
+        // the sensor sees at the beak — says nothing of a frontier two rooms
+        // away: counted against it, house2's bathroom was refused for good
+        // from the office, and three sessions never went back (2026-09-24,
+        // the bathroom 15 % mapped). The unseal still gets the duck out of
+        // the corner; the frontier stays electable.
+        let about_here = (e.contains("no room") || e.contains("sees something"))
+            && self.target.is_some_and(|(t, _)| dist2(t, (x, y)) > TARGET_NEAR_M);
+        if let Some((t, n)) = &mut self.target
+            && !about_here
+        {
             *n += 1;
             if *n >= REFUSALS_PER_TARGET {
                 self.refused.push((*t, BLOCK_REFUSED_M));

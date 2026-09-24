@@ -289,6 +289,9 @@ const LOOK_WAIT_S: f64 = 2.0;
 const BLOCK_VISITED_M: f64 = 0.25;
 /// Refusals on the way to the same frontier before it is left alone.
 const REFUSALS_PER_TARGET: u32 = 4;
+/// A refusal for what is beside the body counts against the frontier only
+/// this near it (see `refusal`).
+const TARGET_NEAR_M: f64 = 1.0;
 /// Ask for a name only this far from every known place and earlier ask.
 const ASK_MIN_M: f64 = 2.0;
 /// A pose that moved more than this plus what the gait could have walked
