@@ -1213,7 +1213,10 @@ fn map_explore(robot: &mut Robot, args: &Value) -> Result<Value, String> {
 fn map_explore_complete(robot: &mut Robot, args: &Value) -> Result<Value, String> {
     if robot.places.explore.running() {
         robot.places.explore.request_stop();
-        let deadline = Instant::now() + std::time::Duration::from_secs(20);
+        // The session saves itself as it ends (a stand, a leg, the save:
+        // up to a minute); declared before it ends, the declaration was
+        // written over (house2 on the twin, 2026-09-24).
+        let deadline = Instant::now() + std::time::Duration::from_secs(120);
         while robot.places.explore.running() && Instant::now() < deadline {
             std::thread::sleep(std::time::Duration::from_millis(200));
         }

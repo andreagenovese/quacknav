@@ -988,7 +988,12 @@ impl ExploreHandle {
         let sessions = before.get("sessions").and_then(Value::as_u64).unwrap_or(0) + 1;
         let explore_s = before.get("explore_s").and_then(Value::as_f64).unwrap_or(0.0) + secs;
         let cell = robot.frame().and_then(|f| f.grid().ok()).map_or(0.05, |g| g.cell_m);
+        // The user's "exploration complete" is final: a session that ends
+        // after it (the stop it asked for) does not undo it.
+        let declared = before.get("declared_by_user").and_then(Value::as_bool).unwrap_or(false);
+        let done = done || declared;
         let progress = json!({
+            "declared_by_user": declared,
             "sessions": sessions,
             "explore_s": explore_s.round(),
             "percent": (share * 100.0).round(),
