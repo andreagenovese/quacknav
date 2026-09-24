@@ -154,8 +154,11 @@ pub(super) const BACK_SHORT_S: f64 = 0.8;
 /// Yaw while backing: see [`Job::back_off`].
 pub(super) const BACK_VYAW: f64 = 0.7;
 /// A drop nearer the body than this is left before anything else (see
-/// `Job::off_the_rim`): the body's half-width and two centimetres.
-pub(super) const RIM_OFF_M: f64 = 0.12;
+/// `Job::off_the_rim`): where a turn in place is refused ([`TURN_CLEAR_M`]).
+/// At 0.12 a band between the two was left where the duck could neither
+/// turn nor move off — casa_arredata, 2026-09-24: 30 minutes on one spot
+/// 0.14 m from the stairwell, 967 refusals.
+pub(super) const RIM_OFF_M: f64 = TURN_CLEAR_M;
 /// Tries in a row at getting off a rim before the job's own ways decide.
 pub(super) const RIM_OFF_TRIES: u32 = 3;
 /// The straight leg after the step back or a panorama, toward open floor.

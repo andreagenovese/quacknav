@@ -52,6 +52,11 @@ const RELOCATE_STAND_S: f64 = 6.0;
 /// to the middle (see `Job::centred`), by this much at most.
 const CENTRE_WIDTH_M: f64 = 0.9;
 const CENTRE_MAX_M: f64 = 0.15;
+/// Unseals on one spot (within this) before it is a no-go for the job,
+/// and how wide a no-go is for the planner.
+const NO_GO_AFTER: u32 = 3;
+const NO_GO_SAME_M: f64 = 0.30;
+const NO_GO_RADIUS_M: f64 = 0.20;
 
 /// What ends the floor on one side of a way (see `Job::side_free`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -895,6 +900,11 @@ pub struct Job {
     relocate_steps: u32,
     /// Moves off a rim in a row (see `off_the_rim`).
     rim_offs: u32,
+    /// Spots the job got stuck on again and again: the planner keeps off
+    /// them for the rest of the job (see `unseal`).
+    no_go: Vec<(f64, f64)>,
+    /// Where the last unseals happened, and how many in a row there.
+    unseals_here: Option<((f64, f64), u32)>,
     /// Whether a drop may go on the books now: the pose trusted, the duck
     /// on its feet, no fall pending confirmation. Set each turn.
     drops_bookable: bool,
@@ -1049,6 +1059,8 @@ impl Job {
             fell: None,
             relocate_steps: 0,
             rim_offs: 0,
+            no_go: Vec::new(),
+            unseals_here: None,
             drops_bookable: true,
             budget_extended: false,
             goal_confirmed: false,

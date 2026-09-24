@@ -123,6 +123,7 @@ impl Job {
                     (*p, *r)
                 }
             })
+            .chain(self.no_go.iter().map(|p| (*p, NO_GO_RADIUS_M)))
             .collect()
     }
 

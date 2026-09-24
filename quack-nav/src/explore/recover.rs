@@ -244,6 +244,18 @@ impl Job {
             self.stuck += 1;
             self.last_unseal = Some((now, at));
         }
+        // The same spot, over and over: forgetting what was booked there
+        // only brings the same route back (casa_arredata, 2026-09-24: 21
+        // times in half an hour beside the stairwell). After a few, the spot
+        // itself is where the planner does not go — not a drop, not an
+        // obstacle the next unseal forgets — and the job picks elsewhere.
+        let here = self.unseals_here.filter(|(p, _)| dist2(*p, at) < NO_GO_SAME_M).map_or(1, |(_, n)| n + 1);
+        self.unseals_here = Some((at, here));
+        if here >= NO_GO_AFTER && !self.no_go.iter().any(|p| dist2(*p, at) < NO_GO_SAME_M) {
+            tracing::info!(at = ?at, times = here, "map explore: stuck on this spot again and again; the planner keeps off it from now on");
+            self.no_go.push(at);
+            self.kept_route = None;
+        }
         self.since_leg = 0;
         if let Some((t, _)) = self.target.take() {
             self.refused.push((t, BLOCK_REFUSED_M));
