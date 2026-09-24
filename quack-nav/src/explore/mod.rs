@@ -48,6 +48,9 @@ use crate::tools::{Robot, execute};
 /// The stand at each step of the look-around after a fall: the mapper's
 /// floor for a still window is six seconds (see `homecoming::STAND_S`).
 const RELOCATE_STAND_S: f64 = 6.0;
+/// A session that ends with only unreachable frontiers left and less than
+/// this much unknown floor within reach of them finds the house done.
+const DONE_LEFT_M2: f64 = 2.0;
 /// How often a session looks at the battery.
 const BATTERY_EVERY_S: f64 = 30.0;
 /// Beside a drop, a way narrower than this is a passage and its aim goes
@@ -971,7 +974,11 @@ impl ExploreHandle {
         }
         self.name_live_map(&name);
         let (share, free, open) = robot.frame().and_then(|f| f.grid().ok()).map_or((0.0, 0, 0), |g| explored_share(&g));
-        let done = reason.contains("no frontier");
+        // Done: nothing left, or only what cannot be reached and is small —
+        // a strip behind a sofa, a hole's inside — else a house with one
+        // unreachable sliver is never done.
+        let left_m2 = open as f64 * 0.0025;
+        let done = reason.contains("no frontier") || (reason.contains("none is reachable") && left_m2 < DONE_LEFT_M2);
         let mut file = self.ground_file();
         let before = file.get(&format!("{name}.progress")).cloned().unwrap_or(json!({}));
         let sessions = before.get("sessions").and_then(Value::as_u64).unwrap_or(0) + 1;
@@ -1852,6 +1859,15 @@ impl Job {
                         self.local = kept;
                         continue;
                     }
+                }
+                // The spots the job kept off (see `unseal`) may be what
+                // seals it in — in a small room, the only way out (the
+                // paper twin's bathroom, 2026-09-24): they go first.
+                if cells_left >= MIN_FRONTIER_CELLS && !self.no_go.is_empty() {
+                    tracing::info!(spots = self.no_go.len(), "map explore: sealed in, and the spots kept off may be the way out; forgetting them");
+                    self.no_go.clear();
+                    self.kept_route = None;
+                    continue;
                 }
                 if cells_left >= MIN_FRONTIER_CELLS && self.stuck < STUCK_MAX {
                     let why = if frontiers_with(&grid, x, y, &blocked, &[], SQUEEZE_INFLATE_M, &self.lanes()).is_empty() {
