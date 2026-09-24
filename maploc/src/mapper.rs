@@ -422,6 +422,12 @@ pub enum Note {
         best_pose: Pose2,
         mean_residual_m: f32,
     },
+    /// A candidate that agreed, not believed: the scan leaves a valley
+    /// through it along `along` (see [`crate::relocalize::valley_at`]).
+    RelocalizeAmbiguous {
+        pose: Pose2,
+        along: (f32, f32),
+    },
     LoopClosed {
         n_loops: usize,
         dx: f32,
@@ -1140,6 +1146,16 @@ impl Mapper {
                         // agreement has to be unique before it is believed.
                         let unique = !self.resumed_from_session
                             || self.unique_at(&mut grid, composite, pose) == Some(true);
+                        let unique = unique && (!self.resumed_from_session || {
+                            let probe = composite.decimated(self.cfg.relocalize_max_beams);
+                            match crate::relocalize::valley_at(&mut grid, &probe, pose, &self.cfg.relocalize) {
+                                Some(along) => {
+                                    notes.push(Note::RelocalizeAmbiguous { pose, along });
+                                    false
+                                }
+                                None => true,
+                            }
+                        });
                         if self.seed_agreed >= 2 && unique {
                             self.resume_at(pose, composite, t_s);
                             notes.push(Note::Relocalized {
@@ -1199,7 +1215,21 @@ impl Mapper {
                 // moved. A refuted or ambiguous candidate is dropped as
                 // before; the searches below leave a pending one alone.
                 let chord = (now.0 - then.0).hypot(now.1 - then.1);
-                if self.booting && chord < confirm_travel_m() {
+                let probe = composite.decimated(self.cfg.relocalize_max_beams);
+                // Only on a map from an earlier run that has never known
+                // where it is: there nothing near tells the valley's poses
+                // apart. A mapping duck lost for a moment relocalizes
+                // beside where it was, and refusing that left it resuming
+                // unverified — casa_libera's walls 5.6 → 21 cm off on the
+                // replay, casa_arredata's map torn.
+                if self.resumed_from_session
+                    && let Some(along) = crate::relocalize::valley_at(&mut grid, &probe, pose, &self.cfg.relocalize)
+                {
+                    // Agreement along a valley is agreement with every
+                    // pose on it: dropped, and the search goes on until a
+                    // window sees what pins the pose down.
+                    notes.push(Note::RelocalizeAmbiguous { pose, along });
+                } else if self.booting && chord < confirm_travel_m() {
                     self.pending_reloc = Some((cand, then));
                     notes.push(Note::RelocalizeCandidate {
                         pose,

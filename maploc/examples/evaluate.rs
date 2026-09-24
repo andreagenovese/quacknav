@@ -325,6 +325,7 @@ fn main() {
                 Note::LostTracking { .. } => "lost",
                 Note::Relocalized { .. } => "relocalized",
                 Note::RelocalizeRejected { .. } => "reloc_rejected",
+                Note::RelocalizeAmbiguous { .. } => "reloc_ambiguous",
                 Note::TrackingCorrected { .. } => "corrected",
                 Note::LoopClosed { .. } => "loop_closed",
             };
@@ -454,6 +455,12 @@ fn main() {
                     if after_kidnap {
                         reloc_rejections += 1;
                     }
+                }
+                Note::RelocalizeAmbiguous { pose, along } => {
+                    println!(
+                        "[{t:7.1}s] candidate ({:.2}, {:.2}) NOT believed — a valley along {:.0}°",
+                        pose.0, pose.1, along.1.atan2(along.0).to_degrees()
+                    );
                 }
                 Note::SuspectAfterSit => {
                     println!("[{t:7.1}s] SAT — pose suspect");

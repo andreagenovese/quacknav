@@ -363,6 +363,56 @@ fn score_pose_with(
 /// How many rival basins are worth carrying to the next viewpoint.
 pub const MAX_BASINS: usize = 8;
 
+/// The degeneracy test (see [`valley_at`]): how far a pose is slid, and
+/// how little worse the slid pose may score and still be "just as good".
+pub const VALLEY_SHIFT_M: f32 = 0.30;
+pub const VALLEY_MARGIN_M: f32 = 0.015;
+
+/// Whether the scan pins `pose` down, or leaves a valley through it: the
+/// pose slid [`VALLEY_SHIFT_M`] in eight directions, the yaw kept, onto
+/// floor the map knows, scored as the search scores. A slid pose within
+/// [`VALLEY_MARGIN_M`] of the pose's own score, and itself acceptable, is
+/// a valley: the scan constrains the pose across it and not along it —
+/// a long plain wall, a corridor. Returns that direction (a unit vector)
+/// when there is one.
+///
+/// The uniqueness test compares BASINS, seeds at least 0.4 m apart, and
+/// a valley is not two basins but one long one: on the twin's
+/// casa_arredata (2026-09-23) the boot confirmed a pose 1.7 m along the
+/// living room's east wall from the truth at residual 0.001–0.03, and the
+/// journeys after it walked on it.
+pub fn valley_at(grid: &mut OccupancyGrid, scan: &Scan, pose: (f32, f32, f32), cfg: &RelocalizeConfig) -> Option<(f32, f32)> {
+    let field = grid.distance_field_shared(cfg.wall_threshold_fp);
+    let log: Vec<i16> = grid.log_raw().to_vec();
+    let cfg_g = *grid.cfg();
+    let (w, h) = (grid.width(), grid.height());
+    let (cell, x_min, y_min) = (cfg_g.cell, cfg_g.x_range.0, cfg_g.y_range.0);
+    let valid: Vec<(f32, f32)> = scan.endpoints_body().collect();
+    if valid.is_empty() {
+        return None;
+    }
+    let offsets = beam_offsets(&valid, pose.2);
+    let score = |x: f32, y: f32| {
+        let (sum, n) = score_offsets(x, y, &offsets, &field, &log, cfg.see_through_fp, w, h, x_min, y_min, cell, cfg.clamp_m);
+        (sum / offsets.len() as f32, n)
+    };
+    let (own, _) = score(pose.0, pose.1);
+    for k in 0..8 {
+        let a = k as f32 * std::f32::consts::FRAC_PI_4;
+        let (dx, dy) = (a.cos(), a.sin());
+        let (x, y) = (pose.0 + VALLEY_SHIFT_M * dx, pose.1 + VALLEY_SHIFT_M * dy);
+        let (j, i) = (((x - x_min) / cell).floor(), ((y - y_min) / cell).floor());
+        if i < 0.0 || j < 0.0 || i as usize >= h || j as usize >= w || !grid.is_known_free(i as usize, j as usize) {
+            continue;
+        }
+        let (slid, n) = score(x, y);
+        if n >= cfg.min_beams_used && slid <= own + VALLEY_MARGIN_M && slid <= cfg.max_mean_residual_m {
+            return Some((dx, dy));
+        }
+    }
+    None
+}
+
 /// Search the grid for the best matching pose. Returns the global
 /// minimum-residual candidate (ignoring acceptance — caller checks
 /// `accepted` to decide whether to use the pose).
@@ -731,6 +781,45 @@ mod tests {
             rays_alias.mean_residual_m > 0.10,
             "the beams that run through the far wall must count: {rays_alias:?}"
         );
+    }
+
+    #[test]
+    fn valley_in_a_corridor_none_in_a_room() {
+        // A corridor 1 m wide and 5 m long, inked from along its axis.
+        let mut g = OccupancyGrid::new(GridConfig { x_range: (-3.0, 3.0), y_range: (-1.0, 1.0), cell: 0.05 });
+        for _ in 0..4 {
+            for k in 0..=100 {
+                let x = -2.4 + 4.8 * k as f32 / 100.0;
+                g.integrate_ray(x, 0.0, x, 0.5, true);
+                g.integrate_ray(x, 0.0, x, -0.5, true);
+            }
+            for k in 0..=20 {
+                let y = -0.45 + 0.9 * k as f32 / 20.0;
+                g.integrate_ray(0.0, y, 2.5, y, true);
+                g.integrate_ray(0.0, y, -2.5, y, true);
+            }
+        }
+        // Seen from its middle with a short reach: the two side walls only.
+        let (angles, ranges): (Vec<f32>, Vec<f32>) = (0..36)
+            .map(|k| -std::f32::consts::FRAC_PI_2 + k as f32 / 35.0 * std::f32::consts::PI)
+            .map(|a| (a, g.cast_ray(0.0, 0.0, a, 0.9)))
+            .filter(|(_, r)| *r > 0.0)
+            .unzip();
+        let scan = Scan::from_polar(&angles, &ranges, (0.0, 0.0), 1e-6);
+        let cfg = RelocalizeConfig { min_beams_used: 10, ..RelocalizeConfig::default() };
+        let along = valley_at(&mut g, &scan, (0.0, 0.0, 0.0), &cfg).expect("a corridor's middle is a valley");
+        assert!(along.0.abs() > 0.9, "the valley runs along the corridor: {along:?}");
+
+        // The L-shaped room, seen whole: pinned down.
+        let mut room = make_test_room();
+        let truth = (0.5_f32, -0.5_f32, 0.0_f32);
+        let (angles, ranges): (Vec<f32>, Vec<f32>) = (0..36)
+            .map(|k| -std::f32::consts::FRAC_PI_2 + k as f32 / 35.0 * std::f32::consts::PI)
+            .map(|a| (a, room.cast_ray(truth.0, truth.1, truth.2 + a, 4.0)))
+            .filter(|(_, r)| *r > 0.0)
+            .unzip();
+        let scan = Scan::from_polar(&angles, &ranges, (0.0, 0.0), 1e-6);
+        assert!(valley_at(&mut room, &scan, truth, &RelocalizeConfig::default()).is_none());
     }
 
     #[test]

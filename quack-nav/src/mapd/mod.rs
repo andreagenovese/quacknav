@@ -787,6 +787,14 @@ fn log_note(note: Note) {
                 "maploc: relocalize candidate; awaiting confirmation"
             );
         }
+        Note::RelocalizeAmbiguous { pose, along } => {
+            tracing::info!(
+                x = format!("{:.2}", pose.0),
+                y = format!("{:.2}", pose.1),
+                along = format!("{:.0}°", along.1.atan2(along.0).to_degrees()),
+                "maploc: relocalize candidate not believed — the scan leaves a valley through it"
+            );
+        }
         Note::LostTracking { mean_residual_m, n_observed } => {
             tracing::warn!(
                 residual = format!("{mean_residual_m:.3}"),
