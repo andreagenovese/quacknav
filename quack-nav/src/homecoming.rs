@@ -86,6 +86,7 @@ fn run(robot: &Arc<Mutex<Robot>>, cfg: &HomecomingConfig) {
                 tracing::info!(map = newest, "homecoming: loaded the newest map; standing still to see if the duck knows where it is");
                 if confirmed_within(robot, cfg.boot_search_s) {
                     tracing::info!(map = newest, "homecoming: home — the pose is confirmed on the saved map");
+                    resume_exploring(robot, cfg, &newest);
                     return;
                 }
                 // A frozen map (maploc in `localize`) cannot be inked: a
@@ -98,10 +99,14 @@ fn run(robot: &Arc<Mutex<Robot>>, cfg: &HomecomingConfig) {
                         matches!(&m.snapshot().support, crate::map::MapSupport::Supported { mode: Some(mode), .. } if mode == "localize")
                     })
                 };
-                if frozen {
+                // Exploring a map session after session, a lost boot must
+                // not start a fresh map: saved at the end of the session
+                // it would replace the map it could not find itself on.
+                if frozen || cfg.resume_explore {
                     tracing::info!(map = newest, waited_s = cfg.boot_search_s, "homecoming: no confirmation yet; the map is frozen, so the search goes on");
                     if confirmed_within(robot, cfg.boot_search_s * 3.0) {
                         tracing::info!(map = newest, "homecoming: home — the pose is confirmed on the saved map");
+                        resume_exploring(robot, cfg, &newest);
                     } else {
                         tracing::warn!(map = newest, "homecoming: no confirmation on the frozen map; standing down — the duck does not know where it is");
                     }
@@ -315,6 +320,41 @@ fn adopt(robot: &Arc<Mutex<Robot>>, name: &str, x: f64, y: f64, yaw: f64, max_s:
 
 /// Start the exploring job, giving the map lane a few seconds to catch up
 /// if the first attempt is refused for want of a trustworthy pose.
+/// Progressive exploration (`resume_explore`): home on a map still being
+/// explored — the mapper mapping, not frozen — the next session starts
+/// from here: the frontiers left are where the last one stopped. A map
+/// its last session found finished is left alone.
+fn resume_exploring(robot: &Arc<Mutex<Robot>>, cfg: &HomecomingConfig, name: &str) {
+    if !cfg.resume_explore {
+        return;
+    }
+    let (frozen, done) = {
+        let robot = robot.lock().expect("robot poisoned");
+        let frozen = robot.places.map.as_ref().is_some_and(|m| {
+            matches!(&m.snapshot().support, crate::map::MapSupport::Supported { mode: Some(mode), .. } if mode == "localize")
+        });
+        let done = robot.places.explore.status().progress.as_ref().and_then(|p| p.get("done")).and_then(Value::as_bool).unwrap_or(false);
+        (frozen, done)
+    };
+    if frozen || done {
+        tracing::info!(map = name, frozen, done, "homecoming: nothing to explore on from here");
+        return;
+    }
+    let mut last = String::new();
+    for _ in 0..10 {
+        match call(robot, "robot.map_explore", &json!({"max_s": cfg.explore_max_s, "save_as": name, "battery_min_pct": cfg.resume_battery_min_pct})) {
+            Ok(answer) if answer.get("started").is_some() => {
+                tracing::info!(map = name, "homecoming: exploring on from where the last session stopped");
+                return;
+            }
+            Ok(answer) => last = format!("the duck did not start: {answer}"),
+            Err(e) => last = e,
+        }
+        std::thread::sleep(Duration::from_secs(2));
+    }
+    tracing::warn!(map = name, error = last, "homecoming: could not explore on");
+}
+
 fn start_exploring(robot: &Arc<Mutex<Robot>>, max_s: f64) -> Result<(), String> {
     let mut last = String::new();
     for _ in 0..10 {

@@ -1114,6 +1114,22 @@ fn map_explore(robot: &mut Robot, args: &Value) -> Result<Value, String> {
         .current()
         .flat_map(|p| p.anchors.iter().map(|a| (a.x, a.y)))
         .collect();
+    // A session of a progressive exploration: saved under this name at
+    // the end, ended early at this battery level.
+    let session = match args.get("save_as") {
+        Some(_) => {
+            let name = map_name(&json!({"name": args.get("save_as")}))?
+                .get("name")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_string();
+            Some(crate::explore::Session {
+                save_as: name,
+                battery_min_pct: args.get("battery_min_pct").and_then(Value::as_f64).unwrap_or(25.0),
+            })
+        }
+        None => None,
+    };
     robot.places.explore.start(
         &robot.places.robotd_socket,
         &robot.places,
@@ -1122,6 +1138,7 @@ fn map_explore(robot: &mut Robot, args: &Value) -> Result<Value, String> {
         !robot.places.map_config.ask_phrase.is_empty(),
         robot.places.map_config.turn_sign(),
         robot.places.gait.clone(),
+        session,
     )?;
     Ok(json!({
         "started": true,
@@ -1149,7 +1166,7 @@ fn map_name(args: &Value) -> Result<Value, String> {
 /// Spelled by method name rather than through a typed `proto::Call`: the
 /// three are prototyped on a local robotd branch and asked of upstream in
 /// docs/study/upstream-asks.md, and a robotd without them says so.
-fn map_library(map_socket: &str, method: &str, params: Option<Value>) -> Result<Value, String> {
+pub(crate) fn map_library(map_socket: &str, method: &str, params: Option<Value>) -> Result<Value, String> {
     let response = library_request(map_socket, method, params).map_err(|e| format!("the map: {e}"))?;
     if let Some(error) = &response.error {
         return Err(if error.code == proto::code::METHOD_NOT_FOUND {

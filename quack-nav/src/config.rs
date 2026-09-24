@@ -112,6 +112,16 @@ pub struct HomecomingConfig {
     /// the office fitted the bedroom at 0.52–0.69 (2026-09-15) where
     /// every right adoption of the night sat at 0.74–0.81.
     pub adopt_min_overlap: f64,
+    /// Progressive exploration: a duck that comes home on a map it is
+    /// still exploring (maploc mapping, not `localize`) goes on exploring
+    /// it — the frontiers left are where the last session stopped — and
+    /// saves it under the same name when the session ends (budget, battery,
+    /// or nothing left). And a boot that cannot confirm its pose never
+    /// starts a fresh map instead: it keeps searching, then stands down,
+    /// so the saved map is never overwritten by a lost one.
+    pub resume_explore: bool,
+    /// The battery level at which such a session ends (percent).
+    pub resume_battery_min_pct: f64,
 }
 
 impl Default for HomecomingConfig {
@@ -128,6 +138,8 @@ impl Default for HomecomingConfig {
             adopt_min_growth: 1.0,
             adopt_asks: 3,
             adopt_min_overlap: 0.70,
+            resume_explore: false,
+            resume_battery_min_pct: 25.0,
         }
     }
 }

@@ -48,6 +48,8 @@ use crate::tools::{Robot, execute};
 /// The stand at each step of the look-around after a fall: the mapper's
 /// floor for a still window is six seconds (see `homecoming::STAND_S`).
 const RELOCATE_STAND_S: f64 = 6.0;
+/// How often a session looks at the battery.
+const BATTERY_EVERY_S: f64 = 30.0;
 /// Beside a drop, a way narrower than this is a passage and its aim goes
 /// to the middle (see `Job::centred`), by this much at most.
 const CENTRE_WIDTH_M: f64 = 0.9;
@@ -91,6 +93,10 @@ pub trait Body {
     }
     /// The cliff guard's view, if the guard is on.
     fn cliff(&self) -> Option<CliffStatus>;
+    /// The battery level robotd reports (`robot.health`), when it knows.
+    fn battery_percent(&mut self) -> Option<f64> {
+        None
+    }
     /// The clock: wall time for the robot, a virtual one for the twin.
     fn now(&self) -> Instant;
     /// Wait — really, or by advancing the virtual clock.
@@ -117,6 +123,11 @@ impl Body for Robot {
     }
     fn cliff(&self) -> Option<CliffStatus> {
         self.places.cliff.as_ref().map(|c| c.snapshot())
+    }
+    fn battery_percent(&mut self) -> Option<f64> {
+        let control = self.control.as_mut()?;
+        let response = control.request(&duck_ipc_proto::Call::RobotHealth).ok()?;
+        response.result.as_ref()?.get("battery")?.get("percent")?.as_f64()
     }
     fn now(&self) -> Instant {
         Instant::now()
@@ -343,6 +354,9 @@ pub struct Question {
 
 #[derive(Debug, Clone)]
 pub struct ExploreStatus {
+    /// The map's exploration so far, session after session (see
+    /// `ExploreHandle::end_session`), as the ground book keeps it.
+    pub progress: Option<Value>,
     pub state: State,
     pub reason: Option<String>,
     pub started: Option<Instant>,
@@ -392,6 +406,7 @@ pub struct ExploreStatus {
 impl Default for ExploreStatus {
     fn default() -> Self {
         Self {
+            progress: None,
             state: State::Idle,
             reason: None,
             started: None,
@@ -469,6 +484,7 @@ impl ExploreStatus {
             "aim": self.aim.map(|(x, y)| json!([round2(x), round2(y)])),
             "goal": self.goal.map(|(x, y)| json!([round2(x), round2(y)])),
             "question_pending": self.pending_question.is_some(),
+            "progress": self.progress,
         })
     }
 }
@@ -478,6 +494,8 @@ impl ExploreStatus {
 #[derive(Clone, Default)]
 pub struct ExploreHandle {
     status: Arc<Mutex<ExploreStatus>>,
+    /// The session the running job is, when it is one (see [`Session`]).
+    session: Arc<Mutex<Option<Session>>>,
     stop: Arc<AtomicBool>,
     /// The ground book: the drops on the books, kept on disk per saved
     /// map (see [`ExploreHandle::map_named`]).
@@ -515,6 +533,13 @@ impl ExploreHandle {
             .and_then(|t| serde_json::from_str::<Value>(&t).ok())
             .and_then(|v| v.as_object().cloned())
             .unwrap_or_default()
+    }
+
+    fn write_ground_file(&self, file: serde_json::Map<String, Value>) {
+        let Some(path) = self.ground.lock().expect("ground poisoned").path.clone() else { return };
+        if let Err(e) = std::fs::write(&path, serde_json::to_string_pretty(&Value::Object(file)).unwrap_or_default()) {
+            tracing::warn!(error = %e, path = %path.display(), "map explore: the ground book could not be written");
+        }
     }
 
     /// The saved map `name` is the live one now: its drops come onto the
@@ -567,6 +592,7 @@ impl ExploreHandle {
         s.local = drops;
         s.trail.clear();
         s.lanes = lanes;
+        s.progress = self.ground_file().get(&format!("{name}.progress")).cloned();
         s.blind = false;
     }
 
@@ -710,6 +736,7 @@ impl ExploreHandle {
         })
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn start(
         &self,
         robotd_socket: &str,
@@ -719,9 +746,12 @@ impl ExploreHandle {
         ask: bool,
         turn: f64,
         gait: GaitConfig,
+        session: Option<Session>,
     ) -> Result<(), String> {
+        *self.session.lock().expect("session poisoned") = session.clone();
         self.start_job(robotd_socket, places, max_s, gait, move |drops, trail| {
             let mut job = Job::new(known, max_s, ask, turn, Instant::now());
+            job.battery_min_pct = session.as_ref().map(|s| s.battery_min_pct);
             job.ground_drops = drops.iter().filter(|(_, r)| *r >= DROP_RADIUS_M).count();
             job.local = drops;
             job.trail = trail;
@@ -783,7 +813,14 @@ impl ExploreHandle {
             .spawn(move || {
                 let mut job = build(drops, trail);
                 job.lanes = lanes;
+                let began = Instant::now();
                 let (state, reason) = job.run(&handle, &mut robot);
+                let session = handle.session.lock().expect("session poisoned").take();
+                if let Some(session) = session
+                    && job.goal.is_none()
+                {
+                    handle.end_session(&mut robot, &session, &reason, began.elapsed().as_secs_f64());
+                }
                 handle.finish(state, reason);
             })
             .map_err(|e| format!("cannot start the exploration thread: {e}"))?;
@@ -804,6 +841,111 @@ impl ExploreHandle {
 
     fn update(&self, f: impl FnOnce(&mut ExploreStatus)) {
         f(&mut self.status.lock().expect("explore status poisoned"));
+    }
+}
+
+/// A session of a progressive exploration (the user's idea, 2026-09-24:
+/// the duck explores as far as a charge takes it, and after the next one
+/// finds the map, finds itself on it, and goes on where it stopped, until
+/// no large area is left): the map it saves itself under at the end, and
+/// the battery level that ends it.
+#[derive(Clone, Debug)]
+pub struct Session {
+    pub save_as: String,
+    pub battery_min_pct: f64,
+}
+
+/// A session's progress: its share of floor the map knows against the
+/// floor it knows plus the unknown still reachable from a frontier inside
+/// the map's walls. Unknown pockets walled in on every side (the inside
+/// of a sofa, a box) are not left to explore, and are not counted.
+fn explored_share(grid: &Grid) -> (f64, usize, usize) {
+    let (rows, cols) = (grid.rows, grid.cols);
+    let (mut r0, mut r1, mut c0, mut c1) = (rows, 0, cols, 0);
+    for r in 0..rows {
+        for c in 0..cols {
+            if grid.cell(r, c) == Some(Cell::Wall) {
+                r0 = r0.min(r); r1 = r1.max(r); c0 = c0.min(c); c1 = c1.max(c);
+            }
+        }
+    }
+    let free = grid.counts().1;
+    if r0 > r1 {
+        return (0.0, free, 0);
+    }
+    // Unknown cells within the walls' box, reached from a frontier cell.
+    let mut seen = vec![false; rows * cols];
+    let mut stack = Vec::new();
+    for r in r0..=r1 {
+        for c in c0..=c1 {
+            if grid.cell(r, c) != Some(Cell::Free) {
+                continue;
+            }
+            for (dr, dc) in [(-1i64, 0i64), (1, 0), (0, -1), (0, 1)] {
+                let (rr, cc) = (r as i64 + dr, c as i64 + dc);
+                if rr < r0 as i64 || cc < c0 as i64 || rr > r1 as i64 || cc > c1 as i64 {
+                    continue;
+                }
+                let i = rr as usize * cols + cc as usize;
+                if grid.cell(rr as usize, cc as usize) == Some(Cell::Unknown) && !seen[i] {
+                    seen[i] = true;
+                    stack.push((rr as usize, cc as usize));
+                }
+            }
+        }
+    }
+    let mut open = 0usize;
+    while let Some((r, c)) = stack.pop() {
+        open += 1;
+        for (dr, dc) in [(-1i64, 0i64), (1, 0), (0, -1), (0, 1)] {
+            let (rr, cc) = (r as i64 + dr, c as i64 + dc);
+            if rr < r0 as i64 || cc < c0 as i64 || rr > r1 as i64 || cc > c1 as i64 {
+                continue;
+            }
+            let i = rr as usize * cols + cc as usize;
+            if grid.cell(rr as usize, cc as usize) == Some(Cell::Unknown) && !seen[i] {
+                seen[i] = true;
+                stack.push((rr as usize, cc as usize));
+            }
+        }
+    }
+    let share = free as f64 / (free + open).max(1) as f64;
+    (share, free, open)
+}
+
+impl ExploreHandle {
+    /// A session ended: its progress goes on the books under the map's
+    /// name, and the map is saved under it — refused by the mapper while
+    /// the duck does not know where it is, and then the session is not
+    /// counted either (the map as it was saved last stays the map).
+    fn end_session(&self, robot: &mut Robot, session: &Session, reason: &str, secs: f64) {
+        let name = session.save_as.clone();
+        let saved = crate::tools::map_library(&robot.places.map_socket, "robot.map_save", Some(json!({"name": name})));
+        if let Err(e) = &saved {
+            tracing::warn!(map = name, error = %e, "map explore: the session's map not saved; the session is not counted");
+            return;
+        }
+        self.name_live_map(&name);
+        let (share, free, open) = robot.frame().and_then(|f| f.grid().ok()).map_or((0.0, 0, 0), |g| explored_share(&g));
+        let done = reason.contains("no frontier");
+        let mut file = self.ground_file();
+        let before = file.get(&format!("{name}.progress")).cloned().unwrap_or(json!({}));
+        let sessions = before.get("sessions").and_then(Value::as_u64).unwrap_or(0) + 1;
+        let explore_s = before.get("explore_s").and_then(Value::as_f64).unwrap_or(0.0) + secs;
+        let cell = robot.frame().and_then(|f| f.grid().ok()).map_or(0.05, |g| g.cell_m);
+        let progress = json!({
+            "sessions": sessions,
+            "explore_s": explore_s.round(),
+            "percent": (share * 100.0).round(),
+            "known_floor_m2": (free as f64 * cell * cell * 10.0).round() / 10.0,
+            "left_m2": (open as f64 * cell * cell * 10.0).round() / 10.0,
+            "done": done,
+            "last_reason": reason,
+        });
+        tracing::info!(map = name, sessions, percent = format!("{:.0}", share * 100.0), done, "map explore: the session saved; the exploration so far");
+        file.insert(format!("{name}.progress"), progress.clone());
+        self.write_ground_file(file);
+        self.update(|s| s.progress = Some(progress));
     }
 }
 
@@ -900,6 +1042,10 @@ pub struct Job {
     relocate_steps: u32,
     /// Moves off a rim in a row (see `off_the_rim`).
     rim_offs: u32,
+    /// A session of a progressive exploration ends at this battery level,
+    /// checked every [`BATTERY_EVERY_S`].
+    battery_min_pct: Option<f64>,
+    battery_checked: Option<Instant>,
     /// Spots the job got stuck on again and again: the planner keeps off
     /// them for the rest of the job (see `unseal`).
     no_go: Vec<(f64, f64)>,
@@ -1059,6 +1205,8 @@ impl Job {
             fell: None,
             relocate_steps: 0,
             rim_offs: 0,
+            battery_min_pct: None,
+            battery_checked: None,
             no_go: Vec::new(),
             unseals_here: None,
             drops_bookable: true,
@@ -1154,6 +1302,16 @@ impl Job {
                     State::Done,
                     format!("time budget of {:.0} s spent", self.max_s),
                 );
+            }
+            if let Some(min) = self.battery_min_pct
+                && self.battery_checked.is_none_or(|t| (robot.now() - t).as_secs_f64() >= BATTERY_EVERY_S)
+            {
+                self.battery_checked = Some(robot.now());
+                if let Some(pct) = robot.battery_percent()
+                    && pct < min
+                {
+                    return (State::Done, format!("battery at {pct:.0} %: the session ends here — charged, the duck goes on from where it stopped"));
+                }
             }
             let Some(frame) = robot.frame() else {
                 robot.sleep(WAIT);
