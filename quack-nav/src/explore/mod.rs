@@ -461,6 +461,10 @@ impl ExploreStatus {
             trail: trail.clone(),
             lanes: s.lanes.clone(),
             blind: s.blind,
+            // The map's progress is the map's, not the job's: reset here, a
+            // map declared complete was complete no more after one go_to,
+            // and "explore" set out again.
+            progress: s.progress.clone(),
             ..ExploreStatus::default()
         };
         (drops, trail)
