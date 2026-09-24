@@ -496,6 +496,11 @@ pub struct Mapper {
     /// known where it is. Only then are several hypotheses carried: a
     /// kidnap has a prior worth using, and its recovery is measured.
     resumed_from_session: bool,
+    /// A fall since the pose was last confirmed: the pose before it is no
+    /// prior worth trusting (a fall drags and spins the body, and on the
+    /// twin the duck got up elsewhere and relocalized 0.64 m off), so the
+    /// valley test applies as at a boot, and nothing resumes unverified.
+    after_fall: bool,
     /// Booted on a saved map and not yet confirmed anywhere on it: the
     /// confirmation of a candidate needs travel, not just a second look.
     booting: bool,
@@ -761,6 +766,7 @@ impl Mapper {
             pending_reloc: None,
             last_search: None,
             hypotheses: Vec::new(),
+            after_fall: false,
             resumed_from_session: false,
             booting: false,
             lost_windows: 0,
@@ -946,6 +952,9 @@ impl Mapper {
         // BEFORE the carry, and letting it count as the seed's first
         // agreement handed a real kidnap half its confirmation for free
         // (measured — field test five's second carry).
+        if sample.fallen {
+            self.after_fall = true;
+        }
         if (sample.sitting || sample.fallen) && !self.lost {
             self.arm_suspicion();
             notes.push(if sample.fallen {
@@ -1146,7 +1155,7 @@ impl Mapper {
                         // agreement has to be unique before it is believed.
                         let unique = !self.resumed_from_session
                             || self.unique_at(&mut grid, composite, pose) == Some(true);
-                        let unique = unique && (!self.resumed_from_session || {
+                        let unique = unique && (!(self.resumed_from_session || self.after_fall) || {
                             let probe = composite.decimated(self.cfg.relocalize_max_beams);
                             match crate::relocalize::valley_at(&mut grid, &probe, pose, &self.cfg.relocalize) {
                                 Some(along) => {
@@ -1186,7 +1195,7 @@ impl Mapper {
                     (implied, Verdict::Unjudgeable) => {
                         self.seed_agreed = 0;
                         self.unjudged += 1;
-                        if self.unjudged >= self.cfg.suspect_give_up_windows {
+                        if self.unjudged >= self.cfg.suspect_give_up_windows && !self.after_fall {
                             self.resume_at(implied, composite, t_s);
                             notes.push(Note::ResumedUnverified { pose: implied });
                             return;
@@ -1222,7 +1231,7 @@ impl Mapper {
                 // beside where it was, and refusing that left it resuming
                 // unverified — casa_libera's walls 5.6 → 21 cm off on the
                 // replay, casa_arredata's map torn.
-                if self.resumed_from_session
+                if (self.resumed_from_session || self.after_fall)
                     && let Some(along) = crate::relocalize::valley_at(&mut grid, &probe, pose, &self.cfg.relocalize)
                 {
                     // Agreement along a valley is agreement with every
@@ -1259,7 +1268,7 @@ impl Mapper {
             }
             // Hard-lost for too long: odometry has carried the pose all
             // along; resume there rather than keep the map cold.
-            if self.hard_lost && self.cfg.lost_give_up_windows > 0 {
+            if self.hard_lost && self.cfg.lost_give_up_windows > 0 && !self.after_fall {
                 self.lost_windows += 1;
                 if self.lost_windows > self.cfg.lost_give_up_windows {
                     let here = self.slam.tracked();
@@ -1588,6 +1597,7 @@ impl Mapper {
         self.last_search = None;
         self.lost_windows = 0;
         self.hard_lost = false;
+        self.after_fall = false;
         self.boot = None;
         // The boot's global, never-give-up search was for a pose nobody
         // could vouch for. Confirmed, the pose is a pose: a later "lost"

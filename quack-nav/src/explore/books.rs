@@ -187,6 +187,7 @@ impl Job {
                 (true, Some(t)) if (now - t).as_secs_f64() >= BOOKS_AFTER_FALL_S => {
                     tracing::info!("map explore: the pose trusted again since the fall; drops go on the books again");
                     self.fell = None;
+                    self.relocate_steps = 0;
                 }
                 _ => {}
             }

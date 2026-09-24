@@ -45,6 +45,10 @@ use serde_json::{Value, json};
 use quack_duck::Control;
 use crate::tools::{Robot, execute};
 
+/// The stand at each step of the look-around after a fall: the mapper's
+/// floor for a still window is six seconds (see `homecoming::STAND_S`).
+const RELOCATE_STAND_S: f64 = 6.0;
+
 /// What the explorer needs of a body: a guarded mapping step, a blind
 /// move, the newest map frame, the cliff guard's view, and a clock. The
 /// real robot answers over robotd; the paper twin (a kinematic model of
@@ -874,6 +878,8 @@ pub struct Job {
     /// [`BOOKS_AFTER_FALL_S`] since (the instant it was trusted again, if
     /// it is): no drop goes on the books meanwhile (see `drops_bookable`).
     fell: Option<Option<Instant>>,
+    /// Steps of the look-around after a fall (see `relocate_step`).
+    relocate_steps: u32,
     /// Whether a drop may go on the books now: the pose trusted, the duck
     /// on its feet, no fall pending confirmation. Set each turn.
     drops_bookable: bool,
@@ -1026,6 +1032,7 @@ impl Job {
             passage_narrow: false,
             narrow_refusals: (0, (f64::NAN, f64::NAN)),
             fell: None,
+            relocate_steps: 0,
             drops_bookable: true,
             budget_extended: false,
             goal_confirmed: false,
@@ -1149,7 +1156,10 @@ impl Job {
                 && !frame.seated
                 && self.lost_since.is_some_and(|s| (robot.now() - s).as_secs_f64() > STABLE_UNTRUSTED_S)
                 && self.last_pose.is_some_and(|(p, _)| dist2(p, (frame.x, frame.y)) < SETTLED_M)
-                && self.last_fit.is_some_and(|f| f < STABLE_UNTRUSTED_FIT_M);
+                && self.last_fit.is_some_and(|f| f < STABLE_UNTRUSTED_FIT_M)
+                // Never after a fall: the fit there is the fit of a pose
+                // nobody can vouch for.
+                && self.fell.is_none();
             if stable_untrusted {
                 tracing::info!(fit = ?self.last_fit, "map explore: the pose is untrusted but stable and fits the map; mapping on, guarded");
             }
@@ -1166,8 +1176,14 @@ impl Job {
                         },
                     );
                 }
-                // Standing still is what relocalization needs.
-                let _ = stand(robot, self.turn_stand_s());
+                if self.fell.is_some() && !frame.seated {
+                    // Up again after a fall: finding the pose is the first
+                    // thing, before any leg of the job — look around.
+                    self.relocate_step(robot);
+                } else {
+                    // Standing still is what relocalization needs.
+                    let _ = stand(robot, self.turn_stand_s());
+                }
                 continue;
             }
             let lost_just_now = if stable_untrusted { false } else { self.lost_since.take().is_some() };
@@ -2129,6 +2145,35 @@ impl Job {
     /// clear of the lane the body would sweep. `None` when not even the
     /// first step is clear — then the caller falls back to the old fixed
     /// waypoint, which is what the guards will refuse or shorten anyway.
+    /// One step of the search for the pose after a fall: a stand, so the
+    /// head sweeps and the mapper has its still window; then a turn in
+    /// place of an eighth, so the next stand sees elsewhere; after a
+    /// whole circle, a short guarded leg ahead to a new viewpoint. Up to
+    /// [`LOST_PATIENCE`], then the job gives up — no leg of the job itself
+    /// is walked on a pose the fall made a guess of (the user's,
+    /// 2026-09-24: "after getting up, relocalizing is the first thing").
+    fn relocate_step(&mut self, robot: &mut dyn Body) {
+        self.relocate_steps += 1;
+        if self.relocate_steps == 1 {
+            tracing::info!("map explore: up again after a fall; looking around for the pose before anything else");
+        }
+        let _ = stand(robot, RELOCATE_STAND_S);
+        if robot.pose_trusted() {
+            return;
+        }
+        if self.relocate_steps % (PANO_STEPS + 1) == 0 {
+            let leg = json!({"vx": 0.3, "vyaw": 0.0, "walk_s": 1.0, "stop_s": 0.0});
+            let walked = match robot.frame() {
+                Some(f) => self.guarded_step(robot, f.pose(), &leg).is_ok(),
+                None => false,
+            };
+            tracing::info!(walked, steps = self.relocate_steps, "map explore: after a fall, a circle seen and no pose; a short leg to see from elsewhere");
+        } else {
+            let turned = self.turn_in_place(robot, 1.0, PANO_STEP_RAD);
+            tracing::info!(turned_deg = ?turned.map(|t| format!("{:.0}", t.to_degrees())), steps = self.relocate_steps, "map explore: after a fall, turning to look elsewhere");
+        }
+    }
+
     /// The heading of a route to `to` planned now, with the books as they
     /// stand: toward its point a step along. `None` when there is none.
     fn route_heading_anew(&self, grid: &Grid, from: (f64, f64), to: (f64, f64)) -> Option<f64> {
