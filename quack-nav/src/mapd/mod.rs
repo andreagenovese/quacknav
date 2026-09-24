@@ -104,6 +104,8 @@ enum Event {
     /// Trade the live map for a saved one at a transform, keeping the
     /// robot's place in it.
     Adopt(MapAdoptParams, mpsc::SyncSender<Result<(), String>>),
+    /// Freeze the live map, or thaw it (the house mapped: navigation).
+    Freeze(bool, mpsc::SyncSender<Result<(), String>>),
     /// Save and stop; the ack says the session is on disk.
     Shutdown(mpsc::SyncSender<()>),
 }
@@ -167,6 +169,11 @@ impl Host {
     /// is jammed.
     pub fn wipe(&self) -> bool {
         self.tx.try_send(Event::Wipe).is_ok()
+    }
+
+    /// Freeze the live map (the house mapped), or thaw it.
+    pub fn freeze(&self, on: bool) -> Result<(), String> {
+        self.ask(|ack| Event::Freeze(on, ack))
     }
 
     /// Copy the live map into the library under `name`. Blocks until the
@@ -510,6 +517,11 @@ fn worker(config: &MaplocConfig, rx: mpsc::Receiver<Event>, map_tx: &Subscribers
                 rendered = None;
                 render_stale = true;
                 tracing::info!("maploc: session wiped by request");
+            }
+            Event::Freeze(on, ack) => {
+                mapper.set_frozen(on);
+                tracing::info!(frozen = on, "maploc: the map is {}", if on { "frozen: the house is mapped, nothing inks" } else { "live again" });
+                let _ = ack.send(Ok(()));
             }
             Event::SaveAs(name, ack) => {
                 let path = map_file(&map_path, &name);
@@ -923,6 +935,7 @@ fn frame_from(mapper: &Mapper, grid: &RenderedGrid, seq: u64, seated: bool) -> M
         windows: mapper.windows(),
         still: mapper.still(),
         seated,
+        frozen: mapper.frozen_set(),
     }
 }
 

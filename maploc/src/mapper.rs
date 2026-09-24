@@ -1702,6 +1702,15 @@ impl Mapper {
     /// tracked on it — while lost or searching the mapper works as in
     /// mapping, so the boot search confirms the way it always did (a
     /// frozen search aliased 110° on explmap1, 2026-09-16).
+    /// Freeze the map, or thaw it, at run time: frozen, nothing inks and
+    /// the pose is corrected against the map as it is (see `frozen`).
+    pub fn set_frozen(&mut self, on: bool) {
+        self.cfg.frozen = on;
+    }
+    /// Whether the map is set frozen (whatever the pose).
+    pub fn frozen_set(&self) -> bool {
+        self.cfg.frozen
+    }
     fn frozen(&self) -> bool {
         self.cfg.frozen && !self.lost
     }

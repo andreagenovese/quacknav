@@ -522,6 +522,7 @@ impl PaperTwin {
             windows: self.windows,
             still: true,
             seated: self.fell,
+            frozen: false,
         }
     }
 

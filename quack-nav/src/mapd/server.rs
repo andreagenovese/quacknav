@@ -103,6 +103,10 @@ fn caller(stream: UnixStream, host: Host) {
                 Some(p) if wire::valid_name(&p.name) => intent(host.adopt(p)),
                 _ => refused(BAD_NAME),
             },
+            wire::METHOD_QUACK_MAP_FREEZE => {
+                let on = params.get("on").and_then(Value::as_bool).unwrap_or(true);
+                intent(host.freeze(on))
+            }
             METHOD_ROBOT_MAP_WIPE => {
                 if host.wipe() {
                     ok(&proto::IntentResult::accepted())

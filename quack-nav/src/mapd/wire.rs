@@ -11,6 +11,8 @@ pub const METHOD_ROBOT_MAP_LIST: &str = "robot.map_list";
 pub const METHOD_ROBOT_MAP_LOAD: &str = "robot.map_load";
 pub const METHOD_ROBOT_MAP_MATCH: &str = "robot.map_match";
 pub const METHOD_ROBOT_MAP_ADOPT: &str = "robot.map_adopt";
+/// quack-navd's own: freeze the live map once the house is mapped.
+pub const METHOD_QUACK_MAP_FREEZE: &str = "quack.map_freeze";
 
 /// Which saved map. The name becomes a file name, so it is checked before
 /// it does: at most 64 letters, digits, `-` and `_`. A name with a slash or

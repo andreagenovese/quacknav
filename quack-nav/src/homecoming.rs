@@ -336,8 +336,19 @@ fn resume_exploring(robot: &Arc<Mutex<Robot>>, cfg: &HomecomingConfig, name: &st
         let done = robot.places.explore.status().progress.as_ref().and_then(|p| p.get("done")).and_then(Value::as_bool).unwrap_or(false);
         (frozen, done)
     };
-    if frozen || done {
-        tracing::info!(map = name, frozen, done, "homecoming: nothing to explore on from here");
+    if frozen {
+        tracing::info!(map = name, "homecoming: the map is frozen; navigating on it");
+        return;
+    }
+    if done {
+        // The house is mapped: from here on the duck navigates — the map
+        // frozen, journeys blind on the floor it knows and guarded where it
+        // does not — and explores no more unless asked for a new map.
+        let socket = robot.lock().expect("robot poisoned").places.map_socket.clone();
+        match tools::map_library(&socket, crate::mapd::wire::METHOD_QUACK_MAP_FREEZE, Some(json!({"on": true}))) {
+            Ok(_) => tracing::info!(map = name, "homecoming: the house is mapped; the map frozen, navigating on it"),
+            Err(e) => tracing::warn!(map = name, error = %e, "homecoming: the house is mapped, but the map could not be frozen"),
+        }
         return;
     }
     let mut last = String::new();

@@ -644,6 +644,40 @@ impl Job {
         cliff.hole_in_lane_walking(now, 0.0, BLIND_DROP_LANE_M, reach, within, 2.min(frames))
     }
 
+    /// Whether the leg, walked as the gait walks it, crosses a cell the
+    /// map has not seen as floor — along its line and a body's half-width
+    /// to either side.
+    fn leg_into_unknown(&self, robot: &dyn Body, (x, y, yaw): (f64, f64, f64), leg: &Value) -> bool {
+        let Some(grid) = robot.frame().and_then(|f| f.grid().ok()) else { return false };
+        let vx = leg.get("vx").and_then(Value::as_f64).unwrap_or(0.0);
+        let vyaw = leg.get("vyaw").and_then(Value::as_f64).unwrap_or(0.0);
+        let walk_s = leg.get("walk_s").and_then(Value::as_f64).unwrap_or(1.0);
+        if vx <= 0.0 {
+            return false;
+        }
+        let (v, w) = (GAIT_M_PER_S * vx / 0.3, 0.65 * vyaw);
+        let (mut px, mut py, mut h) = (x, y, yaw);
+        let mut t = 0.0;
+        while t < walk_s {
+            px += v * 0.1 * h.cos();
+            py += v * 0.1 * h.sin();
+            h += w * 0.1;
+            t += 0.1;
+            // The body's own cell is often unknown — the sensor looks
+            // ahead, not down — so from a stride out.
+            if v * t < 0.15 {
+                continue;
+            }
+            for side in [-0.08, 0.0, 0.08] {
+                let (qx, qy) = (px - side * h.sin(), py + side * h.cos());
+                if !matches!(grid.at(qx, qy), Some(Cell::Free) | Some(Cell::Wall)) {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
     pub(super) fn guarded_step(&self, robot: &mut dyn Body, pose: (f64, f64, f64), leg: &Value) -> Result<Value, String> {
         // Trusted floor (see `trusted.rs`): a leg over floor the duck
         // knows walks blind, in mapping and on a guarded journey alike.
@@ -681,7 +715,14 @@ impl Job {
         if trusted_kick && hole_in_view {
             tracing::info!("map explore: a hole in view, but the kick lies on trusted floor; the kick goes blind");
         }
-        if (self.blind() || trusted) && (!hole_in_view || trusted_kick) && !thing_ahead && robot.pose_trusted() {
+        // The hybrid journey (the user's, 2026-09-24): blind on the floor
+        // the map knows, the guard's on floor it does not — a leg that
+        // runs onto an unknown cell is judged as a guarded one.
+        let into_unknown = self.blind() && !trusted && self.leg_into_unknown(&*robot, pose, leg);
+        if into_unknown {
+            tracing::info!(at = ?(pose.0, pose.1), "map explore: the leg runs onto floor the map does not know; guarded");
+        }
+        if (self.blind() || trusted) && !into_unknown && (!hole_in_view || trusted_kick) && !thing_ahead && robot.pose_trusted() {
             let vx = leg.get("vx").and_then(Value::as_f64).unwrap_or(0.0);
             let vyaw = leg.get("vyaw").and_then(Value::as_f64).unwrap_or(0.0);
             let walk_s = leg.get("walk_s").and_then(Value::as_f64).unwrap_or(1.0);

@@ -118,7 +118,9 @@ impl Body for Robot {
     }
     fn frozen_map(&self) -> bool {
         self.places.map.as_ref().is_some_and(|m| {
-            matches!(&m.snapshot().support, MapSupport::Supported { mode: Some(mode), .. } if mode == "localize")
+            let snap = m.snapshot();
+            matches!(&snap.support, MapSupport::Supported { mode: Some(mode), .. } if mode == "localize")
+                || snap.latest.as_ref().is_some_and(|f| f.frozen)
         })
     }
     fn cliff(&self) -> Option<CliffStatus> {
@@ -540,6 +542,27 @@ impl ExploreHandle {
         if let Err(e) = std::fs::write(&path, serde_json::to_string_pretty(&Value::Object(file)).unwrap_or_default()) {
             tracing::warn!(error = %e, path = %path.display(), "map explore: the ground book could not be written");
         }
+    }
+
+    /// The name of the map whose books are on the books now, if any.
+    pub fn map_name(&self) -> Option<String> {
+        self.ground.lock().expect("ground poisoned").map.clone()
+    }
+
+    /// A new exploration of `name` from nothing (`robot.map_explore`
+    /// `fresh`): the books, the trail and the progress go; the saved map
+    /// and its book stay on disk until the new session saves over them.
+    pub fn fresh_map(&self, name: &str) {
+        let mut file = self.ground_file();
+        file.remove(&format!("{name}.progress"));
+        self.write_ground_file(file);
+        self.ground.lock().expect("ground poisoned").map = None;
+        let mut s = self.status.lock().expect("explore status poisoned");
+        s.local.clear();
+        s.trail.clear();
+        s.lanes.clear();
+        s.progress = None;
+        s.blind = false;
     }
 
     /// The saved map `name` is the live one now: its drops come onto the
@@ -2661,6 +2684,32 @@ mod tests {
     use super::*;
     use crate::frontier::INFLATE_M;
     use crate::map::Cell;
+
+    /// The progress share: floor known over floor known plus the unknown a
+    /// frontier reaches inside the walls; a walled-in pocket is not left
+    /// to explore.
+    #[test]
+    fn the_share_explored_leaves_out_walled_pockets() {
+        let (rows, cols) = (20, 20);
+        let mut cells = vec![Cell::Unknown; rows * cols];
+        for r in 0..rows {
+            for c in 0..cols {
+                let border = r == 0 || c == 0 || r == rows - 1 || c == cols - 1;
+                cells[r * cols + c] = if border { Cell::Wall } else if c < 10 { Cell::Free } else { Cell::Unknown };
+            }
+        }
+        // A sofa's inside: unknown, walled in, in the known half.
+        for r in 4..8 {
+            for c in 3..7 {
+                let edge = r == 4 || r == 7 || c == 3 || c == 6;
+                cells[r * cols + c] = if edge { Cell::Wall } else { Cell::Unknown };
+            }
+        }
+        let g = Grid { rows, cols, x_min: 0.0, y_min: 0.0, cell_m: 0.05, cells };
+        let (share, free, open) = explored_share(&g);
+        assert_eq!(open, 18 * 9, "the unknown half, not the pocket");
+        assert!((share - free as f64 / (free + open) as f64).abs() < 1e-9 && share > 0.45 && share < 0.55, "{share}");
+    }
 
     /// A low thing booked ahead, however far it is pushed, stays an
     /// obstacle: the books tell the two apart by the radius alone.

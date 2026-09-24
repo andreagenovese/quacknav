@@ -556,6 +556,7 @@ mod tests {
             windows: 10,
             still: true,
             seated,
+            frozen: false,
         }
     }
 
@@ -819,11 +820,19 @@ pub fn catalog() -> Vec<Value> {
     the same reply. When the user asks how it is going, robot.map_status tells \
     (explore.state, frontiers_left, legs). While it runs, robot.move and robot.map_step are refused. Call with stop=true to stop it. \
     When the duck reaches a nameless area it asks the user where it is; answer by calling \
-    robot.remember_place with the name the user gives.",
+    robot.remember_place with the name the user gives. \
+    Exploring is progressive: each call is one session (a charge's worth), it goes on from \
+    where the last one stopped and saves the map at the end; robot.map_status explore.progress \
+    says how much of the house is mapped (percent, sessions, done). When the house is already \
+    mapped the call does not start and says so — tell the user. Only when the user explicitly \
+    asks to map the house again from nothing, confirm with them first that the current map will \
+    be replaced, then call with fresh=true.",
         "parameters": {
             "type": "object",
             "properties": {
                 "stop": {"type": "boolean", "description": "stop a running exploration"},
+                "fresh": {"type": "boolean", "description": "a new map from nothing, replacing the saved one when this session saves; only after the user confirmed"},
+                "save_as": {"type": "string", "description": "the map's name; default the current map's, else \"casa\""},
                 "watch": {"type": "boolean", "description": "do not walk: somebody else drives the duck, and it only books what it sees at each stop (the guided drive that writes the books)"},
                 "max_s": {"type": "number", "description": "time budget in seconds; default from the config"}
             }
@@ -1114,22 +1123,41 @@ fn map_explore(robot: &mut Robot, args: &Value) -> Result<Value, String> {
         .current()
         .flat_map(|p| p.anchors.iter().map(|a| (a.x, a.y)))
         .collect();
-    // A session of a progressive exploration: saved under this name at
-    // the end, ended early at this battery level.
-    let session = match args.get("save_as") {
-        Some(_) => {
-            let name = map_name(&json!({"name": args.get("save_as")}))?
-                .get("name")
-                .and_then(Value::as_str)
-                .unwrap_or_default()
-                .to_string();
-            Some(crate::explore::Session {
-                save_as: name,
-                battery_min_pct: args.get("battery_min_pct").and_then(Value::as_f64).unwrap_or(25.0),
-            })
-        }
-        None => None,
+    // Every exploration is a session of a progressive one: saved at the
+    // end under the name asked, else the live map's own, else "casa";
+    // ended early at the battery level asked.
+    let name = match args.get("save_as").and_then(Value::as_str) {
+        Some(n) => map_name(&json!({"name": n}))?.get("name").and_then(Value::as_str).unwrap_or_default().to_string(),
+        None => robot.places.explore.map_name().unwrap_or_else(|| "casa".to_string()),
     };
+    let fresh = args.get("fresh").and_then(Value::as_bool).unwrap_or(false);
+    let progress = robot.places.explore.status().progress;
+    let done = progress.as_ref().and_then(|p| p.get("done")).and_then(Value::as_bool).unwrap_or(false);
+    if done && !fresh && robot.places.explore.map_name().as_deref() == Some(name.as_str()) {
+        return Ok(json!({
+            "started": false,
+            "done": true,
+            "progress": progress,
+            "reason": "the house is already mapped: nothing is left to explore. A new map from nothing replaces it only if the user asks for one (fresh: true)",
+        }));
+    }
+    if fresh {
+        // The live map goes; the saved one stays in the library until the
+        // new session saves over it — a new exploration that goes wrong
+        // loses nothing.
+        map_library(&robot.places.map_socket, crate::map::METHOD_ROBOT_MAP_WIPE, None)?;
+        robot.places.explore.fresh_map(&name);
+        let frames0 = map.snapshot().frames;
+        let deadline = Instant::now() + std::time::Duration::from_secs(10);
+        while map.snapshot().frames <= frames0 + 1 && Instant::now() < deadline {
+            std::thread::sleep(std::time::Duration::from_millis(200));
+        }
+        tracing::info!(map = name, "map explore: a new map from nothing; the saved one is replaced when this session saves");
+    }
+    let session = Some(crate::explore::Session {
+        save_as: name.clone(),
+        battery_min_pct: args.get("battery_min_pct").and_then(Value::as_f64).unwrap_or(25.0),
+    });
     robot.places.explore.start(
         &robot.places.robotd_socket,
         &robot.places,
@@ -1142,6 +1170,9 @@ fn map_explore(robot: &mut Robot, args: &Value) -> Result<Value, String> {
     )?;
     Ok(json!({
         "started": true,
+        "map_name": name,
+        "fresh": fresh,
+        "progress": progress,
         "max_s": max_s,
         "from": {"x": (frame.x * 100.0).round() / 100.0, "y": (frame.y * 100.0).round() / 100.0},
         "map": {"submaps": frame.n_submaps, "windows": frame.windows},

@@ -108,6 +108,11 @@ pub struct MapFrame {
     /// floor.
     #[serde(default)]
     pub seated: bool,
+    /// The map is frozen (maploc `localize`, or frozen at runtime once the
+    /// house is mapped, `quack.map_freeze`): nothing inks, the pose is
+    /// corrected against the map as saved.
+    #[serde(default)]
+    pub frozen: bool,
 }
 
 impl MapFrame {
@@ -669,6 +674,7 @@ mod tests {
             windows: 3,
             still: true,
             seated: false,
+            frozen: false,
         }
     }
 
