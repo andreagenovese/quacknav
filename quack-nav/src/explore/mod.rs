@@ -51,6 +51,8 @@ const RELOCATE_STAND_S: f64 = 6.0;
 /// A session that ends with only unreachable frontiers left and less than
 /// this much unknown floor within reach of them finds the house done.
 const DONE_LEFT_M2: f64 = 2.0;
+/// A session that ends with this share of the house mapped finds it done.
+const DONE_SHARE: f64 = 0.95;
 /// How often a session looks at the battery.
 const BATTERY_EVERY_S: f64 = 30.0;
 /// Beside a drop, a way narrower than this is a passage and its aim goes
@@ -982,7 +984,13 @@ impl ExploreHandle {
         // a strip behind a sofa, a hole's inside — else a house with one
         // unreachable sliver is never done.
         let left_m2 = open as f64 * 0.0025;
-        let done = reason.contains("no frontier") || (reason.contains("none is reachable") && left_m2 < DONE_LEFT_M2);
+        // ... or the share mapped this high: the estimate errs low (on the
+        // twin 7–20 points under the truth once a session is done), so 95 %
+        // reported is the house — casa_libera, 2026-09-24: 96 % reported,
+        // 99–100 % in every room, and another session spent on slivers.
+        let done = reason.contains("no frontier")
+            || (reason.contains("none is reachable") && left_m2 < DONE_LEFT_M2)
+            || share >= DONE_SHARE;
         let mut file = self.ground_file();
         let before = file.get(&format!("{name}.progress")).cloned().unwrap_or(json!({}));
         let sessions = before.get("sessions").and_then(Value::as_u64).unwrap_or(0) + 1;
