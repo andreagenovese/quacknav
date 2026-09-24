@@ -513,8 +513,18 @@ fn worker(config: &MaplocConfig, rx: mpsc::Receiver<Event>, map_tx: &Subscribers
             }
             Event::SaveAs(name, ack) => {
                 let path = map_file(&map_path, &name);
-                let result = std::fs::create_dir_all(maps_dir(&map_path))
-                    .map_err(|e| format!("cannot create the map library: {e}"))
+                // A session keeps the pose it was saved at, and the next
+                // boot on it starts from there. Saved while the duck does
+                // not know where it is — down after a fall, carried, lost —
+                // that pose is a guess: the twin's house2, saved with the
+                // duck fallen at the stairwell, booted at (-65, -286).
+                let result = if !mapper.tracking() {
+                    Err("the duck does not know where it is right now (after a fall, a carry or a loss); save once its pose is confirmed again".to_string())
+                } else {
+                    Ok(())
+                };
+                let result = result
+                    .and_then(|()| std::fs::create_dir_all(maps_dir(&map_path)).map_err(|e| format!("cannot create the map library: {e}")))
                     .and_then(|()| mapper.slam().save(&path).map_err(|e| format!("cannot write the map: {e}")));
                 match &result {
                     Ok(()) => tracing::info!(name, path = %path.display(), "maploc: map saved to the library"),

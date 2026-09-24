@@ -1195,7 +1195,12 @@ impl Mapper {
                     (implied, Verdict::Unjudgeable) => {
                         self.seed_agreed = 0;
                         self.unjudged += 1;
-                        if self.unjudged >= self.cfg.suspect_give_up_windows && !self.after_fall {
+                        // Never at a boot on a saved map: the seed there
+                        // is the pose the session was saved at, and one
+                        // saved with the duck down read (-65, -286) —
+                        // nothing on the map could judge it, and giving
+                        // up "resumed" it (the twin's house2, 2026-09-24).
+                        if self.unjudged >= self.cfg.suspect_give_up_windows && !self.after_fall && !self.resumed_from_session {
                             self.resume_at(implied, composite, t_s);
                             notes.push(Note::ResumedUnverified { pose: implied });
                             return;
