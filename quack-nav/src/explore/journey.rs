@@ -83,11 +83,12 @@ pub(super) fn goal_lookahead_m(follow: bool) -> f64 {
 /// way on and came back (the user's eye on the twin, 2026-09-23).
 pub(super) const NO_ROOM_TURN_RAD: f64 = std::f64::consts::FRAC_PI_4;
 /// How far along the path the string may be pulled (see
-/// [`smooth_path`]): a metre. At two (the straight look) the aim cut the
+/// [`smooth_path`]): 0.6 m. At two (the straight look) the aim cut the
 /// grid path's corners by up to a body's width and was held there for
 /// metres; the planned route is the one with the margins in it (the
-/// user's, 2026-09-23: "the duck should stay truer to the green line").
-pub(super) const STRING_PULL_M: f64 = 1.0;
+/// user's, 2026-09-23: "the duck should stay truer to the green line" —
+/// a metre, then 0.6 on 2026-09-24).
+pub(super) const STRING_PULL_M: f64 = 0.6;
 pub(super) fn string_pull_m() -> f64 {
     static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
     *V.get_or_init(|| knob("QK_STRING_PULL_M", STRING_PULL_M))
