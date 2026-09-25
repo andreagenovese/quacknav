@@ -3901,7 +3901,7 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       esistono entrambe le tracce, quindi lo si può cercare invece che
       indovinare.
 
-## 2c. Le metriche standard (2026-09-25)
+## 2c. Le metriche standard, e test che tengono le regole (2026-09-25)
 - [ ] ATE e RPE, come li riportano tutti: il campionatore della posa
       (`scripts/twin/houses/poseerr.py`) registra la posizione e la verità
       ogni 5 s ma non l'angolo; aggiungerlo, esportare le due traiettorie
@@ -3910,6 +3910,19 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       nelle tabelle di `docs/results.md`, così i numeri si confrontano con
       quelli pubblicati per altri sistemi. Le registrazioni vecchie danno la
       parte di posizione; per l'angolo serve un giro nuovo.
+- [ ] Percorsi golden: la rotta del pianificatore (Dijkstra e il filo teso)
+      su una serie di scene fisse — una porta, un passaggio accanto a un
+      buco, un corridoio, pavimento libero — salvata una volta e confrontata
+      a ogni build, così una modifica alla rotta si vede come un test che
+      fallisce e non tre giri del gemello dopo (il primo taglio della
+      centratura, regredito sul gemello di carta, si sarebbe visto subito).
+- [ ] Test su proprietà (`proptest`): su mappe e libri generati a caso, le
+      regole come verità invece che come esempi — nessuna rotta attraverso
+      un muro, nessun filo teso a meno di 0.6 m da un drop, nessuna
+      rotazione sul posto più vicina di 0.15 m a un bordo, nessun ostacolo
+      registrato con il raggio di un drop.
+- [ ] CI: i test unitari, i percorsi golden, i test su proprietà e il
+      gemello di carta a ogni push (già nel debito tecnico del README).
 
 ## 3. `go_to` (serve un RPC di goal upstream)
 - [ ] Seguire upstream per un RPC tipo `robot.goto` (pianificatore e

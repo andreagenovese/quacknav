@@ -3652,7 +3652,7 @@ nothing: it explores and asks.
       submaps already written. Both traces exist for that run, so it can
       be looked for rather than guessed at.
 
-## 2c. The standard metrics (2026-09-25)
+## 2c. The standard metrics, and tests that hold the rules (2026-09-25)
 - [ ] ATE and RPE, the way everyone reports them: the pose sampler
       (`scripts/twin/houses/poseerr.py`) records the position and the truth
       every 5 s but not the heading; add it, export both trajectories in
@@ -3661,6 +3661,18 @@ nothing: it explores and asks.
       tables of `docs/results.md`, so the numbers compare with those
       published for other systems. The old recordings give the position
       part; the heading needs a new run.
+- [ ] Golden routes: the planner's route (Dijkstra and the string pull) on
+      a set of fixed scenes — a doorway, a passage beside a hole, a
+      corridor, open floor — saved once and compared on every build, so a
+      change to the route shows as a failing test and not three twin runs
+      later (the first centring cut, which regressed on the paper twin,
+      would have shown at once).
+- [ ] Property tests (`proptest`): on randomly generated maps and books,
+      the rules as truths rather than examples — no route through a wall,
+      no string pull within 0.6 m of a drop, no leg of a turn in place
+      nearer a rim than 0.15 m, no obstacle booked at drop radius.
+- [ ] CI: the unit tests, the golden routes, the property tests and the
+      paper twin on every push (already in the README's technical debt).
 
 ## 3. `go_to` (needs an upstream goal RPC)
 - [ ] Follow upstream for a `robot.goto`-style RPC (planner + follower
