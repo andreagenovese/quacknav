@@ -253,6 +253,11 @@ pub(super) const ROUTE_EDGE_M: f64 = 0.05;
 /// level has said its piece; the leg guard decides.
 pub(super) const ROUTE_REPEAT_MAX: u32 = 2;
 
+pub(super) fn passage_law() -> bool {
+    static V: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *V.get_or_init(|| switch("QK_PASSAGE_LAW").unwrap_or(true))
+}
+
 impl Job {
     /// Walk one leg toward `f` — the aim, the passage beside a drop, the
     /// turn in place, the guarded step and whatever the refusal asks for.
@@ -312,6 +317,14 @@ impl Job {
     /// and the drops on the books beside or just ahead of the duck.
     pub(super) fn passage(&mut self, robot: &dyn Body, grid: &Grid, (x, y, yaw): (f64, f64, f64), path: &[(f64, f64)], stand: Option<(f64, f64)>) -> Option<(f64, f64, f64)> {
         self.passage_narrow = false;
+        // `QK_PASSAGE_LAW=0`: no passage law at all — no axis, no alignment,
+        // no "too narrow" — the route through the passage is followed like
+        // any other, the guards against the rim kept (the user's trial,
+        // 2026-09-25: with the layered costmap the route already runs down
+        // the passage's middle).
+        if !passage_law() {
+            return None;
+        }
         let drops: Vec<(f64, f64)> = self
             .local
             .iter()

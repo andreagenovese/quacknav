@@ -4,12 +4,18 @@
 //!
 //! So that a map on disk can be measured by the same tools that measure a
 //! map in flight — quacksat's `mapquality.py` scores either.
+//!
+//! `--as-navd` classifies the cells as quack-navd's `map.frame` does (wall
+//! above 150, free below −50) instead of at ±200: what the navigation plans
+//! on. The two differ enough to change a route (house2's g4: 11.3 m through
+//! the stairwell's passage on quack-navd's, 13.5 m round on the ±200 one).
 
 use maploc::pipeline::{Slam, SlamConfig};
 use maploc::session::SessionState;
 
 fn main() {
-    let path = std::env::args().nth(1).expect("usage: dump_frame <session>");
+    let path = std::env::args().nth(1).expect("usage: dump_frame <session> [--as-navd]");
+    let (wall, free) = if std::env::args().any(|a| a == "--as-navd") { (151, -51) } else { (200, -200) };
     let session = SessionState::load(std::path::Path::new(&path))
         .expect("read the session")
         .expect("the session is empty");
@@ -22,8 +28,8 @@ fn main() {
     let cells: Vec<u8> = log
         .iter()
         .map(|lo| match *lo {
-            l if l >= 200 => 2,
-            l if l <= -200 => 1,
+            l if l >= wall => 2,
+            l if l <= free => 1,
             _ => 0,
         })
         .collect();
