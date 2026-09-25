@@ -1221,6 +1221,7 @@ mod guarded;
 mod journey;
 mod mapping;
 mod mode;
+mod pursuit;
 mod recover;
 mod trusted;
 use books::*;
@@ -1959,61 +1960,83 @@ impl Job {
             // zigzags by nature — only when something is in the way.
             // Steering is for getting around obstacles, not for tracing
             // cells.
-            let straight = (f.stand.1 - y).atan2(f.stand.0 - x);
-            let look = to_target.min(straight_look_m());
-            // How far along the path to aim when the straight line is not
-            // clear: a stride while mapping, a metre on a journey (see
-            // [`GOAL_LOOKAHEAD_M`]).
-            let ahead_m = if self.goal.is_some() { goal_lookahead_m(self.follow()) } else { lookahead_m() };
-            // Beside a drop, booked or seen, the route itself: the aim a
-            // step along it, neither the string pulled nor an old aim
-            // held. The grid path keeps the planner's margin from the
-            // books; a straight line to a point two metres on did not —
-            // the aim of the fall of 2026-09-23 was held 2 m ahead from
-            // before the stairwell to its rim, the green line bending
-            // round it unwalked (the user's eye).
-            let near_drop = self.drop_within_any(&*robot, STRING_NEAR_DROP_M).is_some();
-            let aim = if !self.follow()
-                && !near_drop
-                && grid.lane_clear(x, y, straight, look, lane_half_m())
-                && self.clear_of_local(x, y, straight, look, lane_half_m())
-            {
-                f.stand
-            } else if smooth_path() && !near_drop {
-                self.farthest_clear(grid, (x, y), &f.path)
-                    .or_else(|| waypoint(&f.path, ahead_m, grid.cell_m))
-                    .unwrap_or(f.stand)
+            // The aim: Regulated Pure Pursuit (`QK_RPP=1`, see `pursuit.rs`), or
+            // the cascade it replaces.
+            let mut rpp_at: Option<(f64, f64)> = None;
+            let aim = if pursuit::rpp() && !(pursuit::rpp_open_only() && self.drop_within_any(&*robot, STRING_NEAR_DROP_M).is_some()) {
+                let (aim, l, clear) = self.rpp_aim(grid, pose, &f.path, f.stand);
+                rpp_at = Some((l, clear));
+                // Never behind the beak, as below: a route that doubles
+                // back beside a rim asks for a turn the rim refuses, and the
+                // duck stood 900 s with the aim 121° off (paper twin, bath,
+                // six seeds in thirty). The first route point ahead instead.
+                if wrap((aim.1 - y).atan2(aim.0 - x) - yaw).abs() > std::f64::consts::FRAC_PI_2 {
+                    f.path
+                        .iter()
+                        .copied()
+                        .find(|p| dist2(*p, (x, y)) >= 0.2 && wrap((p.1 - y).atan2(p.0 - x) - yaw).abs() <= std::f64::consts::FRAC_PI_2)
+                        .unwrap_or(aim)
+                } else {
+                    aim
+                }
             } else {
-                waypoint(&f.path, ahead_m, grid.cell_m).unwrap_or(f.stand)
-            };
-            // Beside a drop, the middle of the way: the aim slid across
-            // the heading to where the wall (or the thing) on one side and
-            // the rim on the other are as far. The planner keeps the rim
-            // wider than a wall (the drop's radius and the widening), so
-            // its route between them runs along the wall: at house2's
-            // living-room door, between the jamb and the stairwell's west
-            // rim (0.54 m), the body walked 7 cm off the jamb, the sensor
-            // saw it in the lane, and "no room" 75 times on the spot
-            // (2026-09-24).
-            let aim = if near_drop && switch("QK_CENTRE").unwrap_or(true) { self.centred(grid, (x, y), aim) } else { aim };
-            // Hold it unless it is reached, blocked, or bettered — only on a
-            // journey; a mapping job's aim is its frontier's business.
-            let aim = if self.goal.is_some() && hold_aim_enabled() && !near_drop {
-                self.hold_aim(grid, (x, y), yaw, aim, f.stand)
-            } else {
-                aim
-            };
-            // Never an aim behind the beak: the waypoint counts cells from
-            // the route's start, and a body beside or past that start got
-            // an aim behind it, and walked round it (the user's eye,
-            // 2026-09-16). The first route point ahead, 0.2 m out, instead.
-            let aim = if wrap((aim.1 - y).atan2(aim.0 - x) - yaw).abs() > std::f64::consts::FRAC_PI_2 {
-                f.path
-                    .iter()
-                    .copied()
-                    .find(|p| dist2(*p, (x, y)) >= 0.2 && wrap((p.1 - y).atan2(p.0 - x) - yaw).abs() <= std::f64::consts::FRAC_PI_2)
-                    .unwrap_or(aim)
-            } else {
+                let straight = (f.stand.1 - y).atan2(f.stand.0 - x);
+                let look = to_target.min(straight_look_m());
+                // How far along the path to aim when the straight line is not
+                // clear: a stride while mapping, a metre on a journey (see
+                // [`GOAL_LOOKAHEAD_M`]).
+                let ahead_m = if self.goal.is_some() { goal_lookahead_m(self.follow()) } else { lookahead_m() };
+                // Beside a drop, booked or seen, the route itself: the aim a
+                // step along it, neither the string pulled nor an old aim
+                // held. The grid path keeps the planner's margin from the
+                // books; a straight line to a point two metres on did not —
+                // the aim of the fall of 2026-09-23 was held 2 m ahead from
+                // before the stairwell to its rim, the green line bending
+                // round it unwalked (the user's eye).
+                let near_drop = self.drop_within_any(&*robot, STRING_NEAR_DROP_M).is_some();
+                let aim = if !self.follow()
+                    && !near_drop
+                    && grid.lane_clear(x, y, straight, look, lane_half_m())
+                    && self.clear_of_local(x, y, straight, look, lane_half_m())
+                {
+                    f.stand
+                } else if smooth_path() && !near_drop {
+                    self.farthest_clear(grid, (x, y), &f.path)
+                        .or_else(|| waypoint(&f.path, ahead_m, grid.cell_m))
+                        .unwrap_or(f.stand)
+                } else {
+                    waypoint(&f.path, ahead_m, grid.cell_m).unwrap_or(f.stand)
+                };
+                // Beside a drop, the middle of the way: the aim slid across
+                // the heading to where the wall (or the thing) on one side and
+                // the rim on the other are as far. The planner keeps the rim
+                // wider than a wall (the drop's radius and the widening), so
+                // its route between them runs along the wall: at house2's
+                // living-room door, between the jamb and the stairwell's west
+                // rim (0.54 m), the body walked 7 cm off the jamb, the sensor
+                // saw it in the lane, and "no room" 75 times on the spot
+                // (2026-09-24).
+                let aim = if near_drop && switch("QK_CENTRE").unwrap_or(true) { self.centred(grid, (x, y), aim) } else { aim };
+                // Hold it unless it is reached, blocked, or bettered — only on a
+                // journey; a mapping job's aim is its frontier's business.
+                let aim = if self.goal.is_some() && hold_aim_enabled() && !near_drop {
+                    self.hold_aim(grid, (x, y), yaw, aim, f.stand)
+                } else {
+                    aim
+                };
+                // Never an aim behind the beak: the waypoint counts cells from
+                // the route's start, and a body beside or past that start got
+                // an aim behind it, and walked round it (the user's eye,
+                // 2026-09-16). The first route point ahead, 0.2 m out, instead.
+                let aim = if wrap((aim.1 - y).atan2(aim.0 - x) - yaw).abs() > std::f64::consts::FRAC_PI_2 {
+                    f.path
+                        .iter()
+                        .copied()
+                        .find(|p| dist2(*p, (x, y)) >= 0.2 && wrap((p.1 - y).atan2(p.0 - x) - yaw).abs() <= std::f64::consts::FRAC_PI_2)
+                        .unwrap_or(aim)
+                } else {
+                    aim
+                };
                 aim
             };
             let err = wrap((aim.1 - y).atan2(aim.0 - x) - yaw);
@@ -2185,7 +2208,7 @@ impl Job {
                 let _ = stand(robot, self.turn_stand_s());
                 return None;
             }
-            let leg = passage_leg.or_else(|| self.leg(robot, grid, pose, aim, err, going, handle.status().legs));
+            let leg = passage_leg.or_else(|| self.leg(robot, grid, pose, aim, err, going, handle.status().legs, rpp_at));
             if let Some(sign) = leg.as_ref().and_then(|l| l.get("spin")).and_then(Value::as_f64)
                 && self.spins_since_leg < SPINS_MAX
             {
@@ -2535,6 +2558,7 @@ impl Job {
         err: f64,
         going: bool,
         legs: u32,
+        rpp_at: Option<(f64, f64)>,
     ) -> Option<Value> {
         let stop_s = self.stop_s(legs);
         let (x, y, yaw) = pose;
@@ -2542,7 +2566,13 @@ impl Job {
         // The guarded journey's dense stops beside the drops (see
         // `DROP_STAND_S`): mapping and the blind journey keep their legs.
         let leg_cap = if self.policy.mode == Mode::JourneyGuarded && self.drop_within(DROP_STAND_NEAR_M) { drop_leg_s().min(3.0) } else { 3.0 };
-        let (vyaw, wanted_s, arc) = if straight {
+        let (vyaw, wanted_s, arc) = if let Some((l, clear)) = rpp_at
+            && err.abs() <= curve_rad()
+        {
+            // The arc through the aim, regulated (see `pursuit::regulated`).
+            let (vyaw, walk_s) = pursuit::regulated(pursuit::curvature(pose, aim), l, clear, if self.follow() { 1.5 } else { leg_cap });
+            (vyaw, walk_s, false)
+        } else if straight {
             let walk_s = (dist2((x, y), aim) / GAIT_M_PER_S).clamp(1.0, if self.follow() { 1.5 } else { leg_cap });
             let correction = if err.abs() < deadband_rad() {
                 0.0
