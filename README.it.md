@@ -18,6 +18,14 @@ Progetto indipendente, non affiliato a Pollen Robotics. Apache-2.0.
 Separato da [quacksat](https://github.com/andreagenovese/quacksat) il
 2026-09-22 (ADR 0006), con la storia di ogni misura che l'ha fatto.
 
+> **Un esperimento — da prendere con le pinze.** Tutto quello che c'è qui
+> ha girato solo sul gemello MuJoCo e su quello di carta, mai su una
+> papera fisica. Un robot che cammina vicino alle scale può cadere e
+> rompersi: se lo provi su hardware vero, tienilo lontano dai dislivelli e
+> stagli accanto. I numeri in [docs/results.it.md](docs/results.it.md)
+> sono quello che ha misurato il gemello, non una promessa di cosa farà
+> una casa vera.
+
 ## A cosa serve
 
 Una papera che sa dov'è la si può mandare da qualche parte.

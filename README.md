@@ -17,6 +17,13 @@ Split out of [quacksat](https://github.com/andreagenovese/quacksat) on
 2026-09-22 (ADR 0006), with the history of every measurement that made
 it.
 
+> **An experiment — take it with a pinch of salt.** Everything here has
+> run on the MuJoCo and paper twins only, never on a physical duck. A
+> walking robot near stairs can fall and break: if you try it on real
+> hardware, keep it away from drops and stay beside it. The numbers in
+> [docs/results.md](docs/results.md) are what the twin measured, not a
+> promise of what a real house will do.
+
 ## What it is for
 
 A duck that knows where it is can be told where to go. `quack-navd`
