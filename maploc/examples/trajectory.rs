@@ -90,9 +90,10 @@ fn main() {
     let replayed = maploc::bench::replay(&session, &mut mapper, f32::INFINITY, |step| {
         if let Some(w) = degen.as_mut() {
             for note in step.notes {
-                let (kind, pose) = match note {
-                    maploc::mapper::Note::Relocalized { pose, .. } => ("confirmed", *pose),
-                    maploc::mapper::Note::RelocalizeAmbiguous { pose, .. } => ("valley", *pose),
+                let (kind, pose, along) = match note {
+                    maploc::mapper::Note::Relocalized { pose, .. } => ("confirmed", *pose, (f32::NAN, f32::NAN)),
+                    maploc::mapper::Note::RelocalizeAmbiguous { pose, along } => ("valley", *pose, *along),
+                    maploc::mapper::Note::RelocalizeCandidate { pose, .. } => ("candidate", *pose, (f32::NAN, f32::NAN)),
                     _ => continue,
                 };
                 let (Some((_, composite)), Some(mut grid), Some((tt, tx, ty, _))) =
@@ -103,7 +104,16 @@ fn main() {
                 let probe = composite.decimated(512);
                 let c = maploc::scan_matcher::conditioning_at(&mut grid, &probe, pose);
                 let err = (f64::from(pose.0) - tx).hypot(f64::from(pose.1) - ty);
-                writeln!(w, "{:.1}\t{kind}\t{err:.3}\t{:.4}\t{:.1}\t{:.1}\t{}\t{:.1}", step.t_s, c.ratio(), c.l_max, c.l_min, c.n_beams, (step.unix_s - tt).abs()).expect("write");
+                // The truth's heading at the nearest sample, for the yaw error.
+                let tyaw = truth.iter().min_by(|a, b| (a.0 - step.unix_s).abs().total_cmp(&(b.0 - step.unix_s).abs())).map_or(f64::NAN, |r| r.3);
+                let yaw_err = (f64::from(pose.2) - tyaw + std::f64::consts::PI).rem_euclid(std::f64::consts::TAU) - std::f64::consts::PI;
+                writeln!(
+                    w,
+                    "{:.1}\t{kind}\t{err:.3}\t{:.4}\t{:.1}\t{:.1}\t{}\t{:.1}\t{:.3}\t{:.3}\t{:.3}\t{:.3}\t{:.3}\t{:.3}",
+                    step.t_s, c.ratio(), c.l_max, c.l_min, c.n_beams, (step.unix_s - tt).abs(),
+                    pose.0, pose.1, pose.2, along.0, along.1, yaw_err
+                )
+                .expect("write");
             }
         }
         while next < truth.len() && truth[next].0 <= step.unix_s {

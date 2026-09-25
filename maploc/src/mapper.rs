@@ -602,6 +602,9 @@ pub struct Mapper {
     /// Settling after a resume (see [`SettleConfig`]): settled windows in a
     /// row, and windows held so far.
     settling: Option<(u32, u32)>,
+    /// The valleys refused while lost: (candidate, tracked pose then, the
+    /// valley's direction), see [`Mapper::valley_blocks`].
+    valleys: Vec<(Pose2, Pose2, (f32, f32))>,
 }
 
 /// `MAPLOC_MULTI_HYP=0` turns the multi-hypothesis boot search off, for
@@ -633,6 +636,17 @@ fn hypothesis_travel_m() -> f32 {
 fn hypothesis_lead() -> u32 {
     std::env::var("MAPLOC_HYP_LEAD").ok().and_then(|v| v.parse().ok()).unwrap_or(3)
 }
+
+/// Two valleys that cross resolve each other (see `Mapper::valley_blocks`);
+/// `MAPLOC_VALLEY_CROSS=0` for the valley test alone. On since the replay
+/// of 35 recorded boots (2026-09-25): 33 confirmed against 32, none wrong
+/// that was not wrong before, casa_arredata's alias still refused, the
+/// median boot 179 -> 155 s (one house2 boot 328 -> 117 s).
+fn valley_cross() -> bool {
+    std::env::var("MAPLOC_VALLEY_CROSS").map(|v| v != "0").unwrap_or(true)
+}
+/// Refused valleys remembered while lost.
+const VALLEYS_KEPT: usize = 12;
 
 /// `MAPLOC_RAY_JUDGE=1` judges candidates along the ray
 /// (`relocalize::score_pose_rays`) instead of by endpoints alone. OFF by
@@ -845,6 +859,7 @@ impl Mapper {
             cov: crate::uncertainty::diagonal(0.0, 0.0),
             cov_odom: None,
             settling: None,
+            valleys: Vec::new(),
         };
         // A resumed session cannot vouch for its pose: the robot may have
         // been moved, or even booted in another room, while the daemon was
@@ -1234,13 +1249,7 @@ impl Mapper {
                             || self.unique_at(&mut grid, composite, pose) == Some(true);
                         let unique = unique && (!(self.resumed_from_session || self.after_fall) || {
                             let probe = composite.decimated(self.cfg.relocalize_max_beams);
-                            match crate::relocalize::valley_at(&mut grid, &probe, pose, &self.cfg.relocalize) {
-                                Some(along) => {
-                                    notes.push(Note::RelocalizeAmbiguous { pose, along });
-                                    false
-                                }
-                                None => true,
-                            }
+                            !self.valley_blocks(&mut grid, &probe, pose, now, notes)
                         });
                         if self.seed_agreed >= 2 && unique {
                             self.resume_at(&mut grid, pose, composite, t_s);
@@ -1313,13 +1322,10 @@ impl Mapper {
                 // beside where it was, and refusing that left it resuming
                 // unverified — casa_libera's walls 5.6 → 21 cm off on the
                 // replay, casa_arredata's map torn.
-                if (self.resumed_from_session || self.after_fall)
-                    && let Some(along) = crate::relocalize::valley_at(&mut grid, &probe, pose, &self.cfg.relocalize)
-                {
+                if (self.resumed_from_session || self.after_fall) && self.valley_blocks(&mut grid, &probe, pose, now, notes) {
                     // Agreement along a valley is agreement with every
                     // pose on it: dropped, and the search goes on until a
                     // window sees what pins the pose down.
-                    notes.push(Note::RelocalizeAmbiguous { pose, along });
                 } else if self.booting && chord < confirm_travel_m() {
                     self.pending_reloc = Some((cand, then));
                     notes.push(Note::RelocalizeCandidate {
@@ -1735,6 +1741,7 @@ impl Mapper {
         self.lost_windows = 0;
         self.hard_lost = false;
         self.after_fall = false;
+        self.valleys.clear();
         self.boot = None;
         // The boot's global, never-give-up search was for a pose nobody
         // could vouch for. Confirmed, the pose is a pose: a later "lost"
@@ -1749,6 +1756,36 @@ impl Mapper {
             self.cfg.lost_give_up_windows = give_up;
         }
         self.booting = false;
+    }
+
+    /// Does the valley test refuse `pose` on this window? A refusal is
+    /// noted. With `MAPLOC_VALLEY_CROSS=1`, a valley is not a refusal when an
+    /// earlier window refused the same place — carried here by odometry —
+    /// along a valley crossing this one by 45° or more: each window alone
+    /// lets the pose slide along its own wall, the two together do not.
+    /// Replayed (2026-09-25), the valley test refused 84 right poses in 91,
+    /// most within 10 cm, one window at a time.
+    fn valley_blocks(&mut self, grid: &mut OccupancyGrid, probe: &Scan, pose: Pose2, now: Pose2, notes: &mut Vec<Note>) -> bool {
+        let Some(along) = crate::relocalize::valley_at(grid, probe, pose, &self.cfg.relocalize) else {
+            return false;
+        };
+        notes.push(Note::RelocalizeAmbiguous { pose, along });
+        if !valley_cross() {
+            return true;
+        }
+        let (agree_m, agree_rad) = (self.cfg.relocalize_agree_m, self.cfg.relocalize_agree_rad);
+        let crossed = self.valleys.iter().any(|&(p, then, a)| {
+            let implied = compose(p, between(then, now));
+            let same = (implied.0 - pose.0).hypot(implied.1 - pose.1) <= agree_m && wrap_pi(implied.2 - pose.2).abs() <= agree_rad;
+            // Both directions are the map's (the slide is in map
+            // coordinates): comparable as they are.
+            same && (a.0 * along.1 - a.1 * along.0).abs() >= std::f32::consts::FRAC_1_SQRT_2
+        });
+        self.valleys.push((pose, now, along));
+        if self.valleys.len() > VALLEYS_KEPT {
+            self.valleys.remove(0);
+        }
+        !crossed
     }
 
     /// Check one candidate pose against a fresh window, carried to the
