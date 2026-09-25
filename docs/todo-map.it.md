@@ -3901,6 +3901,16 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       esistono entrambe le tracce, quindi lo si può cercare invece che
       indovinare.
 
+## 2c. Le metriche standard (2026-09-25)
+- [ ] ATE e RPE, come li riportano tutti: il campionatore della posa
+      (`scripts/twin/houses/poseerr.py`) registra la posizione e la verità
+      ogni 5 s ma non l'angolo; aggiungerlo, esportare le due traiettorie
+      in formato TUM, e calcolare ATE (errore di traiettoria assoluto, RMSE)
+      e RPE (errore relativo per metro percorso) con `evo`. Entrambi vanno
+      nelle tabelle di `docs/results.md`, così i numeri si confrontano con
+      quelli pubblicati per altri sistemi. Le registrazioni vecchie danno la
+      parte di posizione; per l'angolo serve un giro nuovo.
+
 ## 3. `go_to` (serve un RPC di goal upstream)
 - [ ] Seguire upstream per un RPC tipo `robot.goto` (pianificatore e
       follower esistono nel crate, non sono cablati). Se entro dicembre

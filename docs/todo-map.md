@@ -3652,6 +3652,16 @@ nothing: it explores and asks.
       submaps already written. Both traces exist for that run, so it can
       be looked for rather than guessed at.
 
+## 2c. The standard metrics (2026-09-25)
+- [ ] ATE and RPE, the way everyone reports them: the pose sampler
+      (`scripts/twin/houses/poseerr.py`) records the position and the truth
+      every 5 s but not the heading; add it, export both trajectories in
+      TUM format, and compute ATE (absolute trajectory error, RMSE) and RPE
+      (relative error per metre travelled) with `evo`. Both go in the
+      tables of `docs/results.md`, so the numbers compare with those
+      published for other systems. The old recordings give the position
+      part; the heading needs a new run.
+
 ## 3. `go_to` (needs an upstream goal RPC)
 - [ ] Follow upstream for a `robot.goto`-style RPC (planner + follower
       exist in the crate, not wired). If nothing appears by December,
