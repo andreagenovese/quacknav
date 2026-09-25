@@ -3,9 +3,10 @@
 Navigazione per il [Microduck](https://pollen-robotics.com/microduck/):
 dove si trova la papera, e come arriva da un'altra parte.
 
-Un demone (`quack-navd`) e la libreria che ci sta sotto. Consuma il
-`maploc` a bordo di robotd (PR upstream 127) per mappa e posa, e
-aggiunge tutto quello che ci sta sopra: una guardia del dirupo che
+Un demone (`quack-navd`) e la libreria che ci sta sotto. Ospita da sé il
+mapper — `maploc`, in questo workspace, derivato da quello di Pollen (PR
+upstream 127) — sopra il robotd **rilasciato** di Pollen, e aggiunge tutto
+quello che ci sta sopra: una guardia del dirupo che
 giudica i raggi verso il basso del sensore 8×8 contro il pavimento, un
 planner su mappa dei costi, un registro dei posti che le persone le
 hanno insegnato, un esploratore che mappa una casa da solo, un
@@ -43,6 +44,32 @@ Dodici tool: `robot.where_am_i`, `robot.remember_place`,
 parametri in JSON Schema, pronti da proiettare sui tool OpenAI o su MCP
 da chi li ospita.
 
+## Come si usa
+
+Cosa può chiedere un utente alla papera, con un satellite vocale o con
+qualunque cosa parli il socket:
+
+- **"Esplora la casa."** L'esplorazione è progressiva: una sessione per
+  carica (un tempo, o la batteria sotto il 25 %), ognuna riprende da dove si
+  era fermata la precedente e salva la mappa alla fine. Dopo la carica
+  successiva la papera ritrova la mappa, ritrova se stessa su di essa e
+  continua (`[homecoming] resume_explore`), finché non resta niente di grande
+  — allora la casa è completa.
+- **"A che punto è la mappa?"** `robot.map_status` → `house.percent_mapped`,
+  le sessioni fatte, completa o no.
+- **"Esplorazione completata."** L'utente chiude la mappa com'è
+  (`map_explore complete`): salvata, dichiarata completa, congelata.
+- **Una mappa nuova.** `map_explore fresh` risponde cosa si perderebbe e
+  aspetta `confirmed`; la mappa salvata viene sostituita solo quando salva la
+  prima sessione della nuova.
+- **Andare nei posti.** Su una mappa finita la papera non esplora più, anche
+  dopo un riavvio: torna a casa, congela la mappa e naviga — alla cieca dove
+  la mappa conosce il pavimento, con la guardia dove non lo conosce.
+  `robot.go_to` verso un posto con nome o un punto; `robot.remember_place`
+  dà un nome a dove si trova.
+
+Il progetto è l'ADR 0008.
+
 ## I crate
 
 - **`quack-duck`** — la lane di robotd (un client JSON-RPC sul suo
@@ -54,7 +81,14 @@ da chi li ospita.
 
 ## Cosa è stato misurato
 
-Tre settimane sul gemello MuJoCo, scritte mentre accadevano in
+**[`docs/results.it.md`](docs/results.it.md)** ha i numeri della release, i
+criteri con cui si giudicano e i limiti noti. In breve, sul gemello MuJoCo con
+tre case: nessuna caduta in 11 sessioni di esplorazione e 51 viaggi; il 90 %
+dei viaggi arrivati (la build di `main`, stesse mappe: 63 %); ogni posa
+confermata entro 20 cm dalla verità; 5 criteri di release su 7, contando a
+metà quelli parziali.
+
+Prima di questo, tre settimane sul gemello, scritte mentre accadevano in
 [`docs/todo-map.it.md`](docs/todo-map.it.md) e
 [`docs/study/baseline-twin.it.md`](docs/study/baseline-twin.it.md). In
 breve:
@@ -107,6 +141,7 @@ places_path = "/var/lib/quack-nav/places.json"
 
 [homecoming]
 enabled = true          # riconosce la casa all'avvio e si riprende la sua mappa
+resume_explore = true   # esplora ancora dopo ogni carica finché la casa è completa
 
 [maploc]
 enabled = true          # ospita qui il mapper, con il robotd ufficiale
@@ -130,8 +165,8 @@ Misurato sul gemello MuJoCo (`microduck_rl` + robotd); la papera fisica
 arriva a dicembre 2026. Due modi di farlo girare:
 
 - **robotd ufficiale** (daemon-v0.14.4) con `[maploc] enabled`: il
-  mapper sta in `quack-navd`. Sul gemello, 2026-09-23: esplora, riconosce
-  la casa salvata all'avvio (78 s), va in cucina (37 s).
+  mapper sta in `quack-navd`. È la configurazione della preview; i numeri
+  sono in [`docs/results.it.md`](docs/results.it.md).
 - **Un robotd che ospita maploc** — la PR 127 upstream, ancora aperta,
   più la libreria di mappe di `docs/study/upstream-asks.md` §5, che vive su
   un fork di `pollen-robotics/microduck` — con `[maploc]` spento.

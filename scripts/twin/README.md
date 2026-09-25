@@ -71,4 +71,22 @@ voice satellite's `[nav] socket` at `$STATE/nav.sock` and its
 --release --features kinematics --example evaluate -- <rec.mdlg>
 <truth.toml> <out>`.
 
+## The test houses and the release protocol
+
+`houses/` holds what `docs/results.md` was measured with:
+
+| file | what it is |
+|---|---|
+| `gen.py <robot dir> <out>` | writes casa_libera and casa_arredata: the MuJoCo scenes (into microduck_rl's robot directory), maploc's truth (`.toml`), the paper twin's world (`.world.json`) and the holes, rooms and goals (`.truth.json`) |
+| `final_house.py <name> <scene> <state> <port> <truth> <out> [session_s] [sessions] [rounds]` | the release protocol on one house: progressive exploration from nothing, "exploration complete" if the duck has not finished, three restarts with a go_to tour on the frozen map, and the same on `main`'s build (`AB_REPO`, a worktree of main with its release built). `ROUNDS_ONLY=1` starts at the tours, from the map and book the exploration left in `<out>` |
+| `aggregate.py` | the tables of `docs/results.md` from the protocol's outputs |
+| `modes_test.py` | resume, "how far along", complete, the frozen map after a restart, a fresh map replacing the old one only when it saves |
+| `run_house.py`, `prog_house.py` | the one-exploration and the sessions-only versions |
+| `poseerr.py <nav.sock> <port> <out.tsv>` | the map's pose against the simulator's truth every 5 s (`<out>.untracked` while the mapper vouches for none) |
+
+They need `MICRODUCK`, `MICRODUCK_RL` and `POLICY_DIR` as `twin.sh` does, and
+`TWIN_WORK` for their outputs (default `/tmp/quack-twin-work`). A house takes
+about four hours on the twin; three run side by side on a 12-core Mac with
+`VIEWER=off` on two of them.
+
 Italian copy: `README.it.md`.

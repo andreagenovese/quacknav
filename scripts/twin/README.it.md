@@ -72,3 +72,21 @@ Il banco di `maploc` rigioca qualsiasi registrazione: `cargo run -p maploc
 <verità.toml> <out>`.
 
 Copia inglese canonica: `README.md`.
+
+## Le case di prova e il protocollo di release
+
+`houses/` contiene ciò con cui è stato misurato `docs/results.it.md`:
+
+| file | cos'è |
+|---|---|
+| `gen.py <robot dir> <out>` | scrive casa_libera e casa_arredata: le scene MuJoCo (nella cartella robot di microduck_rl), la verità di maploc (`.toml`), il mondo del gemello di carta (`.world.json`) e buche, stanze e mete (`.truth.json`) |
+| `final_house.py <nome> <scena> <state> <porta> <truth> <out> [session_s] [sessioni] [giri]` | il protocollo di release su una casa: esplorazione progressiva da zero, "esplorazione completata" se la papera non ha finito, tre riavvii con un giro di go_to sulla mappa congelata, e lo stesso con la build di `main` (`AB_REPO`, un worktree di main con la sua release compilata). `ROUNDS_ONLY=1` parte dai giri, dalla mappa e dal libro lasciati dall'esplorazione in `<out>` |
+| `aggregate.py` | le tabelle di `docs/results.it.md` dagli output del protocollo |
+| `modes_test.py` | ripresa, "a che punto sei", completata, la mappa congelata dopo un riavvio, una mappa nuova che sostituisce la vecchia solo quando salva |
+| `run_house.py`, `prog_house.py` | le versioni con un'esplorazione sola e con le sole sessioni |
+| `poseerr.py <nav.sock> <porta> <out.tsv>` | la posa della mappa contro la verità del simulatore ogni 5 s (`<out>.untracked` mentre il mapper non ne garantisce nessuna) |
+
+Servono `MICRODUCK`, `MICRODUCK_RL` e `POLICY_DIR` come per `twin.sh`, e
+`TWIN_WORK` per gli output (predefinito `/tmp/quack-twin-work`). Una casa
+richiede circa quattro ore sul gemello; tre girano in parallelo su un Mac a 12
+core con `VIEWER=off` su due di esse.

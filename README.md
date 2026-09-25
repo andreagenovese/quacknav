@@ -3,9 +3,9 @@
 Navigation for the [Microduck](https://pollen-robotics.com/microduck/):
 where the duck is, and how it gets somewhere else.
 
-A daemon (`quack-navd`) and the library under it. It consumes robotd's
-on-board `maploc` (upstream PR 127) for the map and the pose, and adds
-everything above it: a cliff guard that judges the 8×8 depth sensor's
+A daemon (`quack-navd`) and the library under it. It hosts the mapper
+itself — `maploc`, in this workspace, derived from Pollen's (upstream PR
+127) — against Pollen's **released** robotd, and adds everything above it: a cliff guard that judges the 8×8 depth sensor's
 downward beams against the floor, a costmap planner, a registry of
 places people taught it, an explorer that maps a house on its own, a
 homecoming that recognises the house at boot — and a *paper twin* that
@@ -43,6 +43,30 @@ Twelve tools: `robot.where_am_i`, `robot.remember_place`,
 JSON-Schema parameter list, ready to be projected onto OpenAI tools or
 MCP by whoever hosts them.
 
+## Using it
+
+What a user can ask of the duck, through a voice satellite or anything
+that speaks the socket:
+
+- **"Explore the house."** Exploring is progressive: one session per charge
+  (a time budget, or the battery under 25 %), each going on from where the
+  last one stopped and saving the map at its end. After the next charge the
+  duck finds the map, finds itself on it and explores on (`[homecoming]
+  resume_explore`), until nothing large is left — then the house is done.
+- **"How far along is the map?"** `robot.map_status` → `house.percent_mapped`,
+  the sessions so far, done or not.
+- **"Exploration complete."** The user closes the map as it is
+  (`map_explore complete`): saved, declared done, frozen.
+- **A new map.** `map_explore fresh` answers what would be lost and waits for
+  `confirmed`; the saved map is replaced only when the new one's first
+  session saves.
+- **Going places.** On a finished map the duck explores no more, even after a
+  restart: it comes home, freezes the map and navigates — blind where the map
+  knows the floor, with the guard on where it does not. `robot.go_to` a named
+  place or a point; `robot.remember_place` names where it stands.
+
+The design is ADR 0008.
+
 ## The crates
 
 - **`quack-duck`** — robotd's lane (a JSON-RPC client over its unix
@@ -54,7 +78,14 @@ MCP by whoever hosts them.
 
 ## What has been measured
 
-Three weeks on the MuJoCo twin, written down as it happened in
+**[`docs/results.md`](docs/results.md)** has the release's numbers, the
+criteria they are held to and the known limits. In short, on the MuJoCo twin
+with three houses: no fall in 11 exploration sessions and 51 journeys; 90 %
+of journeys arrived (`main`'s build, same maps: 63 %); every confirmed pose
+within 20 cm of the truth; 5 of 7 release criteria met, counting partials as
+half.
+
+Before that, three weeks on the twin, written down as it happened in
 [`docs/todo-map.md`](docs/todo-map.md) (Italian copy beside it) and
 [`docs/study/baseline-twin.md`](docs/study/baseline-twin.md). The
 shape of it:
@@ -106,6 +137,7 @@ places_path = "/var/lib/quack-nav/places.json"
 
 [homecoming]
 enabled = true          # recognise the house at boot, and take its map back
+resume_explore = true   # explore on after each charge until the house is done
 
 [maploc]
 enabled = true          # host the mapper here, against the released robotd
@@ -129,8 +161,8 @@ Measured on the MuJoCo twin (`microduck_rl` + robotd); the physical duck
 arrives in December 2026. Two ways to run it:
 
 - **Released robotd** (daemon-v0.14.4) with `[maploc] enabled`: the
-  mapper in `quack-navd`. On the twin, 2026-09-23: explore, recognise the
-  saved house at boot (78 s), walk to the kitchen (37 s).
+  mapper in `quack-navd`. This is the preview's configuration; the numbers
+  are in [`docs/results.md`](docs/results.md).
 - **A robotd that hosts maploc** — upstream PR 127, still open, plus the
   map library of `docs/study/upstream-asks.md` §5, which lives on a fork
   of `pollen-robotics/microduck` — with `[maploc]` off.
