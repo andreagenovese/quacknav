@@ -302,6 +302,9 @@ const ASK_MIN_M: f64 = 2.0;
 /// A pose that moved more than this plus what the gait could have walked
 /// since the last frame is the map moving, not the duck.
 const JUMP_SLACK_M: f64 = 0.35;
+/// An untrusted pose walks on (guarded) only farther than this from every
+/// drop on the books — see the stable-untrusted rule in `Job::run`.
+const UNTRUSTED_DROP_NEAR_M: f64 = 1.0;
 /// Stands in a row whose poses agree within [`SETTLED_M`] before a moved
 /// map is trusted again.
 const SETTLE_STANDS: u32 = 2;
@@ -1413,7 +1416,13 @@ impl Job {
                 && self.last_fit.is_some_and(|f| f < STABLE_UNTRUSTED_FIT_M)
                 // Never after a fall: the fit there is the fit of a pose
                 // nobody can vouch for.
-                && self.fell.is_none();
+                && self.fell.is_none()
+                // Never beside a drop on the books: a pose the mapper does
+                // not vouch for, 0.3 m off where the map itself is 0.3 m
+                // off (casa_arredata's second-session map, 2026-09-25), is
+                // the one thing a leg beside a stairwell must not rest on.
+                // Stand there until the pose is confirmed.
+                && !self.drop_within(UNTRUSTED_DROP_NEAR_M);
             if stable_untrusted {
                 tracing::info!(fit = ?self.last_fit, "map explore: the pose is untrusted but stable and fits the map; mapping on, guarded");
             }
