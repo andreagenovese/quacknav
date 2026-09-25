@@ -30,6 +30,7 @@
 //!   follower       — turn-then-go waypoint follower (velocity output)
 //!   session        — save/load the whole SLAM state (fsynced, atomic)
 //!   replay         — read back the prototype's .mdlg logs for offline work
+//!   bench          — drive a Mapper through a recording (benches, regression)
 //!   rng            — the pinned RNG determinism rides on
 
 // The optimizer, grid and matcher kernels iterate matrices and grids by
@@ -40,6 +41,8 @@
 
 pub mod accumulator;
 pub mod align;
+#[cfg(feature = "kinematics")]
+pub mod bench;
 #[cfg(feature = "kinematics")]
 pub mod flat;
 pub mod follower;

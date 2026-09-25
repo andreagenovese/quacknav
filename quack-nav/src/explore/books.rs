@@ -428,3 +428,38 @@ impl Job {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    proptest! {
+        /// The vote, as a property: an obstacle edge goes on the books as the
+        /// sensor gave it, and a hole only where at least `MIN_DROP_FRAMES`
+        /// distinct frames put one within `LOCAL_DEDUP_M` — whatever the
+        /// frames proposed, in whatever order.
+        #[test]
+        fn a_hole_needs_two_frames_and_an_edge_needs_one(
+            raw in prop::collection::vec((0usize..4, -1.0..1.0f64, -1.0..1.0f64, any::<bool>()), 0..40)
+        ) {
+            let proposals: Vec<(usize, ((f64, f64), f64))> = raw
+                .iter()
+                .map(|&(k, x, y, hole)| (k, ((x, y), if hole { DROP_RADIUS_M } else { OBSTACLE_RADIUS_M })))
+                .collect();
+            let out = Job::vote_drops(&proposals);
+            let edges_in = proposals.iter().filter(|(_, (_, r))| *r < DROP_RADIUS_M).count();
+            let edges_out = out.iter().filter(|(_, r)| *r < DROP_RADIUS_M).count();
+            prop_assert_eq!(edges_in, edges_out);
+            for (p, r) in out.iter().filter(|(_, r)| *r >= DROP_RADIUS_M) {
+                prop_assert_eq!(*r, DROP_RADIUS_M);
+                let frames: std::collections::HashSet<usize> = proposals
+                    .iter()
+                    .filter(|(_, (q, rq))| *rq >= DROP_RADIUS_M && dist2(*q, *p) < LOCAL_DEDUP_M)
+                    .map(|(k, _)| *k)
+                    .collect();
+                prop_assert!(frames.len() >= MIN_DROP_FRAMES, "a hole at {:?} seen by {} frame(s)", p, frames.len());
+            }
+        }
+    }
+}

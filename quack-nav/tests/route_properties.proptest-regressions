@@ -1,0 +1,7 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc dde62207d507527f394a42f0fd6999c5bb1fff2878302a10c4315eab83c603df # shrinks to r = Room { w: 2.0, h: 2.0, boxes: [], holes: [], obstacles: [], unknown: None, start: (0.8580090299956734, 1.5206065362680918), goal: (0.8777644780978685, 1.5306623479219859) }

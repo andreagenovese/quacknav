@@ -1,0 +1,33 @@
+# Every push and pull request: the tests, the replay regression and the
+# paper twin gate (ADR 0009, step 0). Release builds throughout: the replay
+# and the twin are numeric and run ten times faster optimized, and a release
+# build is what the duck runs.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      # Unit tests, the golden routes, the property tests on the planner's
+      # rules, and the replay of house2's recorded walk (maploc's
+      # `kinematics` feature is what reprojects its depth frames).
+      - name: Tests
+        run: cargo test --workspace --release --features maploc/kinematics
+
+      # The explorer and the journey against the kinematic duck, fixed seeds.
+      - name: Paper twin gate
+        run: |
+          cargo build --release -p quack-nav --example paper_twin
+          mkdir -p "$RUNNER_TEMP/paper-twin"
+          python3 scripts/ci/paper_twin_gate.py target/release/examples/paper_twin \
+            quack-nav/examples/apartment.world.json "$RUNNER_TEMP/paper-twin"

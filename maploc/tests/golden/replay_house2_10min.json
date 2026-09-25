@@ -1,0 +1,9 @@
+{
+  "ate_max_m": 0.1254,
+  "ate_rmse_m": 0.0617,
+  "loops": 13,
+  "lost_samples": 0,
+  "samples": 119,
+  "submaps": 38,
+  "windows": 144
+}

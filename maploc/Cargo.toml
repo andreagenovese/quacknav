@@ -41,6 +41,8 @@ kinematics = ["dep:kinematics"]
 # The evaluate bench's ground-truth file is TOML — the units a human with a
 # tape measure writes. Bench-only; nothing of this ships to the robot.
 toml = { workspace = true }
+# The replay regression test's golden file.
+serde_json = { workspace = true }
 
 [[example]]
 name = "replay"
@@ -48,4 +50,8 @@ required-features = ["kinematics"]
 
 [[example]]
 name = "evaluate"
+required-features = ["kinematics"]
+
+[[example]]
+name = "trajectory"
 required-features = ["kinematics"]
