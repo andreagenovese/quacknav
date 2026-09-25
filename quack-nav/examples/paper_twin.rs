@@ -144,6 +144,11 @@ struct PaperTwin {
     next_log: Duration,
     truth_track: Vec<(f64, f64)>,
     refusals: u32,
+    /// The nearest the body's centre came to a hole's edge and to a box's
+    /// face (walls are boxes) since the last reset — the margins a route
+    /// and its following actually kept, measured on the truth.
+    min_hole_m: f64,
+    min_box_m: f64,
 }
 
 impl PaperTwin {
@@ -168,6 +173,8 @@ impl PaperTwin {
             bumps: 0,
             path_m: 0.0,
             last_walk: None,
+            min_hole_m: f64::INFINITY,
+            min_box_m: f64::INFINITY,
             err: (0.0, 0.0, 0.0),
             bias: (0.0, 0.0),
             noise,
@@ -260,6 +267,19 @@ impl PaperTwin {
             .holes
             .iter()
             .any(|[x0, x1, y0, y1]| x >= *x0 && x <= *x1 && y >= *y0 && y <= *y1)
+    }
+
+    /// Distance from (x, y) to the nearest hole's edge (0 inside one) and
+    /// to the nearest box's face.
+    fn clearances(&self, x: f64, y: f64) -> (f64, f64) {
+        let rect = |x0: f64, x1: f64, y0: f64, y1: f64| {
+            let dx = (x0 - x).max(0.0).max(x - x1);
+            let dy = (y0 - y).max(0.0).max(y - y1);
+            dx.hypot(dy)
+        };
+        let hole = self.world.holes.iter().map(|[x0, x1, y0, y1]| rect(*x0, *x1, *y0, *y1)).fold(f64::INFINITY, f64::min);
+        let boxes = self.world.boxes.iter().map(|(_, x0, x1, y0, y1)| rect(*x0, *x1, *y0, *y1)).fold(f64::INFINITY, f64::min);
+        (hole, boxes)
     }
 
     fn in_box(&self, x: f64, y: f64, r: f64) -> bool {
@@ -463,6 +483,9 @@ impl PaperTwin {
                 self.path_m += ((nx - self.x).powi(2) + (ny - self.y).powi(2)).sqrt();
                 self.x = nx;
                 self.y = ny;
+                let (h, b) = self.clearances(nx, ny);
+                self.min_hole_m = self.min_hole_m.min(h);
+                self.min_box_m = self.min_box_m.min(b);
             }
             self.yaw = (self.yaw + w * dt + PI).rem_euclid(TAU) - PI;
             if !self.fell && self.in_hole(self.x, self.y) {
@@ -845,6 +868,7 @@ fn main() -> anyhow::Result<()> {
             let mut goto_job = Job::to_goal(goal, 900.0, -1.0, twin.clock).with_books(books);
             let before = twin.path_m;
             let t0 = twin.elapsed().as_secs_f64();
+            (twin.min_hole_m, twin.min_box_m) = (f64::INFINITY, f64::INFINITY);
             let (gstate, greason) = goto_job.run(&handle2, &mut twin);
             let gs = handle2.status();
             let straight = ((goal.0 - start.0).powi(2) + (goal.1 - start.1).powi(2)).sqrt();
@@ -852,8 +876,8 @@ fn main() -> anyhow::Result<()> {
             let walked = twin.path_m - before;
             let err = ((twin.x - goal.0).powi(2) + (twin.y - goal.1).powi(2)).sqrt();
             eprintln!(
-                "goto seed {seed}: {gstate:?} — {greason}; from ({:.2}, {:.2}) to ({:.2}, {:.2}): straight {straight:.2} m, planned {planned_m:.2} m, walked {walked:.2} m in {:.0} s, {} legs, {} refusals, ended {err:.2} m away{}",
-                start.0, start.1, goal.0, goal.1, twin.elapsed().as_secs_f64() - t0, gs.legs, gs.refusals,
+                "goto seed {seed}: {gstate:?} — {greason}; from ({:.2}, {:.2}) to ({:.2}, {:.2}): straight {straight:.2} m, planned {planned_m:.2} m, walked {walked:.2} m in {:.0} s, {} legs, {} refusals, ended {err:.2} m away, nearest hole {:.2} m, nearest box {:.2} m{}",
+                start.0, start.1, goal.0, goal.1, twin.elapsed().as_secs_f64() - t0, gs.legs, gs.refusals, twin.min_hole_m, twin.min_box_m,
                 if twin.fell { ", FELL" } else { "" }
             );
             goto_out = json!({"goal": [goal.0, goal.1], "start": [start.0, start.1], "mapped_s": mapped_at,

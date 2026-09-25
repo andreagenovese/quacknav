@@ -3,28 +3,32 @@
 The paper twin as a gate: the same seeds on every push, so the numbers move
 only when the code does. Two benches:
 
-  explore  12 seeds of 1200 s from nothing: no fall, and the mean coverage
-           no lower than the bar;
+  explore  40 seeds of 1200 s from nothing: no fall, and the mean coverage
+           no lower than the bar (12 seeds were too few: their mean moved by
+           2.5 points between two builds whose 40-seed means agree);
   go_to    30 seeds on the known world with the books (the journey bench),
            to the goal beyond house2's stairwell: no fall, and at least the
            bar of arrivals.
 
-The bars are what the code achieved when they were set (2026-09-25, branch
-phase-2 at its start); raise them when a change improves the numbers, and
-say so in the commit. Lowering one is a decision, not a fix.
+The bars are what the code achieved when they were set, less a margin for
+the noise; raise them when a change improves the numbers, and say so in the
+commit. Lowering one is a decision, not a fix. Last set 2026-09-25 with the
+layered costmap (ADR 0009, step 2a).
 """
 import re
 import subprocess
 import sys
 
 BARS = {
-    "explore_runs": 12,
+    "explore_runs": 40,
     "explore_budget_s": 1200,
-    "explore_mean_cover_pct": 37.0,  # measured 39.0
+    # measured 37.8 (sd 5.2 a run): two standard errors of margin.
+    "explore_mean_cover_pct": 36.0,
     "goto_runs": 30,
-    # measured 26 / 30 on macOS; one of margin for another platform's libm
-    # (the twin is chaotic: a last-digit difference in a sine moves a seed).
-    "goto_arrived": 25,
+    # measured 30 / 30 on macOS (26 before the layered costmap); one of
+    # margin for another platform's libm (the twin is chaotic: a
+    # last-digit difference in a sine moves a seed).
+    "goto_arrived": 29,
 }
 GOAL = "-2.64,-2.12"
 

@@ -161,6 +161,95 @@ fn cost_hug() -> u32 {
             .unwrap_or(COST_HUG_DEFAULT)
     })
 }
+/// `QK_COSTMAP=layered` (ADR 0009, step 2): the graded price as Nav2's
+/// inflation layer has it — an exponential decay on the true (Euclidean)
+/// distance to the nearest impassable cell, and a separate one on the
+/// distance to the nearest booked drop, so a hole pushes the route
+/// differently from a wall — and Dijkstra over eight neighbours instead of
+/// four. What is passable is the same as without it: only the prices move.
+/// On by default since the paper twin's bench (2026-09-25, 180 journeys to
+/// six parts of the apartment and 60 explorations): 180/180 arrived against
+/// 174, 8.2 refusals a journey against 17.6, the same time and coverage, no
+/// fall either way. `QK_COSTMAP=legacy` for the linear band on four
+/// neighbours.
+fn layered() -> bool {
+    static V: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *V.get_or_init(|| std::env::var("QK_COSTMAP").map_or(true, |v| v != "legacy"))
+}
+fn knob_f(name: &str, default: f64) -> f64 {
+    std::env::var(name).ok().and_then(|v| v.parse().ok()).unwrap_or(default)
+}
+/// The layered price's weights and decay rates (per metre): a free cell
+/// at the impassable edge pays `WALL_W` more, at distance d
+/// `WALL_W·exp(−WALL_K·d)`; the same for drops, measured from the rim's
+/// booked radius. Read once. `QK_WALL_W`, `QK_WALL_K`, `QK_DROP_W`, `QK_DROP_K`.
+/// Measured on the paper twin (10 journeys a goal, 30 explorations): 30/5
+/// and 40/4 halved the refusals but cost 3.5 points of exploration (the
+/// frontiers are priced on the same map); 15/8 and 20/5 kept both.
+fn layer_weights() -> (f64, f64, f64, f64) {
+    static V: std::sync::OnceLock<(f64, f64, f64, f64)> = std::sync::OnceLock::new();
+    *V.get_or_init(|| (knob_f("QK_WALL_W", 15.0), knob_f("QK_WALL_K", 8.0), knob_f("QK_DROP_W", 20.0), knob_f("QK_DROP_K", 5.0)))
+}
+
+/// The exact Euclidean distance transform (Felzenszwalb & Huttenlocher
+/// 2012): for every cell, the distance in cells to the nearest cell where
+/// `source` is true. Two passes of the 1-D lower envelope of parabolas.
+fn distance_transform(rows: usize, cols: usize, source: impl Fn(usize) -> bool) -> Vec<f64> {
+    const INF: f64 = 1e20;
+    let mut f: Vec<f64> = (0..rows * cols).map(|i| if source(i) { 0.0 } else { INF }).collect();
+    let pass = |line: &mut [f64]| {
+        let n = line.len();
+        let (mut v, mut z, mut d) = (vec![0usize; n], vec![0.0f64; n + 1], vec![0.0f64; n]);
+        let mut k = 0usize;
+        z[0] = -INF;
+        z[1] = INF;
+        for q in 1..n {
+            loop {
+                let p = v[k];
+                let sq = ((line[q] + (q * q) as f64) - (line[p] + (p * p) as f64)) / (2.0 * (q as f64 - p as f64));
+                if sq <= z[k] && k > 0 {
+                    k -= 1;
+                    continue;
+                }
+                if sq <= z[k] {
+                    // k == 0: replace the first parabola.
+                    v[0] = q;
+                    z[1] = INF;
+                    break;
+                }
+                k += 1;
+                v[k] = q;
+                z[k] = sq;
+                z[k + 1] = INF;
+                break;
+            }
+        }
+        k = 0;
+        for (q, out) in d.iter_mut().enumerate() {
+            while z[k + 1] < q as f64 {
+                k += 1;
+            }
+            let p = v[k];
+            *out = (q as f64 - p as f64).powi(2) + line[p];
+        }
+        line.copy_from_slice(&d);
+    };
+    let mut col = vec![0.0; rows];
+    for c in 0..cols {
+        for r in 0..rows {
+            col[r] = f[r * cols + c];
+        }
+        pass(&mut col);
+        for r in 0..rows {
+            f[r * cols + c] = col[r];
+        }
+    }
+    for r in 0..rows {
+        pass(&mut f[r * cols..(r + 1) * cols]);
+    }
+    f.iter().map(|v| v.sqrt()).collect()
+}
+
 /// Frontier cells counted toward a group's worth, at most: beyond this a
 /// group is "a whole open side" and distance decides again.
 pub const GAIN_CAP_CELLS: usize = 40;
@@ -283,7 +372,31 @@ impl Costmap {
                 }
             }
         }
-        if cost_hug() > 0 {
+        if layered() {
+            let (ww, wk, dw, dk) = layer_weights();
+            let (rows, cols) = (grid.rows, grid.cols);
+            let to_imp = distance_transform(rows, cols, |i| cost[i] == 0);
+            let drops: Vec<&ExtraWall> = extra_walls.iter().filter(|(_, r)| *r >= DROP_WALL_M).collect();
+            for i in 0..rows * cols {
+                if cost[i] == 0 {
+                    continue;
+                }
+                // Distance to the impassable edge, in metres (the cell's
+                // centre to the nearest impassable cell's centre, less half
+                // a cell: the edge between them).
+                let d_imp = (to_imp[i] - 0.5).max(0.0) * grid.cell_m;
+                let mut extra = ww * (-wk * d_imp).exp();
+                if !drops.is_empty() {
+                    let (wx, wy) = to_world(grid, (i / cols, i % cols));
+                    let d_drop = drops
+                        .iter()
+                        .map(|((bx, by), r)| ((wx - bx).hypot(wy - by) - r).max(0.0))
+                        .fold(f64::INFINITY, f64::min);
+                    extra += dw * (-dk * d_drop).exp();
+                }
+                cost[i] += extra.round() as u32;
+            }
+        } else if cost_hug() > 0 {
             // Distance (in cells) from every passable cell to the nearest
             // impassable one — walls, their inflation, the booked
             // obstacles — by two chamfer passes; then the graded price.
@@ -696,6 +809,9 @@ fn path_to_priced(
 }
 
 
+/// The four neighbours first, then the diagonals.
+const NEIGHBOURS8: [(isize, isize); 8] = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)];
+
 /// Dijkstra over the costmap from `start` to `end` (cells), the path in
 /// world coordinates from the cell after `start` to `end`.
 fn dijkstra(grid: &Grid, map: &Costmap, start: (usize, usize), end: (usize, usize)) -> Option<Vec<(f64, f64)>> {
@@ -714,7 +830,8 @@ fn dijkstra(grid: &Grid, map: &Costmap, start: (usize, usize), end: (usize, usiz
             continue;
         }
         let (row, col) = (here / grid.cols, here % grid.cols);
-        for (dr, dc) in [(-1isize, 0isize), (1, 0), (0, -1), (0, 1)] {
+        let eight = layered();
+        for (dr, dc) in NEIGHBOURS8.iter().copied().take(if eight { 8 } else { 4 }) {
             let (rr, cc) = (row as isize + dr, col as isize + dc);
             if rr < 0 || cc < 0 {
                 continue;
@@ -724,6 +841,13 @@ fn dijkstra(grid: &Grid, map: &Costmap, start: (usize, usize), end: (usize, usiz
             if step == 0 {
                 continue;
             }
+            let diagonal = dr != 0 && dc != 0;
+            // A diagonal step is √2 cells long, and never cuts the corner
+            // of an impassable cell.
+            if diagonal && (map.at(row, cc) == 0 || map.at(rr, col) == 0) {
+                continue;
+            }
+            let step = if diagonal { (step * 1414 + 500) / 1000 } else { step };
             let idx = rr * grid.cols + cc;
             let next = c + step;
             if next < cost[idx] {
@@ -919,6 +1043,23 @@ pub fn waypoint(path: &[(f64, f64)], lookahead_m: f64, cell_m: f64) -> Option<(f
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_distance_transform_is_euclidean() {
+        // One source in a 7 × 9 grid: every cell's distance is its
+        // Euclidean distance to it, exactly.
+        let (rows, cols, src) = (7usize, 9usize, 3 * 9 + 4);
+        let d = distance_transform(rows, cols, |i| i == src);
+        for r in 0..rows {
+            for c in 0..cols {
+                let want = ((r as f64 - 3.0).powi(2) + (c as f64 - 4.0).powi(2)).sqrt();
+                assert!((d[r * cols + c] - want).abs() < 1e-9, "({r}, {c}): {} vs {want}", d[r * cols + c]);
+            }
+        }
+        // Two sources: the nearer one wins.
+        let d = distance_transform(1, 10, |i| i == 0 || i == 9);
+        assert_eq!(d, vec![0.0, 1.0, 2.0, 3.0, 4.0, 4.0, 3.0, 2.0, 1.0, 0.0]);
+    }
 
     /// A room drawn as text: `#` wall, `.` free, ` ` unknown; row 0 at the
     /// bottom (y_min), like the wire.
