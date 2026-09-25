@@ -3653,7 +3653,7 @@ nothing: it explores and asks.
       be looked for rather than guessed at.
 
 ## 2c. The standard metrics, and tests that hold the rules (2026-09-25)
-- [ ] ATE and RPE, the way everyone reports them: the pose sampler
+- [x] ATE and RPE, the way everyone reports them: the pose sampler
       (`scripts/twin/houses/poseerr.py`) records the position and the truth
       every 5 s but not the heading; add it, export both trajectories in
       TUM format, and compute ATE (absolute trajectory error, RMSE) and RPE
@@ -3661,18 +3661,42 @@ nothing: it explores and asks.
       tables of `docs/results.md`, so the numbers compare with those
       published for other systems. The old recordings give the position
       part; the heading needs a new run.
-- [ ] Golden routes: the planner's route (Dijkstra and the string pull) on
+- [x] Golden routes: the planner's route (Dijkstra and the string pull) on
       a set of fixed scenes — a doorway, a passage beside a hole, a
       corridor, open floor — saved once and compared on every build, so a
       change to the route shows as a failing test and not three twin runs
       later (the first centring cut, which regressed on the paper twin,
       would have shown at once).
-- [ ] Property tests (`proptest`): on randomly generated maps and books,
+- [x] Property tests (`proptest`): on randomly generated maps and books,
       the rules as truths rather than examples — no route through a wall,
       no string pull within 0.6 m of a drop, no leg of a turn in place
       nearer a rim than 0.15 m, no obstacle booked at drop radius.
-- [ ] CI: the unit tests, the golden routes, the property tests and the
+- [x] CI: the unit tests, the golden routes, the property tests and the
       paper twin on every push (already in the README's technical debt).
+
+## 2d. Phase two (ADR 0009), on the branch `phase-2`
+- [x] Step 0, measurement (2026-09-25): everything of 2c above, the
+      release's ATE/RPE in docs/results.md (live and replayed), and
+      `maploc/examples/trajectory.rs`, the deterministic replay bench.
+      The paper twin's known-world journey arrives 26/30, not the 30/30
+      measured before the release's last route changes: the CI gate holds
+      it there. Not in CI yet: rustfmt (the code base is not formatted;
+      a separate decision) and clippy.
+- [x] Step 1, the pose's uncertainty (2026-09-25): the covariance is in
+      (maploc::uncertainty, `pose_uncertainty` in map_status), honest in
+      the mean on a fresh map, too sure on a resumed one, not yet an
+      alarm. The Hessian's degeneracy does not replace the valley test
+      (the aliases it refuses are well conditioned); settling after a
+      resume is measured and off. Details in docs/results.md.
+- [ ] Before any decision rests on the covariance: make it an alarm. Two
+      leads from step 1 — the saved map's own offset is invisible to every
+      window (a resumed session needs a prior on the map, not only on the
+      pose), and a window judged against the ink its own drift laid says
+      nothing (judging against the older submaps helped, r up to +0.6).
+- [ ] The valley test refuses right poses 92 % of the time (84 of 91,
+      replayed): step 4 must keep its 7 catches (all one alias in
+      casa_arredata) and let the rest through.
+- [ ] Step 2: layered costmap and Regulated Pure Pursuit.
 
 ## 3. `go_to` (needs an upstream goal RPC)
 - [ ] Follow upstream for a `robot.goto`-style RPC (planner + follower

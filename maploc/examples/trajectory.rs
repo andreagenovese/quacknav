@@ -13,7 +13,9 @@
 //! `out.tsv` is in the sampler's format, with the replayed pose where the
 //! live one was, written only while the replayed mapper tracks: so
 //! `traj_metrics.py out.tsv` scores the replay exactly as it scores a live
-//! run. `MAP_SESSION=<file>` replays into a saved map, starting lost, as
+//! run. Four more columns carry the mapper's own covariance (xx, xy, yy,
+//! yaw·yaw), which `traj_metrics.py` checks against the error (NEES).
+//! `MAP_SESSION=<file>` replays into a saved map, starting lost, as
 //! `evaluate` does — the session saved before the recorded one.
 
 use std::io::Write;
@@ -52,18 +54,52 @@ fn main() {
     let truth = truth(&truth_path);
     assert!(!truth.is_empty(), "no truth rows in {}", truth_path.display());
 
+    // Bench knobs for the covariance's calibration (see `uncertainty.rs`).
+    let envf = |k: &str, d: f64| std::env::var(k).ok().and_then(|v| v.parse().ok()).unwrap_or(d);
+    let mut cfg = MapperConfig::default();
+    let u = &mut cfg.uncertainty;
+    u.independent_beams = envf("UNC_BEAMS", u.independent_beams);
+    u.match_floor_m = envf("UNC_FLOOR", u.match_floor_m);
+    u.xy_var_per_m = envf("UNC_XY", u.xy_var_per_m.sqrt()).powi(2);
+    u.yaw_var_per_rad = envf("UNC_YAW_RAD", u.yaw_var_per_rad.sqrt()).powi(2);
+    u.yaw_var_per_m = envf("UNC_YAW_M", u.yaw_var_per_m.sqrt()).powi(2);
+    u.skip_recent_submaps = envf("UNC_SKIP", u.skip_recent_submaps as f64) as usize;
     let mut mapper = match std::env::var_os("MAP_SESSION") {
         Some(p) => {
             let saved = maploc::session::SessionState::load(std::path::Path::new(&p))
                 .expect("read the saved session")
                 .expect("the saved session is empty");
-            Mapper::resumed_lost(MapperConfig::default(), Slam::from_session(SlamConfig::default(), saved))
+            Mapper::resumed_lost(cfg, Slam::from_session(SlamConfig::default(), saved))
         }
-        None => Mapper::new(MapperConfig::default(), Slam::new(SlamConfig::default())),
+        None => Mapper::new(cfg, Slam::new(SlamConfig::default())),
     };
     let mut out = std::io::BufWriter::new(std::fs::File::create(&out_path).expect("create out.tsv"));
     let (mut next, mut written, mut untracked) = (0usize, 0u32, 0u32);
+    // `DEGEN_LOG=<file>`: every relocalization the search confirmed or the
+    // valley test refused, with the pose's error against the truth and the
+    // scan's conditioning there — the valley test and the Hessian's
+    // eigenvalues, side by side on the same decisions.
+    let mut degen = std::env::var_os("DEGEN_LOG").map(|p| std::io::BufWriter::new(std::fs::File::create(p).expect("DEGEN_LOG")));
+    let truth_at = |unix: f64| truth.iter().min_by(|a, b| (a.0 - unix).abs().total_cmp(&(b.0 - unix).abs())).copied();
     let replayed = maploc::bench::replay(&session, &mut mapper, f32::INFINITY, |step| {
+        if let Some(w) = degen.as_mut() {
+            for note in step.notes {
+                let (kind, pose) = match note {
+                    maploc::mapper::Note::Relocalized { pose, .. } => ("confirmed", *pose),
+                    maploc::mapper::Note::RelocalizeAmbiguous { pose, .. } => ("valley", *pose),
+                    _ => continue,
+                };
+                let (Some((_, composite)), Some(mut grid), Some((tt, tx, ty, _))) =
+                    (step.mapper.last_window(), step.mapper.slam().render(), truth_at(step.unix_s))
+                else {
+                    continue;
+                };
+                let probe = composite.decimated(512);
+                let c = maploc::scan_matcher::conditioning_at(&mut grid, &probe, pose);
+                let err = (f64::from(pose.0) - tx).hypot(f64::from(pose.1) - ty);
+                writeln!(w, "{:.1}\t{kind}\t{err:.3}\t{:.4}\t{:.1}\t{:.1}\t{}\t{:.1}", step.t_s, c.ratio(), c.l_max, c.l_min, c.n_beams, (step.unix_s - tt).abs()).expect("write");
+            }
+        }
         while next < truth.len() && truth[next].0 <= step.unix_s {
             let (t, tx, ty, tyaw) = truth[next];
             next += 1;
@@ -77,10 +113,15 @@ fn main() {
             }
             let (x, y, yaw) = step.mapper.slam().tracked();
             let (x, y, yaw) = (f64::from(x), f64::from(y), f64::from(yaw));
+            let c = step.mapper.pose_covariance().unwrap_or([[f64::NAN; 3]; 3]);
             writeln!(
                 out,
-                "{t:.1}\t{x:.3}\t{y:.3}\t{tx:.3}\t{ty:.3}\t{:.3}\treplay\tNone\t{yaw:.3}\t{tyaw:.3}",
-                (x - tx).hypot(y - ty)
+                "{t:.1}\t{x:.3}\t{y:.3}\t{tx:.3}\t{ty:.3}\t{:.3}\treplay\tNone\t{yaw:.3}\t{tyaw:.3}\t{:.3e}\t{:.3e}\t{:.3e}\t{:.3e}",
+                (x - tx).hypot(y - ty),
+                c[0][0],
+                c[0][1],
+                c[1][1],
+                c[2][2]
             )
             .expect("write");
             written += 1;

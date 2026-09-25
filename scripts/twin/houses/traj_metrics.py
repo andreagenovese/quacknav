@@ -27,6 +27,42 @@ import sys
 import numpy as np
 
 
+def load_cov(path):
+    """The mapper's covariance per row (xx, xy, yy, yaw·yaw), NaN where the
+    file has none (the live sampler's), aligned with `load`."""
+    rows = []
+    for line in open(path):
+        f = line.rstrip("\n").split("\t")
+        if len(f) < 6:
+            continue
+        rows.append([float(v) for v in f[10:14]] if len(f) >= 14 else [math.nan] * 4)
+    return np.array(rows, dtype=float).reshape(-1, 4)
+
+
+def nees(a, cov, idx):
+    """Normalized estimation error squared of the position: e·Σ⁻¹·e, which
+    averages 2 for an honest 2-D covariance, and the share of samples inside
+    the 95 % ellipse (χ²₂ = 5.991), which should be about 0.95. Lower NEES
+    means the covariance is too cautious, higher that it is overconfident."""
+    vals, sig = [], []
+    for i in idx:
+        xx, xy, yy, _ = cov[i]
+        if not all(math.isfinite(v) for v in (xx, xy, yy)):
+            continue
+        s = np.array([[xx, xy], [xy, yy]])
+        e = np.array([a[i, 1] - a[i, 4], a[i, 2] - a[i, 5]])
+        try:
+            vals.append(float(e @ np.linalg.solve(s + np.eye(2) * 1e-10, e)))
+        except np.linalg.LinAlgError:
+            continue
+        sig.append(math.sqrt(max(np.linalg.eigvalsh(s)[-1], 0.0)))
+    if not vals:
+        return None
+    v = np.array(vals)
+    return {"mean": float(v.mean()), "median": float(np.median(v)), "inside95": float((v <= 5.991).mean()),
+            "n": len(v), "sigma_major_median_m": float(np.median(sig))}
+
+
 def load(path):
     """Rows of (t, est x, est y, est yaw|nan, true x, true y, true yaw|nan)."""
     rows = []
@@ -155,6 +191,9 @@ def metrics(path, delta=1.0, max_gap_s=20.0, max_jump_m=0.5):
         out["rpe_pct"] = 100.0 * out["rpe_m"]["rmse"] / delta
     if er:
         out["rpe_yaw_deg"] = stats(np.degrees(er))
+    n = nees(a, load_cov(path), idx)
+    if n:
+        out["nees_xy"] = n
     out["travel_m"] = float(sum(
         np.hypot(np.diff(a[s:e, 4]), np.diff(a[s:e, 5])).sum() for s, e in segs))
     return out, a, segs
@@ -186,6 +225,9 @@ def main():
     if "rpe_pct" in out:
         print(f"  {'':<14} = {out['rpe_pct']:.1f} % of the distance")
     line("RPE yaw", out.get("rpe_yaw_deg"), "deg")
+    if "nees_xy" in out:
+        n = out["nees_xy"]
+        print(f"  {'NEES xy':<14} mean {n['mean']:.2f} (2 is honest)  median {n['median']:.2f}  inside the 95 % ellipse {100*n['inside95']:.0f} %  sigma major median {n['sigma_major_median_m']:.3f} m")
 
 
 if __name__ == "__main__":

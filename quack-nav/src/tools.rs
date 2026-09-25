@@ -335,6 +335,14 @@ fn map_status(places: &mut Places) -> Result<Value, String> {
         "loops": frame.n_loops,
         "cells": {"free": free, "wall": wall, "size_m": round2(frame.cell_m as f64)},
         "pose": pose_json(frame.pose()),
+        // One standard deviation; along the major axis the pose is least
+        // sure (null while lost, or from a mapper that keeps none).
+        "pose_uncertainty": frame.pose_sigma.map(|s| json!({
+            "xy_m": round2(s.xy_major_m),
+            "xy_minor_m": round2(s.xy_minor_m),
+            "along_deg": s.major_axis_deg.round(),
+            "yaw_deg": (s.yaw_deg * 10.0).round() / 10.0,
+        })),
         "clearance": clearance,
         "cliff": cliff_json(places.cliff.as_ref(), Instant::now()),
         "places_known": places.registry.current().count(),
@@ -576,6 +584,7 @@ mod tests {
             still: true,
             seated,
             frozen: false,
+            pose_sigma: None,
         }
     }
 

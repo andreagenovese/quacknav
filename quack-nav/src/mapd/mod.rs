@@ -860,6 +860,20 @@ fn log_note(note: Note) {
                 "maploc: loop closed; tracked pose corrected"
             );
         }
+        Note::WindowHeld { residual_m, correction_m } => {
+            tracing::debug!(
+                residual = format!("{residual_m:.3}"),
+                correction = format!("{correction_m:.3}"),
+                "maploc: settling after the resume; window corrects the pose, inks nothing"
+            );
+        }
+        Note::Settled { held, gave_up } => {
+            if gave_up {
+                tracing::warn!(held, "maploc: settling gave up — the map could not judge; inking resumes");
+            } else {
+                tracing::info!(held, "maploc: pose settled on the map; inking resumes");
+            }
+        }
     }
 }
 
@@ -936,6 +950,15 @@ fn frame_from(mapper: &Mapper, grid: &RenderedGrid, seq: u64, seated: bool) -> M
         still: mapper.still(),
         seated,
         frozen: mapper.frozen_set(),
+        pose_sigma: mapper.pose_covariance().map(|c| {
+            let s = maploc::uncertainty::sigmas(&c);
+            crate::map::PoseSigma {
+                xy_major_m: s.xy_major_m,
+                xy_minor_m: s.xy_minor_m,
+                major_axis_deg: s.major_axis.1.atan2(s.major_axis.0).to_degrees(),
+                yaw_deg: s.yaw_rad.to_degrees(),
+            }
+        }),
     }
 }
 

@@ -129,6 +129,77 @@ sampler records the heading from now on.
 writes TUM trajectories for `evo`, which gives the same ATE to the
 millimetre (checked on house2's sessions).
 
+### Phase two, step 1: the pose's uncertainty, measured
+
+On `phase-2` (ADR 0009), on the replay bench, the same sessions as above.
+
+**A covariance on the pose.** maploc keeps a 3×3 covariance (x, y, yaw) as
+an EKF does: odometry grows it (5 cm per √metre, 1.7° per √radian turned),
+each window the map judges shrinks it by the scan matcher's normal matrix
+over the residual. It changes no decision — the replayed trajectories are
+the same to the byte — and `robot.map_status` reports it as
+`pose_uncertainty` (one standard deviation, and the direction the pose is
+least sure of). Checked against the truth with the NEES (2 is honest, and
+95 % of the errors inside the 95 % ellipse):
+
+| House | Session | | σ (median) | NEES | inside 95 % | r(σ, error) |
+|---|---|---|---|---|---|---|
+| house2 | 1 | fresh | 0.070 m | 2.35 | 88 % | +0.08 |
+| casa_arredata | 1 | fresh | 0.075 m | 1.54 | 98 % | −0.25 |
+| casa_libera | 1 | fresh | 0.081 m | 1.42 | 98 % | +0.02 |
+| house2 | 2 | resumed | 0.067 m | 3.21 | 88 % | +0.59 |
+| house2 | 3 | resumed | 0.071 m | 4.75 | 74 % | +0.16 |
+| house2 | 4 | resumed | 0.068 m | 2.35 | 89 % | +0.08 |
+| casa_arredata | 2 | resumed | 0.072 m | 6.08 | 64 % | +0.46 |
+| casa_libera | 2 | resumed | 0.071 m | 4.16 | 79 % | −0.38 |
+| casa_libera | 3 | resumed | 0.081 m | 0.60 | 100 % | +0.62 |
+
+Honest in the mean on a fresh map; too sure of itself on a resumed one,
+where the error is mostly the saved map's own offset from the house, which
+no window can see. And not yet an alarm: its correlation with the error
+moment by moment ranges from −0.38 to +0.62. Two things were learnt on the
+way. Weighted as the scan matcher's `H` has it, a window counted every one
+of its beams and the σ sat at 2.5 cm against errors of 8 (NEES 30–60): it
+is weighted as one beam at 8 cm now. And a window judged against the map it
+has just drawn agrees with the drifting pose that drew it — the σ ignored
+the drift entirely (r ≈ 0) until windows were judged only against the
+submaps older than the last twelve.
+
+**The valley test against the Hessian's eigenvalues.** 118 relocalization
+decisions replayed (6 resumed sessions, 19 boots of the final tours), each
+against the truth:
+
+| Decision | | right pose | wrong pose |
+|---|---|---|---|
+| confirmed | 25 | 25 | 0 |
+| refused by the valley test | 91 | 84 | 7 |
+
+The valley test is very cautious — 92 % of what it refused was right,
+most within 10 cm — and that is why coming home is slow, and failed twice
+in casa_arredata. But the Hessian cannot replace it: the 7 wrong poses (all
+in casa_arredata, 6 in one boot, an alias about 4 m off) are well
+conditioned, eigenvalue ratios up to 0.71; they are another basin that
+fits, not a direction that slides. That is a global question, for step 4's
+multi-hypothesis localization. The valley test stays.
+
+**Settling after a resume** — a resumed session corrects its pose but inks
+nothing until two windows in a row agree and move it less than 2 cm and
+1° — was measured on the six resumed sessions and is **off** by default
+(`MAPLOC_SETTLE=1` on the bench):
+
+| Session | walls mean / p90, off | on | ATE, off | on |
+|---|---|---|---|---|
+| house2 2 | 6.5 / 15.9 cm | 4.6 / 7.9 cm | 0.158 m | 0.112 m |
+| house2 3 | 6.3 / 18.7 | 6.3 / 16.1 | 0.144 | 0.157 |
+| house2 4 | 4.6 / 9.6 | 4.8 / 10.9 | 0.099 | 0.109 |
+| casa_arredata 2 | 6.0 / 13.9 | 6.9 / 16.1 | 0.159 | 0.178 |
+| casa_libera 2 | 3.0 / 5.5 | 3.1 / 5.2 | 0.124 | 0.115 |
+| casa_libera 3 | 3.1 / 5.2 | 3.1 / 5.2 | 0.057 | 0.064 |
+
+One session much better, the rest even or a little worse — and worse on
+the one it was written for, because casa_arredata's second session was not
+harmed by its resume at all (see the known limits below).
+
 ## Known limits
 
 - **A rim booked where the pose had it.** About 1 in 50 drops lands 20–35 cm
@@ -137,12 +208,17 @@ millimetre (checked on house2's sessions).
   planner, and house2's goal beyond the stairwell (g4) was missed in all
   three rounds — by `main`'s build too, on the same book. A passage the duck
   has walked stays open (the lanes), but not one it has only looked at.
-- **A resume on a slightly wrong pose writes into the map.** casa_arredata's
-  second session came home 12 cm (and some degrees) off and mapped on: its
-  walls went from 3.8 to 17 cm off the truth, and the next two boots could
-  not find themselves on it. House2 took four sessions without harm. A
-  consistency check before a resumed session inks anything is the next
-  step; until then, a map can be redone from nothing (`fresh`).
+- **A session that maps new floor drifts until a loop closes.**
+  casa_arredata's second session came home 12 cm off — but that is mostly
+  the saved map's own offset from the house; replayed, the pose then walked
+  from 9 to 34 cm off over five minutes of new floor (the bathroom, through
+  its 0.49 m passage), until a loop closure took 16 cm back. Its walls went
+  from 3.8 to 17 cm off the truth live (6.0 cm replayed), and the next two
+  boots could not find themselves on it. The first diagnosis — a resume on a
+  slightly wrong pose — was measured and is not it (phase two, step 1,
+  above). House2 took four sessions without harm. Until the explorer goes
+  back to known floor when the pose has walked too far (step 6), a map can
+  be redone from nothing (`fresh`).
 - **Coming home in a regular house can take long, or fail.** The valley test
   refuses a pose a long plain wall cannot pin down: no wrong pose was
   believed, but in casa_arredata (a generated, very regular house, its

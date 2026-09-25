@@ -3902,7 +3902,7 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       indovinare.
 
 ## 2c. Le metriche standard, e test che tengono le regole (2026-09-25)
-- [ ] ATE e RPE, come li riportano tutti: il campionatore della posa
+- [x] ATE e RPE, come li riportano tutti: il campionatore della posa
       (`scripts/twin/houses/poseerr.py`) registra la posizione e la verità
       ogni 5 s ma non l'angolo; aggiungerlo, esportare le due traiettorie
       in formato TUM, e calcolare ATE (errore di traiettoria assoluto, RMSE)
@@ -3910,19 +3910,45 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       nelle tabelle di `docs/results.md`, così i numeri si confrontano con
       quelli pubblicati per altri sistemi. Le registrazioni vecchie danno la
       parte di posizione; per l'angolo serve un giro nuovo.
-- [ ] Percorsi golden: la rotta del pianificatore (Dijkstra e il filo teso)
+- [x] Percorsi golden: la rotta del pianificatore (Dijkstra e il filo teso)
       su una serie di scene fisse — una porta, un passaggio accanto a un
       buco, un corridoio, pavimento libero — salvata una volta e confrontata
       a ogni build, così una modifica alla rotta si vede come un test che
       fallisce e non tre giri del gemello dopo (il primo taglio della
       centratura, regredito sul gemello di carta, si sarebbe visto subito).
-- [ ] Test su proprietà (`proptest`): su mappe e libri generati a caso, le
+- [x] Test su proprietà (`proptest`): su mappe e libri generati a caso, le
       regole come verità invece che come esempi — nessuna rotta attraverso
       un muro, nessun filo teso a meno di 0.6 m da un drop, nessuna
       rotazione sul posto più vicina di 0.15 m a un bordo, nessun ostacolo
       registrato con il raggio di un drop.
-- [ ] CI: i test unitari, i percorsi golden, i test su proprietà e il
+- [x] CI: i test unitari, i percorsi golden, i test su proprietà e il
       gemello di carta a ogni push (già nel debito tecnico del README).
+
+## 2d. Fase due (ADR 0009), sul branch `phase-2`
+- [x] Passo 0, le misure (2026-09-25): tutto il 2c qui sopra, ATE/RPE
+      della release in docs/results.it.md (dal vivo e in replay), e
+      `maploc/examples/trajectory.rs`, il banco di replay deterministico.
+      Il viaggio del gemello di carta sul mondo noto arriva 26/30, non il
+      30/30 misurato prima delle ultime modifiche alla rotta della
+      release: il cancello della CI lo tiene lì. Non ancora in CI:
+      rustfmt (il codice non è formattato; decisione a parte) e clippy.
+- [x] Passo 1, l'incertezza della posa (2026-09-25): la covarianza c'è
+      (maploc::uncertainty, `pose_uncertainty` in map_status), onesta in
+      media su una mappa nuova, troppo sicura su una ripresa, non ancora
+      un allarme. La degenerazione dalla Hessiana non sostituisce il test
+      della valle (gli alias che rifiuta sono ben condizionati);
+      l'assestamento dopo una ripresa è misurato e spento. I dettagli in
+      docs/results.it.md.
+- [ ] Prima che una decisione si appoggi alla covarianza: farne un
+      allarme. Due piste dal passo 1 — lo scostamento della mappa salvata
+      è invisibile a ogni finestra (una sessione ripresa ha bisogno di un
+      prior sulla mappa, non solo sulla posa), e una finestra giudicata
+      contro l'inchiostro lasciato dalla propria deriva non dice nulla
+      (giudicarla contro le submap vecchie ha aiutato, r fino a +0.6).
+- [ ] Il test della valle rifiuta pose giuste il 92 % delle volte (84 su
+      91, in replay): il passo 4 deve tenere le sue 7 catture (tutte un
+      alias in casa_arredata) e far passare il resto.
+- [ ] Passo 2: costmap a strati e Regulated Pure Pursuit.
 
 ## 3. `go_to` (serve un RPC di goal upstream)
 - [ ] Seguire upstream per un RPC tipo `robot.goto` (pianificatore e

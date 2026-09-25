@@ -305,6 +305,14 @@ impl Slam {
         render_global(self.mgr.all(), &self.cfg.render)
     }
 
+    /// Composite of every submap but the newest `skip` (the open one
+    /// included), or `None` when that leaves none: the map as it stood
+    /// before the pose it is judged with had a hand in drawing it.
+    pub fn render_older(&self, skip: usize) -> Option<OccupancyGrid> {
+        let keep = self.mgr.n_total().saturating_sub(skip);
+        render_global(self.mgr.all().take(keep), &self.cfg.render)
+    }
+
     /// Whether anything changed since the flag was last taken — what an
     /// autosave or a map publisher polls instead of re-rendering blindly.
     pub fn take_dirty(&mut self) -> bool {

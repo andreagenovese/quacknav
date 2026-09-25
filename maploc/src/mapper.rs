@@ -311,6 +311,44 @@ pub struct MapperConfig {
     /// an unmapped corner stays "searching" forever; with evidence of
     /// displacement the escape never applies.
     pub suspect_give_up_windows: u32,
+    /// The pose covariance's motion noise and window weighting (see
+    /// [`crate::uncertainty`]).
+    pub uncertainty: crate::uncertainty::UncertaintyConfig,
+    pub settle: SettleConfig,
+}
+
+/// After a pose is found on a map from an earlier run — a boot's search, or
+/// the search after a fall — the windows correct the pose but ink nothing
+/// until the corrections have stopped: `windows` in a row the map judges,
+/// agrees with, and moves the pose by no more than a jitter. A resumed
+/// session that came home 12 cm off and mapped on at once is how
+/// casa_arredata's walls went from 3.8 to 17 cm off (2026-09-24). A window
+/// the map cannot judge — new floor — neither settles nor unsettles; after
+/// `max_held_windows` held windows inking resumes anyway, noted, so a duck
+/// sent to new floor is not stopped from mapping it.
+#[derive(Debug, Clone, Copy)]
+pub struct SettleConfig {
+    pub enabled: bool,
+    pub windows: u32,
+    pub max_correction_m: f32,
+    pub max_correction_rad: f32,
+    pub max_residual_m: f32,
+    pub min_beams: u32,
+    pub max_held_windows: u32,
+}
+
+impl Default for SettleConfig {
+    fn default() -> Self {
+        Self {
+            enabled: std::env::var("MAPLOC_SETTLE").map(|v| v == "1").unwrap_or(false),
+            windows: 2,
+            max_correction_m: 0.02,
+            max_correction_rad: 0.02,
+            max_residual_m: 0.05,
+            min_beams: 100,
+            max_held_windows: 12,
+        }
+    }
 }
 
 impl Default for MapperConfig {
@@ -347,6 +385,8 @@ impl Default for MapperConfig {
             relocalize_agree_m: 0.3,
             relocalize_agree_rad: 0.35,
             suspect_give_up_windows: 10,
+            uncertainty: crate::uncertainty::UncertaintyConfig::default(),
+            settle: SettleConfig::default(),
         }
     }
 }
@@ -427,6 +467,19 @@ pub enum Note {
     RelocalizeAmbiguous {
         pose: Pose2,
         along: (f32, f32),
+    },
+    /// Settling after a resume: the window corrected the pose and was not
+    /// inked (see [`SettleConfig`]).
+    WindowHeld {
+        residual_m: f32,
+        correction_m: f32,
+    },
+    /// Settling is over: `held` windows were held back, and `gave_up` when
+    /// the map could not judge enough of them to settle and inking resumed
+    /// on the cap.
+    Settled {
+        held: u32,
+        gave_up: bool,
     },
     LoopClosed {
         n_loops: usize,
@@ -540,6 +593,15 @@ pub struct Mapper {
     /// a bench inspects it to score composites against ground truth. One
     /// composite clone per window; noise next to the integration itself.
     last_window: Option<(Pose2, Scan)>,
+    /// How sure the pose is, map frame (see [`crate::uncertainty`]): grown by
+    /// odometry, shrunk by every window the map judges, set afresh when a
+    /// search confirms a pose. Meaningless while lost.
+    cov: crate::uncertainty::Cov3,
+    /// The odometry pose the covariance was last carried to.
+    cov_odom: Option<Pose2>,
+    /// Settling after a resume (see [`SettleConfig`]): settled windows in a
+    /// row, and windows held so far.
+    settling: Option<(u32, u32)>,
 }
 
 /// `MAPLOC_MULTI_HYP=0` turns the multi-hypothesis boot search off, for
@@ -779,6 +841,10 @@ impl Mapper {
             roll: WindowAccumulator::new(rolling),
             roll_at: 0.0,
             last_window: None,
+            // A fresh map's origin is the pose: known exactly.
+            cov: crate::uncertainty::diagonal(0.0, 0.0),
+            cov_odom: None,
+            settling: None,
         };
         // A resumed session cannot vouch for its pose: the robot may have
         // been moved, or even booted in another room, while the daemon was
@@ -821,6 +887,11 @@ impl Mapper {
     /// False while lost (kidnapped, or a resumed session the scans refute).
     pub fn tracking(&self) -> bool {
         !self.lost
+    }
+    /// How sure the tracked pose is — map-frame covariance over (x, y, yaw) —
+    /// or `None` while lost, when there is no pose to be sure of.
+    pub fn pose_covariance(&self) -> Option<crate::uncertainty::Cov3> {
+        (!self.lost).then_some(self.cov)
     }
     /// Frames sitting in the open still window.
     pub fn window_frames(&self) -> usize {
@@ -890,6 +961,12 @@ impl Mapper {
     /// the host's uptime, a recording's timestamps — as long as one mapper
     /// sees only one. Notes are appended, not replaced.
     pub fn observe(&mut self, t_s: f32, sample: MapperSample, notes: &mut Vec<Note>) {
+        if let Some(prev) = self.cov_odom
+            && !self.lost
+        {
+            self.cov = crate::uncertainty::predict(&self.cov, self.slam.tracked(), between(prev, sample.odom), &self.cfg.uncertainty);
+        }
+        self.cov_odom = Some(sample.odom);
         self.slam.observe_odom(sample.odom);
         if let Some(b) = self.boot.as_mut() {
             if let Some(prev) = b.last_odom {
@@ -1166,7 +1243,7 @@ impl Mapper {
                             }
                         });
                         if self.seed_agreed >= 2 && unique {
-                            self.resume_at(pose, composite, t_s);
+                            self.resume_at(&mut grid, pose, composite, t_s);
                             notes.push(Note::Relocalized {
                                 pose,
                                 mean_residual_m: resid,
@@ -1201,7 +1278,7 @@ impl Mapper {
                         // nothing on the map could judge it, and giving
                         // up "resumed" it (the twin's house2, 2026-09-24).
                         if self.unjudged >= self.cfg.suspect_give_up_windows && !self.after_fall && !self.resumed_from_session {
-                            self.resume_at(implied, composite, t_s);
+                            self.resume_at(&mut grid, implied, composite, t_s);
                             notes.push(Note::ResumedUnverified { pose: implied });
                             return;
                         }
@@ -1258,7 +1335,7 @@ impl Mapper {
                             mean_residual_m: resid,
                         });
                     }
-                    self.resume_at(pose, composite, t_s);
+                    self.resume_at(&mut grid, pose, composite, t_s);
                     notes.push(Note::Relocalized {
                         pose,
                         mean_residual_m: resid,
@@ -1277,7 +1354,7 @@ impl Mapper {
                 self.lost_windows += 1;
                 if self.lost_windows > self.cfg.lost_give_up_windows {
                     let here = self.slam.tracked();
-                    self.resume_at(here, composite, t_s);
+                    self.resume_at(&mut grid, here, composite, t_s);
                     notes.push(Note::ResumedUnverified { pose: here });
                     return;
                 }
@@ -1497,12 +1574,14 @@ impl Mapper {
             self.suspect = 0;
         }
         let mut pose = pose;
+        let mut correction: Option<Pose2> = None;
         if self.cfg.tracking.enabled
             && let Some(grid) = self.stand_grid.as_mut()
             && let Some((delta, before, after, n_used)) =
                 tracking_correction(grid, composite, pose, &self.cfg.tracking)
         {
             pose = compose(pose, delta);
+            correction = Some(delta);
             let tracked = self.slam.tracked();
             self.slam.set_tracked(compose(tracked, delta));
             let moved = compose(tracked, delta);
@@ -1520,6 +1599,45 @@ impl Mapper {
                 residual_after_m: after,
                 n_beams_used: n_used,
             });
+        }
+        let judged = self.stand_grid.as_mut().map(|grid| window_at_pose(grid, composite, pose, &self.cfg.uncertainty));
+        let skip = self.cfg.uncertainty.skip_recent_submaps;
+        let independent = if skip == 0 {
+            judged.as_ref().and_then(|j| j.info)
+        } else {
+            self.slam
+                .render_older(skip)
+                .and_then(|mut older| window_at_pose(&mut older, composite, pose, &self.cfg.uncertainty).info)
+        };
+        if let Some(info) = independent {
+            self.cov = crate::uncertainty::fuse(&self.cov, &info);
+        }
+        // Settling after a resume: the window corrects the pose, it does not
+        // ink, until the corrections have stopped (see `SettleConfig`).
+        if let Some((run, held)) = self.settling {
+            let st = self.cfg.settle;
+            let seen = judged.as_ref().is_some_and(|j| j.n_used >= st.min_beams);
+            let small = correction.is_none_or(|d| d.0.hypot(d.1) <= st.max_correction_m && d.2.abs() <= st.max_correction_rad);
+            let agrees = judged.as_ref().is_some_and(|j| j.residual_m <= st.max_residual_m);
+            let run = if seen && small && agrees {
+                run + 1
+            } else if seen {
+                0
+            } else {
+                run
+            };
+            let held = held + 1;
+            if run >= st.windows || held > st.max_held_windows {
+                self.settling = None;
+                notes.push(Note::Settled { held, gave_up: run < st.windows });
+            } else {
+                self.settling = Some((run, held));
+                notes.push(Note::WindowHeld {
+                    residual_m: judged.as_ref().map_or(f32::INFINITY, |j| j.residual_m),
+                    correction_m: correction.map_or(0.0, |d| d.0.hypot(d.1)),
+                });
+                return;
+            }
         }
         self.ink(pose, composite);
         notes.push(Note::WindowIntegrated {
@@ -1582,7 +1700,16 @@ impl Mapper {
     }
 
     /// Tracking resumes at `pose`; the window that earned it inks there.
-    fn resume_at(&mut self, pose: Pose2, composite: &Scan, t_s: f32) {
+    fn resume_at(&mut self, grid: &mut OccupancyGrid, pose: Pose2, composite: &Scan, t_s: f32) {
+        // What the confirming window alone says of the pose: the search's
+        // odometry since boot vouches for nothing. What it cannot see is
+        // capped at the width of the search's own agreement.
+        let cap = crate::uncertainty::diagonal(f64::from(self.cfg.relocalize_agree_m), f64::from(self.cfg.relocalize_agree_rad));
+        self.cov = match window_information_at(grid, composite, pose, &self.cfg.uncertainty) {
+            Some(info) => crate::uncertainty::from_information(&info, &cap),
+            None => cap,
+        };
+        let settle = self.cfg.settle.enabled && (self.resumed_from_session || self.after_fall);
         self.slam.set_tracked(pose);
         // Let the submap manager see the jump BEFORE inking: after a
         // cross-room carry the current submap's grid is still anchored at
@@ -1592,7 +1719,12 @@ impl Mapper {
         if !self.frozen() {
             self.slam.tick(t_s);
         }
-        self.ink(pose, composite);
+        // Settling: the confirming window inks nothing either.
+        if settle {
+            self.settling = Some((0, 0));
+        } else {
+            self.ink(pose, composite);
+        }
         self.lost = false;
         self.suspect = 0;
         self.unjudged = 0;
@@ -1813,6 +1945,42 @@ fn tracking_correction(
     let (cy, sy) = (pose.2.cos(), pose.2.sin());
     let delta = (cy * dx + sy * dy, -sy * dx + cy * dy, dyaw);
     Some((delta, at_seed.residual_m, r.residual_m, r.n_beams_used))
+}
+
+/// A window judged at `pose` against `grid`: the information it carries
+/// about the pose (see [`crate::uncertainty::window_information`]), its
+/// per-beam residual there, and how many beams the map could judge.
+/// Evaluated, not optimized: the pose is whatever the tracking made of it.
+struct WindowAtPose {
+    info: Option<crate::uncertainty::Cov3>,
+    residual_m: f32,
+    n_used: u32,
+}
+
+fn window_at_pose(grid: &mut OccupancyGrid, composite: &Scan, pose: Pose2, cfg: &crate::uncertainty::UncertaintyConfig) -> WindowAtPose {
+    let probe = composite.decimated(512);
+    let at = match_scan(
+        grid,
+        &probe,
+        pose,
+        None,
+        // The watchdog's wall definition: the distance-field cache is shared.
+        &ScanMatchConfig { max_iters: 0, occ_threshold_fp: 150, ..ScanMatchConfig::default() },
+    );
+    WindowAtPose {
+        info: crate::uncertainty::window_information(&at.hessian, at.residual_m, at.n_beams_used, cfg),
+        residual_m: at.residual_m,
+        n_used: at.n_beams_used,
+    }
+}
+
+fn window_information_at(
+    grid: &mut OccupancyGrid,
+    composite: &Scan,
+    pose: Pose2,
+    cfg: &crate::uncertainty::UncertaintyConfig,
+) -> Option<crate::uncertainty::Cov3> {
+    window_at_pose(grid, composite, pose, cfg).info
 }
 
 #[cfg(test)]

@@ -417,3 +417,46 @@ mod tests {
         assert!(res.n_beams_used > 16);
     }
 }
+
+/// How well a scan pins a pose down, from the normal matrix `H = JᵀJ` at the
+/// pose: the translational 2×2 block's eigenvalues, largest and smallest,
+/// the eigenvector of the smallest (the direction the scene does not
+/// constrain — along a corridor, the corridor), and the yaw entry. A ratio
+/// `l_min / l_max` near zero is a valley: the pose may slide along `weak`
+/// and the scan fits as well (Zhang, Kaess & Singh 2016, "On degeneracy of
+/// optimization-based state estimation problems").
+#[derive(Debug, Clone, Copy)]
+pub struct Conditioning {
+    pub l_max: f32,
+    pub l_min: f32,
+    pub weak: (f32, f32),
+    pub yaw: f32,
+    pub n_beams: u32,
+}
+
+impl Conditioning {
+    pub fn ratio(&self) -> f32 {
+        if self.l_max > 0.0 { self.l_min / self.l_max } else { 0.0 }
+    }
+}
+
+/// [`Conditioning`] of `scan` at `pose` on `grid`, evaluated without moving
+/// the pose (the watchdog's wall definition, so the field cache is shared).
+pub fn conditioning_at(grid: &mut OccupancyGrid, scan: &Scan, pose: (f32, f32, f32)) -> Conditioning {
+    let at = match_scan(grid, scan, pose, None, &ScanMatchConfig { max_iters: 0, occ_threshold_fp: 150, ..ScanMatchConfig::default() });
+    let h = at.hessian;
+    let (a, b, c) = (h[0][0], h[0][1], h[1][1]);
+    let tr = a + c;
+    let disc = ((a - c) * (a - c) / 4.0 + b * b).max(0.0).sqrt();
+    let (l_max, l_min) = (tr / 2.0 + disc, (tr / 2.0 - disc).max(0.0));
+    let weak = if b.abs() > 1e-9 {
+        let (vx, vy) = (b, l_min - a);
+        let n = vx.hypot(vy).max(1e-9);
+        (vx / n, vy / n)
+    } else if a <= c {
+        (1.0, 0.0)
+    } else {
+        (0.0, 1.0)
+    };
+    Conditioning { l_max, l_min, weak, yaw: h[2][2], n_beams: at.n_beams_used }
+}

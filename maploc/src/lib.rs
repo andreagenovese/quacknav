@@ -32,6 +32,7 @@
 //!   replay         — read back the prototype's .mdlg logs for offline work
 //!   bench          — drive a Mapper through a recording (benches, regression)
 //!   rng            — the pinned RNG determinism rides on
+//!   uncertainty    — the pose covariance: odometry grows it, windows shrink it
 
 // The optimizer, grid and matcher kernels iterate matrices and grids by
 // index on purpose: the loops mirror the maths they implement (H[r][c],
@@ -63,6 +64,7 @@ pub mod scan_matcher;
 pub mod session;
 pub mod submap;
 pub mod submap_manager;
+pub mod uncertainty;
 
 pub use grid::{GridConfig, OccupancyGrid};
 pub use submap::{Pose2, Scan};

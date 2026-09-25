@@ -113,6 +113,23 @@ pub struct MapFrame {
     /// corrected against the map as saved.
     #[serde(default)]
     pub frozen: bool,
+    /// How sure the mapper is of the pose (maploc's covariance, see
+    /// `maploc::uncertainty`); absent while lost, and from a mapper that
+    /// does not keep one (robotd's).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pose_sigma: Option<PoseSigma>,
+}
+
+/// The pose covariance as a person reads it: the position ellipse's
+/// semi-axes (one standard deviation), the direction of the long one in
+/// the map frame — the way the pose is least sure of, along a corridor
+/// the corridor — and the heading's.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct PoseSigma {
+    pub xy_major_m: f64,
+    pub xy_minor_m: f64,
+    pub major_axis_deg: f64,
+    pub yaw_deg: f64,
 }
 
 impl MapFrame {
@@ -675,6 +692,7 @@ mod tests {
             still: true,
             seated: false,
             frozen: false,
+            pose_sigma: None,
         }
     }
 

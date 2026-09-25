@@ -328,6 +328,8 @@ fn main() {
                 Note::RelocalizeAmbiguous { .. } => "reloc_ambiguous",
                 Note::TrackingCorrected { .. } => "corrected",
                 Note::LoopClosed { .. } => "loop_closed",
+                Note::WindowHeld { .. } => "held",
+                Note::Settled { .. } => "settled",
             };
             *tally.entry(key).or_insert(0u32) += 1;
             if let Note::WindowIntegrated { mean_residual_m, n_observed, .. } = &note
@@ -502,6 +504,12 @@ fn main() {
                     n_loops, dx, dy, ..
                 } => {
                     println!("[{t:7.1}s] loop closed (total {n_loops}), moved ({dx:.3}, {dy:.3})");
+                }
+                Note::WindowHeld { residual_m, correction_m } => {
+                    println!("[{t:7.1}s] settling: window held (residual {residual_m:.3}, correction {correction_m:.3})");
+                }
+                Note::Settled { held, gave_up } => {
+                    println!("[{t:7.1}s] settled after {held} held windows{}", if gave_up { " (gave up: the map could not judge)" } else { "" });
                 }
                 Note::TrackingCorrected {
                     dx,

@@ -131,6 +131,82 @@ campionatore registra anche l'angolo.
 campionatore e scrive le traiettorie TUM per `evo`, che dà la stessa ATE al
 millimetro (verificato sulle sessioni di house2).
 
+### Fase due, passo 1: l'incertezza della posa, misurata
+
+Sul branch `phase-2` (ADR 0009), sul banco di replay, le stesse sessioni di
+sopra.
+
+**Una covarianza sulla posa.** maploc tiene una covarianza 3×3 (x, y,
+angolo) come un EKF: l'odometria la fa crescere (5 cm per √metro, 1.7° per
+√radiante girato), ogni finestra giudicata dalla mappa la riduce con la
+matrice normale dello scan matcher divisa per il residuo. Non cambia nessuna
+decisione — le traiettorie rigiocate sono identiche al byte — e
+`robot.map_status` la riporta come `pose_uncertainty` (una deviazione
+standard, e la direzione in cui la posa è meno sicura). Verificata contro la
+verità con il NEES (2 è onesto, e il 95 % degli errori dentro l'ellisse al
+95 %):
+
+| Casa | Sessione | | σ (mediana) | NEES | dentro il 95 % | r(σ, errore) |
+|---|---|---|---|---|---|---|
+| house2 | 1 | nuova | 0.070 m | 2.35 | 88 % | +0.08 |
+| casa_arredata | 1 | nuova | 0.075 m | 1.54 | 98 % | −0.25 |
+| casa_libera | 1 | nuova | 0.081 m | 1.42 | 98 % | +0.02 |
+| house2 | 2 | ripresa | 0.067 m | 3.21 | 88 % | +0.59 |
+| house2 | 3 | ripresa | 0.071 m | 4.75 | 74 % | +0.16 |
+| house2 | 4 | ripresa | 0.068 m | 2.35 | 89 % | +0.08 |
+| casa_arredata | 2 | ripresa | 0.072 m | 6.08 | 64 % | +0.46 |
+| casa_libera | 2 | ripresa | 0.071 m | 4.16 | 79 % | −0.38 |
+| casa_libera | 3 | ripresa | 0.081 m | 0.60 | 100 % | +0.62 |
+
+Onesta in media su una mappa nuova; troppo sicura di sé su una ripresa, dove
+l'errore è soprattutto lo scostamento della mappa salvata dalla casa, che
+nessuna finestra può vedere. E non ancora un allarme: la sua correlazione
+con l'errore istante per istante va da −0.38 a +0.62. Due cose imparate
+strada facendo. Pesata come la dà la `H` dello scan matcher, una finestra
+contava ognuno dei suoi raggi e la σ stava a 2.5 cm contro errori di 8
+(NEES 30–60): ora pesa come un raggio a 8 cm. E una finestra giudicata
+contro la mappa che ha appena disegnato è d'accordo con la posa che deriva e
+che l'ha disegnata — la σ ignorava del tutto la deriva (r ≈ 0) finché le
+finestre non sono state giudicate solo contro le submap più vecchie delle
+ultime dodici.
+
+**Il test della valle contro gli autovalori della Hessiana.** 118 decisioni
+di rilocalizzazione rigiocate (6 sessioni riprese, 19 avvii dei giri
+finali), ognuna contro la verità:
+
+| Decisione | | posa giusta | posa sbagliata |
+|---|---|---|---|
+| confermata | 25 | 25 | 0 |
+| rifiutata dal test della valle | 91 | 84 | 7 |
+
+Il test della valle è molto prudente — il 92 % di ciò che ha rifiutato era
+giusto, per lo più entro 10 cm — ed è per questo che tornare a casa è lento,
+e in casa_arredata è fallito due volte. Ma la Hessiana non può sostituirlo:
+le 7 pose sbagliate (tutte in casa_arredata, 6 in un solo avvio, un alias a
+circa 4 m) sono ben condizionate, rapporti degli autovalori fino a 0.71;
+sono un'altra valle che combacia, non una direzione che scivola. È una
+questione globale, per la localizzazione a ipotesi multiple del passo 4. Il
+test della valle resta.
+
+**L'assestamento dopo una ripresa** — una sessione ripresa corregge la posa
+ma non scrive nulla finché due finestre di fila non sono d'accordo e la
+spostano di meno di 2 cm e 1° — è stato misurato sulle sei sessioni riprese
+ed è **spento** per default (`MAPLOC_SETTLE=1` sul banco):
+
+| Sessione | muri media / p90, spento | acceso | ATE, spento | acceso |
+|---|---|---|---|---|
+| house2 2 | 6.5 / 15.9 cm | 4.6 / 7.9 cm | 0.158 m | 0.112 m |
+| house2 3 | 6.3 / 18.7 | 6.3 / 16.1 | 0.144 | 0.157 |
+| house2 4 | 4.6 / 9.6 | 4.8 / 10.9 | 0.099 | 0.109 |
+| casa_arredata 2 | 6.0 / 13.9 | 6.9 / 16.1 | 0.159 | 0.178 |
+| casa_libera 2 | 3.0 / 5.5 | 3.1 / 5.2 | 0.124 | 0.115 |
+| casa_libera 3 | 3.1 / 5.2 | 3.1 / 5.2 | 0.057 | 0.064 |
+
+Una sessione molto meglio, le altre pari o un po' peggio — e peggio proprio
+su quella per cui era stato scritto, perché la seconda sessione di
+casa_arredata non è stata danneggiata dalla ripresa (vedi i limiti noti qui
+sotto).
+
 ## Limiti noti
 
 - **Un bordo registrato dove lo metteva la posa.** Circa un drop su 50 finisce
@@ -140,13 +216,18 @@ millimetro (verificato sulle sessioni di house2).
   mancata in tutti e tre i giri — anche dalla build di `main`, con lo stesso
   libro. Un passaggio che la papera ha percorso resta aperto (le corsie), ma
   non uno che ha solo guardato.
-- **Una ripresa con una posa un po' sbagliata scrive nella mappa.** La seconda
-  sessione di casa_arredata è tornata a casa con 12 cm (e qualche grado) di
-  errore e ha continuato a mappare: i suoi muri sono passati da 3.8 a 17 cm
-  dalla verità, e i due avvii successivi non sono riusciti a ritrovarsi. house2
-  ha fatto quattro sessioni senza danni. Il prossimo passo è un controllo di
-  coerenza prima che una sessione ripresa disegni qualcosa; fino ad allora,
-  una mappa si può rifare da zero (`fresh`).
+- **Una sessione che mappa pavimento nuovo deriva finché un loop non si
+  chiude.** La seconda sessione di casa_arredata è tornata a casa con 12 cm
+  di errore — ma quello è soprattutto lo scostamento della mappa salvata
+  dalla casa; rigiocata, la posa è poi passata da 9 a 34 cm di errore in
+  cinque minuti di pavimento nuovo (il bagno, dal suo passaggio di 0.49 m),
+  finché una chiusura di loop non ha ripreso 16 cm. I suoi muri sono passati
+  da 3.8 a 17 cm dalla verità dal vivo (6.0 cm in replay), e i due avvii
+  successivi non sono riusciti a ritrovarsi. La prima diagnosi — una ripresa
+  su una posa un po' sbagliata — è stata misurata e non è quella (fase due,
+  passo 1, qui sopra). house2 ha fatto quattro sessioni senza danni. Finché
+  l'esploratore non torna su pavimento noto quando la posa si è allontanata
+  troppo (passo 6), una mappa si può rifare da zero (`fresh`).
 - **Tornare a casa in una casa regolare può essere lungo, o fallire.** Il test
   della valle rifiuta una posa che un muro lungo e liscio non riesce a fissare:
   nessuna posa sbagliata è stata creduta, ma in casa_arredata (una casa
