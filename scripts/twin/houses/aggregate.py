@@ -39,12 +39,19 @@ for label, name, base in HOUSES:
         })
     book = re.findall(r"drop book (\d+): rim (\d+), near (\d+), phantom (\d+)", rounds or explore)
     new_home = re.findall(r"round \d: homecoming ([^\n]*?) in (\d+) s, pose vs truth ([\d.]+) m; exploring after the restart: (\w+)", rounds)
-    new_go = re.findall(r"  new go_to \S+ [^\n]*?: \w+ in (\d+) s[^\n]*— ([^\n]*)", rounds)
+    # (seconds, reason, goal x, goal y): an arrival counts only at its own goal.
+    new_go = re.findall(r"  new go_to \S+ \(([-+\d.]+),([-+\d.]+)\): \w+ in (\d+) s[^\n]*— ([^\n]*)", rounds)
     main_home = re.findall(r"main round \d: homecoming (\w+) in (\d+) s", rounds)
-    main_go = re.findall(r"  main go_to \S+ [^\n]*?: \w+ in (\d+) s[^\n]*— ([^\n]*)", rounds)
+    # A refused call is a journey that did not arrive: it counts in the total.
+    new_go += [("nan", "nan", "0", "refused") for _ in re.findall(r"  new go_to \S+ [^\n]*: refused", rounds)]
+    main_go = re.findall(r"  main go_to \S+ \(([-+\d.]+),([-+\d.]+)\): \w+ in (\d+) s[^\n]*— ([^\n]*)", rounds)
+    main_go += [("nan", "nan", "0", "refused") for _ in re.findall(r"  main go_to \S+ [^\n]*: refused", rounds)]
     new_falls = sum(int(x) for x in re.findall(r"\n\w+ round \d: falls (\d+)", "\n" + rounds))
     main_falls = sum(int(x) for x in re.findall(r"main round \d: falls (\d+)", rounds))
-    arr = lambda g: [int(t) for t, why in g if "arrived" in why]
+    def reached(gx, gy, why):
+        m = re.search(r"arrived at \(([-\d.]+), ([-\d.]+)\)", why)
+        return bool(m) and abs(float(m[1]) - float(gx)) < 0.05 and abs(float(m[2]) - float(gy)) < 0.05
+    arr = lambda g: [int(t) for gx, gy, t, why in g if reached(gx, gy, why)]
     rows.append((label, sessions, book[-1] if book else None, new_home, new_go, main_home, main_go, new_falls, main_falls, arr))
 
 print("## Exploring, a session of 30 minutes at a time\n")

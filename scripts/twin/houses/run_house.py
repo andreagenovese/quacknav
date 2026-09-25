@@ -206,7 +206,13 @@ for rnd in range(1, rounds + 1):
     say(f"{name} round {rnd}: homecoming {verdict} in {time.time()-t0:.0f} s{err}")
     if verdict == "confirmed":
         for k, (gx, gy) in goals:
-            call("robot.go_to", {"x": gx, "y": gy, "max_s": 300}); t1 = time.time()
+            r = call("robot.go_to", {"x": gx, "y": gy, "max_s": 300}); t1 = time.time()
+            # Refused (a JSON-RPC error, or `started: false`): nothing to wait
+            # for, and nothing to read off the last journey (final_house.py).
+            if not isinstance(r, dict) or "message" in r or r.get("error") or r.get("started") is not True:
+                say(f"  go_to {k} ({gx:+.2f},{gy:+.2f}): refused — {json.dumps(r)[:200]}")
+                continue
+            time.sleep(3)
             while time.time() - t1 < 330:
                 e = call("robot.map_status").get("explore", {})
                 if e.get("state") != "running": break

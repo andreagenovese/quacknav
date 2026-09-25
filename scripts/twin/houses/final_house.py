@@ -77,13 +77,25 @@ def home(limit=1200):
 def tour(tag):
     arrived, times = 0, []
     for k, (gx, gy) in truth["goals"].items():
-        call("robot.go_to", {"x": gx, "y": gy, "max_s": 300}); t1 = time.time()
+        r = call("robot.go_to", {"x": gx, "y": gy, "max_s": 300}); t1 = time.time()
+        # A refused call (lost, seated, no way) starts nothing: counted as
+        # not arrived, with its reason — never read off the last journey's
+        # state, which is what counted five arrivals at casa_arredata's
+        # kitchen after its pose was lost there (2026-09-25).
+        # A refusal comes back as the JSON-RPC error ({code, message}), or
+        # as `started: false`.
+        if not isinstance(r, dict) or "message" in r or r.get("error") or r.get("started") is not True:
+            say(f"  {tag} go_to {k} ({gx:+.2f},{gy:+.2f}): refused — {json.dumps(r)[:200]}")
+            continue
+        time.sleep(3)
         while time.time() - t1 < 330:
             e = call("robot.map_status").get("explore", {})
             if e.get("state") != "running": break
             time.sleep(5)
         e = call("robot.map_status").get("explore", {})
-        ok = "arrived" in str(e.get("reason"))
+        # Arrived means arrived HERE: the reason names the goal it reached.
+        m = re.search(r"arrived at \(([-\d.]+), ([-\d.]+)\)", str(e.get("reason")))
+        ok = bool(m) and abs(float(m[1]) - gx) < 0.05 and abs(float(m[2]) - gy) < 0.05
         arrived += ok
         if ok: times.append(time.time() - t1)
         say(f"  {tag} go_to {k} ({gx:+.2f},{gy:+.2f}): {e.get('state')} in {time.time()-t1:.0f} s, legs {e.get('legs')}, refusals {e.get('refusals')} — {e.get('reason')}")
