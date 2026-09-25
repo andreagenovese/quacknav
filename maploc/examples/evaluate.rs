@@ -153,6 +153,8 @@ fn main() {
     slam_cfg.loops.min_correction_m = envf("LOOP_MIN_CORR", slam_cfg.loops.min_correction_m);
     slam_cfg.loops.max_correction_per_submap_m = envf("LOOP_PER_SUBMAP", slam_cfg.loops.max_correction_per_submap_m);
     slam_cfg.loops.max_correction_cap_m = envf("LOOP_CAP", slam_cfg.loops.max_correction_cap_m);
+    slam_cfg.loops.max_correction_cap_rad = envf("LOOP_CAP_YAW", slam_cfg.loops.max_correction_cap_rad);
+    slam_cfg.loops.max_correction_per_submap_rad = envf("LOOP_PER_SUBMAP_YAW", slam_cfg.loops.max_correction_per_submap_rad);
     slam_cfg.loops.edge_sigma_xy = envf("LOOP_SIGMA_XY", slam_cfg.loops.edge_sigma_xy);
     slam_cfg.loops.edge_sigma_yaw = envf("LOOP_SIGMA_YAW", slam_cfg.loops.edge_sigma_yaw);
     slam_cfg.loops.verify_max_spread_m = envf("LOOP_SPREAD", slam_cfg.loops.verify_max_spread_m);

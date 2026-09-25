@@ -64,14 +64,20 @@ fn main() {
     u.yaw_var_per_rad = envf("UNC_YAW_RAD", u.yaw_var_per_rad.sqrt()).powi(2);
     u.yaw_var_per_m = envf("UNC_YAW_M", u.yaw_var_per_m.sqrt()).powi(2);
     u.skip_recent_submaps = envf("UNC_SKIP", u.skip_recent_submaps as f64) as usize;
+    // The loop closer's plausibility caps (as `evaluate` reads them).
+    let mut slam_cfg = SlamConfig::default();
+    let envf32 = |k: &str, d: f32| std::env::var(k).ok().and_then(|v| v.parse().ok()).unwrap_or(d);
+    slam_cfg.loops.max_correction_cap_m = envf32("LOOP_CAP", slam_cfg.loops.max_correction_cap_m);
+    slam_cfg.loops.max_correction_cap_rad = envf32("LOOP_CAP_YAW", slam_cfg.loops.max_correction_cap_rad);
+    slam_cfg.loops.max_correction_per_submap_rad = envf32("LOOP_PER_SUBMAP_YAW", slam_cfg.loops.max_correction_per_submap_rad);
     let mut mapper = match std::env::var_os("MAP_SESSION") {
         Some(p) => {
             let saved = maploc::session::SessionState::load(std::path::Path::new(&p))
                 .expect("read the saved session")
                 .expect("the saved session is empty");
-            Mapper::resumed_lost(cfg, Slam::from_session(SlamConfig::default(), saved))
+            Mapper::resumed_lost(cfg, Slam::from_session(slam_cfg, saved))
         }
-        None => Mapper::new(cfg, Slam::new(SlamConfig::default())),
+        None => Mapper::new(cfg, Slam::new(slam_cfg)),
     };
     let mut out = std::io::BufWriter::new(std::fs::File::create(&out_path).expect("create out.tsv"));
     let (mut next, mut written, mut untracked) = (0usize, 0u32, 0u32);
