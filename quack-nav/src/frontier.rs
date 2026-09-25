@@ -167,14 +167,19 @@ fn cost_hug() -> u32 {
 /// distance to the nearest booked drop, so a hole pushes the route
 /// differently from a wall — and Dijkstra over eight neighbours instead of
 /// four. What is passable is the same as without it: only the prices move.
-/// On by default since the paper twin's bench (2026-09-25, 180 journeys to
-/// six parts of the apartment and 60 explorations): 180/180 arrived against
-/// 174, 8.2 refusals a journey against 17.6, the same time and coverage, no
-/// fall either way. `QK_COSTMAP=legacy` for the linear band on four
-/// neighbours.
+/// Off by default. The paper twin's bench (2026-09-25, 180 journeys, 60
+/// explorations) had it far ahead — 180/180 arrived against 174, half the
+/// refusals — and MuJoCo said the opposite: on the release's maps and books
+/// 23/36 journeys against the release's 29/30 (house2 and casa_arredata,
+/// three rounds each). Its routes were 0.3–1.5 m shorter because a cell by
+/// the furniture cost less than under the linear band, and on the twin
+/// "nearer the furniture" is the sensor's refusals (14 a journey against
+/// 0–3) and the pose lost where the map is least true; the paper twin, with
+/// a perfect map and an ideal sensor, charges nothing for it. To come back
+/// at least as far from things as the band keeps, and measured on MuJoCo.
 fn layered() -> bool {
     static V: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
-    *V.get_or_init(|| std::env::var("QK_COSTMAP").map_or(true, |v| v != "legacy"))
+    *V.get_or_init(|| std::env::var("QK_COSTMAP").is_ok_and(|v| v == "layered"))
 }
 fn knob_f(name: &str, default: f64) -> f64 {
     std::env::var(name).ok().and_then(|v| v.parse().ok()).unwrap_or(default)

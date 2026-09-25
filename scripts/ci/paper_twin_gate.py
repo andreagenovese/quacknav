@@ -12,8 +12,8 @@ only when the code does. Two benches:
 
 The bars are what the code achieved when they were set, less a margin for
 the noise; raise them when a change improves the numbers, and say so in the
-commit. Lowering one is a decision, not a fix. Last set 2026-09-25 with the
-layered costmap (ADR 0009, step 2a).
+commit. Lowering one is a decision, not a fix. Last set 2026-09-25, the linear
+band back as the default (ADR 0009, step 2a not confirmed on MuJoCo).
 """
 import re
 import subprocess
@@ -22,13 +22,14 @@ import sys
 BARS = {
     "explore_runs": 40,
     "explore_budget_s": 1200,
-    # measured 37.8 (sd 5.2 a run): two standard errors of margin.
+    # measured 37.6 (sd 5.5 a run): two standard errors of margin.
     "explore_mean_cover_pct": 36.0,
     "goto_runs": 30,
-    # measured 30 / 30 on macOS (26 before the layered costmap); one of
-    # margin for another platform's libm (the twin is chaotic: a
+    # measured 26 / 30 on macOS with the linear band (30 / 30 with the
+    # layered costmap, which MuJoCo did not confirm: see frontier.rs); one
+    # of margin for another platform's libm (the twin is chaotic: a
     # last-digit difference in a sine moves a seed).
-    "goto_arrived": 29,
+    "goto_arrived": 25,
 }
 GOAL = "-2.64,-2.12"
 
