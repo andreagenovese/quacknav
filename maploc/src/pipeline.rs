@@ -101,6 +101,12 @@ pub struct Slam {
     dirty: bool,
 }
 
+/// A re-anchor farther than this is a relocalization, and the edge into
+/// the moved node is given the relocalization's uncertainty.
+const RELOCALIZED_JUMP_M: f32 = 0.5;
+const RELOCALIZED_SIGMA_XY: f32 = 0.30;
+const RELOCALIZED_SIGMA_YAW: f32 = 0.35;
+
 impl Slam {
     pub fn new(cfg: SlamConfig) -> Self {
         Self {
@@ -126,6 +132,21 @@ impl Slam {
             .edges()
             .len()
             .saturating_sub(mgr.n_frozen().saturating_sub(1));
+        // The chain edge into the current submap's node, found again: the
+        // session does not store which it is, and without it a re-anchor of
+        // the current submap (`TickOutcome::Reanchored`) moves the node and
+        // leaves the edge telling the old story. At a boot that re-anchor is
+        // the relocalization itself — casa_arredata's second session moved
+        // node 108 3.7 m and 32° to where the duck was found, the odometry
+        // edge into it still said 0.8 m, and the first loop closure, five
+        // minutes later, let the optimizer satisfy it: the pose jumped
+        // 1.7 m and the map was drawn twice (2026-09-25).
+        let edge_into_current = match s.node_for_submap.as_slice() {
+            [.., prev, last] if mgr.current().is_some() => {
+                s.graph.edges().iter().rposition(|e| e.from == *prev && e.to == *last)
+            }
+            _ => None,
+        };
         Self {
             mgr,
             graph: s.graph,
@@ -133,7 +154,7 @@ impl Slam {
             n_loops,
             tracked: s.tracked,
             last_odom: None,
-            edge_into_current: None,
+            edge_into_current,
             dirty: true,
             cfg,
         }
@@ -207,12 +228,28 @@ impl Slam {
                 // node (and the edge into it) telling the same story, or the
                 // graph would preserve an anchor the map no longer has.
                 let anchor = self.mgr.current().expect("re-anchored").anchor_pose();
+                if std::env::var_os("MAPLOC_GRAPH_DEBUG").is_some() {
+                    let node = self.node_for_submap.last().copied();
+                    let was = node.map(|n| self.graph.nodes()[n].pose);
+                    eprintln!("[graph] re-anchored current submap: node {node:?} from {was:?} to {anchor:?}, edge_into_current {:?}", self.edge_into_current);
+                }
                 if let Some(&node) = self.node_for_submap.last() {
+                    let was = self.graph.nodes()[node].pose;
                     self.graph.nodes_mut()[node].pose = anchor;
                     if let Some(edge_idx) = self.edge_into_current {
                         let from = self.graph.edges()[edge_idx].from;
                         let from_pose = self.graph.nodes()[from].pose;
                         self.graph.edges_mut()[edge_idx].measurement = between(from_pose, anchor);
+                        // A re-anchor that jumps is a relocalization, not
+                        // odometry: what joins the new place to the old
+                        // chain is the search's word, known to its agreement
+                        // radius, not to the odometry's centimetres — or the
+                        // optimizer holds the new chain rigidly to where the
+                        // old one ended, against every closure after it.
+                        if (anchor.0 - was.0).hypot(anchor.1 - was.1) > RELOCALIZED_JUMP_M {
+                            self.graph.edges_mut()[edge_idx].information =
+                                information_from_sigmas(RELOCALIZED_SIGMA_XY, RELOCALIZED_SIGMA_YAW);
+                        }
                     }
                 }
                 return false;
@@ -326,6 +363,41 @@ impl Slam {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// A session resumed where the duck is found, far from where it was
+    /// saved: the re-anchor of the empty current submap must carry the edge
+    /// into it along, as a relocalization's word — not leave it saying the
+    /// old odometry, for the first closure to act on (casa_arredata's
+    /// second session, 2026-09-25: a 3.7 m re-anchor, a 1.7 m jump at the
+    /// first closure five minutes on, the map drawn twice).
+    #[test]
+    fn a_resumed_session_re_anchors_with_its_edge() {
+        let mut slam = Slam::new(SlamConfig::default());
+        let angles: Vec<f32> = (0..32).map(|k| k as f32 * 0.2 - 3.1).collect();
+        let ranges = vec![1.5f32; angles.len()];
+        let scan = Scan::from_polar(&angles, &ranges, (0.0, 0.0), 1e-6);
+        assert!(slam.tick(0.0));
+        slam.integrate((0.0, 0.0, 0.0), &scan);
+        slam.set_tracked((0.8, 0.0, 0.0));
+        slam.request_submap_switch();
+        assert!(slam.tick(1.0), "the second submap opens");
+        let path = std::env::temp_dir().join(format!("maploc-resume-edge-{}.session", std::process::id()));
+        slam.save(&path).unwrap();
+        let saved = SessionState::load(&path).unwrap().unwrap();
+        let _ = std::fs::remove_file(&path);
+        let mut resumed = Slam::from_session(SlamConfig::default(), saved);
+        let edge = resumed.edge_into_current.expect("the edge into the current submap, found again");
+        // Found 3 m away and turned: the re-anchor is a relocalization.
+        resumed.set_tracked((3.0, 2.0, 1.0));
+        resumed.request_submap_switch();
+        assert!(!resumed.tick(2.0), "an empty current submap re-anchors, it does not open");
+        let e = resumed.graph.edges()[edge];
+        let from = resumed.graph.nodes()[e.from].pose;
+        let to = resumed.graph.nodes()[e.to].pose;
+        let want = between(from, to);
+        assert!((e.measurement.0 - want.0).abs() < 1e-5 && (e.measurement.1 - want.1).abs() < 1e-5, "{:?} vs {:?}", e.measurement, want);
+        assert_eq!(e.information, information_from_sigmas(RELOCALIZED_SIGMA_XY, RELOCALIZED_SIGMA_YAW));
+    }
 
     /// The core promise: drive a square with drifting odometry, scans of a
     /// fixed room; the pipeline freezes submaps, closes the loop and the

@@ -109,12 +109,19 @@ themselves on it to take the user's word.
   planner, and house2's goal beyond the stairwell (g4) was missed in all
   three rounds — by `main`'s build too, on the same book. A passage the duck
   has walked stays open (the lanes), but not one it has only looked at.
-- **A resume on a slightly wrong pose writes into the map.** casa_arredata's
-  second session came home 12 cm (and some degrees) off and mapped on: its
-  walls went from 3.8 to 17 cm off the truth, and the next two boots could
-  not find themselves on it. House2 took four sessions without harm. A
-  consistency check before a resumed session inks anything is the next
-  step; until then, a map can be redone from nothing (`fresh`).
+- **Fixed after the release (2026-09-25): a resumed session could break
+  the map.** casa_arredata's second session took its walls from 3.8 to 17
+  cm off the truth. The cause was not the pose it came home with but a
+  bug in maploc: when a boot finds the duck elsewhere, the saved map's last
+  (empty) submap is re-anchored there, and the odometry edge into it was
+  left saying where it had been — 3.7 m away in a replayed case — until
+  the first loop closure let the optimizer satisfy it and the pose jumped
+  1.7 m. Replayed, eleven recorded sessions of the three houses: wall
+  error 6.9 -> 4.6 cm on average, the worst trajectory error 1.95 -> 0.16 m;
+  mapped again on the twin with the fix, casa_arredata's four sessions
+  improved the map one after the other (3.5 cm of wall error, rigidly
+  fitted) and every journey that started arrived, the bathroom included.
+  The tables above are the release's, measured before the fix.
 - **Coming home in a regular house can take long, or fail.** The valley test
   refuses a pose a long plain wall cannot pin down: no wrong pose was
   believed, but in casa_arredata (a generated, very regular house, its
