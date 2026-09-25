@@ -102,6 +102,35 @@ per prendere la parola dell'utente.
 | casa_libera | nuova | 3/3 | 0.07–0.11 m | 15/15 | 111 s | 0 |
 | casa_libera | main | 3/3 | — | 15/15 | 66 s | 0 |
 
+### Errore di traiettoria, nella forma standard (ATE, RPE)
+
+Aggiunto il 2026-09-25 (ADR 0009, passo 0), dalle stesse sessioni di
+esplorazione: la posa contro la verità del gemello ogni 5 s, come ATE
+(errore di traiettoria assoluto, RMSE, così come registrato e dopo il
+miglior allineamento rigido) e RPE (l'errore del movimento su ogni metro
+percorso). "Dal vivo" è ciò che la papera ha riportato durante il giro;
+"replay" è la stessa registrazione rigiocata nel mapper sul banco
+(`maploc/examples/trajectory.rs`), che dà gli stessi numeri ogni volta ed è
+su cui si misurano le modifiche della fase due. Il dato dal vivo è un po'
+peggiore perché la posa dal vivo si legge dal frame della mappa, pubblicato
+circa una volta al secondo, mentre la verità si legge all'istante: dentro
+c'è fino a un secondo di cammino a 0.12 m/s. Questi file non hanno l'angolo,
+quindi l'RPE è quello dello spostamento nel riferimento del mondo; da ora il
+campionatore registra anche l'angolo.
+
+| Casa | | Percorsi | ATE RMSE | allineato | max | RPE per metro |
+|---|---|---|---|---|---|---|
+| house2 | dal vivo | 116 m | 0.143 m | 0.117 m | 0.57 m | 0.090 m (9.0 %) |
+| house2 | replay | 118 m | 0.127 m | 0.111 m | 0.51 m | 0.082 m (8.2 %) |
+| casa_arredata | dal vivo | 53 m | 0.164 m | 0.118 m | 0.37 m | 0.088 m (8.8 %) |
+| casa_arredata | replay | 52 m | 0.126 m | 0.098 m | 0.35 m | 0.076 m (7.6 %) |
+| casa_libera | dal vivo | 69 m | 0.119 m | 0.094 m | 0.30 m | 0.083 m (8.3 %) |
+| casa_libera | replay | 63 m | 0.101 m | 0.080 m | 0.28 m | 0.079 m (7.9 %) |
+
+`scripts/twin/houses/traj_metrics.py` li calcola da un file del
+campionatore e scrive le traiettorie TUM per `evo`, che dà la stessa ATE al
+millimetro (verificato sulle sessioni di house2).
+
 ## Limiti noti
 
 - **Un bordo registrato dove lo metteva la posa.** Circa un drop su 50 finisce

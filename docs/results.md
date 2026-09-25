@@ -101,6 +101,34 @@ themselves on it to take the user's word.
 | casa_libera | new | 3/3 | 0.07–0.11 m | 15/15 | 111 s | 0 |
 | casa_libera | main | 3/3 | — | 15/15 | 66 s | 0 |
 
+### Trajectory error, the standard way (ATE, RPE)
+
+Added 2026-09-25 (ADR 0009, step 0), from the same exploration sessions:
+the pose against the twin's truth every 5 s, as ATE (absolute trajectory
+error, RMSE, as recorded and after the best rigid alignment) and RPE (the
+error of the motion over each metre walked). "Live" is what the duck
+reported during the run; "replay" is the same recording replayed through
+the mapper on the bench (`maploc/examples/trajectory.rs`), which gives the
+same numbers every time and is what phase two's changes are measured on.
+The live figure is a little worse because the live pose is read from the
+map frame, published about once a second, while the truth is read at the
+instant: up to a second of walking at 0.12 m/s is in it. These files carry
+no heading, so the RPE is of the displacement in the world frame; the
+sampler records the heading from now on.
+
+| House | | Walked | ATE RMSE | aligned | max | RPE per metre |
+|---|---|---|---|---|---|---|
+| house2 | live | 116 m | 0.143 m | 0.117 m | 0.57 m | 0.090 m (9.0 %) |
+| house2 | replay | 118 m | 0.127 m | 0.111 m | 0.51 m | 0.082 m (8.2 %) |
+| casa_arredata | live | 53 m | 0.164 m | 0.118 m | 0.37 m | 0.088 m (8.8 %) |
+| casa_arredata | replay | 52 m | 0.126 m | 0.098 m | 0.35 m | 0.076 m (7.6 %) |
+| casa_libera | live | 69 m | 0.119 m | 0.094 m | 0.30 m | 0.083 m (8.3 %) |
+| casa_libera | replay | 63 m | 0.101 m | 0.080 m | 0.28 m | 0.079 m (7.9 %) |
+
+`scripts/twin/houses/traj_metrics.py` computes them from a sampler file and
+writes TUM trajectories for `evo`, which gives the same ATE to the
+millimetre (checked on house2's sessions).
+
 ## Known limits
 
 - **A rim booked where the pose had it.** About 1 in 50 drops lands 20–35 cm
