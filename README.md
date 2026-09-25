@@ -155,6 +155,49 @@ With it off, the map comes from a robotd that hosts maploc itself.
 `quack-nav/systemd/quack-navd.service` and `quack-nav/systemd/sysusers.d/`
 install it as an unprivileged service beside robotd.
 
+## Technical debt, and where it goes
+
+Said plainly, so nobody has to find it out: this is a rigorously measured
+prototype, not a navigation stack to the standards of the field.
+
+- **The explorer is an accumulation of rules.** Each one — the passage law
+  beside a drop, off the rim first, the no-go spots, blind and guarded legs,
+  seals, widenings, lanes, trusted floor — came from a fall or a stall
+  measured on the twin, and the reasons are in the code and the ADRs. Together
+  they are hard to reason about, and their thresholds were tuned on three
+  simulated houses (two of them generated): they may be fitted to the twin.
+- **The code shows it.** `explore/mod.rs` is some 3,000 lines; 64
+  `QK_*` environment knobs; legs are `serde_json::Value`s; recovery decides on
+  error *messages* (`e.contains("no room")`), which a reworded sentence breaks.
+- **Localization is thresholds, not confidence.** The standard (AMCL, SLAM
+  Toolbox, Cartographer) carries a covariance; here a pose is trusted or not.
+  maploc's valley test is an empirical stand-in for a scan matcher's
+  degeneracy analysis.
+- **Planning is not layered.** Nav2 has a global planner, a local controller,
+  a layered costmap (obstacles, inflation, keep-out) and recoveries in a
+  behaviour tree. Here: Dijkstra, a string pulled taut, stop-and-go legs, and
+  recoveries spread through the explorer. The drop book is a costmap layer in
+  all but name.
+- **Tests.** About 140 unit tests; behaviour is only verified by hours-long,
+  non-deterministic runs on the twin. The paper twin does not run in CI.
+- **Simulation only.** The real sensor, floor and gait will move many of the
+  numbers.
+
+Part of it is the duck's: an 8×8 time-of-flight sensor with a 45° view, a
+gait that does not turn below a speed, mapping only while standing still, no
+ROS on board — Nav2 as it is would not run here. The direction is to keep the
+behaviour and put it in the field's shapes:
+
+1. typed errors instead of matched strings;
+2. the explorer as a state machine (or a behaviour tree) of small, tested
+   parts;
+3. drops, lanes and no-go spots as costmap layers;
+4. the pose's confidence as a measure (the scan match's information matrix),
+   not a yes or no;
+5. the paper twin in CI, with the release criteria of `docs/results.md` as its
+   gate;
+6. the physical duck.
+
 ## Status
 
 Measured on the MuJoCo twin (`microduck_rl` + robotd); the physical duck

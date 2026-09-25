@@ -159,6 +159,51 @@ mapper. Spento, la mappa arriva da un robotd che ospita maploc da sé.
 `quack-nav/systemd/quack-navd.service` e `quack-nav/systemd/sysusers.d/`
 lo installano come servizio non privilegiato accanto a robotd.
 
+## Debito tecnico, e dove va
+
+Detto chiaramente, così nessuno deve scoprirlo da sé: questo è un prototipo
+misurato con rigore, non uno stack di navigazione all'altezza degli standard
+del settore.
+
+- **L'esploratore è un accumulo di regole.** Ognuna — la legge dei passaggi
+  accanto a un drop, prima via dal bordo, i punti da evitare, gambe cieche e
+  guardate, sigilli, allargamenti, corsie, pavimento fidato — viene da una
+  caduta o da uno stallo misurati sul gemello, e i perché sono nel codice e
+  negli ADR. Insieme sono difficili da ragionare, e le loro soglie sono state
+  tarate su tre case simulate (due generate): possono essere adattate al gemello.
+- **Il codice lo mostra.** `explore/mod.rs` è di circa 3.000
+  righe; 64 interruttori `QK_*` nell'ambiente; le gambe sono
+  `serde_json::Value`; i recuperi decidono sui *messaggi* di errore
+  (`e.contains("no room")`), che una frase riformulata rompe.
+- **La localizzazione è fatta di soglie, non di confidenza.** Lo standard
+  (AMCL, SLAM Toolbox, Cartographer) porta una covarianza; qui una posa è
+  fidata o no. Il test della valle di maploc è un sostituto empirico
+  dell'analisi di degenerazione di uno scan matcher.
+- **La pianificazione non è a strati.** Nav2 ha un pianificatore globale, un
+  controllore locale, una costmap a strati (ostacoli, inflazione, zone vietate)
+  e i recuperi in un behavior tree. Qui: Dijkstra, un filo teso, gambe a
+  stop-and-go, e recuperi sparsi nell'esploratore. Il libro dei drop è uno
+  strato di costmap in tutto tranne che nel nome.
+- **Test.** Circa 140 test unitari; il comportamento si verifica solo con giri
+  di ore, non deterministici, sul gemello. Il gemello di carta non gira in CI.
+- **Solo simulazione.** Il sensore, il pavimento e il passo veri sposteranno
+  molti dei numeri.
+
+Una parte è della papera: un sensore a tempo di volo 8×8 con 45° di campo, un
+passo che non ruota sotto una certa velocità, la mappatura solo da fermi,
+niente ROS a bordo — Nav2 così com'è qui non girerebbe. La direzione è tenere
+il comportamento e dargli le forme del settore:
+
+1. errori tipizzati al posto delle stringhe confrontate;
+2. l'esploratore come macchina a stati (o behavior tree) di parti piccole e
+   testate;
+3. drop, corsie e punti da evitare come strati di costmap;
+4. la confidenza della posa come misura (la matrice dell'informazione della
+   scan match), non un sì o un no;
+5. il gemello di carta in CI, con i criteri di release di `docs/results.md`
+   come soglia;
+6. la papera fisica.
+
 ## Stato
 
 Misurato sul gemello MuJoCo (`microduck_rl` + robotd); la papera fisica
