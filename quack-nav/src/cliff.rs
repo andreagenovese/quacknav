@@ -84,6 +84,11 @@ pub struct Drop {
     /// the floor. Zero when the bottom row itself is over the drop — the
     /// floor ends somewhere between the beak and `range_m`.
     pub edge_min_m: f64,
+    /// And the floor comes back no farther than this: the floor distance
+    /// of the nearest beam above this one, in the same column, that met the
+    /// floor again — the far side of the hole. Zero when no beam of the
+    /// column saw floor beyond: the void may go on as far as it looked.
+    pub floor_beyond_m: f64,
     pub kind: DropKind,
 }
 
@@ -279,10 +284,19 @@ pub fn analyze(
                 _ => None,
             })
             .unwrap_or(0.0);
+        // Rows above look farther: the nearest of them back on the floor.
+        let floor_beyond_m = (0..row)
+            .rev()
+            .find_map(|r| match verdicts[r * COLS + col] {
+                Some(Verdict::Floor(d)) if d > range_m => Some(d),
+                _ => None,
+            })
+            .unwrap_or(0.0);
         drops.push(Drop {
             bearing,
             range_m,
             edge_min_m,
+            floor_beyond_m,
             kind,
         });
     }

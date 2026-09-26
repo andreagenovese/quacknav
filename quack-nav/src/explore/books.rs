@@ -16,6 +16,11 @@ pub(super) fn drop_reach_m() -> f64 {
     static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
     *V.get_or_init(|| knob("QK_DROP_REACH_M", DROP_REACH_M))
 }
+/// `QK_REACH_TO_FLOOR=0`: the reach behind a rim ignores where the floor
+/// comes back (see `record_drops`).
+pub(super) fn reach_to_floor() -> bool {
+    std::env::var("QK_REACH_TO_FLOOR").map(|v| v != "0").unwrap_or(true)
+}
 pub(super) fn trail_enabled() -> bool {
     std::env::var("QUACKSAT_TRAIL").map(|v| v != "0").unwrap_or(true)
 }
@@ -225,7 +230,19 @@ impl Job {
                         && wrap(o.bearing - d.bearing).abs() <= REACH_NEIGHBOUR_RAD
                         && o.range_m < d.range_m - REACH_SLOPE_M
                 });
+                // ... and never past where the same column saw the floor
+                // come back: the far side of the hole. A 0.6 m stairwell
+                // seen head-on took the reach over its far rim and booked
+                // the corridor beyond it — ten points up to 0.56 m past
+                // casa_arredata's east rim, on the way to the bathroom
+                // (2026-09-25). A drop radius short of it, so the booked
+                // disc stops at the floor.
                 let reach = if hole && head_on { drop_reach_m() } else { 0.0 };
+                let reach = if d.floor_beyond_m > 0.0 && reach_to_floor() {
+                    reach.min((d.floor_beyond_m - r - DROP_RADIUS_M).max(0.0))
+                } else {
+                    reach
+                };
                 let steps = (reach / DROP_RADIUS_M).round().max(0.0) as usize;
                 (0..=steps)
                     .map(|i| {

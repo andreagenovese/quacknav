@@ -331,6 +331,7 @@ impl PaperTwin {
                                 bearing,
                                 range_m: d,
                                 edge_min_m: prev,
+                                floor_beyond_m: 0.0,
                                 kind: DropKind::Deep,
                             });
                         }
@@ -350,10 +351,18 @@ impl PaperTwin {
                     }
                 }
                 if let Some((range_m, edge_min_m)) = edge {
+                    // The rows beyond, back on the floor: the hole's far side.
+                    let floor_beyond_m = ROW_FLOOR_M
+                        .iter()
+                        .copied()
+                        .filter(|d| *d > range_m && *d <= hit)
+                        .find(|d| !self.in_hole(self.x + d * a.cos(), self.y + d * a.sin()))
+                        .unwrap_or(0.0);
                     drops.push(Drop {
                         bearing,
                         range_m,
                         edge_min_m,
+                        floor_beyond_m,
                         kind: DropKind::Missing,
                     });
                 }

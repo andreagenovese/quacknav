@@ -2890,7 +2890,7 @@ fn the_route_is_judged_against_the_sensor_before_a_leg() {
         seq: 1,
         at: now,
         head_yaw: 0.0,
-        drops: vec![Drop { bearing: -0.3, range_m: 0.6, edge_min_m: 0.5, kind: DropKind::Missing }],
+        drops: vec![Drop { bearing: -0.3, range_m: 0.6, edge_min_m: 0.5, floor_beyond_m: 0.0, kind: DropKind::Missing }],
         obstacles: vec![Obstacle { bearing: 0.3, range_m: 0.4 }],
         floor_beams: 40,
         judged: 60,
