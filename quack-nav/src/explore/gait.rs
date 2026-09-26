@@ -643,12 +643,13 @@ impl Job {
     }
 
     /// A booked drop within [`back_no_step_m`] of the body, any bearing.
+    #[cfg(test)]
     pub(super) fn drop_at_hand(&self, pose: (f64, f64, f64)) -> bool {
         self.away_from_drop_at_hand(pose).is_some()
     }
 
-    /// With drops at hand (see [`drop_at_hand`](Self::drop_at_hand)), the
-    /// heading away from them: from their mean toward the body.
+    /// With a booked drop within [`back_no_step_m`] of the body, any
+    /// bearing, the heading away from the drops at hand: from their mean toward the body.
     pub(super) fn away_from_drop_at_hand(&self, (x, y, _): (f64, f64, f64)) -> Option<f64> {
         let near = back_no_step_m();
         let at_hand: Vec<(f64, f64)> = self.local.iter().filter(|(p, r)| *r >= DROP_RADIUS_M && dist2(*p, (x, y)) < near).map(|(p, _)| *p).collect();
