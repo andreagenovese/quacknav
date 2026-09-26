@@ -1009,9 +1009,15 @@ impl Job {
                     self.last_back = Some(now);
                     let turned = self.align(robot, away);
                     let Some(p) = robot.frame().map(|f| f.pose()) else { return false };
-                    let clear = turned && self.drop_on_motion(p, 0.3, 0.0, 1.0).is_none();
-                    let walked = clear && self.guarded_step(robot, p, &json!({"vx": 0.3, "vyaw": 0.0, "walk_s": 1.0, "stop_s": 0.0})).is_ok();
-                    tracing::info!(turned, walked, away, "map explore: a drop at hand; turned away from it and stepped on instead of stepping back");
+                    let on_way = self.drop_on_motion(p, 0.3, 0.0, 1.0);
+                    let step = if turned && on_way.is_none() {
+                        Some(self.guarded_step(robot, p, &json!({"vx": 0.3, "vyaw": 0.0, "walk_s": 1.0, "stop_s": 0.0})))
+                    } else {
+                        None
+                    };
+                    let walked = step.as_ref().is_some_and(|r| r.is_ok());
+                    let refused = step.and_then(|r| r.err());
+                    tracing::info!(turned, walked, away, on_way = ?on_way, refused = ?refused, "map explore: a drop at hand; turned away from it and stepped on instead of stepping back");
                     self.going = None;
                     return walked;
                 }
