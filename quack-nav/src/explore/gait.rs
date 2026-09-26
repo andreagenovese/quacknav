@@ -661,6 +661,25 @@ impl Job {
         Some((y - my).atan2(x - mx))
     }
 
+    /// Turn in place to `away`, then a guarded step of 1 s on, if the
+    /// books put no drop on it: what replaces a blind step back beside a
+    /// drop. True when it walked.
+    pub(super) fn turn_away_and_step(&mut self, robot: &mut dyn Body, away: f64, why: &str) -> bool {
+        let turned = self.align(robot, away);
+        let Some(p) = robot.frame().map(|f| f.pose()) else { return false };
+        let on_way = self.drop_on_motion(p, 0.3, 0.0, 1.0);
+        let step = if turned && on_way.is_none() {
+            Some(self.guarded_step(robot, p, &json!({"vx": 0.3, "vyaw": 0.0, "walk_s": 1.0, "stop_s": 0.0})))
+        } else {
+            None
+        };
+        let walked = step.as_ref().is_some_and(|r| r.is_ok());
+        let refused = step.and_then(|r| r.err());
+        tracing::info!(turned, walked, away, on_way = ?on_way, refused = ?refused, "map explore: {why}; turned away from it and stepped on instead of stepping back");
+        self.going = None;
+        walked
+    }
+
     pub(super) fn drop_on_back(&self, pose: (f64, f64, f64), side: f64, secs: f64, margin: f64) -> Option<(f64, f64)> {
         self.back_path(pose, side, secs, margin).0
     }
@@ -760,6 +779,14 @@ impl Job {
             return false;
         }
         self.rim_offs += 1;
+        // The drop ahead: not the blind step back, whose turn is not the
+        // model's (house2, 2026-09-26, see `back_no_step_m`), but a turn
+        // away from it and a watched step on.
+        if bearing.abs() <= 1.05 && back_no_step_m() > 0.0 {
+            tracing::info!(near_m = format!("{near:.2}"), bearing_deg = format!("{:.0}", bearing.to_degrees()), "map explore: a rim this near, ahead: turning away from it");
+            let _ = self.turn_away_and_step(robot, wrap(pose.2 + bearing + std::f64::consts::PI), "a rim this near");
+            return true;
+        }
         let (vx, vyaw, secs) = if bearing.abs() <= 1.05 {
             (-0.3, BACK_VYAW, 1.5)
         } else if bearing.abs() >= 2.1 {
@@ -1007,19 +1034,7 @@ impl Job {
                     // planner sent it back the same way: 24 turns in 30 s
                     // beside house2's stairwell (2026-09-26).
                     self.last_back = Some(now);
-                    let turned = self.align(robot, away);
-                    let Some(p) = robot.frame().map(|f| f.pose()) else { return false };
-                    let on_way = self.drop_on_motion(p, 0.3, 0.0, 1.0);
-                    let step = if turned && on_way.is_none() {
-                        Some(self.guarded_step(robot, p, &json!({"vx": 0.3, "vyaw": 0.0, "walk_s": 1.0, "stop_s": 0.0})))
-                    } else {
-                        None
-                    };
-                    let walked = step.as_ref().is_some_and(|r| r.is_ok());
-                    let refused = step.and_then(|r| r.err());
-                    tracing::info!(turned, walked, away, on_way = ?on_way, refused = ?refused, "map explore: a drop at hand; turned away from it and stepped on instead of stepping back");
-                    self.going = None;
-                    return walked;
+                    return self.turn_away_and_step(robot, away, "a drop at hand");
                 }
                 let allowed: &[f64] = if back_sides() { &[1.0, -1.0, 0.0] } else { &[1.0] };
                 // Near a drop and off the trail, only the shortest step
