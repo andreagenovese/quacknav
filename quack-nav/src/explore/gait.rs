@@ -1001,12 +1001,19 @@ impl Job {
             Some(f) => {
                 let pose = f.pose();
                 if let Some(away) = self.away_from_drop_at_hand(pose) {
-                    // Turn in place, the drop behind, and let the planner
-                    // speak from there: a turn is watched, a step back is not.
+                    // Turn in place, the drop behind, then a step on, away
+                    // from it: a turn and a forward leg are watched, a step
+                    // back is not. The turn alone moved nothing, and the
+                    // planner sent it back the same way: 24 turns in 30 s
+                    // beside house2's stairwell (2026-09-26).
                     self.last_back = Some(now);
-                    let ok = self.align(robot, away);
-                    tracing::info!(ok, away, "map explore: a drop at hand; turned away from it instead of stepping back");
-                    return ok;
+                    let turned = self.align(robot, away);
+                    let Some(p) = robot.frame().map(|f| f.pose()) else { return false };
+                    let clear = turned && self.drop_on_motion(p, 0.3, 0.0, 1.0).is_none();
+                    let walked = clear && self.guarded_step(robot, p, &json!({"vx": 0.3, "vyaw": 0.0, "walk_s": 1.0, "stop_s": 0.0})).is_ok();
+                    tracing::info!(turned, walked, away, "map explore: a drop at hand; turned away from it and stepped on instead of stepping back");
+                    self.going = None;
+                    return walked;
                 }
                 let allowed: &[f64] = if back_sides() { &[1.0, -1.0, 0.0] } else { &[1.0] };
                 // Near a drop and off the trail, only the shortest step
