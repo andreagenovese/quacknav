@@ -25,6 +25,7 @@
 #                 explored (MAPLOC_MODE stop_and_scan), the duck explores on
 #                 and saves it under its name at the end of the session
 #   EXPLORE_S     the budget of the exploring the homecoming starts (720)
+#   BOOT_SEARCH_S how long the homecoming stands to confirm before it searches (240)
 #   WIPE          on (default: a fresh map each boot) or off
 #   SCENE         the MuJoCo scene (default: the apartment). Other scenes may
 #                 include another robot model (scene_walk.xml does, and the duck
@@ -89,7 +90,7 @@ yaw_gain_right = 1.58
 [homecoming]
 enabled = $([ "${HOMECOMING:-off}" = on ] && echo true || echo false)
 start_delay_s = 10.0
-boot_search_s = 240.0
+boot_search_s = ${BOOT_SEARCH_S:-240}.0
 recognize_every_s = 120.0
 explore_max_s = ${EXPLORE_S:-720}.0
 resume_explore = $([ "${RESUME:-off}" = on ] && echo true || echo false)
