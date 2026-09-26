@@ -735,7 +735,10 @@ impl Job {
         if into_unknown {
             tracing::info!(at = ?(pose.0, pose.1), "map explore: the leg runs onto floor the map does not know; guarded");
         }
-        if (self.blind() || trusted) && !into_unknown && (!hole_in_view || trusted_kick) && !thing_ahead && robot.pose_trusted() {
+        // A local planner's arc was judged against what the sensor sees,
+        // along the arc itself; the straight lane ahead is not its path.
+        let local = leg.get("local").and_then(Value::as_bool).unwrap_or(false);
+        if (self.blind() || trusted) && !into_unknown && (!hole_in_view || trusted_kick) && (!thing_ahead || local) && robot.pose_trusted() {
             let vx = leg.get("vx").and_then(Value::as_f64).unwrap_or(0.0);
             let vyaw = leg.get("vyaw").and_then(Value::as_f64).unwrap_or(0.0);
             let walk_s = leg.get("walk_s").and_then(Value::as_f64).unwrap_or(1.0);
@@ -749,6 +752,7 @@ impl Job {
             // kitchen leg 272 s of it); a cube on the floor is not on
             // the map.
             if vx > 0.0
+                && !local
                 && let Some(cliff) = robot.cliff()
                 && let Some(o) = cliff.obstacle_in_lane_walking(robot.now(), 0.0, BLIND_OBSTACLE_LANE_M, GAIT_M_PER_S * walk_s + BLIND_OBSTACLE_REACH_M, Duration::from_millis(1200), 2)
                 && o.bearing.abs() <= blind_cone_rad(o.range_m)

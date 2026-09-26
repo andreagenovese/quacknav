@@ -1260,6 +1260,7 @@ mod gait;
 pub(crate) use gait::turn_in_place_on;
 mod guarded;
 mod journey;
+mod local;
 mod mapping;
 mod mode;
 mod recover;
@@ -1268,6 +1269,7 @@ use books::*;
 use gait::*;
 use guarded::*;
 use journey::*;
+use local::*;
 use mapping::*;
 use mode::*;
 use trusted::*;
@@ -2429,6 +2431,31 @@ impl Job {
                     handle.update(|s| s.refusals += 1);
                     self.refused_since_plan = true;
                     tracing::info!(at = ?(x, y, yaw), target = ?f.target, error = %e, "map explore: step refused");
+                    // The guard's lane is straight ahead; the local planner
+                    // judges the arcs themselves (see `local.rs`).
+                    if local_planner()
+                        && e.contains("sees something")
+                        && let Some((leg, arc)) = self.local_leg(&*robot, grid, pose, &f.path)
+                    {
+                        let walked = self.guarded_step(robot, pose, &leg);
+                        tracing::info!(
+                            vyaw = arc.vyaw,
+                            walk_s = arc.walk_s,
+                            progress_m = format!("{:.2}", arc.progress_m),
+                            clear_m = format!("{:.2}", arc.clear_m),
+                            ok = walked.is_ok(),
+                            refused = ?walked.as_ref().err(),
+                            "map explore: local planner's arc instead"
+                        );
+                        if walked.is_ok() {
+                            if let Some((ax, ay, _)) = robot.frame().map(|f| f.pose()) {
+                                self.walked((x, y), (ax, ay));
+                            }
+                            self.record_drops(robot);
+                            handle.update(|s| s.legs += 1);
+                            return None;
+                        }
+                    }
                     if let Some(verdict) = self.refusal(robot, grid, pose, &e) {
                         return Some(verdict);
                     }
