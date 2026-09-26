@@ -3,7 +3,10 @@ POSEERR_DT seconds (5 by default), until the sockets go.
 
 Columns: time, map x, map y, true x, true y, distance, explore state, goal,
 map yaw, true yaw (radians; the last two since 2026-09-25, so older files
-end at the goal). traj_metrics.py turns a file into ATE and RPE."""
+end at the goal), and the mapper's covariance rebuilt from map_status's
+pose_uncertainty — xx, xy, yy (m²), yaw·yaw (rad²), empty from a mapper that
+keeps none (since 2026-09-26: does the sigma the duck believes follow the
+error it has?). traj_metrics.py turns a file into ATE, RPE and NEES."""
 import json, socket, sys, time, math, os
 nav, port, out = sys.argv[1], int(sys.argv[2]), open(sys.argv[3], "a", buffering=1)
 DT = float(os.environ.get("POSEERR_DT", "5"))
@@ -22,7 +25,14 @@ while True:
             tyaw = true_yaw(body["imu"]["quat"])
             p = r.get("pose") or {}; e = r.get("explore") or {}
             if p and r.get("tracking"):
-                out.write(f"{time.time():.1f}\t{p['x']:.3f}\t{p['y']:.3f}\t{t[0]:.3f}\t{t[1]:.3f}\t{math.hypot(p['x']-t[0], p['y']-t[1]):.3f}\t{e.get('state')}\t{e.get('goal')}\t{p.get('yaw', float('nan')):.3f}\t{tyaw:.3f}\n")
+                u = r.get("pose_uncertainty") or {}
+                sig = "\t\t\t"
+                if u:
+                    a, M, m = math.radians(u["along_deg"]), u["xy_m"], u["xy_minor_m"]
+                    c, sn = math.cos(a), math.sin(a)
+                    xx, xy, yy = M*M*c*c + m*m*sn*sn, (M*M - m*m)*c*sn, M*M*sn*sn + m*m*c*c
+                    sig = f"{xx:.6f}\t{xy:.6f}\t{yy:.6f}\t{math.radians(u['yaw_deg'])**2:.6f}"
+                out.write(f"{time.time():.1f}\t{p['x']:.3f}\t{p['y']:.3f}\t{t[0]:.3f}\t{t[1]:.3f}\t{math.hypot(p['x']-t[0], p['y']-t[1]):.3f}\t{e.get('state')}\t{e.get('goal')}\t{p.get('yaw', float('nan')):.3f}\t{tyaw:.3f}\t{sig}\n")
             elif p:
                 # The pose the mapper does not vouch for, and the truth: was
                 # the candidate it would not believe the right one?

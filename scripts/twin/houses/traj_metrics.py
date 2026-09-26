@@ -35,7 +35,7 @@ def load_cov(path):
         f = line.rstrip("\n").split("\t")
         if len(f) < 6:
             continue
-        rows.append([float(v) for v in f[10:14]] if len(f) >= 14 else [math.nan] * 4)
+        rows.append([float(v) if v else math.nan for v in f[10:14]] if len(f) >= 14 else [math.nan] * 4)
     return np.array(rows, dtype=float).reshape(-1, 4)
 
 

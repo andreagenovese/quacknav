@@ -78,6 +78,16 @@ def tour(tag):
     arrived, times = 0, []
     for k, (gx, gy) in truth["goals"].items():
         r = call("robot.go_to", {"x": gx, "y": gy, "max_s": 300}); t1 = time.time()
+        # "Not sure of its position yet": a user waits for the duck to find
+        # itself before asking again; the tour did not, and one lost pose
+        # refused the rest of the round in a second (casa_arredata and
+        # house2, 2026-09-26: 5 of 6 goals each). Up to 90 s, then once more.
+        if "not sure of its position" in json.dumps(r):
+            t_lost = time.time()
+            while time.time() - t_lost < 90 and not call("robot.map_status").get("tracking"):
+                time.sleep(5)
+            say(f"  {tag} go_to {k}: the pose was not sure; waited {time.time()-t_lost:.0f} s, tracking {bool(call('robot.map_status').get('tracking'))}")
+            r = call("robot.go_to", {"x": gx, "y": gy, "max_s": 300}); t1 = time.time()
         # A refused call (lost, seated, no way) starts nothing: counted as
         # not arrived, with its reason — never read off the last journey's
         # state, which is what counted five arrivals at casa_arredata's
