@@ -144,6 +144,17 @@ pub(super) fn back_trail_only() -> bool {
     std::env::var("QUACKSAT_BACK_TRAIL_ONLY").is_ok_and(|v| v == "1")
 }
 pub(super) const BACK_DROP_NEAR_M: f64 = 0.7;
+/// No blind step back at all with a booked drop this close to the body,
+/// whatever its bearing, on the trail or not (`QK_BACK_NO_STEP_M`). The
+/// step back turns the body as it backs, and not the way nor by how much
+/// the model has it: at house2's stairwell a step back from a rim point
+/// 0.15 m ahead (the map had it 0.25 m) turned the body 1 rad clockwise
+/// and the nose went over the hole (2026-09-26). Judging the model's path
+/// with the whole body, turned either way, would have caught it too, but
+/// cost the paper twin's journey 2 arrivals in 30; this rule costs none.
+pub(super) fn back_no_step_m() -> f64 {
+    knob("QK_BACK_NO_STEP_M", 0.30)
+}
 /// `QUACKSAT_BACK_SIDES=1`: a step back with a chosen side (off until
 /// measured alone on MuJoCo, see `passage_sensor`).
 pub(super) fn back_sides() -> bool {
@@ -631,6 +642,24 @@ impl Job {
         (None, samples)
     }
 
+    /// A booked drop within [`back_no_step_m`] of the body, any bearing.
+    pub(super) fn drop_at_hand(&self, pose: (f64, f64, f64)) -> bool {
+        self.away_from_drop_at_hand(pose).is_some()
+    }
+
+    /// With drops at hand (see [`drop_at_hand`](Self::drop_at_hand)), the
+    /// heading away from them: from their mean toward the body.
+    pub(super) fn away_from_drop_at_hand(&self, (x, y, _): (f64, f64, f64)) -> Option<f64> {
+        let near = back_no_step_m();
+        let at_hand: Vec<(f64, f64)> = self.local.iter().filter(|(p, r)| *r >= DROP_RADIUS_M && dist2(*p, (x, y)) < near).map(|(p, _)| *p).collect();
+        if at_hand.is_empty() {
+            return None;
+        }
+        let n = at_hand.len() as f64;
+        let (mx, my) = at_hand.iter().fold((0.0, 0.0), |a, p| (a.0 + p.0 / n, a.1 + p.1 / n));
+        Some((y - my).atan2(x - mx))
+    }
+
     pub(super) fn drop_on_back(&self, pose: (f64, f64, f64), side: f64, secs: f64, margin: f64) -> Option<(f64, f64)> {
         self.back_path(pose, side, secs, margin).0
     }
@@ -970,6 +999,14 @@ impl Job {
         let (side, secs) = match robot.frame() {
             Some(f) => {
                 let pose = f.pose();
+                if let Some(away) = self.away_from_drop_at_hand(pose) {
+                    // Turn in place, the drop behind, and let the planner
+                    // speak from there: a turn is watched, a step back is not.
+                    self.last_back = Some(now);
+                    let ok = self.align(robot, away);
+                    tracing::info!(ok, away, "map explore: a drop at hand; turned away from it instead of stepping back");
+                    return ok;
+                }
                 let allowed: &[f64] = if back_sides() { &[1.0, -1.0, 0.0] } else { &[1.0] };
                 // Near a drop and off the trail, only the shortest step
                 // back, with the drop ahead (see `drop_beside`).

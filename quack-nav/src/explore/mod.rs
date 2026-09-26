@@ -2978,6 +2978,32 @@ fn the_short_way_is_kept_twice_then_the_long_one_believed() {
     assert!(!keep_the_short_way(None, 3.5, Some(2.6), 0));
 }
 
+/// The step back at house2's stairwell that fell (2026-09-26): the body at
+/// the hole's north-east corner, nose to the rim, the rim ahead. The
+/// model's path backs away from it and passed; the body turned the other
+/// way than the model has it and the nose swung over the hole. With the
+/// rim at hand, no blind step back — at the true pose and at the map's.
+#[test]
+fn no_blind_step_back_with_a_drop_at_hand() {
+    // The stairwell's rim, x -0.4..0, y -1.4..-0.7, a point every 10 cm.
+    let mut rim = Vec::new();
+    for i in 0..=4 {
+        let x = -0.4 + 0.1 * f64::from(i);
+        rim.push((x, -0.7));
+        rim.push((x, -1.4));
+    }
+    for i in 1..7 {
+        let y = -1.4 + 0.1 * f64::from(i);
+        rim.push((-0.4, y));
+        rim.push((0.0, y));
+    }
+    let job = Job::to_goal((-3.44, -2.6), 300.0, -1.0, std::time::Instant::now()).with_books(rim);
+    assert!(job.drop_on_back((-0.01, -0.46, -1.30), 1.0, 1.5, DROP_PATH_MARGIN_M).is_none(), "the model's path is clear");
+    assert!(job.drop_at_hand((-0.06, -0.56, -1.11)), "the truth");
+    assert!(job.drop_at_hand((-0.01, -0.46, -1.30)), "the map");
+    assert!(!job.drop_at_hand((0.3, -0.2, -1.30)));
+}
+
 /// The boot's search is no house's map: it has no name, its books are its
 /// own, and it stays so until a saved map is adopted — the one thing that
 /// ends it (casa_arredata, 2026-09-26: the search saved over the house).
