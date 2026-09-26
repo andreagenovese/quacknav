@@ -305,6 +305,9 @@ const JUMP_SLACK_M: f64 = 0.35;
 /// An untrusted pose walks on (guarded) only farther than this from every
 /// drop on the books — see the stable-untrusted rule in `Job::run`.
 const UNTRUSTED_DROP_NEAR_M: f64 = 1.0;
+/// No revisit to close a loop starts nearer a booked drop than this
+/// (`QK_ANCHOR_DROP_M`, 0 for the old timing).
+const ANCHOR_NOT_NEAR_DROP_DEFAULT_M: f64 = 1.0;
 /// Stands in a row whose poses agree within [`SETTLED_M`] before a moved
 /// map is trusted again.
 const SETTLE_STANDS: u32 = 2;
@@ -1589,7 +1592,15 @@ impl Job {
                 let due = self
                     .anchored_at
                     .is_none_or(|t| (robot.now() - t).as_secs_f64() >= ANCHOR_EVERY_S);
-                if self.anchor.is_none() && due {
+                // Not beside a drop: a revisit there turns the duck round in
+                // the mouth of the passage it is entering. casa_arredata
+                // (2026-09-26): aimed down the 0.49 m passage by the
+                // stairwell, the timer sent it 116° back to an old place,
+                // and it came back facing the end of the wall at 10 cm —
+                // stuck there, the bathroom never reached in four sessions.
+                // The revisit waits until the duck is clear of the rims.
+                let beside_a_drop = self.drop_within(knob("QK_ANCHOR_DROP_M", ANCHOR_NOT_NEAR_DROP_DEFAULT_M));
+                if self.anchor.is_none() && due && !beside_a_drop {
                     if let Some(p) = self.anchor_target((x, y)) {
                         tracing::info!(at = ?(x, y), back_to = ?p, "map explore: going back to close a loop");
                         self.anchor = Some(p);
