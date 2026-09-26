@@ -126,6 +126,9 @@ fn run(robot: &Arc<Mutex<Robot>>, cfg: &HomecomingConfig) {
             tracing::warn!(error = %e, "homecoming: cannot start a fresh map; giving up");
             return;
         }
+        // The fresh map is a search, not the house: nothing of it is saved
+        // or declared under the house's name until the saved map is adopted.
+        robot.lock().expect("robot poisoned").places.explore.map_searching();
         // The map lane learns of the wipe from the next map frame, a
         // second later. Asking to explore before then is refused for a
         // pose that no longer exists — the frame in hand is the one from
@@ -136,7 +139,10 @@ fn run(robot: &Arc<Mutex<Robot>>, cfg: &HomecomingConfig) {
     }
 
     // Explore, and ask the map-to-map question as the map grows.
-    if let Err(e) = start_exploring(robot, cfg.explore_max_s) {
+    // A search, not a session: nothing of this fresh map is saved under the
+    // house's name — adopting the saved map stops it, and a session would
+    // save the six minutes over the house.
+    if let Err(e) = start_exploring(robot, cfg.explore_max_s, false) {
         tracing::warn!(error = %e, "homecoming: cannot start exploring");
         return;
     }
@@ -313,7 +319,7 @@ fn adopt(robot: &Arc<Mutex<Robot>>, name: &str, x: f64, y: f64, yaw: f64, max_s:
     if !confirmed_within(robot, 60.0) {
         tracing::warn!("homecoming: the adopted place is still unconfirmed; exploring anyway");
     }
-    if let Err(e) = start_exploring(robot, max_s) {
+    if let Err(e) = start_exploring(robot, max_s, true) {
         tracing::warn!(error = %e, "homecoming: cannot pick exploring back up after adopting");
     }
 }
@@ -366,10 +372,10 @@ fn resume_exploring(robot: &Arc<Mutex<Robot>>, cfg: &HomecomingConfig, name: &st
     tracing::warn!(map = name, error = last, "homecoming: could not explore on");
 }
 
-fn start_exploring(robot: &Arc<Mutex<Robot>>, max_s: f64) -> Result<(), String> {
+fn start_exploring(robot: &Arc<Mutex<Robot>>, max_s: f64, session: bool) -> Result<(), String> {
     let mut last = String::new();
     for _ in 0..10 {
-        match call(robot, "robot.map_explore", &json!({"max_s": max_s})) {
+        match call(robot, "robot.map_explore", &json!({"max_s": max_s, "session": session})) {
             // `map_explore` answers `running: true` when a job is already
             // going, which is not the same as having started one.
             Ok(answer) if answer.get("started").is_some() => return Ok(()),

@@ -527,6 +527,10 @@ pub struct ExploreHandle {
 struct Ground {
     path: Option<std::path::PathBuf>,
     map: Option<String>,
+    /// The live map is the boot's search on a fresh map, not the house:
+    /// nothing is saved or declared under the house's name until a saved
+    /// map is adopted (see [`ExploreHandle::map_searching`]).
+    searching: bool,
 }
 
 impl ExploreHandle {
@@ -579,6 +583,29 @@ impl ExploreHandle {
         self.ground.lock().expect("ground poisoned").map.clone()
     }
 
+    /// The boot could not find itself on the saved map and wiped the live
+    /// one to search from nothing: the live map is no house's until a saved
+    /// map is adopted (`map_named`). Its books and trail are the search's;
+    /// the saved map's stay on disk.
+    pub fn map_searching(&self) {
+        {
+            let mut g = self.ground.lock().expect("ground poisoned");
+            g.map = None;
+            g.searching = true;
+        }
+        let mut s = self.status.lock().expect("explore status poisoned");
+        s.local.clear();
+        s.trail.clear();
+        s.lanes.clear();
+        s.progress = None;
+        s.blind = false;
+    }
+
+    /// Whether the live map is the boot's search (see `map_searching`).
+    pub fn searching(&self) -> bool {
+        self.ground.lock().expect("ground poisoned").searching
+    }
+
     /// A new exploration of `name` from nothing (`robot.map_explore`
     /// `fresh`): the books, the trail and the progress go; the saved map
     /// and its book stay on disk until the new session saves over them.
@@ -586,7 +613,11 @@ impl ExploreHandle {
         let mut file = self.ground_file();
         file.remove(&format!("{name}.progress"));
         self.write_ground_file(file);
-        self.ground.lock().expect("ground poisoned").map = None;
+        {
+            let mut g = self.ground.lock().expect("ground poisoned");
+            g.map = None;
+            g.searching = false;
+        }
         let mut s = self.status.lock().expect("explore status poisoned");
         s.local.clear();
         s.trail.clear();
@@ -639,7 +670,11 @@ impl ExploreHandle {
                     .collect()
             })
             .unwrap_or_default();
-        self.ground.lock().expect("ground poisoned").map = Some(name.to_string());
+        {
+            let mut g = self.ground.lock().expect("ground poisoned");
+            g.map = Some(name.to_string());
+            g.searching = false;
+        }
         let mut s = self.status.lock().expect("explore status poisoned");
         tracing::info!(map = name, drops = drops.len(), lanes = lanes.len(), "map explore: the ground book for this map is on the books");
         s.local = drops;
@@ -2921,6 +2956,27 @@ fn the_short_way_is_kept_twice_then_the_long_one_believed() {
     // The first plan of a journey: the squeezed route is the yardstick.
     assert!(keep_the_short_way(None, 9.6, Some(2.6), 0));
     assert!(!keep_the_short_way(None, 3.5, Some(2.6), 0));
+}
+
+/// The boot's search is no house's map: it has no name, its books are its
+/// own, and it stays so until a saved map is adopted — the one thing that
+/// ends it (casa_arredata, 2026-09-26: the search saved over the house).
+#[test]
+fn the_boots_search_is_no_houses_map_until_one_is_adopted() {
+    let dir = std::env::temp_dir().join(format!("quacksat-search-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    let h = ExploreHandle::new().with_ground(dir.join("places.json").to_str().unwrap());
+    h.map_named("house");
+    h.update(|s| s.local = vec![((1.0, 1.0), DROP_RADIUS_M)]);
+    assert!(!h.searching());
+    h.map_searching();
+    assert!(h.searching());
+    assert_eq!(h.map_name(), None, "the search has no name to save under");
+    assert!(h.status().local.is_empty(), "the house's books are not the search's");
+    h.map_named("house");
+    assert!(!h.searching());
+    assert_eq!(h.map_name().as_deref(), Some("house"));
+    let _ = std::fs::remove_dir_all(&dir);
 }
 
 #[test]

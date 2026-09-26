@@ -1007,7 +1007,16 @@ pub fn execute(name: &str, args: &Value, robot: &mut Robot) -> Result<Value, Str
         ),
         "robot.map_adopt" => {
             let name = map_name(args)?;
-            let adopted = map_library(&robot.places.map_socket, "robot.map_adopt", Some(name.clone()))?;
+            // The place in the saved map goes with the name: the map
+            // lane's `robot.map_adopt` reads all four, and with the name
+            // alone it refused every adoption as a bad name — the boot's
+            // map-to-map way home never adopted once on quack-navd's own
+            // mapper (casa_arredata, 2026-09-26).
+            let mut params = name.clone();
+            for k in ["x", "y", "yaw"] {
+                params[k] = json!(args.get(k).and_then(Value::as_f64).ok_or_else(|| format!("robot.map_adopt needs `{k}`"))?);
+            }
+            let adopted = map_library(&robot.places.map_socket, "robot.map_adopt", Some(params))?;
             if let Some(n) = name.get("name").and_then(Value::as_str) {
                 robot.places.explore.map_named(n);
             }
@@ -1199,7 +1208,12 @@ fn map_explore(robot: &mut Robot, args: &Value) -> Result<Value, String> {
     // new one, not what was read before the wipe.
     let progress = robot.places.explore.status().progress;
     let frame = map.snapshot().latest.clone().unwrap_or(frame);
-    let session = Some(crate::explore::Session {
+    // `session: false`: an exploration that is not a session of the
+    // house's map — the boot's search on a fresh map, which must never be
+    // saved over the map it is looking for (casa_arredata, 2026-09-26: the
+    // search's six minutes replaced four sessions of the house when the
+    // adoption stopped it).
+    let session = (args.get("session").and_then(Value::as_bool) != Some(false)).then(|| crate::explore::Session {
         save_as: name.clone(),
         battery_min_pct: args.get("battery_min_pct").and_then(Value::as_f64).unwrap_or(25.0),
     });
@@ -1230,6 +1244,14 @@ fn map_explore(robot: &mut Robot, args: &Value) -> Result<Value, String> {
 /// Refused while the duck does not know where it is: the mapper will not
 /// save a map on a guessed pose.
 fn map_explore_complete(robot: &mut Robot, args: &Value) -> Result<Value, String> {
+    // The live map is the boot's search, not the house: closing it would
+    // save six minutes of search over the saved map and freeze them there
+    // (casa_arredata, 2026-09-26).
+    if robot.places.explore.searching() {
+        return Err("the duck has not found itself on the saved map yet — the map in hand is a search, not the house: \
+                    nothing to declare complete; wait for the homecoming (robot.map_status) and ask again"
+            .into());
+    }
     if robot.places.explore.running() {
         robot.places.explore.request_stop();
         // The session saves itself as it ends (a stand, a leg, the save:
