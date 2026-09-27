@@ -39,6 +39,10 @@ pub(super) const LOOK_FIRST_M: f64 = 0.5;
 /// The stand that looks both ways: past the sweep's right extreme (a 6 s
 /// triangle from the centre, left at 1.5 s, right at 4.5 s).
 const LOOK_STAND_S: f64 = 5.0;
+/// ... not again within this of the last, nor this soon: once a spot, 3 cm
+/// wide, looked 50 times in a round beside the stairwell, 250 s of it.
+const LOOK_AGAIN_M: f64 = 0.15;
+const LOOK_AGAIN: Duration = Duration::from_secs(30);
 
 #[derive(Debug, Default)]
 pub(super) struct RimMemory {
@@ -51,7 +55,7 @@ pub(super) struct RimMemory {
     walked: f64,
     at: Option<(f64, f64)>,
     /// Where the last look both ways was taken (odometry).
-    looked_at: Option<(f64, f64)>,
+    looked_at: Option<((f64, f64), Instant)>,
 }
 
 /// Odometry's pose, if robotd gives it.
@@ -184,13 +188,14 @@ impl Job {
             return;
         }
         let Some((ox, oy, _)) = odom(&*robot) else { return };
-        if self.rim_memory.borrow().looked_at.is_some_and(|p| dist2(p, (ox, oy)) < 0.03) {
+        let now = robot.now();
+        if self.rim_memory.borrow().looked_at.is_some_and(|(p, t)| dist2(p, (ox, oy)) < LOOK_AGAIN_M && now.duration_since(t) < LOOK_AGAIN) {
             return;
         }
         tracing::info!(booked_m = format!("{booked:.2}"), "map explore: a drop near: looking both ways before turning");
         let _ = stand(robot, LOOK_STAND_S);
         let mut m = self.rim_memory.borrow_mut();
         m.absorb(&*robot);
-        m.looked_at = Some((ox, oy));
+        m.looked_at = Some(((ox, oy), now));
     }
 }
