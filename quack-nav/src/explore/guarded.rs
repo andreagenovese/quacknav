@@ -253,6 +253,28 @@ pub(super) const ROUTE_EDGE_M: f64 = 0.05;
 /// level has said its piece; the leg guard decides.
 pub(super) const ROUTE_REPEAT_MAX: u32 = 2;
 
+/// Whether a point the sensor sees, `along` the passage's axis and `lat`
+/// off it, bounds the passage as a side: beside the body (within
+/// [`SIDE_ALONG_M`] ahead), or ahead but off the line by [`SIDE_LAT_MIN_M`].
+/// A thing on the line ahead is not a side but what the route must avoid,
+/// and the guard's: counted as one, the stairwell's rim 0.5 m ahead read
+/// as "right 0.0" and every passage as 6 cm wide (paper twin, 2026-09-27:
+/// go_to 3/30 with `QUACKSAT_PASSAGE_SENSOR=2`, 26/30 without).
+/// Nor is one straight ahead of the nose however near: the rim 0.3 m
+/// ahead and 7 mm off the axis read as a side 7 mm away, and the duck,
+/// facing the hole, gave the goal up as "a passage narrower than the body".
+pub(super) fn sensed_side(along: f64, lat: f64) -> bool {
+    lat.abs() >= SIDE_LAT_NEAR_M && (along <= SIDE_ALONG_M || lat.abs() >= SIDE_LAT_MIN_M)
+}
+pub(super) const SIDE_LAT_NEAR_M: f64 = 0.08;
+pub(super) const SIDE_ALONG_M: f64 = 0.35;
+/// `QK_PASSAGE_BOOK=0`: the sensor's rim beside the body is not put on
+/// the books by the passage law (measuring).
+pub(super) fn passage_books_rim() -> bool {
+    switch("QK_PASSAGE_BOOK").unwrap_or(true)
+}
+pub(super) const SIDE_LAT_MIN_M: f64 = 0.15;
+
 pub(super) fn passage_law() -> bool {
     static V: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
     *V.get_or_init(|| switch("QK_PASSAGE_LAW").unwrap_or(true))
@@ -511,6 +533,19 @@ impl Job {
         // coordinates and move with the pose error (10–30 cm in run 73);
         // the passage is 0.54 m wide and the guard's lane leaves 5 cm.
         let mut sensed_drop_near = f64::INFINITY;
+        // An axis that runs into a booked drop — a side at nothing, the
+        // hole on the line — is no passage, whatever the sensor adds: the
+        // map's reading ends in "too narrow" and the ordinary leg; with the
+        // sensor's rim beside it the same spot read as a passage too
+        // narrow to walk and the journey was given up (paper twin seed 1,
+        // 2026-09-27, facing the stairwell 0.35 m from its north rim).
+        // With the sensor's sides only: on the map's alone the same rule
+        // gave the paper twin's explore 40.0 % (36.6) and its go_to 23/30
+        // (26), 18/30 (25) at a 0.15 m bias along the passage.
+        if passage_sensor() && (left <= 0.0 || right <= 0.0) {
+            tracing::debug!(left, right, axis = h, "map explore: passage: the axis runs into a drop; not a passage");
+            return None;
+        }
         if passage_sensor() && let Some(cliff) = robot.cliff() {
             let now = robot.now();
             let (mut s_left, mut s_right) = (f64::INFINITY, f64::INFINITY);
@@ -520,7 +555,7 @@ impl Job {
                 for o in &f.obstacles {
                     let a = yaw + o.bearing - h;
                     let (along, lat) = (o.range_m * a.cos(), o.range_m * a.sin());
-                    if !(-0.2..=0.8).contains(&along) || lat.abs() > 0.6 {
+                    if !(-0.2..=0.8).contains(&along) || lat.abs() > 0.6 || !sensed_side(along, lat) {
                         continue;
                     }
                     if lat > 0.0 { s_left = s_left.min(lat) } else { s_right = s_right.min(-lat) }
@@ -529,7 +564,7 @@ impl Job {
                     let a = yaw + d.bearing - h;
                     let r = d.edge_min_m.max(0.15);
                     let (along, lat) = (r * a.cos(), r * a.sin());
-                    if !(-0.2..=0.8).contains(&along) || lat.abs() > 0.6 {
+                    if !(-0.2..=0.8).contains(&along) || lat.abs() > 0.6 || !sensed_side(along, lat) {
                         continue;
                     }
                     let free = lat.abs();
@@ -538,7 +573,7 @@ impl Job {
                         s_drop_side = lat.signum();
                     }
                     if lat > 0.0 { s_left = s_left.min(free) } else { s_right = s_right.min(free) }
-                    if free < RIM_BOOK_M {
+                    if free < RIM_BOOK_M && passage_books_rim() {
                         let b = yaw + d.bearing;
                         rims.push((x + r * b.cos(), y + r * b.sin()));
                     }
