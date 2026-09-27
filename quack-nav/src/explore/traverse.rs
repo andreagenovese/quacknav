@@ -87,7 +87,7 @@ pub(super) enum Step {
     /// No rim beside or ahead: the passage is behind (or was never here).
     Clear,
     /// Wall and rim closer than [`MIN_WIDTH_M`].
-    Narrow { width_m: f64 },
+    Narrow { width_m: f64, rim_m: f64, wall_m: f64 },
     /// No arc keeps the rim's clearance.
     Blocked,
 }
@@ -154,7 +154,7 @@ pub(super) fn plan_step(rim: &[(f64, f64)], wall: &[(f64, f64)], axis: f64, drop
         .map(|(_, v)| v.abs())
         .fold(f64::INFINITY, f64::min);
     if wall_m.is_finite() && rim_m + wall_m < MIN_WIDTH_M {
-        return Step::Narrow { width_m: rim_m + wall_m };
+        return Step::Narrow { width_m: rim_m + wall_m, rim_m, wall_m };
     }
     // How far toward the rim's side to move: to the middle, never nearer
     // the rim than its clearance and a margin; without a wall, to the
@@ -221,9 +221,18 @@ impl Job {
         let world = |b: f64, r: f64| (x + r * (yaw + b).cos(), y + r * (yaw + b).sin());
         for f in cliff.recent.iter().filter(|f| now.duration_since(f.at) <= SEEN_WITHIN && !f.moving) {
             for d in &f.drops {
+                // A wall's foot — an obstacle at the drop's bearing and
+                // range — is no hole (see `CliffStatus::nearest_hole_m`).
+                if f.obstacles.iter().any(|o| wrap(o.bearing - d.bearing).abs() < 0.2 && (o.range_m - d.range_m).abs() < 0.25) {
+                    continue;
+                }
                 // The rim lies between the last floor row and the first
-                // that missed it: the near one, to be safe.
-                let r = d.edge_min_m.max(0.10);
+                // that missed it: the near one, to be safe — and with the
+                // bottom row itself over the hole (`edge_min_m` zero), a
+                // beam's spacing short of it. Read as 0.10 m, those put the
+                // rim at the beak: the east passage, 0.6 m, read 0.13 m
+                // wide (MuJoCo, 2026-09-27).
+                let r = if d.edge_min_m > 0.0 { d.edge_min_m } else { (d.range_m - crate::cliff::EDGE_UNKNOWN_M).max(0.10) };
                 if r <= 1.0 {
                     seen.rim.push(world(d.bearing, r));
                 }
@@ -266,7 +275,9 @@ impl Job {
                 }
                 Step::Clear if walked == 0 && step <= 1 => return TraverseEnd::NotHere,
                 Step::Clear => return TraverseEnd::Through { steps: walked },
-                Step::Narrow { width_m } => return TraverseEnd::NoWay { why: format!("the passage as sensed is {width_m:.2} m, wall to rim") },
+                Step::Narrow { width_m, rim_m, wall_m } => {
+                    return TraverseEnd::NoWay { why: format!("the passage as sensed is {width_m:.2} m, wall to rim ({wall_m:.2} + {rim_m:.2})") };
+                }
                 // No arc now is not a narrow passage: plan again from here.
                 // As a narrow one it widened the rim for the planner and the
                 // route went (paper twin, 2026-09-27: 18 of them, 6 goals).

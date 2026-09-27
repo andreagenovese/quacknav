@@ -54,7 +54,7 @@ pub const MIN_BEAMS: usize = 2;
 /// Where the bottom row itself is over a drop the edge is somewhere
 /// between the beak and that beam's floor distance; taken this much short
 /// of it (about a row's spacing on the floor).
-const EDGE_UNKNOWN_M: f64 = 0.10;
+pub(crate) const EDGE_UNKNOWN_M: f64 = 0.10;
 pub const MEMORY: Duration = Duration::from_secs(3);
 /// How long frames are kept at all — a head sweep and a little, for the
 /// readers that need both sides of the body.
