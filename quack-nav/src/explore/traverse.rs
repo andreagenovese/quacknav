@@ -65,6 +65,11 @@ const BESIDE_LAT_M: f64 = 0.12;
 /// Obstacles nearer the body than this are its own legs, seen with the
 /// head turned ("a wall 0.06 m away", MuJoCo, 2026-09-27).
 const OWN_BODY_M: f64 = 0.15;
+/// ... and in the box ahead of the trunk its front feet stand in: on
+/// MuJoCo an "obstacle" at body (0.14–0.15, ±0.05) at every stand,
+/// wherever the body was, blocked every arc (house2, 2026-09-27).
+const OWN_AHEAD_M: f64 = 0.20;
+const OWN_SIDE_M: f64 = 0.10;
 /// The heading held off the axis, at most.
 const HEADING_MAX_RAD: f64 = 0.35;
 /// Frames a stand must give before a rim point needs another's vote.
@@ -279,7 +284,9 @@ impl Job {
                 }
             }
             for o in &f.obstacles {
-                if o.range_m <= 1.0 && o.range_m >= OWN_BODY_M {
+                let (bx, by) = (o.range_m * o.bearing.cos(), o.range_m * o.bearing.sin());
+                let own = o.range_m < OWN_BODY_M || (bx < OWN_AHEAD_M && by.abs() < OWN_SIDE_M);
+                if o.range_m <= 1.0 && !own {
                     seen.wall.push(world(o.bearing, o.range_m));
                 }
             }
