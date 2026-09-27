@@ -67,6 +67,10 @@ const BESIDE_LAT_M: f64 = 0.12;
 const OWN_BODY_M: f64 = 0.15;
 /// The heading held off the axis, at most.
 const HEADING_MAX_RAD: f64 = 0.35;
+/// Frames a stand must give before a rim point needs another's vote.
+const VOTE_FRAMES: usize = 6;
+/// Two frames' rim points this near are the same rim.
+const RIM_VOTE_M: f64 = 0.06;
 /// A step that moved the body less than this did not walk.
 const STALL_M: f64 = 0.03;
 /// A traverse that ended without getting through is not tried again
@@ -80,8 +84,31 @@ const TURN_FIRST_RAD: f64 = 0.8;
 /// What the traverse keeps: points in the map's frame.
 #[derive(Debug, Default, Clone)]
 pub(super) struct Seen {
-    pub rim: Vec<(f64, f64)>,
+    /// Rim points, with the frame that saw each.
+    pub rim: Vec<((f64, f64), u64)>,
     pub wall: Vec<(f64, f64)>,
+    /// Frames the last stand gave.
+    pub stand_frames: usize,
+}
+
+impl Seen {
+    /// The rim points another frame confirms within [`RIM_VOTE_M`]: one
+    /// frame's drop is not a hole (the books ask two as well). One frame's
+    /// "rim" 0.3 m off the true one, 0.2 m from the body, made the east
+    /// passage read 0.27 m (MuJoCo, 2026-09-27).
+    /// With fewer than [`VOTE_FRAMES`] frames there is nothing to vote with
+    /// and every point stands (the paper twin's stand is three frames; the
+    /// duck's 5 s stand, some seventy).
+    pub fn voted_rim(&self) -> Vec<(f64, f64)> {
+        if self.stand_frames < VOTE_FRAMES {
+            return self.rim.iter().map(|(p, _)| *p).collect();
+        }
+        self.rim
+            .iter()
+            .filter(|(p, seq)| self.rim.iter().any(|(q, s2)| s2 != seq && dist2(*p, *q) < RIM_VOTE_M))
+            .map(|(p, _)| *p)
+            .collect()
+    }
 }
 
 /// One step's decision, in the body's frame (x ahead, y left).
@@ -149,23 +176,25 @@ pub(super) fn plan_step(rim: &[(f64, f64)], wall: &[(f64, f64)], axis: f64, drop
     // the passage bends at the hole's corner, not its width (MuJoCo,
     // 2026-09-27: "wall to rim 0.20 + 0.00"). It still bounds the arcs.
     let beside = |u: f64, v: f64| u <= BESIDE_ALONG_M || v.abs() >= BESIDE_LAT_M;
-    let rim_m = rim
-        .iter()
-        .map(uv)
-        .filter(|(u, v)| in_stretch(*u) && v * drop_side > 0.0 && beside(*u, *v))
-        .map(|(_, v)| v.abs())
-        .fold(f64::INFINITY, f64::min);
-    if !rim_m.is_finite() {
+    let on_side: Vec<(f64, f64)> = rim.iter().map(uv).filter(|(u, v)| in_stretch(*u) && v * drop_side > 0.0).collect();
+    if on_side.is_empty() {
         return Step::Clear;
     }
+    // The width is read beside the body: a rim point ahead on the line is
+    // where the passage bends at the hole's corner (MuJoCo, 2026-09-27:
+    // "wall to rim 0.20 + 0.00"). It still says the passage goes on — read
+    // as none, the traverse ended early and the paper twin at a 0.18 m
+    // bias fell from 23 to 3 of 30 — steers, and bounds the arcs.
+    let rim_beside = on_side.iter().filter(|(u, v)| beside(*u, *v)).map(|(_, v)| v.abs()).fold(f64::INFINITY, f64::min);
+    let rim_m = if rim_beside.is_finite() { rim_beside } else { on_side.iter().map(|(_, v)| v.abs()).fold(f64::INFINITY, f64::min) };
     let wall_m = wall
         .iter()
         .map(uv)
         .filter(|(u, v)| in_stretch(*u) && v * drop_side < -0.05 && beside(*u, *v))
         .map(|(_, v)| v.abs())
         .fold(f64::INFINITY, f64::min);
-    if wall_m.is_finite() && rim_m + wall_m < MIN_WIDTH_M {
-        return Step::Narrow { width_m: rim_m + wall_m, rim_m, wall_m };
+    if rim_beside.is_finite() && wall_m.is_finite() && rim_beside + wall_m < MIN_WIDTH_M {
+        return Step::Narrow { width_m: rim_beside + wall_m, rim_m: rim_beside, wall_m };
     }
     // How far toward the rim's side to move: to the middle, never nearer
     // the rim than its clearance and a margin; without a wall, to the
@@ -230,6 +259,7 @@ impl Job {
         let Some(cliff) = robot.cliff() else { return };
         let now = robot.now();
         let world = |b: f64, r: f64| (x + r * (yaw + b).cos(), y + r * (yaw + b).sin());
+        seen.stand_frames = cliff.recent.iter().filter(|f| now.duration_since(f.at) <= SEEN_WITHIN && !f.moving).count();
         for f in cliff.recent.iter().filter(|f| now.duration_since(f.at) <= SEEN_WITHIN && !f.moving) {
             for d in &f.drops {
                 // A wall's foot — an obstacle at the drop's bearing and
@@ -245,7 +275,7 @@ impl Job {
                 // wide (MuJoCo, 2026-09-27).
                 let r = if d.edge_min_m > 0.0 { d.edge_min_m } else { (d.range_m - crate::cliff::EDGE_UNKNOWN_M).max(0.10) };
                 if r <= 1.0 {
-                    seen.rim.push(world(d.bearing, r));
+                    seen.rim.push((world(d.bearing, r), f.seq));
                 }
             }
             for o in &f.obstacles {
@@ -269,7 +299,8 @@ impl Job {
                 return TraverseEnd::Refused { why: "no pose".into() };
             };
             self.look(&*robot, pose, &mut seen);
-            let (rim, wall) = (to_body(&seen.rim, pose), to_body(&seen.wall, pose));
+            let voted = seen.voted_rim();
+            let (rim, wall) = (to_body(&voted, pose), to_body(&seen.wall, pose));
             let plan = plan_step(&rim, &wall, wrap(axis - pose.2), drop_side);
             if matches!(plan, Step::Narrow { .. } | Step::Blocked) {
                 // What made it narrow: the nearest points of each kind, in
@@ -280,7 +311,7 @@ impl Job {
                     v.truncate(3);
                     v.iter().map(|(b, m)| format!("body({:.2},{:.2}) map({:.2},{:.2})", b.0, b.1, m.0, m.1)).collect::<Vec<_>>().join(" ")
                 };
-                tracing::info!(walls = %near3(&wall, &seen.wall), rims = %near3(&rim, &seen.rim), drop_side, "map explore: traverse: what is near");
+                tracing::info!(walls = %near3(&wall, &seen.wall), rims = %near3(&rim, &voted), drop_side, "map explore: traverse: what is near");
             }
             tracing::info!(step, at = ?pose, rim_points = rim.len(), wall_points = wall.len(), plan = ?plan, "map explore: traverse");
             match plan {
