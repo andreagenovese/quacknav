@@ -1079,6 +1079,8 @@ pub struct Job {
     sealed: Vec<(f64, f64)>,
     /// The drop that last refused a leg from the books (`guarded_step`).
     books_refusal: std::cell::Cell<Option<(f64, f64)>>,
+    /// The rim the sensor saw at the stands, kept (see `rimmem.rs`).
+    rim_memory: std::cell::RefCell<RimMemory>,
     refused_cleared: bool,
     /// Where the refused list was last cleared: it is cleared again only
     /// once the body has moved [`REARM_DIST_M`] from there.
@@ -1269,6 +1271,7 @@ mod mapping;
 mod traverse;
 mod mode;
 mod recover;
+mod rimmem;
 mod trusted;
 use books::*;
 use gait::*;
@@ -1276,6 +1279,7 @@ use guarded::*;
 use journey::*;
 use mapping::*;
 use mode::*;
+use rimmem::*;
 use traverse::*;
 use trusted::*;
 
@@ -1292,6 +1296,7 @@ impl Job {
             widened: Vec::new(),
             sealed: Vec::new(),
             books_refusal: std::cell::Cell::new(None),
+            rim_memory: std::cell::RefCell::new(RimMemory::default()),
             goal: None,
             refused_cleared: false,
             refused_cleared_at: None,

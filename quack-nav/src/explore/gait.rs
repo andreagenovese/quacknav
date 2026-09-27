@@ -250,6 +250,9 @@ impl Job {
         }
         let yaw_now = |robot: &dyn Body| robot.cliff().and_then(|c| c.odom_yaw).or_else(|| robot.frame().map(|f| f.yaw));
         let yaw0 = yaw_now(robot)?;
+        // Near a booked drop, look both ways first: the rim beside the body
+        // is where the sweep of a short stand does not reach.
+        self.look_both_ways(robot);
         // The legs swing while the body turns: nowhere near a drop, on any
         // side. Beside the stairwell's rim an alignment turned in place
         // 9 cm from the edge and the duck went in (twin, 2026-09-23); the
@@ -295,7 +298,8 @@ impl Job {
                 .fold(f64::INFINITY, f64::min)
         });
         let seen = robot.cliff().and_then(|c| c.nearest_hole_m(robot.now())).unwrap_or(f64::INFINITY);
-        let near = booked.min(seen);
+        let kept = self.kept_rim(robot).map_or(f64::INFINITY, |(d, _)| d);
+        let near = booked.min(seen).min(kept);
         (near < radius).then_some(near)
     }
 
@@ -754,10 +758,8 @@ impl Job {
                 .map(|d| (if d.edge_min_m > 0.0 { d.edge_min_m } else { (d.range_m - 0.10).max(0.0) }, d.bearing))
                 .min_by(|a, b| a.0.total_cmp(&b.0))
         });
-        match (booked, seen) {
-            (Some(a), Some(b)) => Some(if a.0 <= b.0 { a } else { b }),
-            (a, b) => a.or(b),
-        }
+        let kept = self.kept_rim(robot);
+        [booked, seen, kept].into_iter().flatten().min_by(|a, b| a.0.total_cmp(&b.0))
     }
 
     /// Off the rim first: a drop this near the body (see [`RIM_OFF_M`])
