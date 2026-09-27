@@ -430,6 +430,9 @@ pub enum Note {
         beams: usize,
     },
     /// A first contradicting window: not inked, not yet lost.
+    /// A window the watchdog would have called a contradiction, which the
+    /// tracking's match put back on the map (see `watchdog_rescue`).
+    WindowRescued { mean_residual_m: f32 },
     WindowQuarantined {
         mean_residual_m: f32,
         n_observed: u32,
@@ -609,6 +612,12 @@ pub struct Mapper {
     /// The valleys refused while lost: (candidate, tracked pose then, the
     /// valley's direction), see [`Mapper::valley_blocks`].
     valleys: Vec<(Pose2, Pose2, (f32, f32))>,
+}
+
+/// `MAPLOC_WATCHDOG_RESCUE=0`: the watchdog judges a window at the carried
+/// pose alone, as before 2026-09-28.
+fn watchdog_rescue() -> bool {
+    std::env::var("MAPLOC_WATCHDOG_RESCUE").map_or(true, |v| v != "0")
 }
 
 /// `MAPLOC_LOCAL_AFTER_BOOT=0`: every loss on a resumed map searches the
@@ -1570,7 +1579,28 @@ impl Mapper {
             // quarantined (not inked) but not lost. When the long beams
             // can be judged, they decide.
             let long_says_lost = a.n_long < LOW_THING_MIN_LONG || a.long_residual_m > wd.max_mean_residual_m;
-            if a.n_observed >= wd.min_observed_beams
+            // Judged where the pose was carried, not where the map puts it:
+            // a pose 0.2-0.3 m off contradicts at every window, no window
+            // corrects it, and odometry carries it farther — house2 beside
+            // the stairwell, MuJoCo 2026-09-28: quarantine after quarantine,
+            // the pose 0.44 m off. So first the tracking's own match, as it
+            // would run below (its 0.30 m and 0.20 rad, its 0.02 m residual
+            // after): where it lands on the map, and the window agrees
+            // there, this is drift to correct, not a contradiction.
+            let rescue_pose: Option<Pose2> = if watchdog_rescue() && self.cfg.tracking.enabled && a.mean_residual_m > wd.max_mean_residual_m {
+                rescue_match(grid, composite, pose).filter(|p| {
+                    let b = score_pose(grid, composite, *p, wd.clamp_m, wd.wall_threshold_fp, wd.observed_fp);
+                    b.mean_residual_m <= wd.max_mean_residual_m && b.n_observed >= wd.min_observed_beams
+                })
+            } else {
+                None
+            };
+            let rescued = rescue_pose.is_some();
+            if rescued {
+                notes.push(Note::WindowRescued { mean_residual_m: a.mean_residual_m });
+            }
+            if !rescued
+                && a.n_observed >= wd.min_observed_beams
                 && a.n_observed as f32 >= wd.min_observed_fraction * a.n_beams as f32
                 && a.mean_residual_m > wd.max_mean_residual_m
                 && long_says_lost
@@ -1602,6 +1632,10 @@ impl Mapper {
         }
         let mut pose = pose;
         let mut correction: Option<Pose2> = None;
+        // A rescued window is not corrected by the rescue's match: applied,
+        // one of them — a local alias at residual 0.05 — took a replay from
+        // 0.06 m to 0.41 m. It is only not called a contradiction; the
+        // tracking's own correction, below, stays the judge of the pose.
         if self.cfg.tracking.enabled
             && let Some(grid) = self.stand_grid.as_mut()
             && let Some((delta, before, after, n_used)) =
@@ -1919,6 +1953,26 @@ impl Mapper {
 /// `pose`; return the BODY-FRAME delta to apply, the residual before and
 /// after, and the beams used — or `None` when the match is not to be
 /// trusted. See [`TrackingConfig`].
+/// The watchdog's rescue match (see `watchdog_rescue`): a scan match from
+/// the carried pose with a prior wide enough for the drift the tracking's
+/// own could not take (0.30 m, 0.20 rad, 0.02 m residual after — built for
+/// the small corrections of every window), its result kept only within
+/// [`RESCUE_MAX_M`] and [`RESCUE_MAX_RAD`]: a correction, not a search.
+fn rescue_match(grid: &mut OccupancyGrid, composite: &Scan, pose: Pose2) -> Option<Pose2> {
+    let probe = composite.decimated(512);
+    let sm = ScanMatchConfig { prior_sigma_xy: 0.30, prior_sigma_yaw: 0.25, occ_threshold_fp: 150, ..ScanMatchConfig::default() };
+    let r = match_scan(grid, &probe, pose, Some(pose), &sm);
+    if !r.residual_m.is_finite() {
+        return None;
+    }
+    let (dx, dy, dyaw) = (r.pose.0 - pose.0, r.pose.1 - pose.1, wrap_pi(r.pose.2 - pose.2));
+    ((dx * dx + dy * dy).sqrt() <= RESCUE_MAX_M && dyaw.abs() <= RESCUE_MAX_RAD).then_some(r.pose)
+}
+
+/// The rescue's largest correction.
+const RESCUE_MAX_M: f32 = 0.40;
+const RESCUE_MAX_RAD: f32 = 0.30;
+
 fn tracking_correction(
     grid: &mut OccupancyGrid,
     composite: &Scan,

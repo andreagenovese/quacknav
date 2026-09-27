@@ -92,7 +92,16 @@ fn main() {
     // eigenvalues, side by side on the same decisions.
     let mut degen = std::env::var_os("DEGEN_LOG").map(|p| std::io::BufWriter::new(std::fs::File::create(p).expect("DEGEN_LOG")));
     let truth_at = |unix: f64| truth.iter().min_by(|a, b| (a.0 - unix).abs().total_cmp(&(b.0 - unix).abs())).copied();
+    let (mut quarantined, mut rescued, mut lost) = (0u32, 0u32, 0u32);
     let replayed = maploc::bench::replay(&session, &mut mapper, f32::INFINITY, |step| {
+        for note in step.notes {
+            match note {
+                maploc::mapper::Note::WindowQuarantined { .. } => quarantined += 1,
+                maploc::mapper::Note::WindowRescued { .. } => rescued += 1,
+                maploc::mapper::Note::LostTracking { .. } => lost += 1,
+                _ => {}
+            }
+        }
         if let Some(w) = degen.as_mut() {
             for note in step.notes {
                 let (kind, pose, along) = match note {
@@ -151,13 +160,16 @@ fn main() {
     })
     .expect("replay the session");
     eprintln!(
-        "{}: {:.0} s replayed, {} truth samples scored, {} while the replay was lost; {} windows, {} submaps, {} loops",
+        "{}: {:.0} s replayed, {} truth samples scored, {} while the replay was lost; {} windows, {} submaps, {} loops; windows quarantined {}, rescued {}, lost {}",
         session.display(),
         replayed.t_end_s,
         written,
         untracked,
         mapper.windows(),
         mapper.slam().n_submaps(),
-        mapper.slam().n_loops()
+        mapper.slam().n_loops(),
+        quarantined,
+        rescued,
+        lost
     );
 }

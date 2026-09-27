@@ -791,6 +791,12 @@ fn log_note(note: Note) {
                 "maploc: window contradicts the map; quarantined"
             );
         }
+        Note::WindowRescued { mean_residual_m } => {
+            tracing::info!(
+                residual = format!("{mean_residual_m:.3}"),
+                "maploc: window off the map where the pose was carried, back on it after the tracking's match; drift, not a contradiction"
+            );
+        }
         Note::SuspectAfterSit => tracing::info!("maploc: robot sat — pose suspect until a window confirms it"),
         Note::SuspectAfterFall => tracing::info!("maploc: robot fell — pose suspect until a window confirms it"),
         Note::ResumedUnverified { pose } => {

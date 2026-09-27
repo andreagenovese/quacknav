@@ -320,6 +320,7 @@ fn main() {
                 Note::WindowIntegrated { .. } => "integrated",
                 Note::WindowDiscarded { .. } => "discarded",
                 Note::WindowQuarantined { .. } => "quarantined",
+                Note::WindowRescued { .. } => "rescued",
                 Note::SuspectAfterSit => "suspect_sit",
                 Note::SuspectAfterFall => "suspect_fall",
                 Note::ResumedUnverified { .. } => "resumed_unverified",
@@ -482,6 +483,9 @@ fn main() {
                         pose.1,
                         pose.2.to_degrees()
                     );
+                }
+                Note::WindowRescued { mean_residual_m } => {
+                    println!("[{t:7.1}s] rescued: vs-map {mean_residual_m:.3} m at the carried pose, back on it after the match");
                 }
                 Note::WindowQuarantined {
                     mean_residual_m,
