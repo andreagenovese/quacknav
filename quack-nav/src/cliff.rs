@@ -355,6 +355,10 @@ pub struct CliffStatus {
     /// The newest odometry heading (radians), at the state stream's rate —
     /// what a turn should be closed on, the map's pose coming once a second.
     pub odom_yaw: Option<f64>,
+    /// The newest odometry position (metres, odometry's own frame) with
+    /// `odom_yaw`: a frame that does not jump when the map corrects the
+    /// pose, for what must stay put over a few legs (the traverse).
+    pub odom_xy: Option<(f64, f64)>,
     pub frames: u64,
     /// Frames judged in the last [`MEMORY`].
     pub recent: Vec<CliffFrame>,
@@ -654,6 +658,7 @@ fn body_lane(
         s.body_seen = true;
         if bits.odom.yaw.is_some() {
             s.odom_yaw = bits.odom.yaw;
+            s.odom_xy = Some((bits.odom.position[0], bits.odom.position[1]));
         }
         if moving && s.recent.iter().any(|f| !f.moving) {
             // Seen from somewhere the body no longer is.

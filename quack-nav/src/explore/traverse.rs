@@ -257,6 +257,19 @@ pub(super) enum TraverseEnd {
     Unfinished,
 }
 
+/// The pose the traverse keeps its points in: odometry's, which does not
+/// jump when the map corrects the pose — kept in the map's frame, points
+/// seen two stands back moved with every correction, and a wall seen
+/// ahead showed up 3 cm from the body (MuJoCo, 2026-09-27) — else the
+/// map's.
+fn keep_pose(robot: &dyn Body) -> Option<(f64, f64, f64)> {
+    let odom = robot.cliff().and_then(|c| Some((c.odom_xy?, c.odom_yaw?)));
+    match odom {
+        Some(((x, y), yaw)) => Some((x, y, yaw)),
+        None => robot.frame().map(|f| f.pose()),
+    }
+}
+
 impl Job {
     /// Rim and wall points of the stand's frames, in the map's frame from
     /// the pose of now — added to `seen`.
@@ -300,9 +313,13 @@ impl Job {
         let mut axis = axis;
         let mut walked = 0u32;
         let mut refused = 0u32;
+        // The axis, from the map's frame into the keeping one.
+        if let (Some(m), Some(k)) = (robot.frame().map(|f| f.pose()), keep_pose(&*robot)) {
+            axis = wrap(axis - m.2 + k.2);
+        }
         for step in 0..MAX_STEPS {
             let _ = stand(robot, if drop_side > 0.0 { STAND_LEFT_S } else { STAND_RIGHT_S });
-            let Some(pose) = robot.frame().map(|f| f.pose()) else {
+            let (Some(pose), Some(map_pose)) = (keep_pose(&*robot), robot.frame().map(|f| f.pose())) else {
                 return TraverseEnd::Refused { why: "no pose".into() };
             };
             self.look(&*robot, pose, &mut seen);
@@ -327,7 +344,7 @@ impl Job {
                 // twin, 2026-09-27: 26 traverses given up, the body at 30–60°
                 // to the passage). Onto the axis, and look again.
                 Step::Clear if walked == 0 && step == 0 && wrap(axis - pose.2).abs() > ON_AXIS_RAD => {
-                    let ok = self.align(robot, axis);
+                    let ok = self.align(robot, wrap(axis - pose.2 + map_pose.2));
                     tracing::info!(ok, axis, "map explore: traverse: onto the axis to see the rim");
                     if !ok {
                         return TraverseEnd::NotHere;
@@ -343,7 +360,7 @@ impl Job {
                 // route went (paper twin, 2026-09-27: 18 of them, 6 goals).
                 Step::Blocked => return TraverseEnd::Refused { why: "no step keeps the rim's clearance".into() },
                 Step::Turn { to } => {
-                    let ok = self.align(robot, wrap(pose.2 + to));
+                    let ok = self.align(robot, wrap(map_pose.2 + to));
                     if !ok {
                         refused += 1;
                         if refused >= 2 {
@@ -357,9 +374,9 @@ impl Job {
                     // ±0.22 m cliff lane meets the rim beside a 0.45 m passage
                     // on every step (paper twin, 2026-09-27: 60 refusals).
                     let leg = json!({"vx": 0.3, "vyaw": vyaw, "walk_s": walk_s, "stop_s": 0.0, "judged": true, "phase": "traverse", "gap": true, "steer": false, "passage": true, "cliff_margin_m": passage_cliff_margin_m()});
-                    match self.guarded_step(robot, pose, &leg) {
+                    match self.guarded_step(robot, map_pose, &leg) {
                         Ok(_) => {
-                            let after = robot.frame().map(|f| f.pose());
+                            let after = keep_pose(&*robot);
                             // A step that did not move the body is a bump —
                             // the nose against something low the sensor
                             // reads as a rim (paper twin, 2026-09-27: 14
@@ -373,8 +390,8 @@ impl Job {
                             }
                             walked += 1;
                             refused = 0;
-                            if let Some((ax, ay, _)) = after {
-                                self.walked((pose.0, pose.1), (ax, ay));
+                            if let Some((ax, ay, _)) = robot.frame().map(|f| f.pose()) {
+                                self.walked((map_pose.0, map_pose.1), (ax, ay));
                             }
                             handle.update(|s| s.legs += 1);
                         }
