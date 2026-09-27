@@ -14,13 +14,16 @@
 //! near-drop checks read them beside the books and the frames of now.
 //! And before a turn in place with a booked drop within [`LOOK_FIRST_M`],
 //! the body stands long enough for the head's sweep to look both ways.
-//! `QK_RIM_MEMORY=0` switches both off.
+//! `QK_RIM_MEMORY=1` switches both on; off by default (measured, below).
 
 use super::*;
 
-/// `QK_RIM_MEMORY=0`: no kept rim, no look before turning.
+/// `QK_RIM_MEMORY=1`: the kept rim and the look before turning. Off:
+/// on MuJoCo (house2, 2026-09-27/28, the p2h-apart map and book) it took
+/// 7 of 18 goals, one fall a bump against the bath's jamb, against 13 of
+/// 18 without — the refusals it adds closed the stairwell's passages.
 pub(super) fn rim_memory_on() -> bool {
-    switch("QK_RIM_MEMORY").unwrap_or(true)
+    switch("QK_RIM_MEMORY").unwrap_or(false)
 }
 
 /// Kept this long, and while odometry has not walked this far since.
