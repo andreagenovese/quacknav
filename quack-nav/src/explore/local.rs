@@ -29,6 +29,12 @@ const ARC_S: [f64; 3] = [1.0, 1.5, 2.0];
 const SENSED_CLEAR_M: f64 = 0.12;
 /// Nearest a mapped wall cell may come to the body's centre.
 const WALL_CLEAR_M: f64 = 0.12;
+/// Nearest the body's centre may come to a booked drop's rim: half a
+/// body and a margin. The first MuJoCo rounds (house2, 2026-09-27) judged
+/// arcs with the step back's margin, 0.05 m past the rim point's radius,
+/// and one took the body along the stairwell's east side 0.05 m from the
+/// rim; the next leg put it on the corner and it fell.
+const DROP_CLEAR_M: f64 = BODY_HALF_M + 0.05;
 /// How far along the route the arc aims.
 const LOOK_M: f64 = 0.6;
 /// What the sensor saw within this long counts.
@@ -84,7 +90,7 @@ pub(super) fn best_arc(grid: &Grid, drops: &[((f64, f64), f64)], sensed: &[(f64,
                 }
                 for ((dx, dy), r) in drops {
                     if *r >= DROP_RADIUS_M {
-                        ok &= dist2((*dx, *dy), (px, py)).min(dist2((*dx, *dy), nose)) >= r + DROP_PATH_MARGIN_M;
+                        ok &= dist2((*dx, *dy), (px, py)) >= r + DROP_CLEAR_M && dist2((*dx, *dy), nose) >= r + DROP_PATH_MARGIN_M;
                     }
                 }
                 ok &= grid.at(px, py).is_some_and(|c| c != Cell::Wall);
@@ -183,6 +189,17 @@ mod tests {
         let grid = open(60, 60);
         let wall: Vec<(f64, f64)> = (-10..=10).map(|i| (0.2, 0.05 * f64::from(i))).collect();
         assert!(best_arc(&grid, &[], &wall, (0.0, 0.0, 0.0), (0.6, 0.0)).is_none());
+    }
+
+    /// The arc of the fall (house2, 2026-09-27): along the stairwell's
+    /// east side, the rim a body's half away. Not admissible now.
+    #[test]
+    fn no_arc_along_the_rim() {
+        let grid = open(60, 60);
+        let rim: Vec<((f64, f64), f64)> = (0..8).map(|i| ((-0.25 + 0.05 * f64::from(i), -0.25), DROP_RADIUS_M)).collect();
+        if let Some(a) = best_arc(&grid, &rim, &[], (0.0, 0.0, -0.3), (0.3, -0.3)) {
+            panic!("an arc along the rim: {a:?}");
+        }
     }
 
     /// A drop on the books beside the way: no arc passes within its margin.
