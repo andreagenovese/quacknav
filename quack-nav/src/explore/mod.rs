@@ -1148,6 +1148,11 @@ pub struct Job {
     passage_last: Option<(f64, f64)>,
     /// Where the last traverse that did not get through began.
     traverse_failed_at: Option<(f64, f64)>,
+    /// Steps of the stick (see `stick.rs`), for its stands.
+    stick_steps: u32,
+    /// The stick's last pose, and its steps in a row that did not move it.
+    stick_last: Option<(f64, f64)>,
+    stick_stalls: u32,
     /// Narrow-passage refusals in a row, and where the body stood.
     narrow_refusals: (u32, (f64, f64)),
     /// A fall was seen and the pose has not been trusted for
@@ -1272,6 +1277,7 @@ mod traverse;
 mod mode;
 mod recover;
 mod rimmem;
+mod stick;
 mod trusted;
 use books::*;
 use gait::*;
@@ -1280,6 +1286,7 @@ use journey::*;
 use mapping::*;
 use mode::*;
 use rimmem::*;
+use stick::*;
 use traverse::*;
 use trusted::*;
 
@@ -1324,6 +1331,9 @@ impl Job {
             passage_narrow: false,
             passage_last: None,
             traverse_failed_at: None,
+            stick_steps: 0,
+            stick_last: None,
+            stick_stalls: 0,
             narrow_refusals: (0, (f64::NAN, f64::NAN)),
             fell: None,
             relocate_steps: 0,
@@ -2014,6 +2024,11 @@ impl Job {
         let iteration_began = robot.now();
         let (x, y, yaw) = pose;
         let to_target = dist2((x, y), f.stand);
+        // The stick (see `stick.rs`): a journey held to the route, every
+        // rule of ours off.
+        if stick_on() && self.goal.is_some() {
+            return self.stick_leg(handle, robot, pose, f);
+        }
         if switch("QK_RIM_OFF").unwrap_or(true) && self.off_the_rim(robot, pose) {
             let _ = stand(robot, self.turn_stand_s());
             return None;
