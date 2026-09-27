@@ -339,6 +339,7 @@ impl Job {
     /// and the drops on the books beside or just ahead of the duck.
     pub(super) fn passage(&mut self, robot: &dyn Body, grid: &Grid, (x, y, yaw): (f64, f64, f64), path: &[(f64, f64)], stand: Option<(f64, f64)>) -> Option<(f64, f64, f64)> {
         self.passage_narrow = false;
+        self.passage_last = None;
         // `QK_PASSAGE_LAW=0`: no passage law at all — no axis, no alignment,
         // no "too narrow" — the route through the passage is followed like
         // any other, the guards against the rim kept (the user's trial,
@@ -618,6 +619,7 @@ impl Job {
         // the sensor sees right beside the body now, not one on the books
         // somewhere near (that read a kitchen corner by the stairwell as a
         // passage too narrow to leave, 806 times, on the paper twin).
+        self.passage_last = Some((h, drop_side));
         let beside_drop = sensed_drop_near < BODY_HALF_M_NAV + LEG_DRIFT_M_NAV + PASSAGE_POSE_MARGIN_M;
         let min_w = passage_min_w_m() + if beside_drop { 2.0 * PASSAGE_POSE_MARGIN_M } else { 0.0 };
         if left + right < min_w {
@@ -770,7 +772,11 @@ impl Job {
         if into_unknown {
             tracing::info!(at = ?(pose.0, pose.1), "map explore: the leg runs onto floor the map does not know; guarded");
         }
-        if (self.blind() || trusted) && !into_unknown && (!hole_in_view || trusted_kick) && !thing_ahead && robot.pose_trusted() {
+        // A leg judged by its own planner against what the sensor sees
+        // (the traverse): the straight lane ahead and the books by the map's
+        // pose are not its judges; the sensor's drop guard still is.
+        let judged = leg.get("judged").and_then(Value::as_bool).unwrap_or(false);
+        if (self.blind() || trusted) && !into_unknown && (!hole_in_view || trusted_kick) && (!thing_ahead || judged) && robot.pose_trusted() {
             let vx = leg.get("vx").and_then(Value::as_f64).unwrap_or(0.0);
             let vyaw = leg.get("vyaw").and_then(Value::as_f64).unwrap_or(0.0);
             let walk_s = leg.get("walk_s").and_then(Value::as_f64).unwrap_or(1.0);
@@ -784,6 +790,7 @@ impl Job {
             // kitchen leg 272 s of it); a cube on the floor is not on
             // the map.
             if vx > 0.0
+                && !judged
                 && let Some(cliff) = robot.cliff()
                 && let Some(o) = cliff.obstacle_in_lane_walking(robot.now(), 0.0, BLIND_OBSTACLE_LANE_M, GAIT_M_PER_S * walk_s + BLIND_OBSTACLE_REACH_M, Duration::from_millis(1200), 2)
                 && o.bearing.abs() <= blind_cone_rad(o.range_m)
@@ -838,7 +845,7 @@ impl Job {
             }
             return Ok(json!({"walked_s": walk_s, "blind": true}));
         }
-        if let Some((dx, dy)) = self.drop_on_path(pose, leg) {
+        if !judged && let Some((dx, dy)) = self.drop_on_path(pose, leg) {
             self.books_refusal.set(Some((dx, dy)));
             return Err(format!(
                 "a drop — stairs or a hole — on the books at ({dx:.2}, {dy:.2}) lies on this leg's path: the map cannot show it; do not walk this way"

@@ -1141,6 +1141,11 @@ pub struct Job {
     /// The last `passage()` found the way beside a drop narrower than the
     /// body, its drift and the pose's margin: the leg is not to be walked.
     passage_narrow: bool,
+    /// The last passage `passage()` read, walked or too narrow: its axis
+    /// and the drop's side (+1 left) — what the traverse starts from.
+    passage_last: Option<(f64, f64)>,
+    /// Where the last traverse that did not get through began.
+    traverse_failed_at: Option<(f64, f64)>,
     /// Narrow-passage refusals in a row, and where the body stood.
     narrow_refusals: (u32, (f64, f64)),
     /// A fall was seen and the pose has not been trusted for
@@ -1261,6 +1266,7 @@ pub(crate) use gait::turn_in_place_on;
 mod guarded;
 mod journey;
 mod mapping;
+mod traverse;
 mod mode;
 mod recover;
 mod trusted;
@@ -1270,6 +1276,7 @@ use guarded::*;
 use journey::*;
 use mapping::*;
 use mode::*;
+use traverse::*;
 use trusted::*;
 
 impl Job {
@@ -1310,6 +1317,8 @@ impl Job {
             turns_refused_at_drop: 0,
             passage_at_mouth: false,
             passage_narrow: false,
+            passage_last: None,
+            traverse_failed_at: None,
             narrow_refusals: (0, (f64::NAN, f64::NAN)),
             fell: None,
             relocate_steps: 0,
@@ -2128,7 +2137,37 @@ impl Job {
             let mut passage_leg: Option<Value> = None;
             let mut aim = aim;
             let mut err = err;
-            if let Some((axis0, offset, drop_side)) = self.passage(&*robot, grid, pose, &f.path, Some(f.stand)) {
+            let passage_read = self.passage(&*robot, grid, pose, &f.path, Some(f.stand));
+            // The traverse (see `traverse.rs`): the passage crossed by what
+            // the sensor sees; the map's reading of it only says where.
+            if traverse_on()
+                && let Some((axis, drop_side)) = self.passage_last
+                && drop_side != 0.0
+                && self.traverse_failed_at.is_none_or(|p| dist2(p, (x, y)) >= TRAVERSE_AGAIN_M)
+            {
+                let end = self.traverse(robot, axis, drop_side, handle);
+                tracing::info!(at = ?(x, y, yaw), axis, drop_side, end = ?end, "map explore: traverse ended");
+                self.going = None;
+                match end {
+                    TraverseEnd::NotHere => self.traverse_failed_at = Some((x, y)),
+                    TraverseEnd::NoWay { .. } => {
+                        self.traverse_failed_at = Some((x, y));
+                        self.passage_narrow = true;
+                        passage_leg = None;
+                    }
+                    TraverseEnd::Through { .. } => {
+                        self.traverse_failed_at = None;
+                        self.passage_narrow = false;
+                        return None;
+                    }
+                    TraverseEnd::Unfinished | TraverseEnd::Refused { .. } => {
+                        self.traverse_failed_at = Some((x, y));
+                        self.passage_narrow = false;
+                        return None;
+                    }
+                }
+            }
+            if let Some((axis0, offset, drop_side)) = passage_read.filter(|_| !self.passage_narrow || !traverse_on()) {
                 // Try D: with the wall's line exact, the heading held is
                 // the line's direction bent toward the line itself — a
                 // pursuit point PASSAGE_PURSUIT_M ahead on it — so the
