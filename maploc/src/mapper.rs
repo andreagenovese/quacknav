@@ -302,6 +302,9 @@ pub struct MapperConfig {
     /// (measured: winners at residual 0.000 3.6 m off, twice). A sit, a
     /// fall or a session resume keep the global search. 0 = global.
     pub hard_lost_search_radius_m: f32,
+    /// ... and a search winner turned more than this from it is an alias
+    /// too. 0 = any heading.
+    pub hard_lost_search_yaw_rad: f32,
     pub relocalize_agree_m: f32,
     pub relocalize_agree_rad: f32,
     /// When suspicion came from a sit, a fall or a session resume (soft —
@@ -382,6 +385,7 @@ impl Default for MapperConfig {
             relocalize_agree_windows: 2,
             lost_give_up_windows: 8,
             hard_lost_search_radius_m: 1.0,
+            hard_lost_search_yaw_rad: 0.6,
             relocalize_agree_m: 0.3,
             relocalize_agree_rad: 0.35,
             suspect_give_up_windows: 10,
@@ -605,6 +609,12 @@ pub struct Mapper {
     /// The valleys refused while lost: (candidate, tracked pose then, the
     /// valley's direction), see [`Mapper::valley_blocks`].
     valleys: Vec<(Pose2, Pose2, (f32, f32))>,
+}
+
+/// `MAPLOC_LOCAL_AFTER_BOOT=0`: every loss on a resumed map searches the
+/// whole map with every hypothesis, as before 2026-09-28.
+fn local_after_boot() -> bool {
+    std::env::var("MAPLOC_LOCAL_AFTER_BOOT").map_or(true, |v| v != "0")
 }
 
 /// `MAPLOC_MULTI_HYP=0` turns the multi-hypothesis boot search off, for
@@ -1367,16 +1377,27 @@ impl Mapper {
             }
             // No confirmation: search this window for a fresh candidate.
             let probe = composite.decimated(self.cfg.relocalize_max_beams);
+            // ... and turned no more than `hard_lost_search_yaw_rad` from
+            // it: a corridor's alias turned half a turn sits a metre off
+            // and matches as well as the pose (house2, MuJoCo, 2026-09-27:
+            // confirmed at residual 0.002, 180° off, the duck lost for
+            // fourteen minutes with odometry knowing it had not turned).
             let near_enough = |r: &crate::relocalize::RelocalizeResult| {
                 !self.hard_lost
                     || self.cfg.hard_lost_search_radius_m <= 0.0
-                    || (r.pose.0 - now.0).hypot(r.pose.1 - now.1)
-                        <= self.cfg.hard_lost_search_radius_m
+                    || ((r.pose.0 - now.0).hypot(r.pose.1 - now.1) <= self.cfg.hard_lost_search_radius_m
+                        && (self.cfg.hard_lost_search_yaw_rad <= 0.0
+                            || wrap_pi(r.pose.2 - now.2).abs() <= self.cfg.hard_lost_search_yaw_rad))
             };
             // Boot on a saved map: keep every plausible basin and let the
             // viewpoints decide. `multi` off falls back to the single-best
             // agreement below, which is what a kidnap in place wants.
-            if multi_hypothesis() && self.hard_lost && self.resumed_from_session {
+            // The boot's own search: a resumed map, no pose anyone vouches
+            // for. Past the boot a "lost" is local, and the search below
+            // keeps near the odometry-carried pose — this branch, gated on
+            // the session having been resumed, ran for every later loss
+            // too and confirmed an alias a metre off, half a turn round.
+            if multi_hypothesis() && self.hard_lost && self.resumed_from_session && (self.booting || !local_after_boot()) {
                 if let Some(r) = relocalize_against_grid(&mut grid, &probe, &self.cfg.relocalize) {
                     // Carry what we had to now, then match this window's
                     // basins against it.

@@ -79,6 +79,11 @@ fn main() {
         }
         None => Mapper::new(cfg, Slam::new(slam_cfg)),
     };
+    // `FROZEN=1`: the map frozen, as quack-navd's rounds run on a house
+    // already mapped — nothing inks while the pose tracks.
+    if std::env::var("FROZEN").is_ok_and(|v| v == "1") {
+        mapper.set_frozen(true);
+    }
     let mut out = std::io::BufWriter::new(std::fs::File::create(&out_path).expect("create out.tsv"));
     let (mut next, mut written, mut untracked) = (0usize, 0u32, 0u32);
     // `DEGEN_LOG=<file>`: every relocalization the search confirmed or the
