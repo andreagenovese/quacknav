@@ -1059,6 +1059,11 @@ impl Job {
             }
             None => (1.0, back_s()),
         };
+        // The kept rim, on the step back's own arc (see `rimmem.rs`).
+        if let Some((rx, ry)) = Self::back_phases(side, secs).first().and_then(|(vx, vyaw, dur)| self.kept_rim_on_arc(&*robot, *vx, *vyaw, *dur)) {
+            tracing::info!(rim = ?(rx, ry), "map explore: a rim the sensor saw lies where the step back would go; none taken");
+            return false;
+        }
         self.last_back = Some(now);
         tracing::info!(side, secs, on_trail = robot.frame().is_some_and(|f| self.back_on_trail(f.pose(), side, secs)), "map explore: stepping back");
         for (vx, vyaw, dur) in Self::back_phases(side, secs) {

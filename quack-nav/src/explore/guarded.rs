@@ -729,6 +729,16 @@ impl Job {
     }
 
     pub(super) fn guarded_step(&self, robot: &mut dyn Body, pose: (f64, f64, f64), leg: &Value) -> Result<Value, String> {
+        // The kept rim (see `rimmem.rs`): what the sensor saw of it, where
+        // odometry puts it now — whatever the map's pose says.
+        {
+            let vx = leg.get("vx").and_then(Value::as_f64).unwrap_or(0.0);
+            let vyaw = leg.get("vyaw").and_then(Value::as_f64).unwrap_or(0.0);
+            let walk_s = leg.get("walk_s").and_then(Value::as_f64).unwrap_or(1.0);
+            if let Some((rx, ry)) = self.kept_rim_on_arc(&*robot, vx, vyaw, walk_s) {
+                return Err(format!("a rim the sensor saw (odometry ({rx:.2}, {ry:.2})) lies on this leg's path: do not walk this way"));
+            }
+        }
         // Trusted floor (see `trusted.rs`): a leg over floor the duck
         // knows walks blind, in mapping and on a guarded journey alike.
         // ... and the books always have their say: a bearing between two

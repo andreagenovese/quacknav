@@ -30,6 +30,10 @@ const KEEP_WALKED_M: f64 = 2.0;
 /// frames at a stand, a point needs another frame's to be kept.
 const VOTE_M: f64 = 0.06;
 const VOTE_FRAMES: usize = 6;
+/// Nearest a move may bring the body's centre, and its nose, to a kept rim
+/// point: the body's half-width and the legs' drift, and a little.
+const ARC_CENTRE_M: f64 = 0.13;
+const ARC_NOSE_M: f64 = 0.08;
 /// A booked drop this near: look both ways before turning in place.
 pub(super) const LOOK_FIRST_M: f64 = 0.5;
 /// The stand that looks both ways: past the sweep's right extreme (a 6 s
@@ -115,7 +119,47 @@ impl RimMemory {
     }
 }
 
+impl RimMemory {
+    /// The first kept rim point a move at `(vx, vyaw)` for `secs` would
+    /// bring the body's centre within [`ARC_CENTRE_M`] of, or its nose
+    /// within [`ARC_NOSE_M`], through the gait's model from odometry's
+    /// pose now.
+    fn on_arc(&self, robot: &dyn Body, vx: f64, vyaw: f64, secs: f64) -> Option<(f64, f64)> {
+        let (mut px, mut py, mut h) = odom(robot)?;
+        let (v, w) = if vx > 0.0 { (GAIT_M_PER_S, 0.65 * vyaw) } else if vx < 0.0 { (-BACK_M_PER_S, 0.6 * vyaw) } else { (0.0, 0.0) };
+        if v == 0.0 || self.points.is_empty() {
+            return None;
+        }
+        let mut t = 0.0;
+        while t < secs - 1e-9 {
+            px += v * 0.1 * h.cos();
+            py += v * 0.1 * h.sin();
+            h += w * 0.1;
+            t += 0.1;
+            let nose = (px + crate::passage::BODY_HALF_M * h.cos(), py + crate::passage::BODY_HALF_M * h.sin());
+            if let Some((p, _, _)) = self.points.iter().find(|(p, _, _)| dist2(*p, (px, py)) < ARC_CENTRE_M || dist2(*p, nose) < ARC_NOSE_M) {
+                return Some(*p);
+            }
+        }
+        None
+    }
+}
+
 impl Job {
+    /// Whether a move would cross the kept rim (see [`RimMemory::on_arc`]):
+    /// the leg's check that does not ride on the map's pose. The fall of
+    /// 2026-09-27 (MuJoCo, house2, 65785ca) was a turning leg with the
+    /// pose 0.22 m off: the books put the rim farther, and the sensor's
+    /// lane ahead did not hold it when the arc began.
+    pub(super) fn kept_rim_on_arc(&self, robot: &dyn Body, vx: f64, vyaw: f64, secs: f64) -> Option<(f64, f64)> {
+        if !rim_memory_on() {
+            return None;
+        }
+        let mut m = self.rim_memory.borrow_mut();
+        m.absorb(robot);
+        m.on_arc(robot, vx, vyaw, secs)
+    }
+
     /// The kept rim's nearest point (distance, bearing off the nose), the
     /// frames of now taken in first.
     pub(super) fn kept_rim(&self, robot: &dyn Body) -> Option<(f64, f64)> {
