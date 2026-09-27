@@ -271,6 +271,17 @@ impl Job {
             self.look(&*robot, pose, &mut seen);
             let (rim, wall) = (to_body(&seen.rim, pose), to_body(&seen.wall, pose));
             let plan = plan_step(&rim, &wall, wrap(axis - pose.2), drop_side);
+            if matches!(plan, Step::Narrow { .. } | Step::Blocked) {
+                // What made it narrow: the nearest points of each kind, in
+                // the body's frame and the map's.
+                let near3 = |body: &[(f64, f64)], map: &[(f64, f64)]| {
+                    let mut v: Vec<((f64, f64), (f64, f64))> = body.iter().copied().zip(map.iter().copied()).collect();
+                    v.sort_by(|a, b| a.0.0.hypot(a.0.1).total_cmp(&b.0.0.hypot(b.0.1)));
+                    v.truncate(3);
+                    v.iter().map(|(b, m)| format!("body({:.2},{:.2}) map({:.2},{:.2})", b.0, b.1, m.0, m.1)).collect::<Vec<_>>().join(" ")
+                };
+                tracing::info!(walls = %near3(&wall, &seen.wall), rims = %near3(&rim, &seen.rim), drop_side, "map explore: traverse: what is near");
+            }
             tracing::info!(step, at = ?pose, rim_points = rim.len(), wall_points = wall.len(), plan = ?plan, "map explore: traverse");
             match plan {
                 // Not seen from here, the body off the axis: the rim may be
