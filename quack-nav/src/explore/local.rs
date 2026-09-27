@@ -148,7 +148,10 @@ impl Job {
     pub(super) fn local_leg(&self, robot: &dyn Body, grid: &Grid, pose: (f64, f64, f64), path: &[(f64, f64)]) -> Option<(Value, ArcLeg)> {
         let look = look_ahead(path, (pose.0, pose.1))?;
         let sensed = self.sensed_points(robot, pose);
-        let arc = best_arc(grid, &self.local, &sensed, pose, look)?;
+        let Some(arc) = best_arc(grid, &self.local, &sensed, pose, look) else {
+            tracing::info!(at = ?(pose.0, pose.1, pose.2), look = ?look, sensed = sensed.len(), "map explore: local planner: no admissible arc");
+            return None;
+        };
         Some((json!({"vx": 0.3, "vyaw": arc.vyaw, "walk_s": arc.walk_s, "stop_s": 0.0, "local": true, "phase": "local"}), arc))
     }
 }
