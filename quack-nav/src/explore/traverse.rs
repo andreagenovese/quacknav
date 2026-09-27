@@ -58,6 +58,13 @@ const RIM_KEEP_M: f64 = 0.25;
 /// to this far ahead, along the axis.
 const LOOK_BACK_M: f64 = -0.25;
 const LOOK_AHEAD_M: f64 = 0.6;
+/// A point counts toward the passage's width only beside the body: within
+/// this far along the axis, or this far off it.
+const BESIDE_ALONG_M: f64 = 0.3;
+const BESIDE_LAT_M: f64 = 0.12;
+/// Obstacles nearer the body than this are its own legs, seen with the
+/// head turned ("a wall 0.06 m away", MuJoCo, 2026-09-27).
+const OWN_BODY_M: f64 = 0.15;
 /// The heading held off the axis, at most.
 const HEADING_MAX_RAD: f64 = 0.35;
 /// A step that moved the body less than this did not walk.
@@ -138,10 +145,14 @@ pub(super) fn plan_step(rim: &[(f64, f64)], wall: &[(f64, f64)], axis: f64, drop
     let (ca, sa) = (axis.cos(), axis.sin());
     let uv = |(px, py): &(f64, f64)| (px * ca + py * sa, -px * sa + py * ca);
     let in_stretch = |u: f64| (LOOK_BACK_M..=LOOK_AHEAD_M).contains(&u);
+    // A side is beside the body: a rim point ahead on the line is where
+    // the passage bends at the hole's corner, not its width (MuJoCo,
+    // 2026-09-27: "wall to rim 0.20 + 0.00"). It still bounds the arcs.
+    let beside = |u: f64, v: f64| u <= BESIDE_ALONG_M || v.abs() >= BESIDE_LAT_M;
     let rim_m = rim
         .iter()
         .map(uv)
-        .filter(|(u, v)| in_stretch(*u) && v * drop_side > 0.0)
+        .filter(|(u, v)| in_stretch(*u) && v * drop_side > 0.0 && beside(*u, *v))
         .map(|(_, v)| v.abs())
         .fold(f64::INFINITY, f64::min);
     if !rim_m.is_finite() {
@@ -150,7 +161,7 @@ pub(super) fn plan_step(rim: &[(f64, f64)], wall: &[(f64, f64)], axis: f64, drop
     let wall_m = wall
         .iter()
         .map(uv)
-        .filter(|(u, v)| in_stretch(*u) && v * drop_side < -0.05)
+        .filter(|(u, v)| in_stretch(*u) && v * drop_side < -0.05 && beside(*u, *v))
         .map(|(_, v)| v.abs())
         .fold(f64::INFINITY, f64::min);
     if wall_m.is_finite() && rim_m + wall_m < MIN_WIDTH_M {
@@ -238,7 +249,7 @@ impl Job {
                 }
             }
             for o in &f.obstacles {
-                if o.range_m <= 1.0 {
+                if o.range_m <= 1.0 && o.range_m >= OWN_BODY_M {
                     seen.wall.push(world(o.bearing, o.range_m));
                 }
             }
