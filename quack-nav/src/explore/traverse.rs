@@ -28,10 +28,16 @@ pub(super) fn traverse_on() -> bool {
     switch("QK_TRAVERSE").unwrap_or(false)
 }
 
-/// The stand before each step: the sweep's width of frames.
-const STAND_S: f64 = 2.0;
+/// The stand before each step: the sweep's width of frames. The head's
+/// sweep starts from the centre at every stop and goes left first — a
+/// triangle of 6 s, left at 1.5 s, right at 4.5 s (`mapd/sweep.rs`) — so a
+/// rim on the right needs the longer stand: at 2 s the first MuJoCo rounds
+/// (house2, 2026-09-27) saw no rim beside the east passage at all, and
+/// every traverse there ended before it began.
+const STAND_LEFT_S: f64 = 2.0;
+const STAND_RIGHT_S: f64 = 5.0;
 /// Frames of the stand that count: this recent, and not walking.
-const SEEN_WITHIN: Duration = Duration::from_millis(2500);
+const SEEN_WITHIN: Duration = Duration::from_millis(5500);
 /// The step: this long, or the short one when the long does not fit.
 const LEG_S: f64 = 1.0;
 const SHORT_LEG_S: f64 = 0.6;
@@ -238,7 +244,7 @@ impl Job {
         let mut walked = 0u32;
         let mut refused = 0u32;
         for step in 0..MAX_STEPS {
-            let _ = stand(robot, STAND_S);
+            let _ = stand(robot, if drop_side > 0.0 { STAND_LEFT_S } else { STAND_RIGHT_S });
             let Some(pose) = robot.frame().map(|f| f.pose()) else {
                 return TraverseEnd::Refused { why: "no pose".into() };
             };
