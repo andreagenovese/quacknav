@@ -35,6 +35,7 @@ pub mod explore;
 pub mod frontier;
 pub mod homecoming;
 pub mod map;
+pub mod oracle;
 pub mod mapd;
 pub mod passage;
 pub mod places;

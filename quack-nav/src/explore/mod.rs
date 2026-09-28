@@ -116,7 +116,12 @@ impl Body for Robot {
         execute("robot.move", args, self)
     }
     fn frame(&self) -> Option<MapFrame> {
-        self.places.map.as_ref().and_then(|m| m.snapshot().latest.clone())
+        let frame = self.places.map.as_ref().and_then(|m| m.snapshot().latest.clone())?;
+        // The oracle (see `oracle.rs`): the true map and pose, when set.
+        Some(match crate::oracle::oracle() {
+            Some(o) => o.apply(frame),
+            None => frame,
+        })
     }
     fn pose_trusted(&self) -> bool {
         self.places.map.as_ref().is_some_and(|m| m.snapshot().trusted_pose().is_some())

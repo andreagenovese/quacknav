@@ -23,6 +23,11 @@ fn main() -> anyhow::Result<()> {
     anyhow::ensure!(a.len() >= 5, "usage: route_on_map <frame.json> <ground.json> <name> x0,y0 x1,y1 ...");
     let value: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&a[0])?)?;
     let frame: MapFrame = serde_json::from_value(value.get("frame").cloned().unwrap_or(value))?;
+    // `QK_ORACLE_WALLS` / `QK_ORACLE_HOLES`: the map drawn from the truth.
+    let frame = match quack_nav::oracle::oracle() {
+        Some(o) => o.apply(frame),
+        None => frame,
+    };
     let grid = frame.grid()?;
     // `QK_THIN_WALLS=1`: the walls thinned, as a journey would plan.
     let grid = if quack_nav::frontier::thin_walls_on() { quack_nav::frontier::thin_walls(&grid) } else { grid };
