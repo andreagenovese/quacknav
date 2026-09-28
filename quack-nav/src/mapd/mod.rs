@@ -815,6 +815,15 @@ fn log_note(note: Note) {
                 "maploc: relocalize candidate; awaiting confirmation"
             );
         }
+        Note::RelocalizeCandidateHeld { pose, judged } => {
+            tracing::info!(
+                x = format!("{:.2}", pose.0),
+                y = format!("{:.2}", pose.1),
+                yaw = format!("{:.2}", pose.2),
+                judged,
+                "maploc: relocalize candidate kept — this window could not settle it"
+            );
+        }
         Note::RelocalizeAmbiguous { pose, along } => {
             tracing::info!(
                 x = format!("{:.2}", pose.0),

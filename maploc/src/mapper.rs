@@ -442,6 +442,12 @@ pub enum Note {
         pose: Pose2,
         mean_residual_m: f32,
     },
+    /// A pending candidate the window could not judge, or judged neither
+    /// way: kept, carried by odometry, for a later window to confirm.
+    RelocalizeCandidateHeld {
+        pose: Pose2,
+        judged: bool,
+    },
     /// The robot sat: it may have been carried, and neither odometry nor
     /// a keyhole ToF view can prove it was not (a kidnapped wall wedge
     /// aliases onto any wall, measured). The pose is suspect until a
@@ -1324,9 +1330,21 @@ impl Mapper {
             // the bench — 2026-09-14, both recordings never came home or
             // came home at 434 s — so the second window's job stays what
             // it was: to agree.)
-            if let Some((cand, then)) = self.pending_reloc.take()
-                && let (_, Verdict::Confirmed(pose, resid)) =
-                    self.check_candidate(&mut grid, composite, cand, then, now)
+            // A window that cannot judge the candidate — the sensor's beams
+            // on too little wall, a corridor ahead — or judges it neither
+            // way is no evidence against it: it stays pending, carried by
+            // odometry, for a later window to confirm; only a refutation
+            // drops it. Dropped, the right pose found in the boot's first
+            // three seconds was lost at the first leg down a corridor, and
+            // the search found nothing better for two to four minutes
+            // (casa_arredata on the twin, the perfect map, 2026-09-28).
+            let judged = self.pending_reloc.take().map(|(cand, then)| (cand, then, self.check_candidate(&mut grid, composite, cand, then, now)));
+            if let Some((cand, then, (implied, Verdict::Ambiguous | Verdict::Unjudgeable))) = &judged {
+                let ambiguous = matches!(judged, Some((_, _, (_, Verdict::Ambiguous))));
+                self.pending_reloc = Some((*cand, *then));
+                notes.push(Note::RelocalizeCandidateHeld { pose: *implied, judged: ambiguous });
+            }
+            if let Some((cand, then, (_, Verdict::Confirmed(pose, resid)))) = judged
             {
                 // At boot, agreement from the spot it was nominated on is
                 // not confirmation: keep it pending — nominated where it
