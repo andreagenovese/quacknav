@@ -32,6 +32,8 @@ const STALL_M: f64 = 0.01;
 const STALLS_TURN: u32 = 3;
 /// The sensor's hole guard: a true hole within the step's reach and this.
 const DROP_GUARD_MARGIN_M: f64 = 0.15;
+/// A hole seen this near a booked rim point is that rim: not booked again.
+const KNOWN_RIM_M: f64 = 0.30;
 /// Where a bump is booked: this far ahead of the body's centre.
 const BUMP_AHEAD_M: f64 = 0.15;
 /// A stand every this many steps, for the mapper.
@@ -78,10 +80,23 @@ impl Job {
             // map bias of 0.18-0.25 m across the stairwell's passage walked
             // into it (4 and 30 of 30). What it sees goes on the books, the
             // route re-planned keeps off it; the body turns from it.
-            self.record_drops(robot);
+            // Booked only when it is a rim the books do not hold yet: a hole
+            // seen near a booked rim is that rim, seen from a pose a little
+            // off, and booked again it moves the rim into the passage — five
+            // such points, 0.2-0.3 m east of the stairwell's rim, closed
+            // house2's east passage and g4 for the rest of the tour (MuJoCo,
+            // 2026-09-28).
+            let seen_at = {
+                let r = if d.edge_min_m > 0.0 { d.edge_min_m } else { (d.range_m - crate::cliff::EDGE_UNKNOWN_M).max(0.10) };
+                (x + r * (yaw + d.bearing).cos(), y + r * (yaw + d.bearing).sin())
+            };
+            let known = self.local.iter().any(|(p, r)| *r >= DROP_RADIUS_M && dist2(*p, seen_at) < KNOWN_RIM_M);
+            if !known {
+                self.record_drops(robot);
+            }
             let vyaw = -quack_duck::body::TURN_IN_PLACE_RAD_S * d.bearing.signum();
             let _ = robot.blind_move(&json!({"vx": 0.0, "vyaw": vyaw, "duration_s": 0.5}));
-            tracing::info!(at = ?(x, y, yaw), edge_m = format!("{:.2}", d.edge_min_m), bearing_deg = format!("{:.0}", d.bearing.to_degrees()), "map explore: stick: a hole ahead; booked, turned from it");
+            tracing::info!(at = ?(x, y, yaw), edge_m = format!("{:.2}", d.edge_min_m), bearing_deg = format!("{:.0}", d.bearing.to_degrees()), booked = !known, "map explore: stick: a hole ahead; turned from it");
         } else {
             let vyaw = (YAW_GAIN * err).clamp(-0.7, 0.7);
             let _ = robot.blind_move(&json!({"vx": 0.3, "vyaw": vyaw, "duration_s": STEP_S}));
