@@ -119,7 +119,7 @@ impl Job {
             // metre passable; else planned anew. Re-planned at every stand,
             // a pose jumping about in the stairwell's passage (paper twin,
             // the map 0.18 m off) swung the route onto the rim, and 7
-            // journeys in 30 fell (the explorer's loop with QK_KEEP_ROUTE=0
+            // journeys in 30 fell (the explorer's loop, its kept route off,
             // fell as often).
             let books = self.local.len();
             let kept = self.kept_route.take().and_then(|(raw, pulled, at, b)| {

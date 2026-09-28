@@ -266,9 +266,6 @@ const NOSE_STUCK_M: f64 = 0.30;
 /// A heading counts as open floor only with at least this much known free
 /// floor along it.
 const SPACE_MIN_M: f64 = 0.6;
-const DETOUR_SUSPECT: f64 = 2.5;
-const DETOUR_NEAR_M: f64 = 2.5;
-const DETOUR_DOUBTS_MAX: u32 = 3;
 const STUCK_MAX: u32 = 3;
 /// A "sealed in" attempt counts toward [`STUCK_MAX`] only this long after
 /// the previous one, or once the body has moved this far since.
@@ -321,8 +318,6 @@ const SETTLED_M: f64 = 0.15;
 /// booked, and the watch's tick.
 const WATCH_STILL_S: f64 = 2.0;
 const WATCH_TICK: Duration = Duration::from_millis(500);
-/// What a sealed rim's way round adds to a journey's budget, once.
-const GO_ROUND_EXTRA_S: f64 = 300.0;
 /// An untrusted pose is "stable" after this long without moving, and
 /// its fit (`fit.rs`) must be under this to map on.
 const STABLE_UNTRUSTED_S: f64 = 20.0;
@@ -1186,8 +1181,6 @@ pub struct Job {
     /// Turns in place refused beside a drop in a row (the kick refused,
     /// no way back) without a leg between (see `TURNS_REFUSED_SEAL`).
     turns_refused_at_drop: u32,
-    /// The budget was grown once for a go-round (see `GO_ROUND_EXTRA_S`).
-    budget_extended: bool,
     /// The arrival stand was taken once (see `GOAL_FIT_M`).
     goal_confirmed: bool,
     /// The journey's route as kept between plans (raw, pulled), when it
@@ -1240,13 +1233,6 @@ pub struct Job {
     /// The aim the duck is committed to walking straight at; `None` while
     /// turning ([`GO_EXIT_RAD`]).
     going: Option<(f64, f64)>,
-    /// Times this job has doubted a detour of its own making
-    /// ([`DETOUR_SUSPECT`]), capped at [`DETOUR_DOUBTS_MAX`].
-    doubts: u32,
-    /// The route length planned on the last pass of this journey, and how
-    /// many times the short way has been insisted on (see [`ROUTE_JUMP`]).
-    last_route_m: Option<f64>,
-    insisted: u32,
 }
 
 
@@ -1295,7 +1281,6 @@ use journey::*;
 use mapping::*;
 use mode::*;
 use rimmem::*;
-use stick::*;
 use traverse::*;
 use trusted::*;
 
@@ -1354,7 +1339,6 @@ impl Job {
             no_go: Vec::new(),
             unseals_here: None,
             drops_bookable: true,
-            budget_extended: false,
             goal_confirmed: false,
             kept_route: None,
             refused_since_plan: false,
@@ -1377,11 +1361,8 @@ impl Job {
             anchor: None,
             aim: None,
             going: None,
-            doubts: 0,
             route_conflicts: 0,
             route_repeat: None,
-            last_route_m: None,
-            insisted: 0,
         }
     }
     /// A watch job (see the `watch` field).
@@ -1433,7 +1414,7 @@ impl Job {
     pub fn run(&mut self, handle: &ExploreHandle, robot: &mut dyn Body) -> (State, String) {
         // A journey runs its own loop (see `navigate.rs`), none of the
         // explorer's rules below.
-        if self.goal.is_some() && stick_on() && switch("QK_JOURNEY_LOOP").unwrap_or(true) {
+        if self.goal.is_some() {
             return self.run_journey(handle, robot);
         }
         let mut turn_began = robot.now();
@@ -1583,8 +1564,6 @@ impl Job {
                 robot.sleep(WAIT);
                 continue;
             };
-            // A journey on thinned walls (see `frontier::thin_walls`).
-            let grid = if crate::frontier::thin_walls_on() && self.goal.is_some() { crate::frontier::thin_walls(&grid) } else { grid };
 
             // A false pose shows itself at a stand: the sensor sees walls
             // where the map, from where it thinks the duck is, shows open
@@ -1630,7 +1609,7 @@ impl Job {
             // stand there. A loop closes where the duck revisits, and
             // exploring alone never revisits on purpose — see
             // `ANCHOR_EVERY_S`.
-            if reanchor() && self.goal.is_none() {
+            if reanchor() {
                 let due = self
                     .anchored_at
                     .is_none_or(|t| (robot.now() - t).as_secs_f64() >= ANCHOR_EVERY_S);
@@ -1706,197 +1685,9 @@ impl Job {
             // the body's own half-width instead.
             let inflate = if self.stuck >= 2 { SQUEEZE_INFLATE_M } else { inflate_m() };
             self.strike_drops_under((x, y));
-            if self.fast() {
-                let now = robot.now();
-                let due = match self.last_pose_stand {
-                    None => true,
-                    Some((t, p)) => (now - t).as_secs_f64() >= FAST_POSE_EVERY_S || dist2(p, (x, y)) >= FAST_POSE_EVERY_M,
-                };
-                // An obstacle in the lane: one stand to look at it, then
-                // the plan goes on — not a stand at every plan while it
-                // is still there (fast2 stood every two seconds beside a
-                // door jamb, 0.3 m from the goal, to the budget).
-                let recent = self.last_pose_stand.is_some_and(|(t, _)| (now - t).as_secs_f64() < FAST_AHEAD_EVERY_S);
-                let ahead = !recent
-                    && robot
-                        .cliff()
-                        .and_then(|c| c.obstacle_in_lane(robot.now(), 0.0, lane_half_m()))
-                        .is_some_and(|o| o.range_m < FAST_STOP_AHEAD_M);
-                if due || ahead {
-                    tracing::info!(due, ahead, "map explore: fast: a stand for the pose");
-                    let _ = stand(robot, FAST_POSE_STAND_S);
-                    self.last_pose_stand = Some((robot.now(), (x, y)));
-                }
-            }
             let walls = self.planner_walls();
             self.walked((x, y), (x, y));
             let lanes = self.lanes();
-            if let Some(goal) = self.goal {
-                if dist2((x, y), goal) < GOAL_ARRIVE_M {
-                    // A stand, and "arrived" judged on the pose AFTER it:
-                    // a pose 0.6 m off along a corridor reached the goal's
-                    // coordinates 0.5 m from the goal without knowing
-                    // (lost6, 2026-09-19). The stand gives maploc its
-                    // window; if its correction moves the pose off the
-                    // goal, the journey goes on from there — once (the
-                    // fit was tried as the judge and failed every arrival
-                    // at 0.16–0.20 for nothing, house18tour: it does not
-                    // correlate with the truth, point 1).
-                    let _ = stand(robot, FRONTIER_STOP_S);
-                    if !self.goal_confirmed {
-                        self.goal_confirmed = true;
-                        if let Some(f) = robot.frame() {
-                            let left = dist2((f.x, f.y), goal);
-                            if left >= GOAL_ARRIVE_M {
-                                tracing::info!(left_m = format!("{left:.2}"), "map explore: at the goal's coordinates, but the stand moved the pose off it; going on");
-                                self.kept_route = None;
-                                continue;
-                            }
-                        }
-                    }
-                    return (State::Done, format!("arrived at ({:.2}, {:.2})", goal.0, goal.1));
-                }
-                // At the mouth of a passage the turn beside the drop is
-                // what fails, not the leg: the kick refused and no way
-                // back, over and over (goround2, 2026-09-20: 172 times
-                // in ten minutes, and no seal, since only a LEG refused
-                // for the drop counted). So many turns refused beside a
-                // drop without a leg between seal the rim as the legs do.
-                if self.policy.seal && self.turns_refused_at_drop >= TURNS_REFUSED_SEAL {
-                    self.turns_refused_at_drop = 0;
-                    let seen = robot.cliff();
-                    let at = seen
-                        .as_ref()
-                        .and_then(|c| c.nearest(robot.now()))
-                        .map(|d| {
-                            let b = _yaw + d.bearing;
-                            (x + d.range_m.max(0.2) * b.cos(), y + d.range_m.max(0.2) * b.sin())
-                        })
-                        .or_else(|| {
-                            self.local.iter().map(|p| p.0).min_by(|a, b| dist2(*a, (x, y)).total_cmp(&dist2(*b, (x, y))))
-                        });
-                    if let Some(at) = at {
-                        tracing::info!(at = ?at, "map explore: the turn beside the drop refused over and over; the rim is sealed as a refused leg would seal it");
-                        self.seal_rim(at);
-                        self.kept_route = None;
-                        continue;
-                    }
-                }
-                // The route kept from the last plan, trimmed to the body,
-                // when nothing calls for a new one.
-                let lanes_owned: Vec<(f64, f64)> = lanes.to_vec();
-                let lanes: &[(f64, f64)] = &lanes_owned;
-                let books_now = self.local.len();
-                let refused_since = self.refused_since_plan;
-                let kept = if keep_route() {
-                    self.kept_route.take().and_then(|(raw, pulled, at, books)| {
-                        let fresh = (robot.now() - at).as_secs_f64() < KEEP_ROUTE_S;
-                        let same_books = books == books_now;
-                        let (near_i, near_d) = pulled
-                            .iter()
-                            .enumerate()
-                            .map(|(i, p)| (i, dist2(*p, (x, y))))
-                            .min_by(|a, b| a.1.total_cmp(&b.1))
-                            .unwrap_or((0, f64::INFINITY));
-                        let trimmed: Vec<(f64, f64)> = pulled[near_i..].to_vec();
-                        let ok = fresh
-                            && same_books
-                            && !refused_since
-                            && near_d <= KEEP_ROUTE_OFF_M
-                            && trimmed.len() >= 2
-                            && route_passable(&grid, &trimmed, 1.0, &walls, inflate, lanes);
-                        if ok {
-                            Some((raw, trimmed, at, books))
-                        } else {
-                            tracing::info!(fresh, same_books, refused = refused_since, off_m = format!("{near_d:.2}"), "map explore: planning the route anew");
-                            None
-                        }
-                    })
-                } else {
-                    None
-                };
-                let (raw, mut path, planned_at, books_then) = match kept {
-                    Some((raw, path, at, books)) => (raw, path, at, books),
-                    None => {
-                        let Some((raw, path)) = path_to_both(&grid, x, y, goal, &walls, inflate, lanes) else {
-                            if self.stuck < STUCK_MAX {
-                                self.unseal(robot, &grid, (x, y), "no way to the goal from here");
-                                continue;
-                            }
-                            return (State::Failed, format!("no way to ({:.2}, {:.2}) on the map", goal.0, goal.1));
-                        };
-                        self.refused_since_plan = false;
-                        (raw, path, robot.now(), self.local.len())
-                    }
-                };
-                self.kept_route = Some((raw.clone(), path.clone(), planned_at, books_then));
-                // The short way, insisted on (see `ROUTE_JUMP`).
-                let long_m = path.len() as f64 * grid.cell_m;
-                if inflate > SQUEEZE_INFLATE_M
-                    && route_jump() > 0.0
-                    && self.last_route_m.is_none_or(|last| long_m > route_jump() * last)
-                    && let Some(squeezed) = path_to(&grid, x, y, goal, &walls, SQUEEZE_INFLATE_M, lanes)
-                    && keep_the_short_way(self.last_route_m, long_m, Some(squeezed.len() as f64 * grid.cell_m), self.insisted)
-                {
-                    self.insisted += 1;
-                    tracing::info!(
-                        at = ?(x, y),
-                        long_m = format!("{long_m:.2}"),
-                        short_m = format!("{:.2}", squeezed.len() as f64 * grid.cell_m),
-                        last_m = format!("{:.2}", self.last_route_m.unwrap_or(0.0)),
-                        insisted = self.insisted,
-                        "map explore: the route jumped; keeping the short way with the body's own width"
-                    );
-                    path = squeezed;
-                }
-                self.last_route_m = Some(path.len() as f64 * grid.cell_m);
-                let f = Frontier {
-                    cells: 0,
-                    centroid: goal,
-                    target: goal,
-                    stand: goal,
-                    distance_m: path.len() as f64 * grid.cell_m,
-                    cost: 0,
-                    score: 0.0,
-                    path,
-                };
-                // The route as planned on this pass. A journey that doubles
-                // back leaves its trace here: the length jumping down when a
-                // shorter way opens, or the detour ratio swinging as two
-                // routes trade places. Measured 2026-09-12, the journey that
-                // goes wrong spends its first minute walking *away* from the
-                // goal (distance 2.58 → 3.06 m) while the good one falls
-                // straight to it — and a plan is the only thing that can
-                // send it the wrong way on purpose.
-                let straight_now = dist2((x, y), goal);
-                tracing::info!(
-                    at = ?(x, y),
-                    route_m = format!("{:.2}", f.distance_m),
-                    straight_m = format!("{:.2}", straight_now),
-                    detour = format!("{:.2}", f.distance_m / straight_now.max(0.01)),
-                    "map explore: route to the goal"
-                );
-                if self.doubt_the_detour(robot, &grid, (x, y), goal, &f, straight_now, inflate) {
-                    continue;
-                }
-                let (local, trail, left) = (self.local.clone(), self.trail.clone(), straight_now);
-                let route = f.path.clone();
-                handle.update(|s| {
-                    s.trail = trail;
-                    s.frontiers_left = 1;
-                    s.target = Some(goal);
-                    s.target_distance_m = Some(left);
-                    s.local_obstacles = local.len();
-                    s.local = local;
-                    s.route = route;
-                    s.route_raw = raw;
-                    s.goal = Some(goal);
-                });
-                if let Some(verdict) = self.walk_leg(handle, robot, &grid, pose, &f) {
-                    return verdict;
-                }
-                continue;
-            }
             let mut fs = frontiers_with(&grid, x, y, &blocked, &walls, inflate, &lanes);
             // Big frontiers first, wherever they are; slivers last, and
             // not for ever: once no big group is left anywhere on the map,
@@ -2042,11 +1833,6 @@ impl Job {
         let iteration_began = robot.now();
         let (x, y, yaw) = pose;
         let to_target = dist2((x, y), f.stand);
-        // The stick (see `stick.rs`): a journey held to the route, every
-        // rule of ours off.
-        if stick_on() && self.goal.is_some() {
-            return self.stick_leg(handle, robot, pose, f);
-        }
         if switch("QK_RIM_OFF").unwrap_or(true) && self.off_the_rim(robot, pose) {
             let _ = stand(robot, self.turn_stand_s());
             return None;
@@ -2064,9 +1850,8 @@ impl Job {
             let straight = (f.stand.1 - y).atan2(f.stand.0 - x);
             let look = to_target.min(straight_look_m());
             // How far along the path to aim when the straight line is not
-            // clear: a stride while mapping, a metre on a journey (see
-            // [`GOAL_LOOKAHEAD_M`]).
-            let ahead_m = if self.goal.is_some() { goal_lookahead_m(self.follow()) } else { lookahead_m() };
+            // clear: a stride.
+            let ahead_m = lookahead_m();
             // Beside a drop, booked or seen, the route itself: the aim a
             // step along it, neither the string pulled nor an old aim
             // held. The grid path keeps the planner's margin from the
@@ -2098,13 +1883,6 @@ impl Job {
             // saw it in the lane, and "no room" 75 times on the spot
             // (2026-09-24).
             let aim = if near_drop && switch("QK_CENTRE").unwrap_or(true) { self.centred(grid, (x, y), aim) } else { aim };
-            // Hold it unless it is reached, blocked, or bettered — only on a
-            // journey; a mapping job's aim is its frontier's business.
-            let aim = if self.goal.is_some() && hold_aim_enabled() && !near_drop {
-                self.hold_aim(grid, (x, y), yaw, aim, f.stand)
-            } else {
-                aim
-            };
             // Never an aim behind the beak: the waypoint counts cells from
             // the route's start, and a body beside or past that start got
             // an aim behind it, and walked round it (the user's eye,
@@ -2135,9 +1913,6 @@ impl Job {
                 tracing::info!(at = ?(x, y, yaw), walked = walked.is_ok(), why = walked.as_ref().err().map(String::as_str).unwrap_or(""),
                                "map explore: stuck beside a drop, no turn and no way back; the way on ahead, to turn out of the rim's reach");
                 if walked.is_err() {
-                    if self.goal.is_some() {
-                        return Some((State::Failed, "stuck beside a drop: no turn there, no way back and none ahead".into()));
-                    }
                     if let Some((t, _)) = self.target.take() {
                         self.refused.push((t, BLOCK_REFUSED_M));
                     }
@@ -2156,20 +1931,10 @@ impl Job {
             // changing back and forth while the duck goes nowhere.
             handle.update(|s| s.aim = Some(aim));
             self.last_aim = Some(aim);
-            if self.goal.is_some() {
-                tracing::info!(
-                    at = ?(x, y),
-                    aim = ?(format!("{:.2}", aim.0), format!("{:.2}", aim.1)),
-                    by = if aim == f.stand { "straight" } else { "path" },
-                    err_deg = format!("{:.0}", err.to_degrees()),
-                    phase = if !commit() { "legacy" } else if going { "go" } else { "turn" },
-                    "map explore: aim"
-                );
-            }
             // How long every leg below stands afterwards: three seconds
             // while mapping, none while hurrying to a goal over floor
             // already mapped (bar every fifth).
-            let stop_s = self.stop_s(handle.status().legs);
+            let stop_s = self.stop_s();
 
             // 2b. A passage beside a drop: onto its axis, then straight.
             let mut passage_leg: Option<Value> = None;
@@ -2317,7 +2082,7 @@ impl Job {
                 let _ = stand(robot, self.turn_stand_s());
                 return None;
             }
-            let leg = passage_leg.or_else(|| self.leg(robot, grid, pose, aim, err, going, handle.status().legs));
+            let leg = passage_leg.or_else(|| self.leg(robot, grid, pose, aim, err, going));
             if let Some(sign) = leg.as_ref().and_then(|l| l.get("spin")).and_then(Value::as_f64)
                 && self.spins_since_leg < SPINS_MAX
             {
@@ -2342,7 +2107,7 @@ impl Job {
                     let ok = self.align(robot, (aim.1 - y).atan2(aim.0 - x));
                     tracing::info!(at = ?(x, y, yaw), err_deg = format!("{:.0}", err.to_degrees()), ok, "map explore: no room ahead, turning in place to the aim");
                     let _ = stand(robot, self.turn_stand_s());
-                } else if let Some(h) = self.route_heading_anew(grid, (x, y), self.goal.unwrap_or(f.stand))
+                } else if let Some(h) = self.route_heading_anew(grid, (x, y), f.stand)
                     && wrap(h - yaw).abs() > deadband_rad()
                 {
                     // The aim on the nose runs into what was just booked:
@@ -2491,10 +2256,6 @@ impl Job {
                     self.drop_refusals_in_row = 0;
                     self.passage_refusals = 0;
                     self.turns_refused_at_drop = 0;
-                    // A leg walked is progress on the way chosen: the
-                    // short way may be insisted on afresh at the next
-                    // jump; only refusals in a row give it up.
-                    self.insisted = 0;
                     if let Some((ax, ay, _)) = after {
                         self.walked((x, y), (ax, ay));
                     }
@@ -2666,14 +2427,11 @@ impl Job {
         aim: (f64, f64),
         err: f64,
         going: bool,
-        legs: u32,
     ) -> Option<Value> {
-        let stop_s = self.stop_s(legs);
+        let stop_s = self.stop_s();
         let (x, y, yaw) = pose;
         let straight = if commit() { going } else { err.abs() <= straight_rad() };
-        // The guarded journey's dense stops beside the drops (see
-        // `DROP_STAND_S`): mapping and the blind journey keep their legs.
-        let leg_cap = if self.policy.mode == Mode::JourneyGuarded && self.drop_within(DROP_STAND_NEAR_M) { drop_leg_s().min(3.0) } else { 3.0 };
+        let leg_cap = 3.0;
         let (vyaw, wanted_s, arc) = if straight {
             let walk_s = (dist2((x, y), aim) / GAIT_M_PER_S).clamp(1.0, if self.follow() { 1.5 } else { leg_cap });
             let correction = if err.abs() < deadband_rad() {
@@ -2868,7 +2626,6 @@ impl Job {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::frontier::INFLATE_M;
     use crate::map::Cell;
 
     /// The progress share: floor known over floor known plus the unknown a
@@ -2903,65 +2660,6 @@ mod tests {
     fn a_low_thing_booked_ahead_is_never_a_drop() {
         let widest = (OBSTACLE_RADIUS_M + guarded::LOW_BOOK_PUSH_M / 2.0).min(guarded::LOW_BOOK_RADIUS_MAX_M);
         assert!(widest < DROP_RADIUS_M, "{widest}");
-    }
-
-    /// A flat with one wall across it and two doorways: a near one at
-    /// x ≈ 3.0 and a far one at x ≈ 0.6. Everything else is known floor.
-    fn two_doors() -> Grid {
-        let (rows, cols, cell_m) = (40, 60, 0.1);
-        let mut cells = vec![Cell::Free; rows * cols];
-        let wall_row = 20; // y ≈ 2.0
-        for col in 0..cols {
-            let near = (28..=32).contains(&col);
-            let far = (4..=8).contains(&col);
-            if !near && !far {
-                cells[wall_row * cols + col] = Cell::Wall;
-            }
-        }
-        Grid { rows, cols, x_min: 0.0, y_min: 0.0, cell_m, cells }
-    }
-
-    /// The measured case (2026-09-12): a stall writes an obstacle in the
-    /// near doorway, the planner walks the duck round the whole flat, and
-    /// nothing forgets the guess because a route still exists.
-    #[test]
-    fn a_guess_in_the_doorway_is_ours_to_doubt() {
-        let grid = two_doors();
-        let (at, goal) = ((3.0, 1.5), (3.0, 2.6));
-        let phantom = vec![((3.0, 1.75), OBSTACLE_RADIUS_M)];
-        let walls: Vec<ExtraWall> = phantom.iter().map(|(p, r)| (*p, *r)).collect();
-        let route = path_to(&grid, at.0, at.1, goal, &walls, INFLATE_M, &[])
-            .expect("the far door is still open");
-        let route_m = route.len() as f64 * grid.cell_m;
-        let straight_m = dist2(at, goal);
-        assert!(
-            route_m > DETOUR_SUSPECT * straight_m,
-            "the guess should send the duck the long way: {route_m:.2} m for {straight_m:.2} m"
-        );
-        let bare = Job::ours_to_doubt(&grid, &phantom, at, goal, route_m, INFLATE_M, &[])
-            .expect("the detour is the duck's own doing");
-        assert!(bare.len() as f64 * grid.cell_m < route_m / DETOUR_SUSPECT);
-    }
-
-    /// The other half of the rule: when the near door is walled on the map
-    /// itself, the long way round is the map's doing and forgetting our own
-    /// books would not help. Nothing to doubt.
-    #[test]
-    fn a_wall_on_the_map_is_not_ours_to_doubt() {
-        let mut grid = two_doors();
-        for col in 28..=32 {
-            grid.cells[20 * grid.cols + col] = Cell::Wall;
-        }
-        let (at, goal) = ((3.0, 1.5), (3.0, 2.6));
-        let elsewhere = vec![((0.2, 3.5), OBSTACLE_RADIUS_M)];
-        let walls: Vec<ExtraWall> = elsewhere.iter().map(|(p, r)| (*p, *r)).collect();
-        let route = path_to(&grid, at.0, at.1, goal, &walls, INFLATE_M, &[])
-            .expect("the far door is open");
-        let route_m = route.len() as f64 * grid.cell_m;
-        assert!(
-            Job::ours_to_doubt(&grid, &elsewhere, at, goal, route_m, INFLATE_M, &[]).is_none(),
-            "forgetting an obstacle nowhere near the way should change nothing"
-        );
     }
 
     /// One frame's "Missing" is not a hole; two frames' is. Edges of
@@ -3036,23 +2734,6 @@ fn the_route_is_judged_against_the_sensor_before_a_leg() {
     // Going backwards: nothing ahead of the body on the route — no word.
     let back: Vec<(f64, f64)> = (1..=6).map(|i| (1.0 - i as f64 * 0.05, 1.0)).collect();
     assert!(job.route_vs_sensor(&body, pose, &back).is_none());
-}
-
-#[test]
-fn the_short_way_is_kept_twice_then_the_long_one_believed() {
-    // Last route 2.4 m; the plan now says 9.6 m, squeezed 2.6 m: keep it.
-    assert!(keep_the_short_way(Some(2.4), 9.6, Some(2.6), 0));
-    assert!(keep_the_short_way(Some(2.4), 9.6, Some(2.6), 1));
-    // Insisted twice already: the long way it is.
-    assert!(!keep_the_short_way(Some(2.4), 9.6, Some(2.6), ROUTE_INSIST_MAX));
-    // A modest change is not a jump; a squeezed route that is itself long
-    // is no short way; no squeezed route, nothing to keep.
-    assert!(!keep_the_short_way(Some(2.4), 3.5, Some(2.6), 0));
-    assert!(!keep_the_short_way(Some(2.4), 9.6, Some(6.0), 0));
-    assert!(!keep_the_short_way(Some(2.4), 9.6, None, 0));
-    // The first plan of a journey: the squeezed route is the yardstick.
-    assert!(keep_the_short_way(None, 9.6, Some(2.6), 0));
-    assert!(!keep_the_short_way(None, 3.5, Some(2.6), 0));
 }
 
 /// The step back at house2's stairwell that fell (2026-09-26): the body at
@@ -3172,13 +2853,4 @@ fn a_new_job_inherits_the_drops_and_the_trail() {
         assert!(job.local.iter().any(|(_, r)| *r == OBSTACLE_RADIUS_M));
     }
 
-    /// A drop is never doubted: the map cannot show a stairwell, so a
-    /// route that exists only by forgetting one is not a route.
-    #[test]
-    fn a_drop_is_never_ours_to_doubt() {
-        let grid = two_doors();
-        let (at, goal) = ((3.0, 1.5), (3.0, 2.6));
-        let stairs = vec![((3.0, 1.75), DROP_RADIUS_M)];
-        assert!(Job::ours_to_doubt(&grid, &stairs, at, goal, 99.0, INFLATE_M, &[]).is_none());
-    }
 }

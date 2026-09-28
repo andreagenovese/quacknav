@@ -178,10 +178,6 @@ pub(super) const DROP_REFUSALS_SEAL: u32 = 3;
 /// this far, or this long after the last one counted.
 pub(super) const DROP_REFUSAL_MOVED_M: f64 = 0.05;
 pub(super) const DROP_REFUSAL_AGAIN_S: f64 = 5.0;
-/// Turns in place refused beside a drop in a row that seal the rim as
-/// the refused legs do (each costs a plan and a stand, 3–5 s; goround2
-/// spent ten minutes on 172 of them, 2026-09-20).
-pub(super) const TURNS_REFUSED_SEAL: u32 = 12;
 /// ... and so many, in any mode, that end the waiting there (see
 /// `walk_leg`): the way on ahead, or the aim given up.
 pub(super) const TURNS_REFUSED_ESCAPE: u32 = 4;

@@ -16,11 +16,6 @@ impl Job {
             self.widened.push(at);
         }
         self.sealed.push(at);
-        if !self.budget_extended && self.goal.is_some() {
-            self.budget_extended = true;
-            self.max_s += GO_ROUND_EXTRA_S;
-            tracing::info!(max_s = self.max_s, "map explore: the budget grows for the way round");
-        }
     }
 
     /// A refused leg: what the map did not know goes into the local
@@ -294,78 +289,4 @@ impl Job {
         }
     }
 
-    /// The route without the obstacles the duck wrote itself, when that
-    /// route is so much shorter that the detour is our own doing — the
-    /// decision half of [`Job::doubt_the_detour`], kept pure so it can be
-    /// tested against a grid without a body. Drops are left in place: the
-    /// map cannot show a stairwell, so a route that only exists by
-    /// forgetting one is no route at all.
-    pub(super) fn ours_to_doubt(
-        grid: &Grid,
-        local: &[((f64, f64), f64)],
-        at: (f64, f64),
-        goal: (f64, f64),
-        route_m: f64,
-        inflate: f64,
-        lanes: &[(f64, f64)],
-    ) -> Option<Vec<(f64, f64)>> {
-        let drops: Vec<ExtraWall> = local
-            .iter()
-            .filter(|(_, r)| *r >= DROP_RADIUS_M)
-            .map(|(p, _)| (*p, DROP_PLAN_RADIUS_M))
-            .collect();
-        if drops.len() == local.len() {
-            return None; // nothing on the books but drops: not ours to doubt
-        }
-        let bare = path_to(grid, at.0, at.1, goal, &drops, inflate, lanes)?;
-        let bare_m = bare.len() as f64 * grid.cell_m;
-        // The long way round is the map's doing, not ours.
-        (bare_m * DETOUR_SUSPECT < route_m).then_some(bare)
-    }
-
-    /// Is this detour our own doing? See [`DETOUR_SUSPECT`]. `true` when
-    /// the guesses in the way were dropped and the route should be planned
-    /// again from the top.
-    #[allow(clippy::too_many_arguments)]
-    pub(super) fn doubt_the_detour(
-        &mut self,
-        robot: &mut dyn Body,
-        grid: &Grid,
-        at: (f64, f64),
-        goal: (f64, f64),
-        f: &Frontier,
-        straight_m: f64,
-        inflate: f64,
-    ) -> bool {
-        if self.doubts >= DETOUR_DOUBTS_MAX
-            || straight_m > DETOUR_NEAR_M
-            || f.distance_m < DETOUR_SUSPECT * straight_m
-        {
-            return false;
-        }
-        // The trail is borrowed from `self`, which is about to be written.
-        let lanes: Vec<(f64, f64)> = self.lanes().to_vec();
-        let Some(bare) = Self::ours_to_doubt(grid, &self.local, at, goal, f.distance_m, inflate, &lanes)
-        else {
-            return false;
-        };
-        let bare_m = bare.len() as f64 * grid.cell_m;
-        self.doubts += 1;
-        // The stand first: the mapper's window is what inks a real wall, so
-        // whatever is truly there survives the forgetting that follows.
-        let _ = stand(robot, FRONTIER_STOP_S);
-        let before = self.local.len();
-        self.local.retain(|(p, r)| {
-            *r >= DROP_RADIUS_M || !bare.iter().any(|w| dist2(*w, *p) < LOCAL_FORGET_M)
-        });
-        tracing::info!(
-            at = ?at,
-            route_m = format!("{:.2}", f.distance_m),
-            without_our_guesses_m = format!("{:.2}", bare_m),
-            forgotten = before - self.local.len(),
-            doubt = self.doubts,
-            "map explore: this detour looks like our own doing; standing to let the map say"
-        );
-        true
-    }
 }
