@@ -685,7 +685,7 @@ impl Job {
     /// the leg is walking, and a stand is seldom in fast mode (lost4,
     /// 2026-09-19: five blind legs into the stairwell with no frame
     /// judged) — two of them agreeing when there are two.
-    fn blind_drop_ahead(&self, cliff: &crate::cliff::CliffStatus, now: Instant, reach: f64) -> Option<crate::cliff::Drop> {
+    pub(super) fn blind_drop_ahead(&self, cliff: &crate::cliff::CliffStatus, now: Instant, reach: f64) -> Option<crate::cliff::Drop> {
         let within = Duration::from_millis(1200);
         let frames = cliff.recent.iter().filter(|f| now.duration_since(f.at) <= within).count();
         if frames == 0 {
