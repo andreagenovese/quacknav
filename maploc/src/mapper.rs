@@ -442,10 +442,9 @@ pub enum Note {
         pose: Pose2,
         mean_residual_m: f32,
     },
-    /// A pending candidate judged by a window short of confirming it:
-    /// `verdict` "unjudgeable" or "ambiguous" (kept, carried by odometry,
-    /// for a later window to confirm) or "refuted" (dropped); the window's
-    /// residual and beams at the pose, and the travel since nomination.
+    /// A pending candidate a window did not confirm, and dropped: `verdict`
+    /// "unjudgeable", "ambiguous" or "refuted"; the window's residual and
+    /// beams at the pose, and the travel since nomination.
     RelocalizeCandidateJudged {
         pose: Pose2,
         verdict: &'static str,
@@ -1269,7 +1268,17 @@ impl Mapper {
             // wall), and the head sweep only decorrelates the second
             // window from the first if we wait for it.
             if let Some((cand, then)) = self.soft_seed.take() {
-                match self.check_candidate(&mut grid, composite, cand, then, now) {
+                let judged = self.check_candidate(&mut grid, composite, cand, then, now);
+                if std::env::var_os("RELOC_DEBUG").is_some() {
+                    let v = match &judged.1 {
+                        Verdict::Confirmed(_, r) => format!("confirmed {r:.3}"),
+                        Verdict::Refuted => "refuted".into(),
+                        Verdict::Ambiguous => "ambiguous".into(),
+                        Verdict::Unjudgeable => "unjudgeable".into(),
+                    };
+                    eprintln!("    seed ({:.2},{:.2},{:.0}°): {v}", judged.0.0, judged.0.1, judged.0.2.to_degrees());
+                }
+                match judged {
                     (implied, Verdict::Confirmed(pose, resid)) => {
                         self.seed_agreed += 1;
                         // At boot the seed is the pose the session ended
@@ -1336,24 +1345,15 @@ impl Mapper {
             // the bench — 2026-09-14, both recordings never came home or
             // came home at 434 s — so the second window's job stays what
             // it was: to agree.)
-            // A window that cannot judge the candidate — the sensor's beams
-            // on too little wall, a corridor ahead — or judges it neither
-            // way is no evidence against it: it stays pending, carried by
-            // odometry, for a later window to confirm; only a refutation
-            // drops it. Dropped, the right pose found in the boot's first
-            // three seconds was lost at the first leg down a corridor, and
-            // the search found nothing better for two to four minutes
-            // (casa_arredata on the twin, the perfect map, 2026-09-28).
+            // A candidate this window does not confirm is dropped, and why
+            // is noted.
             let judged = self.pending_reloc.take().map(|(cand, then)| (cand, then, self.check_candidate(&mut grid, composite, cand, then, now)));
-            if let Some((cand, then, (implied, v @ (Verdict::Ambiguous | Verdict::Unjudgeable | Verdict::Refuted)))) = &judged {
+            if let Some((_, then, (implied, v @ (Verdict::Ambiguous | Verdict::Unjudgeable | Verdict::Refuted)))) = &judged {
                 let verdict = match v {
                     Verdict::Ambiguous => "ambiguous",
                     Verdict::Unjudgeable => "unjudgeable",
                     _ => "refuted",
                 };
-                if !matches!(v, Verdict::Refuted) {
-                    self.pending_reloc = Some((*cand, *then));
-                }
                 let wd = self.cfg.watchdog;
                 let a = self.judge_untrusted(&mut grid, composite, *implied, wd.clamp_m, wd.wall_threshold_fp, wd.observed_fp);
                 notes.push(Note::RelocalizeCandidateJudged {

@@ -70,14 +70,31 @@ fn main() {
     slam_cfg.loops.max_correction_cap_m = envf32("LOOP_CAP", slam_cfg.loops.max_correction_cap_m);
     slam_cfg.loops.max_correction_cap_rad = envf32("LOOP_CAP_YAW", slam_cfg.loops.max_correction_cap_rad);
     slam_cfg.loops.max_correction_per_submap_rad = envf32("LOOP_PER_SUBMAP_YAW", slam_cfg.loops.max_correction_per_submap_rad);
-    let mut mapper = match std::env::var_os("MAP_SESSION") {
-        Some(p) => {
-            let saved = maploc::session::SessionState::load(std::path::Path::new(&p))
-                .expect("read the saved session")
-                .expect("the saved session is empty");
-            Mapper::resumed_lost(cfg, Slam::from_session(slam_cfg, saved))
+    // `MAP_LOAD_AT_S=<t>`: a fresh map until `t` seconds into the
+    // recording, the saved one from then on, as the daemon boots live
+    // (see `bench::replay_loading`); unset, the saved one from the start.
+    let load_at: Option<f32> = std::env::var("MAP_LOAD_AT_S").ok().and_then(|v| v.parse().ok());
+    // As live (`mapd`'s `Event::Load`), the saved pose is carried by the
+    // motion since the fresh map began.
+    let saved = std::env::var_os("MAP_SESSION").map(|p| {
+        maploc::session::SessionState::load(std::path::Path::new(&p))
+            .expect("read the saved session")
+            .expect("the saved session is empty")
+    });
+    type Load = Box<dyn FnOnce(&Mapper) -> Mapper>;
+    let (mut mapper, load): (Mapper, Option<(f32, Load)>) = match (saved, load_at) {
+        (Some(mut saved), Some(at)) => {
+            let (c, s) = (cfg.clone(), slam_cfg.clone());
+            let build: Load = Box::new(move |fresh: &Mapper| {
+                if std::env::var("MAP_LOAD_CARRY").map_or(true, |v| v != "0") {
+                    saved.tracked = maploc::pose_graph::compose(saved.tracked, fresh.slam().tracked());
+                }
+                Mapper::resumed_lost(c, Slam::from_session(s, saved))
+            });
+            (Mapper::new(cfg, Slam::new(slam_cfg)), Some((at, build)))
         }
-        None => Mapper::new(cfg, Slam::new(slam_cfg)),
+        (Some(saved), None) => (Mapper::resumed_lost(cfg, Slam::from_session(slam_cfg, saved)), None),
+        (None, _) => (Mapper::new(cfg, Slam::new(slam_cfg)), None),
     };
     // `FROZEN=1`: the map frozen, as quack-navd's rounds run on a house
     // already mapped — nothing inks while the pose tracks.
@@ -93,7 +110,7 @@ fn main() {
     let mut degen = std::env::var_os("DEGEN_LOG").map(|p| std::io::BufWriter::new(std::fs::File::create(p).expect("DEGEN_LOG")));
     let truth_at = |unix: f64| truth.iter().min_by(|a, b| (a.0 - unix).abs().total_cmp(&(b.0 - unix).abs())).copied();
     let (mut quarantined, mut rescued, mut lost) = (0u32, 0u32, 0u32);
-    let replayed = maploc::bench::replay(&session, &mut mapper, f32::INFINITY, |step| {
+    let replayed = maploc::bench::replay_loading(&session, &mut mapper, f32::INFINITY, load, |step| {
         for note in step.notes {
             match note {
                 maploc::mapper::Note::WindowQuarantined { .. } => quarantined += 1,

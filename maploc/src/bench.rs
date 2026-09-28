@@ -47,6 +47,23 @@ pub fn replay(
     path: &Path,
     mapper: &mut Mapper,
     max_t_s: f32,
+    each: impl FnMut(Step<'_>) -> bool,
+) -> io::Result<Replayed> {
+    replay_loading(path, mapper, max_t_s, None, each)
+}
+
+/// [`replay`], with the map swapped at `load.0` seconds for the one
+/// `load.1` builds from the mapper of the moment — as
+/// the daemon does it live: it boots on a fresh map and the homecoming
+/// loads the saved one some seconds later, so the first still windows go
+/// to the fresh map. A replay into the saved map from the first frame
+/// had those windows for its search and came home in 45 s where the live
+/// run took 150 (casa_arredata on the twin, 2026-09-28).
+pub fn replay_loading(
+    path: &Path,
+    mapper: &mut Mapper,
+    max_t_s: f32,
+    mut load: Option<(f32, Box<dyn FnOnce(&Mapper) -> Mapper>)>,
     mut each: impl FnMut(Step<'_>) -> bool,
 ) -> io::Result<Replayed> {
     let replayer = SessionReplayer::open(path)?;
@@ -62,6 +79,11 @@ pub fn replay(
             break;
         }
         out.t_end_s = t;
+        if load.as_ref().is_some_and(|(at, _)| t >= *at)
+            && let Some((_, build)) = load.take()
+        {
+            *mapper = build(mapper);
+        }
         match record {
             Record::Twin(_) => {
                 return Err(io::Error::new(io::ErrorKind::InvalidData, "a v1 prototype capture: use the `replay` example"));

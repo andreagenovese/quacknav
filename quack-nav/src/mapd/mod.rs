@@ -428,6 +428,9 @@ fn worker(config: &MaplocConfig, rx: mpsc::Receiver<Event>, map_tx: &Subscribers
     let mut last_save = Instant::now();
     let mut seq = 0u64;
     let mut unsaved = false;
+    // The live map is the fresh one started at boot, its origin where the
+    // duck woke (see `Event::Load`).
+    let mut fresh_since_boot = config.wipe_on_boot;
     let mut rendered: Option<RenderedGrid> = None;
     let mut render_stale = true;
     // One line every 5 s says what mapping is actually doing.
@@ -508,6 +511,7 @@ fn worker(config: &MaplocConfig, rx: mpsc::Receiver<Event>, map_tx: &Subscribers
             }
             Event::Wipe => {
                 mapper = Mapper::new(mapper_config(config), Slam::new(SlamConfig::default()));
+                fresh_since_boot = false;
                 if let Err(e) = std::fs::remove_file(&map_path)
                     && e.kind() != std::io::ErrorKind::NotFound
                 {
@@ -556,7 +560,23 @@ fn worker(config: &MaplocConfig, rx: mpsc::Receiver<Event>, map_tx: &Subscribers
                 };
                 let result = match loaded {
                     Err(e) => Err(e),
-                    Ok(session) => {
+                    Ok(mut session) => {
+                        // A duck wakes where it was switched off, and waking
+                        // moves it: standing up turned the twin's duck 16°
+                        // in its first five seconds. The fresh map the boot
+                        // started on has its origin where the duck woke, so
+                        // its pose is that motion: carried onto the pose the
+                        // session was saved at, it is where "not moved" puts
+                        // the duck now. Left out, the seed was 16° off and
+                        // refuted at its first window, and the global search
+                        // took two to four minutes over what the seed
+                        // confirms in one (casa_arredata on the twin, the
+                        // perfect map, 2026-09-28). The seed is judged as
+                        // ever: agreement twice, unique, no valley.
+                        if fresh_since_boot {
+                            session.tracked = maploc::pose_graph::compose(session.tracked, mapper.slam().tracked());
+                        }
+                        fresh_since_boot = false;
                         mapper =
                             Mapper::resumed_lost(mapper_config(config), Slam::from_session(SlamConfig::default(), session));
                         // The loaded map is now the live one: autosave must
@@ -824,7 +844,7 @@ fn log_note(note: Note) {
                 residual = format!("{mean_residual_m:.3}"),
                 observed = format!("{n_observed}/{n_beams}"),
                 chord_m = format!("{chord_m:.2}"),
-                "maploc: relocalize candidate judged short of confirmation"
+                "maploc: relocalize candidate dropped — this window did not confirm it"
             );
         }
         Note::RelocalizeAmbiguous { pose, along } => {
