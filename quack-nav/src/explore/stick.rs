@@ -1,8 +1,8 @@
 //! The stick (the user's "prova folle", 2026-09-28): every rule off, the
 //! body held to the Dijkstra route and nothing else.
 //!
-//! What it asks: how much of what the explorer does on a journey is worth
-//! it. With `QK_STICK=1` a journey's leg is only this — a point of the
+//! What it asked: how much of what the explorer does on a journey is worth
+//! it — little, measured (see [`stick_on`]). A journey's leg is only this — a point of the
 //! route [`LOOK_M`] ahead, a turn in place to it when it is more than
 //! [`TURN_FIRST_RAD`] off the nose, else a short step curving onto it —
 //! a bump (steps that do not move the body) booked at the nose and turned from —
@@ -16,9 +16,17 @@
 
 use super::*;
 
-/// `QK_STICK=1`: a journey follows the route and nothing else.
+/// The journey's navigation, frozen 2026-09-28: every journey follows the
+/// route and nothing else. `QK_STICK=0` brings back the old rules, for a
+/// comparison only.
+///
+/// Measured on MuJoCo, six rounds of six goals a house, no falls in any:
+/// the true map and pose 36/36 on house2 and 36/36 on casa_arredata;
+/// maploc's pose on the true map 36/36 and 36/36; on the explored maps
+/// 26-30/36 and 36/36 — against main's ~11/18 and 17-18/18, the old rules'
+/// 13/18 and 17/18.
 pub(super) fn stick_on() -> bool {
-    switch("QK_STICK").unwrap_or(false)
+    switch("QK_STICK").unwrap_or(true)
 }
 
 /// The route's point aimed at: this far from the body.
