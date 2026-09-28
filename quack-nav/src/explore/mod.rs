@@ -46,7 +46,7 @@ use quack_duck::Control;
 use crate::tools::{Robot, execute};
 
 /// The stand at each step of the look-around after a fall: the mapper's
-/// floor for a still window is six seconds (see `homecoming::STAND_S`).
+/// floor for a still window is six seconds (see `homecoming/search.rs`, `STAND_S`).
 const RELOCATE_STAND_S: f64 = 6.0;
 /// A session that ends with only unreachable frontiers left and less than
 /// this much unknown floor within reach of them finds the house done.
