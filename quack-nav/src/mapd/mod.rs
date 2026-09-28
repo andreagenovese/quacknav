@@ -782,7 +782,7 @@ fn log_note(note: Note) {
             );
         }
         Note::WindowDiscarded { beams } => {
-            tracing::debug!(beams, "maploc: window too thin to ink; discarded");
+            tracing::info!(beams, "maploc: window too thin to judge or ink; discarded");
         }
         Note::WindowQuarantined { mean_residual_m, n_observed } => {
             tracing::info!(
