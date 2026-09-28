@@ -7,7 +7,9 @@
 //! [`TURN_FIRST_RAD`] off the nose, else a short step curving onto it —
 //! a bump (steps that do not move the body) booked at the nose and turned from —
 //! the sensor's own guard against a true hole in the step's lane kept,
-//! with a stand every [`STAND_EVERY`] steps for the mapper's still window,
+//! turns closed on odometry's yaw, a stand after every turn of
+//! [`STAND_AFTER_TURN_RAD`] and every [`STAND_EVERY_M`] walked for the
+//! mapper's still window,
 //! the pose corrected only there. No passage law, no rim rules, no steps
 //! back, no guard of ours: the route is re-planned from the pose at every
 //! leg, as it always is, and followed as closely as the gait allows.
@@ -36,14 +38,43 @@ const DROP_GUARD_MARGIN_M: f64 = 0.15;
 const KNOWN_RIM_M: f64 = 0.30;
 /// Where a bump is booked: this far ahead of the body's centre.
 const BUMP_AHEAD_M: f64 = 0.15;
-/// A stand every this many steps, for the mapper.
-const STAND_EVERY: u32 = 6;
+/// A stand for the mapper every this far walked, and after a turn of this.
+const STAND_EVERY_M: f64 = 0.4;
+const STAND_AFTER_TURN_RAD: f64 = 0.5;
 const STAND_S: f64 = 2.0;
 /// The yaw asked per radian of heading error, as the gait turns 0.65 of
 /// it a second: the error closed over about the step.
 const YAW_GAIN: f64 = 1.0 / (0.65 * STEP_S);
 
+/// Odometry's pose, when robotd gives it.
+fn odom_pose(robot: &dyn Body) -> Option<(f64, f64, f64)> {
+    robot.cliff().and_then(|c| Some((c.odom_xy?.0, c.odom_xy?.1, c.odom_yaw?)))
+}
+
 impl Job {
+    /// A turn in place toward `sign` by `want` radians, closed on odometry's
+    /// yaw in [`TURN_CHUNK_S`] chunks (the map's yaw without odometry), a
+    /// time budget for the slowest measured rate. Returns how far it turned.
+    fn stick_turn(&mut self, robot: &mut dyn Body, sign: f64, want: f64) -> f64 {
+        let yaw_now = |robot: &dyn Body| odom_pose(robot).map(|p| p.2).or_else(|| robot.frame().map(|f| f.yaw));
+        let Some(yaw0) = yaw_now(&*robot) else { return 0.0 };
+        let goal = (want - TURN_LEAD_RAD).max(0.05);
+        let vyaw = quack_duck::body::TURN_IN_PLACE_RAD_S * sign;
+        let started = robot.now();
+        let budget = 2.0 * want / 0.5 + 1.0;
+        let mut turned = 0.0f64;
+        while (robot.now() - started).as_secs_f64() < budget {
+            let _ = robot.blind_move(&json!({"vx": 0.0, "vyaw": vyaw, "duration_s": TURN_CHUNK_S}));
+            if let Some(y) = yaw_now(&*robot) {
+                turned = wrap(y - yaw0) * sign;
+                if turned >= goal {
+                    break;
+                }
+            }
+        }
+        turned
+    }
+
     /// One leg of the stick (see the module): `None`, the job goes on.
     pub(super) fn stick_leg(&mut self, handle: &ExploreHandle, robot: &mut dyn Body, (x, y, yaw): (f64, f64, f64), f: &Frontier) -> Option<(State, String)> {
         let look = f.path.iter().copied().find(|p| dist2(*p, (x, y)) >= LOOK_M).unwrap_or(f.stand);
@@ -69,11 +100,20 @@ impl Job {
         if err.abs() > TURN_FIRST_RAD || self.stick_stalls >= STALLS_TURN {
             // A pure turn in place: yaw past the gait's dead zone, about
             // 30-58°/s, for as long as the error asks and a second at most.
-            let vyaw = quack_duck::body::TURN_IN_PLACE_RAD_S * err.signum();
-            let secs = (err.abs() / 0.6).clamp(0.3, 1.0);
+            // Closed on odometry's yaw, in short chunks: the map's pose
+            // comes once a second and lags a turn at 30-58°/s by up to 50°
+            // (the oracle's run, MuJoCo 2026-09-28) — a turn read off it
+            // overshoots, and the next step is aimed wrong.
             self.stick_stalls = 0;
-            let _ = robot.blind_move(&json!({"vx": 0.0, "vyaw": vyaw, "duration_s": secs}));
-            tracing::info!(at = ?(x, y, yaw), look = ?look, err_deg = format!("{:.0}", err.to_degrees()), "map explore: stick: turn");
+            let want = if stalled { err.abs().max(0.35) } else { err.abs() };
+            let turned = self.stick_turn(robot, err.signum(), want);
+            tracing::info!(at = ?(x, y, yaw), look = ?look, err_deg = format!("{:.0}", err.to_degrees()), turned_deg = format!("{:.0}", turned.to_degrees()), "map explore: stick: turn");
+            // ... and a stand after it: the mapper corrects the pose at the
+            // stands only, and a turn is where odometry drifts most.
+            if want >= STAND_AFTER_TURN_RAD {
+                let _ = stand(robot, STAND_S);
+                self.stick_since_stand = 0.0;
+            }
         } else if let Some(d) = robot.cliff().and_then(|c| self.blind_drop_ahead(&c, robot.now(), GAIT_M_PER_S * STEP_S + DROP_GUARD_MARGIN_M)) {
             // The one guard it keeps: a true hole the sensor sees in the
             // step's own lane. Without it, the paper twin's journeys with a
@@ -104,8 +144,20 @@ impl Job {
             tracing::info!(at = ?(x, y, yaw), look = ?look, err_deg = format!("{:.0}", err.to_degrees()), vyaw, "map explore: stick: step");
         }
         self.stick_steps += 1;
-        if self.stick_steps % STAND_EVERY == 0 {
+        // A stand every [`STAND_EVERY_M`] walked, by odometry: at every sixth
+        // step the oracle's run left maploc 0.4 m off before it gave up the
+        // pose — the stick walks almost without stopping.
+        if let Some((ox, oy, _)) = odom_pose(&*robot) {
+            if let Some(p) = self.stick_odom_at {
+                self.stick_since_stand += dist2(p, (ox, oy));
+            }
+            self.stick_odom_at = Some((ox, oy));
+        } else {
+            self.stick_since_stand += GAIT_M_PER_S * STEP_S;
+        }
+        if self.stick_since_stand >= STAND_EVERY_M {
             let _ = stand(robot, STAND_S);
+            self.stick_since_stand = 0.0;
         }
         None
     }

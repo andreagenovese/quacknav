@@ -1158,6 +1158,9 @@ pub struct Job {
     /// The stick's last pose, and its steps in a row that did not move it.
     stick_last: Option<(f64, f64)>,
     stick_stalls: u32,
+    /// Odometry walked since the stick's last stand, and where it was.
+    stick_since_stand: f64,
+    stick_odom_at: Option<(f64, f64)>,
     /// Narrow-passage refusals in a row, and where the body stood.
     narrow_refusals: (u32, (f64, f64)),
     /// A fall was seen and the pose has not been trusted for
@@ -1339,6 +1342,8 @@ impl Job {
             stick_steps: 0,
             stick_last: None,
             stick_stalls: 0,
+            stick_since_stand: 0.0,
+            stick_odom_at: None,
             narrow_refusals: (0, (f64::NAN, f64::NAN)),
             fell: None,
             relocate_steps: 0,
