@@ -1,10 +1,11 @@
 //! The route a journey would plan on a saved map with its book, for a
 //! sequence of stops: which way it goes and how long it is, under the
-//! planner's knobs of the moment (`QK_COSTMAP`, `QK_WALL_W`, `QK_DROP_W`,
-//! ...). What the paper twin cannot say about a real house: on house2's map
-//! the layered costmap sent g4 through the passage beside the stairwell
-//! (11.3 m) where the legacy one went round (13.0 m), and on MuJoCo the
-//! passage cost the journey its time budget, three rounds in three.
+//! planner's knobs of the moment (`QK_INFLATE_M`, `QK_COST_HUG`, ...). What
+//! the paper twin cannot say about a real house: on house2's map a layered
+//! costmap (tried and removed) sent g4 through the passage beside the
+//! stairwell (11.3 m) where the linear one went round (13.0 m), and on
+//! MuJoCo the passage cost the journey its time budget, three rounds in
+//! three.
 //!
 //!     cargo run -p quack-nav --example route_on_map -- \
 //!         <frame.json> <ground.json> <map name> x0,y0 x1,y1 [x2,y2 ...]
@@ -29,8 +30,6 @@ fn main() -> anyhow::Result<()> {
         None => frame,
     };
     let grid = frame.grid()?;
-    // `QK_THIN_WALLS=1`: the walls thinned, as a journey would plan.
-    let grid = if quack_nav::frontier::thin_walls_on() { quack_nav::frontier::thin_walls(&grid) } else { grid };
     let ground: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&a[1])?)?;
     let name = &a[2];
     let triple = |v: &serde_json::Value| -> Option<(f64, f64, f64)> { Some((v.get(0)?.as_f64()?, v.get(1)?.as_f64()?, v.get(2)?.as_f64()?)) };

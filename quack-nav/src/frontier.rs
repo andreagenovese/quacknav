@@ -161,100 +161,6 @@ fn cost_hug() -> u32 {
             .unwrap_or(COST_HUG_DEFAULT)
     })
 }
-/// `QK_COSTMAP=layered` (ADR 0009, step 2): the graded price as Nav2's
-/// inflation layer has it — an exponential decay on the true (Euclidean)
-/// distance to the nearest impassable cell, and a separate one on the
-/// distance to the nearest booked drop, so a hole pushes the route
-/// differently from a wall — and Dijkstra over eight neighbours instead of
-/// four. What is passable is the same as without it: only the prices move.
-/// Off by default. The paper twin's bench (2026-09-25, 180 journeys, 60
-/// explorations) had it far ahead — 180/180 arrived against 174, half the
-/// refusals — and MuJoCo said the opposite: on the release's maps and books
-/// 23/36 journeys against the release's 29/30 (house2 and casa_arredata,
-/// three rounds each). Its routes were 0.3–1.5 m shorter because a cell by
-/// the furniture cost less than under the linear band, and on the twin
-/// "nearer the furniture" is the sensor's refusals (14 a journey against
-/// 0–3) and the pose lost where the map is least true; the paper twin, with
-/// a perfect map and an ideal sensor, charges nothing for it. To come back
-/// at least as far from things as the band keeps, and measured on MuJoCo.
-fn layered() -> bool {
-    static V: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
-    *V.get_or_init(|| std::env::var("QK_COSTMAP").is_ok_and(|v| v == "layered"))
-}
-fn knob_f(name: &str, default: f64) -> f64 {
-    std::env::var(name).ok().and_then(|v| v.parse().ok()).unwrap_or(default)
-}
-/// The layered price's weights and decay rates (per metre): a free cell
-/// at the impassable edge pays `WALL_W` more, at distance d
-/// `WALL_W·exp(−WALL_K·d)`; the same for drops, measured from the rim's
-/// booked radius. Read once. `QK_WALL_W`, `QK_WALL_K`, `QK_DROP_W`, `QK_DROP_K`.
-/// Measured on the paper twin (10 journeys a goal, 30 explorations): 30/5
-/// and 40/4 halved the refusals but cost 3.5 points of exploration (the
-/// frontiers are priced on the same map); 15/8 and 20/5 kept both.
-fn layer_weights() -> (f64, f64, f64, f64) {
-    static V: std::sync::OnceLock<(f64, f64, f64, f64)> = std::sync::OnceLock::new();
-    *V.get_or_init(|| (knob_f("QK_WALL_W", 15.0), knob_f("QK_WALL_K", 8.0), knob_f("QK_DROP_W", 20.0), knob_f("QK_DROP_K", 5.0)))
-}
-
-/// The exact Euclidean distance transform (Felzenszwalb & Huttenlocher
-/// 2012): for every cell, the distance in cells to the nearest cell where
-/// `source` is true. Two passes of the 1-D lower envelope of parabolas.
-fn distance_transform(rows: usize, cols: usize, source: impl Fn(usize) -> bool) -> Vec<f64> {
-    const INF: f64 = 1e20;
-    let mut f: Vec<f64> = (0..rows * cols).map(|i| if source(i) { 0.0 } else { INF }).collect();
-    let pass = |line: &mut [f64]| {
-        let n = line.len();
-        let (mut v, mut z, mut d) = (vec![0usize; n], vec![0.0f64; n + 1], vec![0.0f64; n]);
-        let mut k = 0usize;
-        z[0] = -INF;
-        z[1] = INF;
-        for q in 1..n {
-            loop {
-                let p = v[k];
-                let sq = ((line[q] + (q * q) as f64) - (line[p] + (p * p) as f64)) / (2.0 * (q as f64 - p as f64));
-                if sq <= z[k] && k > 0 {
-                    k -= 1;
-                    continue;
-                }
-                if sq <= z[k] {
-                    // k == 0: replace the first parabola.
-                    v[0] = q;
-                    z[1] = INF;
-                    break;
-                }
-                k += 1;
-                v[k] = q;
-                z[k] = sq;
-                z[k + 1] = INF;
-                break;
-            }
-        }
-        k = 0;
-        for (q, out) in d.iter_mut().enumerate() {
-            while z[k + 1] < q as f64 {
-                k += 1;
-            }
-            let p = v[k];
-            *out = (q as f64 - p as f64).powi(2) + line[p];
-        }
-        line.copy_from_slice(&d);
-    };
-    let mut col = vec![0.0; rows];
-    for c in 0..cols {
-        for r in 0..rows {
-            col[r] = f[r * cols + c];
-        }
-        pass(&mut col);
-        for r in 0..rows {
-            f[r * cols + c] = col[r];
-        }
-    }
-    for r in 0..rows {
-        pass(&mut f[r * cols..(r + 1) * cols]);
-    }
-    f.iter().map(|v| v.sqrt()).collect()
-}
-
 /// Frontier cells counted toward a group's worth, at most: beyond this a
 /// group is "a whole open side" and distance decides again.
 pub const GAIN_CAP_CELLS: usize = 40;
@@ -377,31 +283,7 @@ impl Costmap {
                 }
             }
         }
-        if layered() {
-            let (ww, wk, dw, dk) = layer_weights();
-            let (rows, cols) = (grid.rows, grid.cols);
-            let to_imp = distance_transform(rows, cols, |i| cost[i] == 0);
-            let drops: Vec<&ExtraWall> = extra_walls.iter().filter(|(_, r)| *r >= DROP_WALL_M).collect();
-            for i in 0..rows * cols {
-                if cost[i] == 0 {
-                    continue;
-                }
-                // Distance to the impassable edge, in metres (the cell's
-                // centre to the nearest impassable cell's centre, less half
-                // a cell: the edge between them).
-                let d_imp = (to_imp[i] - 0.5).max(0.0) * grid.cell_m;
-                let mut extra = ww * (-wk * d_imp).exp();
-                if !drops.is_empty() {
-                    let (wx, wy) = to_world(grid, (i / cols, i % cols));
-                    let d_drop = drops
-                        .iter()
-                        .map(|((bx, by), r)| ((wx - bx).hypot(wy - by) - r).max(0.0))
-                        .fold(f64::INFINITY, f64::min);
-                    extra += dw * (-dk * d_drop).exp();
-                }
-                cost[i] += extra.round() as u32;
-            }
-        } else if cost_hug() > 0 {
+        if cost_hug() > 0 {
             // Distance (in cells) from every passable cell to the nearest
             // impassable one — walls, their inflation, the booked
             // obstacles — by two chamfer passes; then the graded price.
@@ -814,8 +696,8 @@ fn path_to_priced(
 }
 
 
-/// The four neighbours first, then the diagonals.
-const NEIGHBOURS8: [(isize, isize); 8] = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)];
+/// The four neighbours.
+const NEIGHBOURS4: [(isize, isize); 4] = [(-1, 0), (1, 0), (0, -1), (0, 1)];
 
 /// Dijkstra over the costmap from `start` to `end` (cells), the path in
 /// world coordinates from the cell after `start` to `end`.
@@ -835,8 +717,7 @@ fn dijkstra(grid: &Grid, map: &Costmap, start: (usize, usize), end: (usize, usiz
             continue;
         }
         let (row, col) = (here / grid.cols, here % grid.cols);
-        let eight = layered();
-        for (dr, dc) in NEIGHBOURS8.iter().copied().take(if eight { 8 } else { 4 }) {
+        for (dr, dc) in NEIGHBOURS4 {
             let (rr, cc) = (row as isize + dr, col as isize + dc);
             if rr < 0 || cc < 0 {
                 continue;
@@ -846,13 +727,6 @@ fn dijkstra(grid: &Grid, map: &Costmap, start: (usize, usize), end: (usize, usiz
             if step == 0 {
                 continue;
             }
-            let diagonal = dr != 0 && dc != 0;
-            // A diagonal step is √2 cells long, and never cuts the corner
-            // of an impassable cell.
-            if diagonal && (map.at(row, cc) == 0 || map.at(rr, col) == 0) {
-                continue;
-            }
-            let step = if diagonal { (step * 1414 + 500) / 1000 } else { step };
             let idx = rr * grid.cols + cc;
             let next = c + step;
             if next < cost[idx] {
@@ -1048,23 +922,6 @@ pub fn waypoint(path: &[(f64, f64)], lookahead_m: f64, cell_m: f64) -> Option<(f
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn the_distance_transform_is_euclidean() {
-        // One source in a 7 × 9 grid: every cell's distance is its
-        // Euclidean distance to it, exactly.
-        let (rows, cols, src) = (7usize, 9usize, 3 * 9 + 4);
-        let d = distance_transform(rows, cols, |i| i == src);
-        for r in 0..rows {
-            for c in 0..cols {
-                let want = ((r as f64 - 3.0).powi(2) + (c as f64 - 4.0).powi(2)).sqrt();
-                assert!((d[r * cols + c] - want).abs() < 1e-9, "({r}, {c}): {} vs {want}", d[r * cols + c]);
-            }
-        }
-        // Two sources: the nearer one wins.
-        let d = distance_transform(1, 10, |i| i == 0 || i == 9);
-        assert_eq!(d, vec![0.0, 1.0, 2.0, 3.0, 4.0, 4.0, 3.0, 2.0, 1.0, 0.0]);
-    }
 
     /// A room drawn as text: `#` wall, `.` free, ` ` unknown; row 0 at the
     /// bottom (y_min), like the wire.
@@ -1363,110 +1220,5 @@ mod tests {
             "the far streak must be reachable across unknown"
         );
         assert!(fs.iter().any(|f| f.target.0 > 0.8), "{fs:?}");
-    }
-}
-
-/// `QK_THIN_WALLS=1`: a journey plans on [`thin_walls`] of the map.
-pub fn thin_walls_on() -> bool {
-    std::env::var("QK_THIN_WALLS").is_ok_and(|v| v == "1")
-}
-
-/// The map's walls thinned to their middle line and grown back one cell
-/// inside what they were, for planning only.
-///
-/// A wall inked twice, a little apart — seen from poses 10-20 cm off each
-/// other — reads 0.3-0.55 m thick (house2's bath entrance, 0.5 m, against
-/// a wall of 0.1-0.2), and the planner's inflation on top of it closes the
-/// way beside it (the user's eye, 2026-09-28). Zhang-Suen thinning of the
-/// wall cells, then a one-cell dilation kept within the original blob: a
-/// wall three cells wide, on the blob's middle. Cells taken off are free.
-pub fn thin_walls(grid: &Grid) -> Grid {
-    let (rows, cols) = (grid.rows, grid.cols);
-    let wall0: Vec<bool> = grid.cells.iter().map(|c| *c == Cell::Wall).collect();
-    let mut w = wall0.clone();
-    let at = |w: &[bool], r: i64, c: i64| r >= 0 && c >= 0 && (r as usize) < rows && (c as usize) < cols && w[r as usize * cols + c as usize];
-    loop {
-        let mut changed = false;
-        for step in 0..2 {
-            let mut drop: Vec<usize> = Vec::new();
-            for r in 0..rows as i64 {
-                for c in 0..cols as i64 {
-                    if !at(&w, r, c) {
-                        continue;
-                    }
-                    // Neighbours p2..p9, clockwise from north.
-                    let p = [
-                        at(&w, r - 1, c), at(&w, r - 1, c + 1), at(&w, r, c + 1), at(&w, r + 1, c + 1),
-                        at(&w, r + 1, c), at(&w, r + 1, c - 1), at(&w, r, c - 1), at(&w, r - 1, c - 1),
-                    ];
-                    let b = p.iter().filter(|v| **v).count();
-                    if !(2..=6).contains(&b) {
-                        continue;
-                    }
-                    let a = (0..8).filter(|i| !p[*i] && p[(i + 1) % 8]).count();
-                    if a != 1 {
-                        continue;
-                    }
-                    let (p2, p4, p6, p8) = (p[0], p[2], p[4], p[6]);
-                    let ok = if step == 0 { !(p2 && p4 && p6) && !(p4 && p6 && p8) } else { !(p2 && p4 && p8) && !(p2 && p6 && p8) };
-                    if ok {
-                        drop.push(r as usize * cols + c as usize);
-                    }
-                }
-            }
-            if !drop.is_empty() {
-                changed = true;
-                for i in drop {
-                    w[i] = false;
-                }
-            }
-        }
-        if !changed {
-            break;
-        }
-    }
-    // Grown back one cell, within the original blob.
-    let skeleton = w.clone();
-    for r in 0..rows as i64 {
-        for c in 0..cols as i64 {
-            let i = r as usize * cols + c as usize;
-            if skeleton[i] || !wall0[i] {
-                continue;
-            }
-            if (-1..=1).any(|dr| (-1..=1).any(|dc| at(&skeleton, r + dr, c + dc))) {
-                w[i] = true;
-            }
-        }
-    }
-    let cells = grid
-        .cells
-        .iter()
-        .zip(w.iter())
-        .map(|(c, keep)| if *c == Cell::Wall && !keep { Cell::Free } else { *c })
-        .collect();
-    Grid { cells, ..grid.clone() }
-}
-
-#[cfg(test)]
-mod thin_tests {
-    use super::*;
-
-    /// A wall five cells thick becomes three, on its middle; a thin one stays.
-    #[test]
-    fn a_thick_wall_is_thinned_to_its_middle() {
-        let (rows, cols) = (20, 20);
-        let mut cells = vec![Cell::Free; rows * cols];
-        for r in 0..rows {
-            for c in 6..11 {
-                cells[r * cols + c] = Cell::Wall;
-            }
-            cells[r * cols + 15] = Cell::Wall;
-        }
-        let g = Grid { rows, cols, x_min: 0.0, y_min: 0.0, cell_m: 0.05, cells };
-        let t = thin_walls(&g);
-        let row = 10;
-        let walls: Vec<usize> = (0..cols).filter(|c| t.cells[row * cols + c] == Cell::Wall).collect();
-        assert!(walls.contains(&8) && !walls.contains(&6) && !walls.contains(&10), "{walls:?}");
-        assert!(walls.contains(&15), "{walls:?}");
     }
 }

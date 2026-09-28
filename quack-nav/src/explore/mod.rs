@@ -1079,8 +1079,6 @@ pub struct Job {
     sealed: Vec<(f64, f64)>,
     /// The drop that last refused a leg from the books (`guarded_step`).
     books_refusal: std::cell::Cell<Option<(f64, f64)>>,
-    /// The rim the sensor saw at the stands, kept (see `rimmem.rs`).
-    rim_memory: std::cell::RefCell<RimMemory>,
     refused_cleared: bool,
     /// Where the refused list was last cleared: it is cleared again only
     /// once the body has moved [`REARM_DIST_M`] from there.
@@ -1143,11 +1141,6 @@ pub struct Job {
     /// The last `passage()` found the way beside a drop narrower than the
     /// body, its drift and the pose's margin: the leg is not to be walked.
     passage_narrow: bool,
-    /// The last passage `passage()` read, walked or too narrow: its axis
-    /// and the drop's side (+1 left) — what the traverse starts from.
-    passage_last: Option<(f64, f64)>,
-    /// Where the last traverse that did not get through began.
-    traverse_failed_at: Option<(f64, f64)>,
     /// Steps of the stick (see `stick.rs`), for its stands.
     stick_steps: u32,
     /// The stick's last pose, and its steps in a row that did not move it.
@@ -1268,10 +1261,8 @@ mod guarded;
 mod journey;
 mod mapping;
 mod navigate;
-mod traverse;
 mod mode;
 mod recover;
-mod rimmem;
 mod stick;
 mod trusted;
 use books::*;
@@ -1280,8 +1271,6 @@ use guarded::*;
 use journey::*;
 use mapping::*;
 use mode::*;
-use rimmem::*;
-use traverse::*;
 use trusted::*;
 
 impl Job {
@@ -1297,7 +1286,6 @@ impl Job {
             widened: Vec::new(),
             sealed: Vec::new(),
             books_refusal: std::cell::Cell::new(None),
-            rim_memory: std::cell::RefCell::new(RimMemory::default()),
             goal: None,
             refused_cleared: false,
             refused_cleared_at: None,
@@ -1323,8 +1311,6 @@ impl Job {
             turns_refused_at_drop: 0,
             passage_at_mouth: false,
             passage_narrow: false,
-            passage_last: None,
-            traverse_failed_at: None,
             stick_steps: 0,
             stick_last: None,
             stick_stalls: 0,
@@ -1941,36 +1927,7 @@ impl Job {
             let mut aim = aim;
             let mut err = err;
             let passage_read = self.passage(&*robot, grid, pose, &f.path, Some(f.stand));
-            // The traverse (see `traverse.rs`): the passage crossed by what
-            // the sensor sees; the map's reading of it only says where.
-            if traverse_on()
-                && let Some((axis, drop_side)) = self.passage_last
-                && drop_side != 0.0
-                && self.traverse_failed_at.is_none_or(|p| dist2(p, (x, y)) >= TRAVERSE_AGAIN_M)
-            {
-                let end = self.traverse(robot, axis, drop_side, handle);
-                tracing::info!(at = ?(x, y, yaw), axis, drop_side, end = ?end, "map explore: traverse ended");
-                self.going = None;
-                match end {
-                    TraverseEnd::NotHere => self.traverse_failed_at = Some((x, y)),
-                    TraverseEnd::NoWay { .. } => {
-                        self.traverse_failed_at = Some((x, y));
-                        self.passage_narrow = true;
-                        passage_leg = None;
-                    }
-                    TraverseEnd::Through { .. } => {
-                        self.traverse_failed_at = None;
-                        self.passage_narrow = false;
-                        return None;
-                    }
-                    TraverseEnd::Unfinished | TraverseEnd::Refused { .. } => {
-                        self.traverse_failed_at = Some((x, y));
-                        self.passage_narrow = false;
-                        return None;
-                    }
-                }
-            }
-            if let Some((axis0, offset, drop_side)) = passage_read.filter(|_| !self.passage_narrow || !traverse_on()) {
+            if let Some((axis0, offset, drop_side)) = passage_read {
                 // Try D: with the wall's line exact, the heading held is
                 // the line's direction bent toward the line itself — a
                 // pursuit point PASSAGE_PURSUIT_M ahead on it — so the

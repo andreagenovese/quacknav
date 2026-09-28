@@ -250,9 +250,6 @@ impl Job {
         }
         let yaw_now = |robot: &dyn Body| robot.cliff().and_then(|c| c.odom_yaw).or_else(|| robot.frame().map(|f| f.yaw));
         let yaw0 = yaw_now(robot)?;
-        // Near a booked drop, look both ways first: the rim beside the body
-        // is where the sweep of a short stand does not reach.
-        self.look_both_ways(robot);
         // The legs swing while the body turns: nowhere near a drop, on any
         // side. Beside the stairwell's rim an alignment turned in place
         // 9 cm from the edge and the duck went in (twin, 2026-09-23); the
@@ -298,8 +295,7 @@ impl Job {
                 .fold(f64::INFINITY, f64::min)
         });
         let seen = robot.cliff().and_then(|c| c.nearest_hole_m(robot.now())).unwrap_or(f64::INFINITY);
-        let kept = self.kept_rim(robot).map_or(f64::INFINITY, |(d, _)| d);
-        let near = booked.min(seen).min(kept);
+        let near = booked.min(seen);
         (near < radius).then_some(near)
     }
 
@@ -758,8 +754,7 @@ impl Job {
                 .map(|d| (if d.edge_min_m > 0.0 { d.edge_min_m } else { (d.range_m - 0.10).max(0.0) }, d.bearing))
                 .min_by(|a, b| a.0.total_cmp(&b.0))
         });
-        let kept = self.kept_rim(robot);
-        [booked, seen, kept].into_iter().flatten().min_by(|a, b| a.0.total_cmp(&b.0))
+        [booked, seen].into_iter().flatten().min_by(|a, b| a.0.total_cmp(&b.0))
     }
 
     /// Off the rim first: a drop this near the body (see [`RIM_OFF_M`])
@@ -1059,11 +1054,6 @@ impl Job {
             }
             None => (1.0, back_s()),
         };
-        // The kept rim, on the step back's own arc (see `rimmem.rs`).
-        if let Some((rx, ry)) = Self::back_phases(side, secs).first().and_then(|(vx, vyaw, dur)| self.kept_rim_on_arc(&*robot, *vx, *vyaw, *dur)) {
-            tracing::info!(rim = ?(rx, ry), "map explore: a rim the sensor saw lies where the step back would go; none taken");
-            return false;
-        }
         self.last_back = Some(now);
         tracing::info!(side, secs, on_trail = robot.frame().is_some_and(|f| self.back_on_trail(f.pose(), side, secs)), "map explore: stepping back");
         for (vx, vyaw, dur) in Self::back_phases(side, secs) {
