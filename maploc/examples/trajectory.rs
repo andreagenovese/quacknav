@@ -15,6 +15,7 @@
 //! `traj_metrics.py out.tsv` scores the replay exactly as it scores a live
 //! run. Four more columns carry the mapper's own covariance (xx, xy, yy,
 //! yaw·yaw), which `traj_metrics.py` checks against the error (NEES).
+//! `SAVE_SESSION=<file>` saves the map the replay built.
 //! `MAP_SESSION=<file>` replays into a saved map, starting lost, as
 //! `evaluate` does — the session saved before the recorded one.
 
@@ -189,4 +190,9 @@ fn main() {
         rescued,
         lost
     );
+    // `SAVE_SESSION=<file>`: the map the replay built, saved as the live
+    // daemon saves it — for `dump_frame` and `map_vs_truth.py`.
+    if let Some(p) = std::env::var_os("SAVE_SESSION") {
+        mapper.slam().save(&p).expect("save the replayed session");
+    }
 }

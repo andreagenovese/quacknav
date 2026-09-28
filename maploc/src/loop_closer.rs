@@ -132,7 +132,14 @@ impl Default for LoopCloserConfig {
             max_correction_cap_m: 0.60,
             max_correction_base_rad: 0.05,
             max_correction_per_submap_rad: 0.03,
-            max_correction_cap_rad: 0.45,
+            // A loop's yaw correction is capped at 2.3°, whatever the gap:
+            // the windows keep the tracked heading within a few degrees all
+            // along, so it does not drift with the submaps between. Of 930
+            // loops on the twin with the truth around them, those above
+            // 2.3° left the pose worse 30 times in 45, and one of 6.5°
+            // turned casa_arredata's kitchen 3.9° on the saved map, the pose
+            // 3 cm right before it and 11 cm off after (2026-09-28).
+            max_correction_cap_rad: 0.04,
             verbose: false,
         }
     }
