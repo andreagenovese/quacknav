@@ -24,6 +24,8 @@ fn main() -> anyhow::Result<()> {
     let value: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&a[0])?)?;
     let frame: MapFrame = serde_json::from_value(value.get("frame").cloned().unwrap_or(value))?;
     let grid = frame.grid()?;
+    // `QK_THIN_WALLS=1`: the walls thinned, as a journey would plan.
+    let grid = if quack_nav::frontier::thin_walls_on() { quack_nav::frontier::thin_walls(&grid) } else { grid };
     let ground: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&a[1])?)?;
     let name = &a[2];
     let triple = |v: &serde_json::Value| -> Option<(f64, f64, f64)> { Some((v.get(0)?.as_f64()?, v.get(1)?.as_f64()?, v.get(2)?.as_f64()?)) };

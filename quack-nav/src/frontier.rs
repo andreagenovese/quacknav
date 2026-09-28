@@ -1365,3 +1365,108 @@ mod tests {
         assert!(fs.iter().any(|f| f.target.0 > 0.8), "{fs:?}");
     }
 }
+
+/// `QK_THIN_WALLS=1`: a journey plans on [`thin_walls`] of the map.
+pub fn thin_walls_on() -> bool {
+    std::env::var("QK_THIN_WALLS").is_ok_and(|v| v == "1")
+}
+
+/// The map's walls thinned to their middle line and grown back one cell
+/// inside what they were, for planning only.
+///
+/// A wall inked twice, a little apart — seen from poses 10-20 cm off each
+/// other — reads 0.3-0.55 m thick (house2's bath entrance, 0.5 m, against
+/// a wall of 0.1-0.2), and the planner's inflation on top of it closes the
+/// way beside it (the user's eye, 2026-09-28). Zhang-Suen thinning of the
+/// wall cells, then a one-cell dilation kept within the original blob: a
+/// wall three cells wide, on the blob's middle. Cells taken off are free.
+pub fn thin_walls(grid: &Grid) -> Grid {
+    let (rows, cols) = (grid.rows, grid.cols);
+    let wall0: Vec<bool> = grid.cells.iter().map(|c| *c == Cell::Wall).collect();
+    let mut w = wall0.clone();
+    let at = |w: &[bool], r: i64, c: i64| r >= 0 && c >= 0 && (r as usize) < rows && (c as usize) < cols && w[r as usize * cols + c as usize];
+    loop {
+        let mut changed = false;
+        for step in 0..2 {
+            let mut drop: Vec<usize> = Vec::new();
+            for r in 0..rows as i64 {
+                for c in 0..cols as i64 {
+                    if !at(&w, r, c) {
+                        continue;
+                    }
+                    // Neighbours p2..p9, clockwise from north.
+                    let p = [
+                        at(&w, r - 1, c), at(&w, r - 1, c + 1), at(&w, r, c + 1), at(&w, r + 1, c + 1),
+                        at(&w, r + 1, c), at(&w, r + 1, c - 1), at(&w, r, c - 1), at(&w, r - 1, c - 1),
+                    ];
+                    let b = p.iter().filter(|v| **v).count();
+                    if !(2..=6).contains(&b) {
+                        continue;
+                    }
+                    let a = (0..8).filter(|i| !p[*i] && p[(i + 1) % 8]).count();
+                    if a != 1 {
+                        continue;
+                    }
+                    let (p2, p4, p6, p8) = (p[0], p[2], p[4], p[6]);
+                    let ok = if step == 0 { !(p2 && p4 && p6) && !(p4 && p6 && p8) } else { !(p2 && p4 && p8) && !(p2 && p6 && p8) };
+                    if ok {
+                        drop.push(r as usize * cols + c as usize);
+                    }
+                }
+            }
+            if !drop.is_empty() {
+                changed = true;
+                for i in drop {
+                    w[i] = false;
+                }
+            }
+        }
+        if !changed {
+            break;
+        }
+    }
+    // Grown back one cell, within the original blob.
+    let skeleton = w.clone();
+    for r in 0..rows as i64 {
+        for c in 0..cols as i64 {
+            let i = r as usize * cols + c as usize;
+            if skeleton[i] || !wall0[i] {
+                continue;
+            }
+            if (-1..=1).any(|dr| (-1..=1).any(|dc| at(&skeleton, r + dr, c + dc))) {
+                w[i] = true;
+            }
+        }
+    }
+    let cells = grid
+        .cells
+        .iter()
+        .zip(w.iter())
+        .map(|(c, keep)| if *c == Cell::Wall && !keep { Cell::Free } else { *c })
+        .collect();
+    Grid { cells, ..grid.clone() }
+}
+
+#[cfg(test)]
+mod thin_tests {
+    use super::*;
+
+    /// A wall five cells thick becomes three, on its middle; a thin one stays.
+    #[test]
+    fn a_thick_wall_is_thinned_to_its_middle() {
+        let (rows, cols) = (20, 20);
+        let mut cells = vec![Cell::Free; rows * cols];
+        for r in 0..rows {
+            for c in 6..11 {
+                cells[r * cols + c] = Cell::Wall;
+            }
+            cells[r * cols + 15] = Cell::Wall;
+        }
+        let g = Grid { rows, cols, x_min: 0.0, y_min: 0.0, cell_m: 0.05, cells };
+        let t = thin_walls(&g);
+        let row = 10;
+        let walls: Vec<usize> = (0..cols).filter(|c| t.cells[row * cols + c] == Cell::Wall).collect();
+        assert!(walls.contains(&8) && !walls.contains(&6) && !walls.contains(&10), "{walls:?}");
+        assert!(walls.contains(&15), "{walls:?}");
+    }
+}

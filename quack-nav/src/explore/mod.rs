@@ -1567,6 +1567,8 @@ impl Job {
                 robot.sleep(WAIT);
                 continue;
             };
+            // A journey on thinned walls (see `frontier::thin_walls`).
+            let grid = if crate::frontier::thin_walls_on() && self.goal.is_some() { crate::frontier::thin_walls(&grid) } else { grid };
 
             // A false pose shows itself at a stand: the sensor sees walls
             // where the map, from where it thinks the duck is, shows open
