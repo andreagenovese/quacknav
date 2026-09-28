@@ -8,7 +8,8 @@ judged against the truth — right (confirmed within 0.30 m and 20°),
 wrong (confirmed further off), never (not confirmed in `limit_s`).
 
 Spawns: the truth's goals, each with its own heading (0°, 90°, 180°,
--90° in turn); `WAKE_SPAWNS="x,y,yaw_rad;..."` overrides them.
+-90° in turn, all turned by `WAKE_TURN` degrees for another pass);
+`WAKE_SPAWNS="x,y,yaw_rad;..."` overrides them.
 
 Kept per wake-up in <out>: the recording (`wake-<i>.mdlg`), the pose
 sampler's files (`wake-<i>.pose.tsv[.untracked]`) and the navd log, for
@@ -32,8 +33,10 @@ GAVE_UP = ("standing down",)
 def spawns():
     if os.environ.get("WAKE_SPAWNS"):
         return [tuple(float(v) for v in s.split(",")) for s in os.environ["WAKE_SPAWNS"].split(";") if s.strip()]
+    # `WAKE_TURN` (degrees) turns every heading, for a second pass.
+    turn = math.radians(float(os.environ.get("WAKE_TURN", "0")))
     yaws = (0.0, math.pi / 2, math.pi, -math.pi / 2)
-    return [(x, y, yaws[i % 4]) for i, (x, y) in enumerate(truth["goals"].values())]
+    return [(x, y, math.remainder(yaws[i % 4] + turn, math.tau)) for i, (x, y) in enumerate(truth["goals"].values())]
 
 
 def last_pose_row():
@@ -60,7 +63,7 @@ def wake(i, x, y, yaw):
         if any(k in log for k in GAVE_UP):
             t = time.time() - t0; verdict = "never"; break
         time.sleep(3)
-    time.sleep(6)  # a pose sample after the confirmation
+    time.sleep(20)  # a pose sample after the confirmation, and its window in the recording
     row = last_pose_row()
     err = yaw_err = float("nan")
     if row and len(row) > 9:
