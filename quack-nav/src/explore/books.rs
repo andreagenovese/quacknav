@@ -429,21 +429,6 @@ impl Job {
         self.remember_local(point, DROP_RADIUS_M);
     }
 
-    /// Nose against something: back away, then straight on. Always with [`BACK_VYAW`]: the
-    /// gait backs up only with a yaw component, and (measured on the twin,
-    /// twice) only with a positive one — `vyaw` -0.5 or -0.7 leaves the
-    /// body where it is. So the swing goes the same way whichever side the
-    /// obstacle is on; the next leg's heading correction sorts it out.
-    /// Blind, so no more often than [`BACK_EVERY`].
-    /// A drop on the books within [`BACK_DROP_NEAR_M`] of the body that is
-    /// not ahead of it (|bearing| > 60°): stepping back beside a drop is
-    /// what two falls into the twin's stairwell were; stepping back from
-    /// a drop ahead moves away from it.
-    pub(super) fn drop_beside(&self, (x, y, yaw): (f64, f64, f64)) -> bool {
-        self.local.iter().any(|((dx, dy), r)| {
-            *r >= DROP_RADIUS_M && dist2((*dx, *dy), (x, y)) < BACK_DROP_NEAR_M && wrap((dy - y).atan2(dx - x) - yaw).abs() > 1.05
-        })
-    }
 }
 
 #[cfg(test)]

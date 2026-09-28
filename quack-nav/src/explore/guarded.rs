@@ -19,9 +19,6 @@ pub(super) const PASSAGE_DROP_M: f64 = 1.0;
 /// is between them: align to the axis, centre on it, enter.
 /// `QK_MOUTH_M=0` reads the sides at the body only, as before.
 pub(super) const PASSAGE_MOUTH_M: f64 = 0.6;
-/// `QK_TRUSTED_KICK` (try C): a kick this short may go blind over
-/// trusted floor with the hole in view.
-pub(super) const TRUSTED_KICK_MAX_S: f64 = 0.6;
 /// `QK_WALL_FIT` (try D): wall points within this of the nearest one are
 /// the same face, and the face's line is the axis.
 pub(super) const WALL_FIT_BAND_M: f64 = 0.25;
@@ -127,9 +124,6 @@ pub(super) const CLIFF_MARGIN_DEFAULT_M: f64 = 0.25;
 pub(super) fn passage_cliff_margin_m() -> f64 {
     static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
     *V.get_or_init(|| knob("QK_PASSAGE_CLIFF_MARGIN_M", 0.25))
-}
-pub(super) fn passage_lane() -> bool {
-    std::env::var("QUACKSAT_PASSAGE_LANE").is_ok_and(|v| v == "1")
 }
 /// A passage narrower than this (between wall and drop) is not walked.
 // 0.43 let the 0.44 m strip east of the twin's stairwell count as a
@@ -628,7 +622,6 @@ impl Job {
             return None;
         }
         self.passage_axis = Some(h);
-        self.passage_at_mouth = at_mouth;
         if at_mouth {
             tracing::info!(left, right, axis = h, "map explore: passage beside a drop: at its mouth");
         }
@@ -748,16 +741,6 @@ impl Job {
             c.obstacle_in_lane_walking(robot.now(), 0.0, BLIND_OBSTACLE_LANE_M, THING_AHEAD_M, Duration::from_millis(1500), 2)
                 .is_some_and(|o| o.bearing.abs() <= blind_cone_rad(o.range_m) && !self.on_mapped_wall(robot, pose, o.bearing, o.range_m))
         });
-        // Try C (`QK_TRUSTED_KICK`): the short kick of a turn, over floor
-        // the body walked and the books clear, goes blind with the hole
-        // in view too — the sensor's own drop guard below still holds.
-        let trusted_kick = self.policy.trusted_kick
-            && trusted
-            && leg.get("vx").and_then(Value::as_f64).unwrap_or(0.0) > 0.0
-            && leg.get("walk_s").and_then(Value::as_f64).unwrap_or(1.0) <= TRUSTED_KICK_MAX_S;
-        if trusted_kick && hole_in_view {
-            tracing::info!("map explore: a hole in view, but the kick lies on trusted floor; the kick goes blind");
-        }
         // The hybrid journey (the user's, 2026-09-24): blind on the floor
         // the map knows, the guard's on floor it does not — a leg that
         // runs onto an unknown cell is judged as a guarded one.
@@ -765,7 +748,7 @@ impl Job {
         if into_unknown {
             tracing::info!(at = ?(pose.0, pose.1), "map explore: the leg runs onto floor the map does not know; guarded");
         }
-        if (self.blind() || trusted) && !into_unknown && (!hole_in_view || trusted_kick) && !thing_ahead && robot.pose_trusted() {
+        if (self.blind() || trusted) && !into_unknown && !hole_in_view && !thing_ahead && robot.pose_trusted() {
             let vx = leg.get("vx").and_then(Value::as_f64).unwrap_or(0.0);
             let vyaw = leg.get("vyaw").and_then(Value::as_f64).unwrap_or(0.0);
             let walk_s = leg.get("walk_s").and_then(Value::as_f64).unwrap_or(1.0);

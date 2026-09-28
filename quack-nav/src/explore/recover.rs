@@ -29,9 +29,6 @@ impl Job {
         e: &str,
     ) -> Option<(State, String)> {
         let (x, y, yaw) = pose;
-        // Whatever comes next, it is not the aim that was just refused.
-        self.aim = None;
-        self.going = None;
         if e.contains("robot lost") || e.contains("unreachable") {
             return Some((State::Failed, e.to_owned()));
         }
@@ -53,7 +50,7 @@ impl Job {
             // planner, then back out as for a wall.
             self.remember_local((x + 0.25 * yaw.cos(), y + 0.25 * yaw.sin()), OBSTACLE_RADIUS_M);
             if self.boxed_in(robot, grid, pose) {
-                let _ = self.back_off(robot, grid, None);
+                let _ = self.back_off(robot, grid);
             } else {
                 // Not boxed in: the same leg again is the same refusal
                 // again (explmap3, 2026-09-19: "a passage 0.10 m wide"
@@ -116,7 +113,7 @@ impl Job {
             } else {
                 self.last_back = None;
                 if self.boxed_in(robot, grid, pose) {
-                    let _ = self.back_off(robot, grid, None);
+                    let _ = self.back_off(robot, grid);
                 }
             }
         } else if e.starts_with("a drop") {
@@ -169,7 +166,7 @@ impl Job {
             // Tail away from the drop only when boxed in; else the next
             // plan turns in place toward the aim and walks on.
             if self.boxed_in(robot, grid, pose) {
-                let _ = self.back_off(robot, grid, Some(if edge.0 > 0.0 { 1.0 } else { -1.0 }));
+                let _ = self.back_off(robot, grid);
             }
         } else if e.contains("sensor sees something") || e.starts_with("a wall") {
             let hit = self.note_obstacle_ahead(robot, grid, pose);
@@ -181,10 +178,7 @@ impl Job {
             } else {
                 hit.1
             };
-            // Nose against a wall after an arc: the mirror of that arc
-            // retraces the way in (the user's rule, 2026-09-08).
-            let mirror = if self.last_leg_vyaw.abs() > 0.3 { Some(-self.last_leg_vyaw.signum()) } else { None };
-            if nearest < NOSE_STUCK_M && self.boxed_in(robot, grid, pose) && self.back_off(robot, grid, mirror) {
+            if nearest < NOSE_STUCK_M && self.boxed_in(robot, grid, pose) && self.back_off(robot, grid) {
                 // Having backed away and turned, do not steer straight
                 // back toward the same frontier: leave it for later.
                 if let Some((t, _)) = self.target.take() {
@@ -197,7 +191,7 @@ impl Job {
             // repeat of the same leg is what a stall becomes otherwise.
             self.remember_local((x + 0.15 * yaw.cos(), y + 0.15 * yaw.sin()), OBSTACLE_RADIUS_M);
             self.last_back = None;
-            if self.boxed_in(robot, grid, pose) && self.back_off(robot, grid, None) {
+            if self.boxed_in(robot, grid, pose) && self.back_off(robot, grid) {
                 if let Some((t, _)) = self.target.take() {
                     self.refused.push((t, BLOCK_REFUSED_M));
                 }
@@ -284,7 +278,7 @@ impl Job {
             "map explore: {why}, backing out"
         );
         self.last_back = None;
-        if !self.back_off(robot, grid, None) {
+        if !self.back_off(robot, grid) {
             let _ = stand(robot, FRONTIER_STOP_S);
         }
     }

@@ -53,19 +53,9 @@ pub(super) struct Policy {
     /// 29/30 blind, 13/30 against 15/30 guarded, 2026-09-20) — so the
     /// common tolerance unless the knob says otherwise.
     pub align_tol_left_rad: f64,
-    /// Point 2, the mouth of a passage beside a drop (the tries of
-    /// 2026-09-20, measured one at a time on the paper twin's known
-    /// world, guards on, seal off — reference 24/30 in 396 s): (B) the
-    /// aim on the centre line 0.4 m ahead while the body is off it, so
-    /// it enters already aligned (29/30, 116 s; never engaged on the
-    /// MuJoCo twin, whose books cover the whole rim so the passage is
-    /// never read "at its mouth"); a knob.
-    pub mouth_aim: bool,
-    /// (C) the short kick of a turn walks blind over trusted floor even
-    /// with the hole in view, the sensor's own drop guard kept (28/30,
-    /// the same time); a knob.
-    pub trusted_kick: bool,
-    /// (D) the hug's wall line fitted to the wall's cells, and the
+    /// Point 2's try D, the mouth of a passage beside a drop (measured on
+    /// the paper twin's known world, guards on, seal off — reference 24/30
+    /// in 396 s): the hug's wall line fitted to the wall's cells, and the
     /// heading held bent toward the line (30/30, 106 s, no refusal; on
     /// MuJoCo the axis stopped flapping ±50° between stands — 3–4
     /// alignments an outbound leg against 8–10). The guarded journey's
@@ -93,8 +83,6 @@ impl Policy {
                 .ok()
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(ALIGN_TOL_RAD),
-            mouth_aim: env_switch("QK_MOUTH_AIM").unwrap_or(false),
-            trusted_kick: env_switch("QK_TRUSTED_KICK").unwrap_or(false),
             wall_fit: env_switch("QK_WALL_FIT").unwrap_or(guarded),
         }
     }

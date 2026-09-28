@@ -20,18 +20,6 @@ pub(super) fn refused_rearm() -> u8 {
 /// duck at a doorway re-trying it (MuJoCo runs 69–71: room stays of
 /// 15–32 minutes, against 5–11 before the re-arm).
 pub(super) const REARM_DIST_M: f64 = 1.0;
-/// `QUACKSAT_SPIN_TIGHT=1`: a heading change beyond [`SPIN_ERR_RAD`] in
-/// tight quarters is a turn in place, not an arc. Off by default: on the
-/// paper twin it halves the longest room stays (31 -> 18 min in doorways
-/// only) but costs completes (26/30 -> 20/30) and refusals (104 -> 182),
-/// and anywhere tighter than a doorway costs more (14/30). Kept for the
-/// MuJoCo measurement, where a wall bump has a price the paper twin has not.
-pub(super) fn spin_tight() -> bool {
-    std::env::var("QUACKSAT_SPIN_TIGHT").is_ok_and(|v| v == "1")
-}
-pub(super) const TIGHT_WIDTH_M: f64 = 0.8;
-pub(super) const TIGHT_ROOM_M: f64 = 0.6;
-pub(super) const SPIN_ERR_RAD: f64 = 0.6;
 /// See [`Job::boxed_in`].
 pub(super) const BOXED_M: f64 = 0.30;
 /// Less room than this ahead of the nose: a turn in place is yaw only,
@@ -49,33 +37,6 @@ pub(super) const TIGHT_KICK_S: f64 = 0.5;
 /// The step back that makes room for a refused kick: 1.5 s ≈ 7 cm.
 pub(super) const MAKE_ROOM_S: f64 = 1.5;
 pub(super) const TIGHT_TURN_BACK_ROOM_M: f64 = 0.20;
-/// `QUACKSAT_TIGHT_GAP_ONLY=0`: tight also means a corridor under
-/// [`TIGHT_WIDTH_M`] or less than [`TIGHT_ROOM_M`] ahead (measured worse).
-pub(super) fn tight_gap_only() -> bool {
-    std::env::var("QUACKSAT_TIGHT_GAP_ONLY").map(|v| v != "0").unwrap_or(true)
-}
-/// `QUACKSAT_SPIN_ERR` overrides [`SPIN_ERR_RAD`], for measuring.
-pub(super) fn spin_err_rad() -> f64 {
-    std::env::var("QUACKSAT_SPIN_ERR").ok().and_then(|v| v.parse().ok()).unwrap_or(SPIN_ERR_RAD)
-}
-/// `QUACKSAT_ARC_FULL=1`: the arc's room judged with the measured advance
-/// (0.9 of a straight leg). Off by default: true to the gait, but on the
-/// paper twin it makes the explorer too timid (full flat 55 -> 38 %,
-/// 21/30 -> 10/30 complete) — a wall bump costs nothing there, so the
-/// paper twin cannot price it. To be measured on MuJoCo.
-pub(super) fn arc_full() -> bool {
-    std::env::var("QUACKSAT_ARC_FULL").is_ok_and(|v| v == "1")
-}
-/// Forward speed while turning at full yaw, as a fraction of the straight
-/// speed (human drive: 0.110 / 0.121).
-pub(super) const ARC_ADVANCE_FRAC: f64 = 0.9;
-/// `QUACKSAT_TURN_AIM=1`: the no-room turn goes toward the aim instead
-/// of the configured hand. Off by default: on the paper twin it lost
-/// (full flat 21/30 -> 16/30 complete, refusals 126 -> 150; walls +
-/// stairwell refusals 9 -> 31), kept for the bedroom-exit test on MuJoCo.
-pub(super) fn turn_to_aim() -> bool {
-    std::env::var("QUACKSAT_TURN_AIM").is_ok_and(|v| v == "1")
-}
 pub(super) fn arc_reserve_m() -> f64 {
     static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
     *V.get_or_init(|| knob("QK_ARC_RESERVE_M", ARC_RESERVE_M))
@@ -123,8 +84,8 @@ pub(super) fn back_reorient() -> bool {
 /// place first (closed on the yaw, [`Job::align`]) instead of walking a
 /// curve — a curve from a standstill drifts sideways for its first second,
 /// into a wall or a hole when the aim is beside one. 0 restores the curve.
-pub(super) fn spin_rad(follow: bool) -> f64 {
-    knob("QK_SPIN_RAD", if follow { 0.35 } else { 0.6 })
+pub(super) fn spin_rad() -> f64 {
+    knob("QK_SPIN_RAD", 0.6)
 }
 /// The +yaw stretch that gets the gait stepping before a mirrored or
 /// straight step back.
@@ -138,12 +99,6 @@ pub(super) fn spin_watch() -> bool {
 /// turn in place.
 pub(super) const SPIN_WATCH_M: f64 = 0.30;
 pub(super) const SPIN_WATCH_FOV_RAD: f64 = 0.9;
-/// `QUACKSAT_BACK_TRAIL_ONLY=1`: near a drop, a step back only over the
-/// trail (see `choose_back_side`); off until measured.
-pub(super) fn back_trail_only() -> bool {
-    std::env::var("QUACKSAT_BACK_TRAIL_ONLY").is_ok_and(|v| v == "1")
-}
-pub(super) const BACK_DROP_NEAR_M: f64 = 0.7;
 /// No blind step back at all with a booked drop this close to the body,
 /// whatever its bearing, on the trail or not (`QK_BACK_NO_STEP_M`). The
 /// step back turns the body as it backs, and not the way nor by how much
@@ -154,11 +109,6 @@ pub(super) const BACK_DROP_NEAR_M: f64 = 0.7;
 /// cost the paper twin's journey 2 arrivals in 30; this rule costs none.
 pub(super) fn back_no_step_m() -> f64 {
     knob("QK_BACK_NO_STEP_M", 0.30)
-}
-/// `QUACKSAT_BACK_SIDES=1`: a step back with a chosen side (off until
-/// measured alone on MuJoCo, see `passage_sensor`).
-pub(super) fn back_sides() -> bool {
-    std::env::var("QUACKSAT_BACK_SIDES").is_ok_and(|v| v == "1")
 }
 /// The shortest step back that still moves the body.
 pub(super) const BACK_SHORT_S: f64 = 0.8;
@@ -676,7 +626,6 @@ impl Job {
         let walked = step.as_ref().is_some_and(|r| r.is_ok());
         let refused = step.and_then(|r| r.err());
         tracing::info!(turned, walked, away, on_way = ?on_way, refused = ?refused, "map explore: {why}; turned away from it and stepped on instead of stepping back");
-        self.going = None;
         walked
     }
 
@@ -694,36 +643,6 @@ impl Job {
         }
         let (_, samples) = self.back_path(pose, side, secs, DROP_PATH_MARGIN_M);
         samples.iter().all(|p| self.trail.iter().rev().take(4000).any(|t| dist2(*t, *p) < TRAIL_NEAR_M))
-    }
-
-    /// The side to step back to: `prefer` first (the caller's reason —
-    /// away from a drop, the mirror of the arc that met the wall), then
-    /// the mirror of the last leg, then each way; the first whose path
-    /// crosses no drop and lies on the trail, else the first that crosses
-    /// no drop, else none.
-    pub(super) fn choose_back_side(&self, pose: (f64, f64, f64), prefer: Option<f64>, secs: f64, allowed: &[f64]) -> Option<f64> {
-        let mut order: Vec<f64> = Vec::new();
-        if let Some(p) = prefer {
-            order.push(p);
-        }
-        if self.last_leg_vyaw.abs() > 0.3 {
-            order.push(-self.last_leg_vyaw.signum());
-        }
-        order.extend([1.0, -1.0, 0.0]);
-        let mut seen: Vec<f64> = Vec::new();
-        order.retain(|s| allowed.contains(s) && if seen.contains(s) { false } else { seen.push(*s); true });
-        let clear: Vec<f64> = order.iter().copied().filter(|s| self.back_secs_clear(pose, secs, *s).is_some()).collect();
-        let on_trail = clear.iter().copied().find(|s| self.back_on_trail(pose, *s, secs));
-        // Near a drop, a blind step back is allowed only over floor the
-        // body has walked: two falls into the twin's stairwell were steps
-        // back judged clear on the books, off the trail, with the pose a
-        // little wrong (2026-09-08). Off the trail and near a drop, no
-        // step back — the passage primitive and the turn in place are
-        // what is left, and they are seen, not blind.
-        if back_trail_only() && on_trail.is_none() && self.drop_beside(pose) {
-            return None;
-        }
-        on_trail.or_else(|| clear.first().copied())
     }
 
     /// The first drop on the books the body would cross moving at
@@ -817,7 +736,6 @@ impl Job {
             let leg = json!({"vx": vx, "vyaw": vyaw, "walk_s": secs, "stop_s": 0.0});
             self.guarded_step(robot, pose, &leg)
         };
-        self.going = None;
         true
     }
 
@@ -1016,7 +934,7 @@ impl Job {
         0.7 * sign
     }
 
-    pub(super) fn back_off(&mut self, robot: &mut dyn Body, grid: &Grid, prefer: Option<f64>) -> bool {
+    pub(super) fn back_off(&mut self, robot: &mut dyn Body, grid: &Grid) -> bool {
         let now = robot.now();
         if self.last_back.is_some_and(|t| now - t < BACK_EVERY) {
             return false;
@@ -1033,18 +951,7 @@ impl Job {
                     self.last_back = Some(now);
                     return self.turn_away_and_step(robot, away, "a drop at hand");
                 }
-                let allowed: &[f64] = if back_sides() { &[1.0, -1.0, 0.0] } else { &[1.0] };
-                // Near a drop and off the trail, only the shortest step
-                // back, with the drop ahead (see `drop_beside`).
-                let near_drop = back_trail_only()
-                    && self.local.iter().any(|(p, r)| *r >= DROP_RADIUS_M && dist2(*p, (pose.0, pose.1)) < BACK_DROP_NEAR_M);
-                let max_s = if near_drop && !self.back_on_trail(pose, 1.0, back_s()) { BACK_SHORT_S.min(back_s()) } else { back_s() };
-                let side = if back_sides() || back_trail_only() {
-                    self.choose_back_side(pose, prefer, max_s, allowed)
-                } else {
-                    Some(1.0)
-                };
-                match side.and_then(|s| self.back_secs_clear(pose, max_s, s).map(|secs| (s, secs))) {
+                match self.back_secs_clear(pose, back_s(), 1.0).map(|secs| (1.0, secs)) {
                     Some(v) => v,
                     None => {
                         tracing::info!("map explore: a drop lies where a step back would go; none taken");
