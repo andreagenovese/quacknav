@@ -551,10 +551,6 @@ pub struct Mapper {
     /// tracked pose when it was proposed — odometry deltas since then move
     /// the candidate along with the robot).
     pending_reloc: Option<(Pose2, Pose2)>,
-    /// The pending candidate came from a boot hypothesis that has already
-    /// agreed over [`hypothesis_travel_m`] of walking: the travel between
-    /// viewpoints the boot's confirmation asks for is behind it.
-    pending_travelled: bool,
     /// The last search winner, carried to the pose of now, and how many
     /// consecutive searches agreed with it.
     last_search: Option<(Pose2, Pose2, u32)>,
@@ -705,23 +701,6 @@ fn confirm_travel_m() -> f32 {
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(0.5)
-}
-
-/// A boot hypothesis nominated after [`hypothesis_travel_m`] of agreeing
-/// windows is confirmed by the next window that agrees, without another
-/// [`confirm_travel_m`] from the nominating one: the metre it walked while
-/// agreeing is the travel between viewpoints that the half metre asks
-/// for, and more of it. Asked for again, the right pose waited a further
-/// minute on the twin's wake-ups (casa_arredata's kitchen: nominated at
-/// 105 s, confirmed at 167 s). `MAPLOC_HYP_TRAVEL_CONFIRMS=0` asks for it.
-fn hyp_travel_confirms() -> bool {
-    std::env::var("MAPLOC_HYP_TRAVEL_CONFIRMS").map(|v| v != "0").unwrap_or(true)
-}
-
-/// How many times the next hypothesis's agreements the first must have for
-/// [`hyp_travel_confirms`] to apply (`MAPLOC_HYP_DOMINANCE`).
-fn hyp_dominance() -> u32 {
-    std::env::var("MAPLOC_HYP_DOMINANCE").ok().and_then(|v| v.parse().ok()).unwrap_or(3)
 }
 
 /// `MAPLOC_MCL=1` runs the particle filter (`mcl.rs`, wired to nothing
@@ -891,7 +870,6 @@ impl Mapper {
             lost: false,
             suspect: 0,
             pending_reloc: None,
-            pending_travelled: false,
             last_search: None,
             hypotheses: Vec::new(),
             after_fall: false,
@@ -1223,7 +1201,6 @@ impl Mapper {
                     // only way in.
                     b.proposed = Some(at_window);
                     self.pending_reloc = Some((at_window, *win_pose));
-                    self.pending_travelled = false;
                 } else {
                     b.refused += 1;
                     // Not unique — or no basin at the lock at all. The cloud
@@ -1407,7 +1384,7 @@ impl Mapper {
                     // Agreement along a valley is agreement with every
                     // pose on it: dropped, and the search goes on until a
                     // window sees what pins the pose down.
-                } else if self.booting && chord < confirm_travel_m() && !self.pending_travelled {
+                } else if self.booting && chord < confirm_travel_m() {
                     self.pending_reloc = Some((cand, then));
                     notes.push(Note::RelocalizeCandidate {
                         pose,
@@ -1577,13 +1554,6 @@ impl Mapper {
                     {
                         let pose = h.pose;
                         self.pending_reloc = Some((pose, now));
-                        // ... and only a hypothesis far ahead of the
-                        // next: an alias on an explored casa_arredata got
-                        // through at 6 agreements against 4 (4.2 m off,
-                        // the replay of the tour boots); the right poses
-                        // of the wake-ups were 3 to 5 times the next.
-                        let dominant = self.hypotheses.get(1).is_none_or(|o| h.hits >= hyp_dominance() * o.hits);
-                        self.pending_travelled = hyp_travel_confirms() && dominant;
                         notes.push(Note::RelocalizeCandidate {
                             pose,
                             mean_residual_m: r.mean_residual_m,
@@ -1613,7 +1583,6 @@ impl Mapper {
                     self.last_search = Some((r.pose, now, agreed));
                     if agreed >= self.cfg.relocalize_agree_windows && self.pending_reloc.is_none() {
                         self.pending_reloc = Some((r.pose, now));
-                        self.pending_travelled = false;
                     }
                     notes.push(Note::RelocalizeCandidate {
                         pose: r.pose,
