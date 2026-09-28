@@ -442,11 +442,17 @@ pub enum Note {
         pose: Pose2,
         mean_residual_m: f32,
     },
-    /// A pending candidate the window could not judge, or judged neither
-    /// way: kept, carried by odometry, for a later window to confirm.
-    RelocalizeCandidateHeld {
+    /// A pending candidate judged by a window short of confirming it:
+    /// `verdict` "unjudgeable" or "ambiguous" (kept, carried by odometry,
+    /// for a later window to confirm) or "refuted" (dropped); the window's
+    /// residual and beams at the pose, and the travel since nomination.
+    RelocalizeCandidateJudged {
         pose: Pose2,
-        judged: bool,
+        verdict: &'static str,
+        mean_residual_m: f32,
+        n_observed: u32,
+        n_beams: u32,
+        chord_m: f32,
     },
     /// The robot sat: it may have been carried, and neither odometry nor
     /// a keyhole ToF view can prove it was not (a kidnapped wall wedge
@@ -1339,10 +1345,25 @@ impl Mapper {
             // the search found nothing better for two to four minutes
             // (casa_arredata on the twin, the perfect map, 2026-09-28).
             let judged = self.pending_reloc.take().map(|(cand, then)| (cand, then, self.check_candidate(&mut grid, composite, cand, then, now)));
-            if let Some((cand, then, (implied, Verdict::Ambiguous | Verdict::Unjudgeable))) = &judged {
-                let ambiguous = matches!(judged, Some((_, _, (_, Verdict::Ambiguous))));
-                self.pending_reloc = Some((*cand, *then));
-                notes.push(Note::RelocalizeCandidateHeld { pose: *implied, judged: ambiguous });
+            if let Some((cand, then, (implied, v @ (Verdict::Ambiguous | Verdict::Unjudgeable | Verdict::Refuted)))) = &judged {
+                let verdict = match v {
+                    Verdict::Ambiguous => "ambiguous",
+                    Verdict::Unjudgeable => "unjudgeable",
+                    _ => "refuted",
+                };
+                if !matches!(v, Verdict::Refuted) {
+                    self.pending_reloc = Some((*cand, *then));
+                }
+                let wd = self.cfg.watchdog;
+                let a = self.judge_untrusted(&mut grid, composite, *implied, wd.clamp_m, wd.wall_threshold_fp, wd.observed_fp);
+                notes.push(Note::RelocalizeCandidateJudged {
+                    pose: *implied,
+                    verdict,
+                    mean_residual_m: a.mean_residual_m,
+                    n_observed: a.n_observed,
+                    n_beams: a.n_beams,
+                    chord_m: (now.0 - then.0).hypot(now.1 - then.1),
+                });
             }
             if let Some((cand, then, (_, Verdict::Confirmed(pose, resid)))) = judged
             {

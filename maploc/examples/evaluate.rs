@@ -329,7 +329,7 @@ fn main() {
                 Note::Relocalized { .. } => "relocalized",
                 Note::RelocalizeRejected { .. } => "reloc_rejected",
                 Note::RelocalizeAmbiguous { .. } => "reloc_ambiguous",
-                Note::RelocalizeCandidateHeld { .. } => "reloc_held",
+                Note::RelocalizeCandidateJudged { .. } => "reloc_judged",
                 Note::TrackingCorrected { .. } => "corrected",
                 Note::LoopClosed { .. } => "loop_closed",
                 Note::WindowHeld { .. } => "held",
@@ -462,7 +462,7 @@ fn main() {
                         reloc_rejections += 1;
                     }
                 }
-                Note::RelocalizeCandidateHeld { .. } => {}
+                Note::RelocalizeCandidateJudged { .. } => {}
                 Note::RelocalizeAmbiguous { pose, along } => {
                     println!(
                         "[{t:7.1}s] candidate ({:.2}, {:.2}) NOT believed — a valley along {:.0}°",
