@@ -1023,6 +1023,13 @@ impl Job {
 
     pub(super) fn back_off(&mut self, robot: &mut dyn Body, grid: &Grid, prefer: Option<f64>) -> bool {
         let now = robot.now();
+        // The stick (see `stick.rs`) takes no step back, from wherever it is
+        // asked: "no way from here" asked one beside casa_arredata's hole,
+        // the pose 0.31 m off, and the duck went in (MuJoCo, 2026-09-28).
+        if stick_on() && self.goal.is_some() {
+            tracing::info!("map explore: stick: no step back; standing instead");
+            return false;
+        }
         if self.last_back.is_some_and(|t| now - t < BACK_EVERY) {
             return false;
         }
