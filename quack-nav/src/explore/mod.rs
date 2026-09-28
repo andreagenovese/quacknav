@@ -1281,6 +1281,7 @@ pub(crate) use gait::turn_in_place_on;
 mod guarded;
 mod journey;
 mod mapping;
+mod navigate;
 mod traverse;
 mod mode;
 mod recover;
@@ -1430,6 +1431,11 @@ impl Job {
     }
 
     pub fn run(&mut self, handle: &ExploreHandle, robot: &mut dyn Body) -> (State, String) {
+        // A journey runs its own loop (see `navigate.rs`), none of the
+        // explorer's rules below.
+        if self.goal.is_some() && stick_on() && switch("QK_JOURNEY_LOOP").unwrap_or(true) {
+            return self.run_journey(handle, robot);
+        }
         let mut turn_began = robot.now();
         loop {
             let turn_s = (robot.now() - turn_began).as_secs_f64();
