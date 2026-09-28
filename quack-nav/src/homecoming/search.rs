@@ -106,14 +106,7 @@ pub(super) fn confirmed_within(robot: &Arc<Mutex<Robot>>, seconds: f64) -> bool 
             what = "look";
             continue;
         }
-        let confirmed = {
-            let robot = robot.lock().expect("robot poisoned");
-            robot.places.map.as_ref().is_some_and(|map| {
-                let snap = map.snapshot();
-                snap.frames > frames0 + 1 && snap.trusted_pose().is_some()
-            })
-        };
-        if confirmed {
+        if confirmed_since(robot, frames0) {
             tracing::info!(steps, refusals, "homecoming: confirmed");
             return true;
         }
@@ -135,7 +128,13 @@ pub(super) fn confirmed_within(robot: &Arc<Mutex<Robot>>, seconds: f64) -> bool 
             && look.ahead < STRAIGHT_ENOUGH_M
         {
             scanned = true;
-            seen = Some(scan_around(robot, look.clone(), &trail));
+            match scan_around(robot, look.clone(), &trail, frames0) {
+                Some(look) => seen = Some(look),
+                None => {
+                    tracing::info!(steps, refusals, "homecoming: confirmed during the scan");
+                    return true;
+                }
+            }
         }
         match seen {
             None => {
@@ -479,10 +478,27 @@ fn turn_to(robot: &Arc<Mutex<Robot>>, bearing: f64, ahead: f64) -> f64 {
 /// The whole horizon: from the look in hand, three more quarter turns on
 /// the spot, a stand and a look at each; then a turn to the freest way
 /// of the four, and that look — re-taken there — is the answer.
-fn scan_around(robot: &Arc<Mutex<Robot>>, first: Look, trail: &[(f64, f64)]) -> Look {
+/// Whether maploc vouches for the pose on a frame newer than the first
+/// `frames0` (see `confirmed_within`).
+fn confirmed_since(robot: &Arc<Mutex<Robot>>, frames0: u64) -> bool {
+    let robot = robot.lock().expect("robot poisoned");
+    robot.places.map.as_ref().is_some_and(|map| {
+        let snap = map.snapshot();
+        snap.frames > frames0 + 1 && snap.trusted_pose().is_some()
+    })
+}
+
+/// The scan of the whole horizon; `None` when maploc confirms the pose on
+/// the way — asked at every quarter turn: confirmed at the first of four,
+/// the rest of the scan, the turn back and a leg ran 43 s on a pose
+/// already home (casa_arredata on the twin, 2026-09-28).
+fn scan_around(robot: &Arc<Mutex<Robot>>, first: Look, trail: &[(f64, f64)], frames0: u64) -> Option<Look> {
     let mut looks: Vec<(f64, Look)> = vec![(0.0, first)];
     let mut heading = 0.0_f64;
     for _ in 0..3 {
+        if confirmed_since(robot, frames0) {
+            return None;
+        }
         let turned = turn_to(robot, std::f64::consts::FRAC_PI_2, looks.last().map_or(0.0, |l| l.1.ahead));
         heading += turned;
         if turned.abs() < 0.3 {
@@ -524,6 +540,9 @@ fn scan_around(robot: &Arc<Mutex<Robot>>, first: Look, trail: &[(f64, f64)]) -> 
     // Where the freest way lies from the heading of now, then a look there.
     let to = (best_heading + best.bearing - heading).sin().atan2((best_heading + best.bearing - heading).cos());
     tracing::info!(to_deg = format!("{:.0}", to.to_degrees()), free_m = format!("{:.2}", best.free), "homecoming: scan done; the freest way of the horizon");
+    if confirmed_since(robot, frames0) {
+        return None;
+    }
     if to.abs() > 0.25 {
         let _ = turn_to(robot, to, best.ahead.min(looks.last().map_or(0.0, |l| l.1.ahead)));
     }
@@ -543,9 +562,9 @@ fn scan_around(robot: &Arc<Mutex<Robot>>, first: Look, trail: &[(f64, f64)]) -> 
     // said, straight, sized to what it saw.
     if fresh.free < LEG_MIN_FREE_M && best.free >= LEG_MIN_FREE_M {
         tracing::info!(fresh_m = format!("{:.2}", fresh.free), scan_m = format!("{:.2}", best.free), "homecoming: the fresh look is boxed in where the scan saw room; the scan's leg it is");
-        return Look { bearing: 0.0, free: best.free, left: fresh.left, right: fresh.right, ahead: best.free, looked: fresh.looked };
+        return Some(Look { bearing: 0.0, free: best.free, left: fresh.left, right: fresh.right, ahead: best.free, looked: fresh.looked });
     }
-    fresh
+    Some(fresh)
 }
 
 /// Turn in place toward `sign` by about `want` radians, by what the gait
