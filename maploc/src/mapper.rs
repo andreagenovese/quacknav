@@ -844,6 +844,7 @@ impl Mapper {
                 next_ask: None,
                 prev: None,
                 agreed: 0,
+                agreed_wide: 0,
             }));
         }
         if boot_mcl()
@@ -2882,6 +2883,15 @@ fn shadow_ask_every_s() -> f32 {
 }
 const SHADOW_MAX_SCORE: f32 = 0.16;
 const SHADOW_MAX_MARGIN: f32 = 0.5;
+/// A wider margin, when the answers keep saying the same: apartment's
+/// duck, woken east of the stairwell, had its walk placed right sixteen
+/// times in a row at margins of 0.50–0.84 and was never let in (w3,
+/// 2026-09-30). On the 27 replayed wakes, runs of three or more agreeing
+/// answers at 0.8 adopted 75 of 82 right sequences and nothing wrong;
+/// runs of two let four fits of the other house in. Four in a row here,
+/// the asks coming twice as often.
+const SHADOW_WIDE_MARGIN: f32 = 0.8;
+const SHADOW_WIDE_ASKS: u32 = 4;
 const SHADOW_MIN_OVERLAP: f32 = 0.5;
 const SHADOW_AGREE_M: f32 = 0.30;
 fn shadow_asks() -> u32 {
@@ -2908,6 +2918,8 @@ struct Shadow {
     /// The last passing answer: its fit and the shadow's wall cells then.
     prev: Option<(Pose2, usize)>,
     agreed: u32,
+    /// The run of agreeing answers at the wide margin.
+    agreed_wide: u32,
 }
 
 impl Shadow {
@@ -2932,14 +2944,17 @@ impl Shadow {
             return None;
         };
         let margin = found.get(1).map_or(1.0, |n| best.score / n.score.max(1e-6));
-        let passes = best.score <= SHADOW_MAX_SCORE && margin <= SHADOW_MAX_MARGIN && best.overlap >= SHADOW_MIN_OVERLAP;
-        let agrees = passes
-            && self.prev.is_some_and(|(p, c)| (p.0 - best.pose.0).hypot(p.1 - best.pose.1) <= SHADOW_AGREE_M && cells >= c);
-        self.agreed = if agrees { self.agreed + 1 } else if passes { 1 } else { 0 };
-        self.prev = passes.then_some((best.pose, cells));
-        notes.push(Note::ShadowAsked { fit: best.pose, score: best.score, margin, overlap: best.overlap, cells, agreed: self.agreed });
-        if self.agreed >= shadow_asks() && self.chord >= confirm_travel_m() {
+        let fits = best.score <= SHADOW_MAX_SCORE && best.overlap >= SHADOW_MIN_OVERLAP;
+        let wide = fits && margin <= SHADOW_WIDE_MARGIN;
+        let tight = fits && margin <= SHADOW_MAX_MARGIN;
+        let same = self.prev.is_some_and(|(p, c)| (p.0 - best.pose.0).hypot(p.1 - best.pose.1) <= SHADOW_AGREE_M && cells >= c);
+        self.agreed = if tight && same { self.agreed + 1 } else if tight { 1 } else { 0 };
+        self.agreed_wide = if wide && same { self.agreed_wide + 1 } else if wide { 1 } else { 0 };
+        self.prev = wide.then_some((best.pose, cells));
+        notes.push(Note::ShadowAsked { fit: best.pose, score: best.score, margin, overlap: best.overlap, cells, agreed: self.agreed.max(self.agreed_wide) });
+        if (self.agreed >= shadow_asks() || self.agreed_wide >= SHADOW_WIDE_ASKS) && self.chord >= confirm_travel_m() {
             self.agreed = 0;
+            self.agreed_wide = 0;
             self.prev = None;
             return Some(best.pose);
         }
