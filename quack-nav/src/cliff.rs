@@ -45,6 +45,9 @@ pub const DEEP_RATIO: f64 = 1.5;
 /// A missing return counts only where the floor would be within this
 /// slant distance — farther out the sensor may simply be out of range.
 pub const MAX_FLOOR_M: f64 = 1.2;
+/// A floor return within this fraction of the floor's distance is the
+/// floor itself (see `CliffFrame::floors`).
+pub const FLOOR_TRUE_RATIO: f64 = 0.15;
 /// Beams looking down by less than this (sine of the depression) are not
 /// judged: they would meet the floor too far away to trust.
 pub const MIN_DOWNWARD: f64 = 0.15;
@@ -118,6 +121,10 @@ pub struct CliffFrame {
     /// unless it asks for them (`hole_in_lane_walking`).
     pub moving: bool,
     pub drops: Vec<Drop>,
+    /// The judged beams that met the floor, as (bearing, range) in the
+    /// body frame: where the floor is, which is what takes a drop booked
+    /// there off the books (see `explore::books`).
+    pub floors: Vec<(f64, f64)>,
     /// Returns robotd's own reprojection calls obstacles (not floor, not
     /// too close): what is in the way, as far as this frame looked.
     pub obstacles: Vec<Obstacle>,
@@ -241,6 +248,7 @@ pub fn analyze(
     }
     let mut verdicts: [Option<Verdict>; N] = [None; N];
     let mut floor_beams = 0;
+    let mut floors = Vec::new();
     let mut judged = 0;
     for (i, beam) in rp.beams().iter().enumerate() {
         let dir = sensor.quat.rotate(*beam);
@@ -266,6 +274,13 @@ pub fn analyze(
             verdicts[i] = Some(Verdict::Drop(bearing, range_m, DropKind::Deep));
         } else {
             verdicts[i] = Some(Verdict::Floor(range_m));
+            // The floor itself, not a step below it: a stairwell's first
+            // step, 10 cm down, reads 1.3–1.5 times the floor's distance
+            // and is "floor" to the drop test, and the apartment's replay
+            // struck rim points 0–3 cm from its stairwell on such beams.
+            if (r / expected - 1.0).abs() <= FLOOR_TRUE_RATIO {
+                floors.push((bearing, range_m));
+            }
             floor_beams += 1;
         }
     }
@@ -331,6 +346,7 @@ pub fn analyze(
         at: now,
         head_yaw: body.head[2],
         drops,
+        floors,
         obstacles,
         floor_beams,
         judged,

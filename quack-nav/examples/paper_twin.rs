@@ -307,6 +307,7 @@ impl PaperTwin {
         {
             let mut obstacles = Vec::new();
             let mut drops = Vec::new();
+            let mut floors = Vec::new();
             for c in 0..COLS {
                 let bearing = head_yaw + COL_FOV * ((c as f64 + 0.5) / COLS as f64 - 0.5);
                 let a = self.yaw + bearing;
@@ -349,6 +350,7 @@ impl PaperTwin {
                         edge = Some((d, prev));
                         break;
                     }
+                    floors.push((bearing, d));
                 }
                 if let Some((range_m, edge_min_m)) = edge {
                     // The rows beyond, back on the floor: the hole's far side.
@@ -373,6 +375,7 @@ impl PaperTwin {
                 at: self.clock,
                 head_yaw,
                 drops,
+                floors,
                 obstacles,
                 floor_beams: 40,
                 judged: 64,

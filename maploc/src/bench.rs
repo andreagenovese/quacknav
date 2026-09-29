@@ -31,6 +31,8 @@ pub struct Step<'a> {
     pub mapper: &'a Mapper,
     /// The notes this record produced.
     pub notes: &'a [Note],
+    /// The record just fed, for a bench that reads the raw streams too.
+    pub record: &'a Record,
 }
 
 /// How the replay went: records read, and why it stopped.
@@ -140,6 +142,7 @@ pub fn replay_loading(
         {
             *mapper = build(mapper);
         }
+        let fed = record.clone();
         match record {
             Record::Twin(_) => {
                 return Err(io::Error::new(io::ErrorKind::InvalidData, "a v1 prototype capture: use the `replay` example"));
@@ -191,7 +194,7 @@ pub fn replay_loading(
                 }
             }
         }
-        let go_on = each(Step { t_s: t, unix_s: epoch_s + f64::from(t), mapper, notes: &notes });
+        let go_on = each(Step { t_s: t, unix_s: epoch_s + f64::from(t), mapper, notes: &notes, record: &fed });
         notes.clear();
         if !go_on {
             break;
