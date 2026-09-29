@@ -73,7 +73,7 @@ impl Job {
     /// A turn in place toward `sign` by `want` radians, closed on odometry's
     /// yaw in [`TURN_CHUNK_S`] chunks (the map's yaw without odometry), a
     /// time budget for the slowest measured rate. Returns how far it turned.
-    fn stick_turn(&mut self, robot: &mut dyn Body, sign: f64, want: f64) -> f64 {
+    pub(super) fn stick_turn(&mut self, robot: &mut dyn Body, sign: f64, want: f64) -> f64 {
         let yaw_now = |robot: &dyn Body| odom_pose(robot).map(|p| p.2).or_else(|| robot.frame().map(|f| f.yaw));
         let Some(yaw0) = yaw_now(&*robot) else { return 0.0 };
         let goal = (want - TURN_LEAD_RAD).max(0.05);

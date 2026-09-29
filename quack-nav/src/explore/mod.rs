@@ -1155,6 +1155,10 @@ pub struct Job {
     stick_books: bool,
     /// Where the stick's hole guard last saw a hole (see `Job::travel`).
     stick_hole_at: Option<(f64, f64)>,
+    /// Walls looked at from near, and how many (see `close_look.rs`).
+    looked: Vec<(f64, f64)>,
+    close_looks: u32,
+    last_close_look: Option<Instant>,
     /// Narrow-passage refusals in a row, and where the body stood.
     narrow_refusals: (u32, (f64, f64)),
     /// A fall was seen and the pose has not been trusted for
@@ -1260,6 +1264,7 @@ pub(crate) use gait::turn_in_place_on;
 mod guarded;
 mod journey;
 mod mapping;
+mod close_look;
 mod navigate;
 mod mode;
 mod recover;
@@ -1271,6 +1276,7 @@ use guarded::*;
 use journey::*;
 use mapping::*;
 use mode::*;
+use close_look::*;
 use navigate::*;
 use stick::*;
 use trusted::*;
@@ -1320,6 +1326,9 @@ impl Job {
             stick_careful: false,
             stick_books: false,
             stick_hole_at: None,
+            looked: Vec::new(),
+            close_looks: 0,
+            last_close_look: None,
             narrow_refusals: (0, (f64::NAN, f64::NAN)),
             fell: None,
             relocate_steps: 0,
@@ -1707,6 +1716,14 @@ impl Job {
                         self.sliver_served = 0;
                     }
                     Some(_) if self.sliver_served > SLIVER_PATIENCE => {
+                        // The frontiers are done: the walls seen from afar
+                        // only get a look from near first (see
+                        // `close_look.rs`).
+                        match self.close_look(handle, robot, &grid, (x, y)) {
+                            Some(Some(verdict)) => return verdict,
+                            Some(None) => continue,
+                            None => {}
+                        }
                         return (
                             State::Done,
                             format!(
@@ -1784,6 +1801,13 @@ impl Job {
                     self.unseal(robot, &grid, (x, y), why);
                     continue;
                 }
+                // The frontiers are done (or out of reach): the walls seen
+                // from afar only get a look from near first.
+                match self.close_look(handle, robot, &grid, (x, y)) {
+                    Some(Some(verdict)) => return verdict,
+                    Some(None) => continue,
+                    None => {}
+                }
                 let why = if cells_left >= MIN_FRONTIER_CELLS {
                     "stuck: frontiers remain but none is reachable from here"
                 } else {
@@ -1817,6 +1841,16 @@ impl Job {
                 continue;
             }
 
+            // Now and then, a wall seen from afar only gets a look from
+            // near before the next frontier (see `close_look.rs`).
+            if self.last_close_look.is_none_or(|t| (robot.now() - t).as_secs_f64() >= CLOSE_LOOK_EVERY_S) {
+                self.last_close_look = Some(robot.now());
+                match self.close_look(handle, robot, &grid, (x, y)) {
+                    Some(Some(verdict)) => return verdict,
+                    Some(None) => continue,
+                    None => {}
+                }
+            }
             // The way to the frontier: the navigation's (see `navigate.rs`),
             // the explorer's own guarded legs with `QK_EXPLORE_NAV=0`.
             if explore_nav() {
