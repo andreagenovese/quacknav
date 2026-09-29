@@ -1146,8 +1146,10 @@ pub struct Job {
     /// Odometry walked since the stick's last stand, and where it was.
     stick_since_stand: f64,
     stick_odom_at: Option<(f64, f64)>,
-    /// How long the stick stands (see `Job::travel`).
+    /// How long the stick stands, and whether it is careful beside the
+    /// drops (the exploration's travel; see `Job::travel`).
     stick_stand_s: f64,
+    stick_careful: bool,
     /// Narrow-passage refusals in a row, and where the body stood.
     narrow_refusals: (u32, (f64, f64)),
     /// A fall was seen and the pose has not been trusted for
@@ -1310,6 +1312,7 @@ impl Job {
             stick_since_stand: 0.0,
             stick_odom_at: None,
             stick_stand_s: STICK_STAND_S,
+            stick_careful: false,
             narrow_refusals: (0, (f64::NAN, f64::NAN)),
             fell: None,
             relocate_steps: 0,

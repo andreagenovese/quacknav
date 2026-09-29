@@ -44,6 +44,19 @@ const STAND_AFTER_TURN_RAD: f64 = 0.5;
 /// The stand on a journey; the exploration's travel stands as long as the
 /// mapper needs (see `Job::travel`).
 pub(super) const STICK_STAND_S: f64 = 2.0;
+/// On the exploration's travel (`Job::travel`), within this of a drop on
+/// the books the stick is careful: it turns in place past
+/// [`CAREFUL_TURN_RAD`] instead of curving at up to [`TURN_FIRST_RAD`],
+/// stands every [`CAREFUL_STAND_EVERY_M`], and its hole guard looks
+/// [`CAREFUL_GUARD_MARGIN_M`] past the step. The map is being drawn and the
+/// pose can be 0.15 m off beside the rim it has not booked whole: house2's
+/// duck, its pose 14 cm toward the stairwell, curved into it on a step 29°
+/// off the route (MuJoCo, 2026-09-29); the paper twin at a 0.15 m bias, 1
+/// exploration in 20 fell. The journey, on a finished map, is not touched.
+const CAREFUL_NEAR_M: f64 = 0.5;
+const CAREFUL_TURN_RAD: f64 = 0.17;
+const CAREFUL_STAND_EVERY_M: f64 = 0.2;
+const CAREFUL_GUARD_MARGIN_M: f64 = 0.25;
 /// The yaw asked per radian of heading error, as the gait turns 0.65 of
 /// it a second: the error closed over about the step.
 const YAW_GAIN: f64 = 1.0 / (0.65 * STEP_S);
@@ -81,6 +94,18 @@ impl Job {
     pub(super) fn stick_leg(&mut self, handle: &ExploreHandle, robot: &mut dyn Body, (x, y, yaw): (f64, f64, f64), f: &Frontier) -> Option<(State, String)> {
         let look = f.path.iter().copied().find(|p| dist2(*p, (x, y)) >= LOOK_M).unwrap_or(f.stand);
         let err = wrap((look.1 - y).atan2(look.0 - x) - yaw);
+        // Beside a drop, booked or seen by the sensor: seen only, the rim
+        // is not on the books yet, and the paper twin's duck walked 7 cm
+        // from the stairwell's unbooked rim for minutes, then fell.
+        let careful = self.stick_careful && self.drop_within_any(&*robot, CAREFUL_NEAR_M).is_some();
+        // ... and never beside it: off the rim first, as the explorer's own
+        // legs do (see `off_the_rim`).
+        if careful && self.off_the_rim(robot, (x, y, yaw)) {
+            self.stick_last = None;
+            return None;
+        }
+        let (turn_first, stand_every, guard_margin) =
+            if careful { (CAREFUL_TURN_RAD, CAREFUL_STAND_EVERY_M, CAREFUL_GUARD_MARGIN_M) } else { (TURN_FIRST_RAD, STAND_EVERY_M, DROP_GUARD_MARGIN_M) };
         // The one rule it keeps: steps that do not move the body are a
         // wall under the beak, and a curving step against it pushes for
         // ever (the paper twin, 2026-09-28: 878 steps on one spot, 8 cm
@@ -99,7 +124,7 @@ impl Job {
             self.remember_local(nose, OBSTACLE_RADIUS_M);
             tracing::info!(at = ?(x, y, yaw), booked = ?nose, "map explore: stick: bumped; what the nose met goes on the books");
         }
-        if err.abs() > TURN_FIRST_RAD || self.stick_stalls >= STALLS_TURN {
+        if err.abs() > turn_first || self.stick_stalls >= STALLS_TURN {
             // A pure turn in place: yaw past the gait's dead zone, about
             // 30-58°/s, for as long as the error asks and a second at most.
             // Closed on odometry's yaw, in short chunks: the map's pose
@@ -116,7 +141,7 @@ impl Job {
                 let _ = stand(robot, self.stick_stand_s);
                 self.stick_since_stand = 0.0;
             }
-        } else if let Some(d) = robot.cliff().and_then(|c| self.blind_drop_ahead(&c, robot.now(), GAIT_M_PER_S * STEP_S + DROP_GUARD_MARGIN_M)) {
+        } else if let Some(d) = robot.cliff().and_then(|c| self.blind_drop_ahead(&c, robot.now(), GAIT_M_PER_S * STEP_S + guard_margin)) {
             // The one guard it keeps: a true hole the sensor sees in the
             // step's own lane. Without it, the paper twin's journeys with a
             // map bias of 0.18-0.25 m across the stairwell's passage walked
@@ -157,7 +182,7 @@ impl Job {
         } else {
             self.stick_since_stand += GAIT_M_PER_S * STEP_S;
         }
-        if self.stick_since_stand >= STAND_EVERY_M {
+        if self.stick_since_stand >= stand_every {
             let _ = stand(robot, self.stick_stand_s);
             self.stick_since_stand = 0.0;
         }
