@@ -1150,6 +1150,8 @@ pub struct Job {
     /// drops (the exploration's travel; see `Job::travel`).
     stick_stand_s: f64,
     stick_careful: bool,
+    /// Where the stick's hole guard last saw a hole (see `Job::travel`).
+    stick_hole_at: Option<(f64, f64)>,
     /// Narrow-passage refusals in a row, and where the body stood.
     narrow_refusals: (u32, (f64, f64)),
     /// A fall was seen and the pose has not been trusted for
@@ -1313,6 +1315,7 @@ impl Job {
             stick_odom_at: None,
             stick_stand_s: STICK_STAND_S,
             stick_careful: false,
+            stick_hole_at: None,
             narrow_refusals: (0, (f64::NAN, f64::NAN)),
             fell: None,
             relocate_steps: 0,

@@ -30,6 +30,9 @@ pub(super) fn explore_nav() -> bool {
 /// (see `Job::travel`); the passages beside the stairwells, 0.49-0.54 m,
 /// keep their middles 0.25 m from the rim.
 pub(super) const FRONTIER_OFF_DROP_M: f64 = 0.20;
+/// A hole the stick's guard sees within this of the frontier's stand ends
+/// the way there (see `Job::travel`).
+pub(super) const FRONTIER_HOLE_SEEN_M: f64 = 0.6;
 
 /// How long the way to a frontier `route_m` away may take: a minute, and
 /// half a minute a metre (the stick makes 0.1 m/s with its stands), five
@@ -254,8 +257,22 @@ impl Job {
                 s.route_raw = raw;
                 s.goal = Some(goal);
             });
+            self.stick_hole_at = None;
             if let Some(verdict) = self.stick_leg(handle, robot, pose, &f) {
                 return verdict;
+            }
+            // A hole the stick's guard saw near the frontier is the
+            // frontier: a hole's floor is never mapped, so its unknown is
+            // a frontier from the first look. Early in house2's exploration,
+            // the book still empty, the duck was sent into the stairwell
+            // itself, turned from it three times and fell in at the fourth
+            // step (MuJoCo, 2026-09-29). Seen further off, it is the rim of
+            // a passage on the way, and the way goes on.
+            if !journey
+                && let Some(h) = self.stick_hole_at.take()
+                && dist2(h, goal) < FRONTIER_HOLE_SEEN_M
+            {
+                return (State::Failed, format!("a hole seen {:.2} m from the frontier at ({:.2}, {:.2})", dist2(h, goal), goal.0, goal.1));
             }
         }
     }

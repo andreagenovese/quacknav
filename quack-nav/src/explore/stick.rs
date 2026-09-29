@@ -157,6 +157,7 @@ impl Job {
                 let r = if d.edge_min_m > 0.0 { d.edge_min_m } else { (d.range_m - crate::cliff::EDGE_UNKNOWN_M).max(0.10) };
                 (x + r * (yaw + d.bearing).cos(), y + r * (yaw + d.bearing).sin())
             };
+            self.stick_hole_at = Some(seen_at);
             let known = self.local.iter().any(|(p, r)| *r >= DROP_RADIUS_M && dist2(*p, seen_at) < KNOWN_RIM_M);
             if !known {
                 self.record_drops(robot);
