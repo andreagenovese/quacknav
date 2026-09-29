@@ -26,6 +26,11 @@ pub(super) fn explore_nav() -> bool {
     switch("QK_EXPLORE_NAV").unwrap_or(true)
 }
 
+/// A frontier's stand this near a drop on the books is the drop's own edge
+/// (see `Job::travel`); the passages beside the stairwells, 0.49-0.54 m,
+/// keep their middles 0.25 m from the rim.
+pub(super) const FRONTIER_OFF_DROP_M: f64 = 0.20;
+
 /// How long the way to a frontier `route_m` away may take: a minute, and
 /// half a minute a metre (the stick makes 0.1 m/s with its stands), five
 /// minutes at most.
@@ -130,6 +135,17 @@ impl Job {
                 robot.sleep(WAIT);
                 continue;
             };
+            // A frontier on a hole's rim is the hole: the map never knows
+            // a hole's floor, so its edge stays a frontier for ever. The
+            // explorer's guarded legs refused to walk there; the stick goes
+            // where it is sent, and casa_arredata's duck, sent to a stand
+            // 5 cm from the stairwell's rim, fell in (MuJoCo, 2026-09-29).
+            if !journey
+                && let Some(d) = self.local.iter().filter(|(_, r)| *r >= DROP_RADIUS_M).map(|(p, _)| dist2(*p, goal)).min_by(f64::total_cmp)
+                && d < FRONTIER_OFF_DROP_M
+            {
+                return (State::Failed, format!("the frontier at ({:.2}, {:.2}) is {d:.2} m from a drop on the books", goal.0, goal.1));
+            }
             // Arrived: judged on the pose after a stand, once — a stand's
             // correction can move the pose off the goal, and then the
             // journey goes on from there.
