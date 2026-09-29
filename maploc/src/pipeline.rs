@@ -75,15 +75,13 @@ impl Default for SlamConfig {
                 // 21.4 % to 12.4 % on average and doubled walls from 5.3 %
                 // to 2.5 %. Softer still (80 cm) starts to give back.
                 edge_sigma_xy: 0.40,
-                // The heading softer still: a closure 5° wrong turned
-                // casa_arredata's first session and walked the pose 0.47 m
-                // off across the living room (x13, the twin, 2026-09-29).
-                // At 0.5 rad (29°) eight replayed sessions of x13 came out
-                // at 0.082 m ATE RMS against 0.090 at 0.24, the drifting one
-                // 0.079 against 0.110, the walls as good or better; 0.35 and
-                // 0.8 sat between (0.087, 0.088). `MAPLOC_LOOP_SIGMA_YAW`
-                // overrides it.
-                edge_sigma_yaw: std::env::var("MAPLOC_LOOP_SIGMA_YAW").ok().and_then(|v| v.parse().ok()).unwrap_or(0.5),
+                // `MAPLOC_LOOP_SIGMA_YAW` overrides the heading's. 0.5 rad
+                // was tried (2026-09-29): eight replayed sessions of x13
+                // came out better (0.082 m ATE RMS against 0.090), the four
+                // of x15 worse (0.145 against 0.087) — one closure decided
+                // either way moves a whole session, and twelve sessions
+                // together favour 0.24 (0.089 against 0.103).
+                edge_sigma_yaw: std::env::var("MAPLOC_LOOP_SIGMA_YAW").ok().and_then(|v| v.parse().ok()).unwrap_or(0.24),
                 ..LoopCloserConfig::default()
             },
             optimizer: OptimizerConfig::default(),
