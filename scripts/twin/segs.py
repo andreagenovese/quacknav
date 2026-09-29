@@ -14,7 +14,7 @@ assert data[:4] == b"MDLG", "not a .mdlg"
 i, ticks = 16, []
 while i + 13 <= len(data):
     ts, sid, size = struct.unpack_from("<QBI", data, i); i += 13
-    if sid == 2 and size == 45:
+    if sid == 2 and size in (45, 53):  # 53 with robotd's t_ns (2026-09-29)
         v = struct.unpack_from("<11fB", data, i)
         ticks.append((ts / 1e6, v[2], bool(v[11] & 1)))
     i += size
