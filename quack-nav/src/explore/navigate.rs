@@ -168,8 +168,12 @@ impl Job {
                 robot.sleep(WAIT);
                 continue;
             };
-            // The exploration plans off the unknown (see `unknown_walled`).
-            let grid = if journey { grid } else { unknown_walled(&grid, goal, UNKNOWN_FREE_NEAR_GOAL_M) };
+            // `QK_TRAVEL_OFF_UNKNOWN=1`: the exploration plans off the
+            // unknown (see `unknown_walled`). Off: it kept casa_arredata's
+            // duck out of the bathroom (9 % of it in a session, 84-96 %
+            // without), and the user's rule is that the duck gets through
+            // and a fall is fixed by its own cause (2026-09-29).
+            let grid = if journey || !switch("QK_TRAVEL_OFF_UNKNOWN").unwrap_or(false) { grid } else { unknown_walled(&grid, goal, UNKNOWN_FREE_NEAR_GOAL_M) };
             // A frontier on a hole's rim is the hole: the map never knows
             // a hole's floor, so its edge stays a frontier for ever. The
             // explorer's guarded legs refused to walk there; the stick goes
