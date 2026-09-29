@@ -20,6 +20,9 @@
 //! f32 head[4]                            (neck_pitch, head_pitch, head_yaw, head_roll)
 //! u8  flags                              bit 0 = moving, bit 1 = sitting, bit 2 = fallen
 //! u64 t_ns                               robotd's CLOCK_MONOTONIC stamp of the sample
+//! f32 head_vel[4]                        measured head joint velocities, rad/s — only
+//!                                        from a robotd that publishes them (API 36):
+//!                                        69 B then, 53 B without
 //! ```
 //!
 //! The ToF payload gains the same trailing `u64 t_ns` (the frame's
@@ -114,8 +117,9 @@ impl SessionRecorder {
         sitting: bool,
         fallen: bool,
         t_ns: u64,
+        head_vel: Option<[f32; 4]>,
     ) -> io::Result<()> {
-        self.header(STREAM_ODOM, 11 * 4 + 1 + 8)?;
+        self.header(STREAM_ODOM, 11 * 4 + 1 + 8 + if head_vel.is_some() { 16 } else { 0 })?;
         for v in [
             odom.0, odom.1, odom.2, gravity[0], gravity[1], gravity[2], trunk_z, head[0], head[1],
             head[2], head[3],
@@ -133,7 +137,11 @@ impl SessionRecorder {
             flags |= FLAG_FALLEN;
         }
         self.w.write_all(&[flags])?;
-        self.w.write_all(&t_ns.to_le_bytes())
+        self.w.write_all(&t_ns.to_le_bytes())?;
+        for v in head_vel.into_iter().flatten() {
+            self.w.write_all(&v.to_le_bytes())?;
+        }
+        Ok(())
     }
 
     pub fn flush(&mut self) -> io::Result<()> {
@@ -160,6 +168,7 @@ mod tests {
                 true,
                 false,
                 7_000_000_123,
+                Some([0.5, -0.25, 1.0, 0.0]),
             )
             .expect("odom");
             let mm: Vec<i16> = (0..64).collect();
@@ -178,6 +187,7 @@ mod tests {
                 assert!(o.sitting);
                 assert!(!o.fallen);
                 assert_eq!(o.t_ns, 7_000_000_123);
+                assert_eq!(o.head_vel, Some([0.5, -0.25, 1.0, 0.0]));
             }
             other => panic!("expected Odom, got {other:?}"),
         }

@@ -78,6 +78,9 @@ pub struct OdomSample {
     pub trunk_z: f64,
     /// `[neck_pitch, head_pitch, head_yaw, head_roll]`, measured.
     pub head: [f64; 4],
+    /// Their measured velocities, rad/s, from a robotd that publishes them
+    /// (API 36): recorded, to measure what a head in motion costs the map.
+    pub head_vel: Option<[f64; 4]>,
     /// `CLOCK_MONOTONIC` when the sensors were read, nanoseconds — the
     /// clock `TofFrame::t_ns` shares, so a depth frame can be paired with
     /// the head as it was when the frame was taken.
@@ -469,6 +472,7 @@ fn worker(config: &MaplocConfig, rx: mpsc::Receiver<Event>, map_tx: &Subscribers
                             sample.sitting,
                             sample.fallen,
                             sample.t_ns,
+                            sample.head_vel.map(|v| v.map(|x| x as f32)),
                         )
                         .is_err()
                 {
@@ -1210,6 +1214,7 @@ mod tests {
             gravity: [0.0, 0.0, -1.0],
             trunk_z: 0.12,
             head: [0.0, 0.0, yaw, 0.0],
+            head_vel: None,
             t_ns,
             moving: false,
             sitting: false,

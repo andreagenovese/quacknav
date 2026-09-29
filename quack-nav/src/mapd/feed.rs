@@ -97,6 +97,9 @@ struct Tick {
     policy: String,
     head: [f64; 4],
     imu: Option<serde_json::Value>,
+    /// Measured joint velocities, rad/s (`JOINT_NAMES` order; API 36,
+    /// microduck PR #260): absent from an older robotd.
+    velocities: Vec<f64>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -138,6 +141,7 @@ fn sample(tick: &Tick) -> Option<OdomSample> {
         gravity: tick.safety.gravity,
         trunk_z: tick.odom.position[2],
         head: [head[0], head[1], head[2], head[3]],
+        head_vel: tick.velocities.get(HEAD_JOINTS..HEAD_JOINTS + 4).map(|v| [v[0], v[1], v[2], v[3]]),
         t_ns: tick.t_ns,
         moving: moving(&tick.policy),
         sitting: tick.policy == "sit",

@@ -131,6 +131,8 @@ pub struct OdomRecord {
     /// robotd's CLOCK_MONOTONIC stamp of the sample (ns); 0 in recordings
     /// made before it was written.
     pub t_ns: u64,
+    /// Measured head joint velocities, rad/s, when robotd published them.
+    pub head_vel: Option<[f32; 4]>,
 }
 
 #[derive(Debug, Clone)]
@@ -324,13 +326,14 @@ fn decode_twin(ts_us: u64, payload: &[u8]) -> io::Result<TwinRecord> {
 
 fn decode_odom(ts_us: u64, payload: &[u8]) -> io::Result<OdomRecord> {
     const SIZE: usize = 11 * 4 + 1;
-    if payload.len() != SIZE && payload.len() != SIZE + 8 {
+    if ![SIZE, SIZE + 8, SIZE + 24].contains(&payload.len()) {
         return Err(io::Error::new(
             ErrorKind::InvalidData,
-            format!("odom payload {} != expected {} or {}", payload.len(), SIZE, SIZE + 8),
+            format!("odom payload {} != expected {}, {} or {}", payload.len(), SIZE, SIZE + 8, SIZE + 24),
         ));
     }
-    let t_ns = if payload.len() == SIZE + 8 { u64::from_le_bytes(payload[SIZE..SIZE + 8].try_into().expect("8 bytes")) } else { 0 };
+    let t_ns = if payload.len() >= SIZE + 8 { u64::from_le_bytes(payload[SIZE..SIZE + 8].try_into().expect("8 bytes")) } else { 0 };
+    let head_vel = (payload.len() == SIZE + 24).then(|| std::array::from_fn(|k| read_f32_le(&payload[SIZE + 8 + 4 * k..SIZE + 12 + 4 * k])));
     let f = |idx: usize| -> f32 { read_f32_le(&payload[idx * 4..idx * 4 + 4]) };
     let flags = payload[SIZE - 1];
     Ok(OdomRecord {
@@ -345,6 +348,7 @@ fn decode_odom(ts_us: u64, payload: &[u8]) -> io::Result<OdomRecord> {
         sitting: flags & crate::record::FLAG_SITTING != 0,
         fallen: flags & crate::record::FLAG_FALLEN != 0,
         t_ns,
+        head_vel,
     })
 }
 
