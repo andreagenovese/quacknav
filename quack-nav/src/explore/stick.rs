@@ -97,10 +97,21 @@ impl Job {
     pub(super) fn stick_leg(&mut self, handle: &ExploreHandle, robot: &mut dyn Body, (x, y, yaw): (f64, f64, f64), f: &Frontier) -> Option<(State, String)> {
         let look = f.path.iter().copied().find(|p| dist2(*p, (x, y)) >= LOOK_M).unwrap_or(f.stand);
         let err = wrap((look.1 - y).atan2(look.0 - x) - yaw);
-        // Beside a drop, booked or seen by the sensor: seen only, the rim
-        // is not on the books yet, and the paper twin's duck walked 7 cm
-        // from the stairwell's unbooked rim for minutes, then fell.
-        let careful = self.stick_careful && self.drop_within_any(&*robot, CAREFUL_NEAR_M).is_some();
+        // Careful only beside a hole the sensor sees and the books do not
+        // hold yet: the paper twin's duck walked 7 cm from the stairwell's
+        // unbooked rim for minutes, then fell. A booked rim is on the
+        // planner's walls and the route keeps off it: there the stick trusts
+        // the route, as on a journey (the user's, 2026-09-29: the Dijkstra
+        // route, when the holes are on the books).
+        let unbooked_seen = robot
+            .cliff()
+            .and_then(|c| c.nearest(robot.now()))
+            .and_then(|d| {
+                let r = if d.edge_min_m > 0.0 { d.edge_min_m } else { (d.range_m - crate::cliff::EDGE_UNKNOWN_M).max(0.10) };
+                (r < CAREFUL_NEAR_M).then(|| (x + r * (yaw + d.bearing).cos(), y + r * (yaw + d.bearing).sin()))
+            })
+            .filter(|p| !self.local.iter().any(|(q, rr)| *rr >= DROP_RADIUS_M && dist2(*q, *p) < KNOWN_RIM_M));
+        let careful = self.stick_careful && unbooked_seen.is_some();
         // ... and never beside it: off the rim first, as the explorer's own
         // legs do (see `off_the_rim`).
         if careful && self.off_the_rim(robot, (x, y, yaw)) {
