@@ -55,3 +55,7 @@ required-features = ["kinematics"]
 [[example]]
 name = "trajectory"
 required-features = ["kinematics"]
+
+[[example]]
+name = "wake_match"
+required-features = ["kinematics"]

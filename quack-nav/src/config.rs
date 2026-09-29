@@ -71,7 +71,10 @@ pub struct HomecomingConfig {
     /// not at all. Zero skips the attempt entirely.
     pub boot_search_s: f64,
     /// How often, while exploring, to ask whether the map so far fits
-    /// inside a saved one. Mapping pauses for the length of the search.
+    /// inside a saved one. Mapping pauses for the length of the search —
+    /// 0.1 s on the twin at 1200 wall cells, so a minute costs nothing,
+    /// and three agreeing asks come three minutes after the fresh map
+    /// starts instead of nine (60 since 2026-09-29).
     pub recognize_every_s: f64,
     /// The budget for the exploring the homecoming starts.
     pub explore_max_s: f64,
@@ -92,6 +95,8 @@ pub struct HomecomingConfig {
     /// room barely present in the saved map fitted its identical
     /// neighbour at 0.97 and 0.84 (2026-09-15) where the right answers
     /// of the same night sat at 0.23–0.68. Above this, wait and ask again.
+    /// 0.5 since 2026-09-29, with the overlap floor at 0.5 (see
+    /// `adopt_min_overlap`).
     pub adopt_max_margin: f64,
     /// How much the live map must have grown between two agreeing asks,
     /// as a ratio of wall cells. 1.0: it must not have shrunk, no more —
@@ -110,7 +115,15 @@ pub struct HomecomingConfig {
     /// lies in territory the saved map never saw — a room it does not
     /// hold — and whatever fits is the neighbour that looks the same:
     /// the office fitted the bedroom at 0.52–0.69 (2026-09-15) where
-    /// every right adoption of the night sat at 0.74–0.81.
+    /// every right adoption of the night sat at 0.74–0.81. At 0.7 it also
+    /// refused the right place on a saved map of a single session:
+    /// casa_arredata's duck, woken on its first 15 minutes' map, was
+    /// placed within 8 cm at the first ask and refused at 0.55–0.72 until
+    /// the search ended (x14, 2026-09-29). Replayed, 27 wakes on both
+    /// houses against maps of one to four sessions (920 asks, 655 right):
+    /// 0.7 with the margin at 0.8 took 565 right answers and 9 of another
+    /// house; 0.5 with the margin at 0.5 took 626 and none wrong — the
+    /// office's fit, at 0.97, the margin catches.
     pub adopt_min_overlap: f64,
     /// Progressive exploration: a duck that comes home on a map it is
     /// still exploring (maploc mapping, not `localize`) goes on exploring
@@ -130,14 +143,14 @@ impl Default for HomecomingConfig {
             enabled: false,
             start_delay_s: 15.0,
             boot_search_s: 60.0,
-            recognize_every_s: 180.0,
+            recognize_every_s: 60.0,
             explore_max_s: 1800.0,
             dry_run: false,
             adopt_max_score: 0.16,
-            adopt_max_margin: 0.80,
+            adopt_max_margin: 0.50,
             adopt_min_growth: 1.0,
             adopt_asks: 3,
-            adopt_min_overlap: 0.70,
+            adopt_min_overlap: 0.50,
             resume_explore: false,
             resume_battery_min_pct: 25.0,
         }

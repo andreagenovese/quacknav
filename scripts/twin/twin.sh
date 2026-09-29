@@ -91,7 +91,7 @@ yaw_gain_right = 1.58
 enabled = $([ "${HOMECOMING:-off}" = on ] && echo true || echo false)
 start_delay_s = 10.0
 boot_search_s = ${BOOT_SEARCH_S:-240}.0
-recognize_every_s = 120.0
+recognize_every_s = 60.0
 explore_max_s = ${EXPLORE_S:-720}.0
 resume_explore = $([ "${RESUME:-off}" = on ] && echo true || echo false)
 
