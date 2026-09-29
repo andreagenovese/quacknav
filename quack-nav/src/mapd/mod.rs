@@ -860,6 +860,30 @@ fn log_note(note: Note) {
                 "maploc: relocalize candidate; awaiting confirmation"
             );
         }
+        Note::ShadowAsked { fit, score, margin, overlap, cells, agreed } => {
+            tracing::info!(
+                x = format!("{:.2}", fit.0),
+                y = format!("{:.2}", fit.1),
+                yaw = format!("{:.2}", fit.2),
+                score = format!("{score:.3}"),
+                margin = format!("{margin:.2}"),
+                overlap = format!("{overlap:.2}"),
+                cells,
+                agreed,
+                "maploc: the map walked since boot fits the saved one here"
+            );
+        }
+        Note::ShadowSeed { pose } => {
+            tracing::info!(
+                x = format!("{:.2}", pose.0),
+                y = format!("{:.2}", pose.1),
+                yaw = format!("{:.2}", pose.2),
+                "maploc: the walk's fits agree; the pose they give awaits the windows"
+            );
+        }
+        Note::ShadowSeedRefuted => {
+            tracing::info!("maploc: a window refuted the walk's pose; searching on");
+        }
         Note::RelocalizeCandidateJudged { pose, verdict, mean_residual_m, n_observed, n_beams, chord_m } => {
             tracing::info!(
                 x = format!("{:.2}", pose.0),

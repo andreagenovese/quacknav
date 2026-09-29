@@ -172,6 +172,7 @@ fn main() {
                     maploc::mapper::Note::Relocalized { pose, .. } => ("confirmed", *pose, (f32::NAN, f32::NAN)),
                     maploc::mapper::Note::RelocalizeAmbiguous { pose, along } => ("valley", *pose, *along),
                     maploc::mapper::Note::RelocalizeCandidate { pose, .. } => ("candidate", *pose, (f32::NAN, f32::NAN)),
+                    maploc::mapper::Note::ShadowSeed { pose } => ("shadow", *pose, (f32::NAN, f32::NAN)),
                     _ => continue,
                 };
                 let (Some((_, composite)), Some(mut grid), Some((tt, tx, ty, _))) =

@@ -442,6 +442,22 @@ pub enum Note {
         pose: Pose2,
         mean_residual_m: f32,
     },
+    /// The shadow map asked where it sits in the saved one (see [`Shadow`]):
+    /// the fit of its frame, the answer's numbers, and how many answers in
+    /// a row now agree.
+    ShadowAsked {
+        fit: Pose2,
+        score: f32,
+        margin: f32,
+        overlap: f32,
+        cells: usize,
+        agreed: u32,
+    },
+    /// Enough answers agreed: the pose they put the duck at is the soft
+    /// seed, for the windows to confirm.
+    ShadowSeed { pose: Pose2 },
+    /// A window refuted that seed.
+    ShadowSeedRefuted,
     /// A pending candidate a window did not confirm, and dropped: `verdict`
     /// "unjudgeable", "ambiguous" or "refuted"; the window's residual and
     /// beams at the pose, and the travel since nomination.
@@ -593,6 +609,12 @@ pub struct Mapper {
     /// Consecutive windows that AGREED with the soft seed. Two are needed
     /// before tracking resumes on it — see the seed-confirmation comment.
     seed_agreed: u32,
+    /// The map of what the lost duck has walked since boot, asked now and
+    /// then where it sits in the saved one (see [`Shadow`]).
+    shadow: Option<Box<Shadow>>,
+    /// The soft seed came from the shadow's fit: its uniqueness is the
+    /// fit's, over the whole walk, and the one-window gates are not asked.
+    seed_from_map: bool,
     /// The map as it stood when the current stand began — what the
     /// watchdog judges the stand's windows against. Judging against the
     /// LIVE map lets a kidnapped stand vouch for itself: its first window
@@ -793,6 +815,7 @@ impl Mapper {
     /// on in a house it has mapped before needs — the saved pose is only
     /// right if it was switched on where it was switched off.
     pub fn resumed_lost(cfg: MapperConfig, slam: Slam) -> Self {
+        let shadow_cfg = cfg.clone();
         let mut cfg = cfg;
         // The two settings that make a kidnap recoverable are wrong at
         // boot. `hard_lost_search_radius_m` keeps the search near where the
@@ -810,6 +833,19 @@ impl Mapper {
         mapper.hard_lost = true;
         mapper.resumed_from_session = true;
         mapper.booting = true;
+        if shadow_enabled()
+            && let Some(saved) = mapper.slam.render()
+        {
+            mapper.shadow = Some(Box::new(Shadow {
+                fresh: Mapper::new(shadow_cfg, Slam::new(crate::pipeline::SlamConfig::default())),
+                saved,
+                origin: None,
+                chord: 0.0,
+                next_ask: None,
+                prev: None,
+                agreed: 0,
+            }));
+        }
         if boot_mcl()
             && let Some(grid) = mapper.slam.render()
         {
@@ -880,6 +916,8 @@ impl Mapper {
             soft_seed: None,
             unjudged: 0,
             seed_agreed: 0,
+            shadow: None,
+            seed_from_map: false,
             stand_grid: None,
             boot: None,
             roll: WindowAccumulator::new(rolling),
@@ -1010,6 +1048,22 @@ impl Mapper {
     /// the host's uptime, a recording's timestamps — as long as one mapper
     /// sees only one. Notes are appended, not replaced.
     pub fn observe(&mut self, t_s: f32, sample: MapperSample, notes: &mut Vec<Note>) {
+        if self.lost
+            && let Some(mut shadow) = self.shadow.take()
+        {
+            let mut ignored = Vec::new();
+            shadow.fresh.observe(t_s, sample, &mut ignored);
+            if let Some(found) = shadow.ask(t_s, notes) {
+                // Where the duck stands on the saved map now: the fit
+                // carries the shadow's frame onto it.
+                let pose = compose(found, shadow.fresh.slam().tracked());
+                self.soft_seed = Some((pose, self.slam.tracked()));
+                self.seed_agreed = 0;
+                self.seed_from_map = true;
+                notes.push(Note::ShadowSeed { pose });
+            }
+            self.shadow = Some(shadow);
+        }
         if let Some(prev) = self.cov_odom
             && !self.lost
         {
@@ -1126,6 +1180,11 @@ impl Mapper {
     /// One reprojected depth frame, already in the body frame. Returns
     /// true when the frame was kept (accumulated or inked).
     pub fn frame(&mut self, t_s: f32, scan: Scan) -> bool {
+        if self.lost
+            && let Some(shadow) = self.shadow.as_mut()
+        {
+            shadow.fresh.frame(t_s, scan.clone());
+        }
         if self.lost
             && let Some(b) = self.boot.as_mut()
             && b.posture_ok
@@ -1289,9 +1348,10 @@ impl Mapper {
                         // at, and a duck switched on in another room that
                         // looks the same agrees with it in one window: the
                         // agreement has to be unique before it is believed.
-                        let unique = !self.resumed_from_session
+                        let unique = self.seed_from_map
+                            || !self.resumed_from_session
                             || self.unique_at(&mut grid, composite, pose) == Some(true);
-                        let unique = unique && (!(self.resumed_from_session || self.after_fall) || {
+                        let unique = unique && (self.seed_from_map || !(self.resumed_from_session || self.after_fall) || {
                             let probe = composite.decimated(self.cfg.relocalize_max_beams);
                             !self.valley_blocks(&mut grid, &probe, pose, now, notes)
                         });
@@ -1314,6 +1374,9 @@ impl Mapper {
                         // Evidence of displacement: suspicion hardens, the
                         // give-up escape is off the table.
                         self.seed_agreed = 0;
+                        if std::mem::take(&mut self.seed_from_map) {
+                            notes.push(Note::ShadowSeedRefuted);
+                        }
                     }
                     (implied, Verdict::Ambiguous) => {
                         // Keep the hypothesis alive and keep looking, but
@@ -1834,6 +1897,8 @@ impl Mapper {
         self.unjudged = 0;
         self.seed_agreed = 0;
         self.soft_seed = None;
+        self.shadow = None;
+        self.seed_from_map = false;
         self.pending_reloc = None;
         self.last_search = None;
         self.lost_windows = 0;
@@ -2795,5 +2860,89 @@ mod tests {
             mapper.tracking(),
             "new territory must be mapped, not declared a kidnap"
         );
+    }
+}
+
+/// `MAPLOC_SHADOW=0`: no shadow map at boot.
+fn shadow_enabled() -> bool {
+    std::env::var("MAPLOC_SHADOW").map_or(true, |v| v != "0")
+}
+
+/// How often the shadow asks, how many answers in a row must agree, and
+/// what an answer must be (the homecoming's adoption rule, see quack-nav's
+/// `HomecomingConfig`, measured on 27 replayed wakes: 626 of 655 right
+/// answers pass, none wrong). The wake bench's 24 wakes and x14's failed
+/// one, replayed (2026-09-29): without the shadow 13 confirmed, median
+/// 123 s; asking every 60 s for 3 answers, 14 (157 s); every 30 s for 3,
+/// 21 (96 s); every 30 s for 2, 23 (67 s) — none wrong, the confirmed
+/// poses within 0.18 m: the windows still confirm the seed.
+/// `MAPLOC_SHADOW_EVERY_S` and `MAPLOC_SHADOW_ASKS` override them.
+fn shadow_ask_every_s() -> f32 {
+    std::env::var("MAPLOC_SHADOW_EVERY_S").ok().and_then(|v| v.parse().ok()).unwrap_or(30.0)
+}
+const SHADOW_MAX_SCORE: f32 = 0.16;
+const SHADOW_MAX_MARGIN: f32 = 0.5;
+const SHADOW_MIN_OVERLAP: f32 = 0.5;
+const SHADOW_AGREE_M: f32 = 0.30;
+fn shadow_asks() -> u32 {
+    std::env::var("MAPLOC_SHADOW_ASKS").ok().and_then(|v| v.parse().ok()).unwrap_or(2)
+}
+
+/// The lost duck's own map of what it has walked since boot, kept beside
+/// the search and asked, every minute, where it sits in the saved map. A
+/// window of 200 beams in a corridor fits a dozen places; the walk's map
+/// fits one. casa_arredata's duck, woken in its corridor, found nothing
+/// in 240 s of windows, while its fresh map, once the search gave up,
+/// was placed within 8 cm at the first ask (x14, 2026-09-29).
+struct Shadow {
+    fresh: Mapper,
+    saved: OccupancyGrid,
+    /// The shadow's pose at its first ask, and the farthest it has been
+    /// from there: its answers count once the duck has walked
+    /// `confirm_travel_m()` away, as the windows' do — a panorama on one
+    /// spot is a map too, and sixteen kicks round a 15 cm circle had it
+    /// confirm without leaving the spot (`a_wake_up_walks_before_it_believes`).
+    origin: Option<Pose2>,
+    chord: f32,
+    next_ask: Option<f32>,
+    /// The last passing answer: its fit and the shadow's wall cells then.
+    prev: Option<(Pose2, usize)>,
+    agreed: u32,
+}
+
+impl Shadow {
+    /// Ask when it is time; the fit of the shadow's frame on the saved map
+    /// once `shadow_asks()` passing answers in a row agree.
+    fn ask(&mut self, t_s: f32, notes: &mut Vec<Note>) -> Option<Pose2> {
+        let here = self.fresh.slam().tracked();
+        let origin = *self.origin.get_or_insert(here);
+        self.chord = self.chord.max((here.0 - origin.0).hypot(here.1 - origin.1));
+        let due = *self.next_ask.get_or_insert(t_s + shadow_ask_every_s());
+        if t_s < due {
+            return None;
+        }
+        self.next_ask = Some(t_s + shadow_ask_every_s());
+        let live = self.fresh.slam().render()?;
+        let cfg = crate::align::AlignConfig::default();
+        let cells = crate::align::wall_cells(&live, cfg.certain_log);
+        let found = crate::align::match_maps(&live, &mut self.saved, &cfg);
+        let Some(best) = found.first() else {
+            self.prev = None;
+            self.agreed = 0;
+            return None;
+        };
+        let margin = found.get(1).map_or(1.0, |n| best.score / n.score.max(1e-6));
+        let passes = best.score <= SHADOW_MAX_SCORE && margin <= SHADOW_MAX_MARGIN && best.overlap >= SHADOW_MIN_OVERLAP;
+        let agrees = passes
+            && self.prev.is_some_and(|(p, c)| (p.0 - best.pose.0).hypot(p.1 - best.pose.1) <= SHADOW_AGREE_M && cells >= c);
+        self.agreed = if agrees { self.agreed + 1 } else if passes { 1 } else { 0 };
+        self.prev = passes.then_some((best.pose, cells));
+        notes.push(Note::ShadowAsked { fit: best.pose, score: best.score, margin, overlap: best.overlap, cells, agreed: self.agreed });
+        if self.agreed >= shadow_asks() && self.chord >= confirm_travel_m() {
+            self.agreed = 0;
+            self.prev = None;
+            return Some(best.pose);
+        }
+        None
     }
 }

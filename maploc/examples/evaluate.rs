@@ -334,6 +334,9 @@ fn main() {
                 Note::LoopClosed { .. } => "loop_closed",
                 Note::WindowHeld { .. } => "held",
                 Note::Settled { .. } => "settled",
+                Note::ShadowAsked { .. } => "shadow_asked",
+                Note::ShadowSeed { .. } => "shadow_seed",
+                Note::ShadowSeedRefuted => "shadow_refuted",
             };
             *tally.entry(key).or_insert(0u32) += 1;
             if let Note::WindowIntegrated { mean_residual_m, n_observed, .. } = &note
@@ -519,6 +522,13 @@ fn main() {
                 Note::Settled { held, gave_up } => {
                     println!("[{t:7.1}s] settled after {held} held windows{}", if gave_up { " (gave up: the map could not judge)" } else { "" });
                 }
+                Note::ShadowAsked { fit, score, margin, overlap, cells, agreed } => {
+                    println!("[{t:7.1}s] shadow: fits at ({:.2}, {:.2}, {:.0}°) score {score:.3} margin {margin:.2} overlap {overlap:.2} cells {cells}, {agreed} agreeing", fit.0, fit.1, fit.2.to_degrees());
+                }
+                Note::ShadowSeed { pose } => {
+                    println!("[{t:7.1}s] shadow: seed ({:.2}, {:.2}, {:.0}°)", pose.0, pose.1, pose.2.to_degrees());
+                }
+                Note::ShadowSeedRefuted => println!("[{t:7.1}s] shadow: seed refuted"),
                 Note::TrackingCorrected {
                     dx,
                     dy,
