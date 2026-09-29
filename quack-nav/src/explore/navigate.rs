@@ -81,6 +81,7 @@ impl Job {
     pub(super) fn travel(&mut self, handle: &ExploreHandle, robot: &mut dyn Body, goal: (f64, f64), deadline: Instant, journey: bool) -> (State, String) {
         self.stick_stand_s = if journey { STICK_STAND_S } else { map_stand_s() };
         self.stick_careful = !journey && switch("QK_STICK_CAREFUL").unwrap_or(true);
+        self.stick_books = !journey;
         self.kept_route = None;
         let mut stuck = 0u32;
         loop {

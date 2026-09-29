@@ -57,6 +57,9 @@ const CAREFUL_NEAR_M: f64 = 0.5;
 const CAREFUL_TURN_RAD: f64 = 0.17;
 const CAREFUL_STAND_EVERY_M: f64 = 0.2;
 const CAREFUL_GUARD_MARGIN_M: f64 = 0.25;
+/// The stand before a hole the guard saw goes on the books: long enough for
+/// the two still frames the vote asks for.
+const BOOK_STAND_S: f64 = 1.5;
 /// The yaw asked per radian of heading error, as the gait turns 0.65 of
 /// it a second: the error closed over about the step.
 const YAW_GAIN: f64 = 1.0 / (0.65 * STEP_S);
@@ -160,6 +163,15 @@ impl Job {
             self.stick_hole_at = Some(seen_at);
             let known = self.local.iter().any(|(p, r)| *r >= DROP_RADIUS_M && dist2(*p, seen_at) < KNOWN_RIM_M);
             if !known {
+                // The books take a drop only from frames seen standing
+                // (`record_drops`), and the step just walked leaves none:
+                // on the exploration's travel, where the books are still
+                // being written, a stand first. Without it house2's
+                // stairwell rim was seen ten times and booked none, and the
+                // route ran 4 cm from it (MuJoCo, 2026-09-29).
+                if self.stick_books {
+                    let _ = stand(robot, BOOK_STAND_S);
+                }
                 self.record_drops(robot);
             }
             let vyaw = -quack_duck::body::TURN_IN_PLACE_RAD_S * d.bearing.signum();
@@ -186,6 +198,11 @@ impl Job {
         if self.stick_since_stand >= stand_every {
             let _ = stand(robot, self.stick_stand_s);
             self.stick_since_stand = 0.0;
+            // The exploration's stands write the books, as its own legs'
+            // stands did.
+            if self.stick_books {
+                self.record_drops(robot);
+            }
         }
         None
     }
