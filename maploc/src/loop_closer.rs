@@ -139,7 +139,8 @@ impl Default for LoopCloserConfig {
             // 2.3° left the pose worse 30 times in 45, and one of 6.5°
             // turned casa_arredata's kitchen 3.9° on the saved map, the pose
             // 3 cm right before it and 11 cm off after (2026-09-28).
-            max_correction_cap_rad: 0.04,
+            // `MAPLOC_LOOP_CAP_YAW` overrides it, for measuring on the twin.
+            max_correction_cap_rad: std::env::var("MAPLOC_LOOP_CAP_YAW").ok().and_then(|v| v.parse().ok()).unwrap_or(0.04),
             verbose: false,
         }
     }
