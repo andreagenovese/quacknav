@@ -77,6 +77,9 @@ pub struct TofRecord {
     /// corresponding `ranges_m`, but we surface the byte too in case
     /// downstream tooling wants to slice differently.
     pub status: [[u8; TOF_COLS]; TOF_ROWS],
+    /// The frame's CLOCK_MONOTONIC stamp (ns), on the same clock as
+    /// [`OdomRecord::t_ns`]; 0 in recordings made before it was written.
+    pub t_ns: u64,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -125,6 +128,9 @@ pub struct OdomRecord {
     pub sitting: bool,
     /// Fallen over — a fall can displace and rotate the robot.
     pub fallen: bool,
+    /// robotd's CLOCK_MONOTONIC stamp of the sample (ns); 0 in recordings
+    /// made before it was written.
+    pub t_ns: u64,
 }
 
 #[derive(Debug, Clone)]
@@ -255,11 +261,13 @@ fn decode_tof(ts_us: u64, payload: &[u8]) -> io::Result<TofRecord> {
             status[r][c] = payload[stat_off + r * TOF_COLS + c];
         }
     }
+    let t_ns = if payload.len() >= need + 8 { u64::from_le_bytes(payload[need..need + 8].try_into().expect("8 bytes")) } else { 0 };
     Ok(TofRecord {
         ts_us,
         sender_ts_s,
         ranges_m,
         status,
+        t_ns,
     })
 }
 
@@ -316,12 +324,13 @@ fn decode_twin(ts_us: u64, payload: &[u8]) -> io::Result<TwinRecord> {
 
 fn decode_odom(ts_us: u64, payload: &[u8]) -> io::Result<OdomRecord> {
     const SIZE: usize = 11 * 4 + 1;
-    if payload.len() != SIZE {
+    if payload.len() != SIZE && payload.len() != SIZE + 8 {
         return Err(io::Error::new(
             ErrorKind::InvalidData,
-            format!("odom payload {} != expected {}", payload.len(), SIZE),
+            format!("odom payload {} != expected {} or {}", payload.len(), SIZE, SIZE + 8),
         ));
     }
+    let t_ns = if payload.len() == SIZE + 8 { u64::from_le_bytes(payload[SIZE..SIZE + 8].try_into().expect("8 bytes")) } else { 0 };
     let f = |idx: usize| -> f32 { read_f32_le(&payload[idx * 4..idx * 4 + 4]) };
     let flags = payload[SIZE - 1];
     Ok(OdomRecord {
@@ -335,6 +344,7 @@ fn decode_odom(ts_us: u64, payload: &[u8]) -> io::Result<OdomRecord> {
         moving: flags & crate::record::FLAG_MOVING != 0,
         sitting: flags & crate::record::FLAG_SITTING != 0,
         fallen: flags & crate::record::FLAG_FALLEN != 0,
+        t_ns,
     })
 }
 

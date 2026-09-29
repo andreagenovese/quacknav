@@ -111,7 +111,45 @@ fn main() {
     let mut degen = std::env::var_os("DEGEN_LOG").map(|p| std::io::BufWriter::new(std::fs::File::create(p).expect("DEGEN_LOG")));
     let truth_at = |unix: f64| truth.iter().min_by(|a, b| (a.0 - unix).abs().total_cmp(&(b.0 - unix).abs())).copied();
     let (mut quarantined, mut rescued, mut lost) = (0u32, 0u32, 0u32);
+    // `CORR_LOG=<file>`: every tracking correction a window made, against
+    // the truth — which of them moved the pose toward it and which away
+    // (casa_arredata, 2026-09-29: the windows pulled the pose 3.5-7 cm north
+    // one after the other across the living room, 0.49 m off in the end).
+    let mut corr = std::env::var_os("CORR_LOG")
+        .map(|p| std::io::BufWriter::new(std::fs::File::create(p).expect("CORR_LOG")));
+    // `ODOM_LOG=<file>`: the raw odometry the mapper was fed, on the Unix
+    // clock, for its increments against the truth's.
+    let mut odom_log = std::env::var_os("ODOM_LOG")
+        .map(|p| std::io::BufWriter::new(std::fs::File::create(p).expect("ODOM_LOG")));
+    let mut odom_last_logged = f64::NEG_INFINITY;
     let replayed = maploc::bench::replay_loading(&session, &mut mapper, f32::INFINITY, load, |step| {
+        if let Some(w) = odom_log.as_mut()
+            && step.unix_s - odom_last_logged >= 0.2
+            && let Some(o) = step.mapper.last_odom()
+        {
+            odom_last_logged = step.unix_s;
+            writeln!(w, "{:.2}\t{:.4}\t{:.4}\t{:.4}", step.unix_s, o.0, o.1, o.2).expect("write");
+        }
+        if let Some(w) = corr.as_mut() {
+            for note in step.notes {
+                if let maploc::mapper::Note::TrackingCorrected { dx, dy, dyaw, residual_before_m, residual_after_m, n_beams_used } = note
+                    && let Some((_, tx, ty, _)) = truth_at(step.unix_s)
+                {
+                    let after = step.mapper.slam().tracked();
+                    let (ax, ay) = (f64::from(after.0), f64::from(after.1));
+                    let (bx, by) = (ax - f64::from(*dx), ay - f64::from(*dy));
+                    writeln!(
+                        w,
+                        "{:.1}\t{ax:.3}\t{ay:.3}\t{tx:.3}\t{ty:.3}\t{dx:.3}\t{dy:.3}\t{:.2}\t{residual_before_m:.3}\t{residual_after_m:.3}\t{n_beams_used}\t{:.3}\t{:.3}",
+                        step.t_s,
+                        dyaw.to_degrees(),
+                        (bx - tx).hypot(by - ty),
+                        (ax - tx).hypot(ay - ty)
+                    )
+                    .expect("write");
+                }
+            }
+        }
         for note in step.notes {
             match note {
                 maploc::mapper::Note::WindowQuarantined { .. } => quarantined += 1,

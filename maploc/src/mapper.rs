@@ -923,6 +923,10 @@ impl Mapper {
     pub fn slam_mut(&mut self) -> &mut Slam {
         &mut self.slam
     }
+    /// The raw odometry of the last sample observed, for the benches.
+    pub fn last_odom(&self) -> Option<Pose2> {
+        self.odom_window.last().map(|&(_, x, y, yaw)| (x, y, yaw))
+    }
     pub fn windows(&self) -> u32 {
         self.windows
     }

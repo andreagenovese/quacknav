@@ -78,7 +78,16 @@ pub fn replay_loading(
     // the frames costs the map (a head sweeping at a stand, paired a few
     // tens of milliseconds off, points every beam a few degrees wrong).
     let head_dt_us: Option<i64> = std::env::var("REPLAY_HEAD_DT_MS").ok().and_then(|v| v.parse::<f64>().ok()).map(|ms| (ms * 1000.0) as i64);
-    let records: Vec<Record> = replayer.collect::<io::Result<Vec<_>>>()?;
+    // A recording still being written ends mid-record: the records before
+    // the cut are replayed, as the streaming replay always did.
+    let mut records: Vec<Record> = Vec::new();
+    for r in replayer {
+        match r {
+            Ok(r) => records.push(r),
+            Err(e) if e.kind() == io::ErrorKind::UnexpectedEof => break,
+            Err(e) => return Err(e),
+        }
+    }
     let heads: Vec<(i64, [f32; 4])> = records
         .iter()
         .filter_map(|r| if let Record::Odom(o) = r { Some((o.ts_us as i64, o.head)) } else { None })
@@ -92,6 +101,32 @@ pub fn replay_loading(
             (Some(a), None) => Some(a.1),
             (None, Some(b)) => Some(b.1),
             (None, None) => None,
+        }
+    };
+    // A recording with robotd's and tofd's CLOCK_MONOTONIC stamps (from
+    // 2026-09-29) replays the live worker's pairing exactly: a frame waits
+    // until a sample at or after its stamp plus the lead has come, then takes
+    // the head, gravity and height interpolated at that instant (see
+    // quack-nav's `mapd::head_at`); older recordings keep the last sample
+    // before the frame, or `REPLAY_HEAD_DT_MS`.
+    let lead_ns: u64 = std::env::var("MAPLOC_HEAD_LEAD_MS").ok().and_then(|v| v.parse::<f64>().ok()).map(|ms| (ms.max(0.0) * 1e6) as u64).unwrap_or(5_000_000);
+    let stamped = records.iter().any(|r| matches!(r, Record::Odom(o) if o.t_ns > 0));
+    let mut recent: std::collections::VecDeque<crate::replay::OdomRecord> = std::collections::VecDeque::with_capacity(128);
+    let mut pending: std::collections::VecDeque<crate::replay::TofRecord> = std::collections::VecDeque::new();
+    let ingest = |mapper: &mut Mapper, t: f32, frame: &crate::replay::TofRecord, o: &crate::replay::OdomRecord| {
+        let posture = Posture { gravity: o.gravity.map(f64::from), trunk_height_m: (o.trunk_z > 0.02).then_some(f64::from(o.trunk_z)) };
+        let mut ranges = [None; N_ZONES];
+        for (slot, (row, srow)) in ranges.chunks_mut(8).zip(frame.ranges_m.iter().zip(frame.status.iter())) {
+            for ((s, &r), &st) in slot.iter_mut().zip(row.iter()).zip(srow.iter()) {
+                if (st == 5 || st == 9) && r.is_finite() && r > 0.0 {
+                    *s = Some(f64::from(r));
+                }
+            }
+        }
+        let flat = crate::flat::flatten(&rp, &ranges, o.head.map(f64::from), &posture);
+        if !flat.angles_body.is_empty() {
+            let scan = Scan::from_polar(&flat.angles_body, &flat.ranges, flat.sensor_xy, 1e-3);
+            mapper.frame(t, scan);
         }
     };
     for record in records {
@@ -117,27 +152,42 @@ pub fn replay_loading(
                     &mut notes,
                 );
                 latest = Some(o);
+                if stamped {
+                    recent.push_back(o);
+                    while recent.len() > 128 {
+                        recent.pop_front();
+                    }
+                    while let Some(frame) = pending.front() {
+                        let bracketed = frame.t_ns.saturating_add(lead_ns) <= o.t_ns;
+                        let stale = o.t_ns.saturating_sub(frame.t_ns) > 200_000_000;
+                        if !bracketed && !stale {
+                            break;
+                        }
+                        let frame = pending.pop_front().expect("front seen");
+                        let paired = paired_at(&recent, frame.t_ns.saturating_add(lead_ns)).unwrap_or(o);
+                        ingest(mapper, t, &frame, &paired);
+                    }
+                }
             }
             Record::Tof(frame) => {
                 out.frames += 1;
                 let Some(o) = latest.as_ref() else { continue };
-                let posture = Posture {
-                    gravity: o.gravity.map(f64::from),
-                    trunk_height_m: (o.trunk_z > 0.02).then_some(f64::from(o.trunk_z)),
-                };
-                let mut ranges = [None; N_ZONES];
-                for (slot, (row, srow)) in ranges.chunks_mut(8).zip(frame.ranges_m.iter().zip(frame.status.iter())) {
-                    for ((s, &r), &st) in slot.iter_mut().zip(row.iter()).zip(srow.iter()) {
-                        if (st == 5 || st == 9) && r.is_finite() && r > 0.0 {
-                            *s = Some(f64::from(r));
+                if stamped && frame.t_ns > 0 {
+                    if recent.back().is_some_and(|s| s.t_ns < frame.t_ns.saturating_add(lead_ns)) {
+                        pending.push_back(frame);
+                        while pending.len() > 8 {
+                            pending.pop_front();
                         }
+                    } else {
+                        let paired = paired_at(&recent, frame.t_ns.saturating_add(lead_ns)).unwrap_or(*o);
+                        ingest(mapper, t, &frame, &paired);
                     }
-                }
-                let head = head_dt_us.and_then(|dt| head_at(frame.ts_us as i64 + dt)).unwrap_or(o.head);
-                let flat = crate::flat::flatten(&rp, &ranges, head.map(f64::from), &posture);
-                if !flat.angles_body.is_empty() {
-                    let scan = Scan::from_polar(&flat.angles_body, &flat.ranges, flat.sensor_xy, 1e-3);
-                    mapper.frame(t, scan);
+                } else {
+                    let mut o = *o;
+                    if let Some(h) = head_dt_us.and_then(|dt| head_at(frame.ts_us as i64 + dt)) {
+                        o.head = h;
+                    }
+                    ingest(mapper, t, &frame, &o);
                 }
             }
         }
@@ -148,4 +198,31 @@ pub fn replay_loading(
         }
     }
     Ok(out)
+}
+
+/// The robot state as it was at `t_ns`, as the live worker pairs it: the
+/// two samples around that instant, head, gravity and height interpolated,
+/// the rest from the later one; `None` when the ring does not bracket it.
+fn paired_at(recent: &std::collections::VecDeque<crate::replay::OdomRecord>, t_ns: u64) -> Option<crate::replay::OdomRecord> {
+    if t_ns == 0 || recent.len() < 2 || recent.back()?.t_ns < t_ns {
+        return None;
+    }
+    let after = recent.iter().position(|s| s.t_ns >= t_ns)?;
+    if after == 0 {
+        return None;
+    }
+    let (a, b) = (&recent[after - 1], &recent[after]);
+    let span = (b.t_ns - a.t_ns) as f64;
+    let f = if span > 0.0 { (t_ns - a.t_ns) as f64 / span } else { 1.0 };
+    // In f64 as live mixes them, then back to the recording's f32.
+    let mix = |x: f32, y: f32| (f64::from(x) + (f64::from(y) - f64::from(x)) * f) as f32;
+    let mut paired = *b;
+    for k in 0..4 {
+        paired.head[k] = mix(a.head[k], b.head[k]);
+    }
+    for k in 0..3 {
+        paired.gravity[k] = mix(a.gravity[k], b.gravity[k]);
+    }
+    paired.trunk_z = mix(a.trunk_z, b.trunk_z);
+    Some(paired)
 }

@@ -455,6 +455,7 @@ fn worker(config: &MaplocConfig, rx: mpsc::Receiver<Event>, map_tx: &Subscribers
                             sample.moving,
                             sample.sitting,
                             sample.fallen,
+                            sample.t_ns,
                         )
                         .is_err()
                 {
@@ -699,7 +700,7 @@ fn worker(config: &MaplocConfig, rx: mpsc::Receiver<Event>, map_tx: &Subscribers
                 n_frames += 1;
                 if let Some(rec) = recorder.as_mut()
                     && rec
-                        .tof(frame.at_us as f64 / 1e6, frame.rows, frame.cols, &frame.distance_mm, &frame.status)
+                        .tof(frame.at_us as f64 / 1e6, frame.t_ns, frame.rows, frame.cols, &frame.distance_mm, &frame.status)
                         .is_err()
                 {
                     tracing::warn!("maploc: recording write failed; recording stopped");

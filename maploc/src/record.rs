@@ -11,7 +11,7 @@
 //! Stream ids: 0 = ToF (same payload as v1), 2 = odom (v2 only). The v1
 //! twin stream (1) is never written by this recorder.
 //!
-//! Odom payload (45 B, little-endian):
+//! Odom payload (53 B, little-endian; 45 B before 2026-09-29, without `t_ns`):
 //!
 //! ```text
 //! f32 odom_x, odom_y, odom_yaw
@@ -19,7 +19,12 @@
 //! f32 trunk_z                            (metres above the floor)
 //! f32 head[4]                            (neck_pitch, head_pitch, head_yaw, head_roll)
 //! u8  flags                              bit 0 = moving, bit 1 = sitting, bit 2 = fallen
+//! u64 t_ns                               robotd's CLOCK_MONOTONIC stamp of the sample
 //! ```
+//!
+//! The ToF payload gains the same trailing `u64 t_ns` (the frame's
+//! CLOCK_MONOTONIC stamp, 0 when it carries none): with both, the replay
+//! pairs each frame with the head exactly as the live worker does.
 
 use std::fs::File;
 use std::io::{self, BufWriter, Write};
@@ -73,6 +78,7 @@ impl SessionRecorder {
     pub fn tof(
         &mut self,
         sender_ts_s: f64,
+        t_ns: u64,
         rows: u8,
         cols: u8,
         distance_mm: &[i16],
@@ -85,14 +91,15 @@ impl SessionRecorder {
                 "ToF zone count does not match rows × cols",
             ));
         }
-        let size = 12 + n * 4 + n;
+        let size = 12 + n * 4 + n + 8;
         self.header(STREAM_TOF, size as u32)?;
         self.w.write_all(&sender_ts_s.to_le_bytes())?;
         self.w.write_all(&[rows, cols, 0, 0])?;
         for &mm in distance_mm {
             self.w.write_all(&(f32::from(mm) / 1000.0).to_le_bytes())?;
         }
-        self.w.write_all(status)
+        self.w.write_all(status)?;
+        self.w.write_all(&t_ns.to_le_bytes())
     }
 
     /// One control-loop tick's worth of robot state.
@@ -106,8 +113,9 @@ impl SessionRecorder {
         moving: bool,
         sitting: bool,
         fallen: bool,
+        t_ns: u64,
     ) -> io::Result<()> {
-        self.header(STREAM_ODOM, 11 * 4 + 1)?;
+        self.header(STREAM_ODOM, 11 * 4 + 1 + 8)?;
         for v in [
             odom.0, odom.1, odom.2, gravity[0], gravity[1], gravity[2], trunk_z, head[0], head[1],
             head[2], head[3],
@@ -124,7 +132,8 @@ impl SessionRecorder {
         if fallen {
             flags |= FLAG_FALLEN;
         }
-        self.w.write_all(&[flags])
+        self.w.write_all(&[flags])?;
+        self.w.write_all(&t_ns.to_le_bytes())
     }
 
     pub fn flush(&mut self) -> io::Result<()> {
@@ -150,11 +159,12 @@ mod tests {
                 false,
                 true,
                 false,
+                7_000_000_123,
             )
             .expect("odom");
             let mm: Vec<i16> = (0..64).collect();
             let status = [5u8; 64];
-            rec.tof(1.5, 8, 8, &mm, &status).expect("tof");
+            rec.tof(1.5, 7_010_000_000, 8, 8, &mm, &status).expect("tof");
             rec.flush().expect("flush");
         }
         let mut r = SessionReplayer::open(&path).expect("open");
@@ -167,12 +177,14 @@ mod tests {
                 assert!(!o.moving);
                 assert!(o.sitting);
                 assert!(!o.fallen);
+                assert_eq!(o.t_ns, 7_000_000_123);
             }
             other => panic!("expected Odom, got {other:?}"),
         }
         match r.next().expect("second").expect("ok") {
             Record::Tof(t) => {
                 assert!((t.ranges_m[0][1] - 0.001).abs() < 1e-6);
+                assert_eq!(t.t_ns, 7_010_000_000);
                 assert!((t.ranges_m[7][7] - 0.063).abs() < 1e-6);
                 assert_eq!(t.status[3][3], 5);
             }
