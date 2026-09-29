@@ -71,6 +71,14 @@ fn main() {
     slam_cfg.loops.max_correction_cap_m = envf32("LOOP_CAP", slam_cfg.loops.max_correction_cap_m);
     slam_cfg.loops.max_correction_cap_rad = envf32("LOOP_CAP_YAW", slam_cfg.loops.max_correction_cap_rad);
     slam_cfg.loops.max_correction_per_submap_rad = envf32("LOOP_PER_SUBMAP_YAW", slam_cfg.loops.max_correction_per_submap_rad);
+    // How much the graph believes odometry against a closure: a closure 5°
+    // wrong turned casa_arredata's first session 5° and walked the pose
+    // 0.47 m off across the living room (x13, 2026-09-29), odometry being
+    // near perfect on the twin.
+    slam_cfg.odom_sigma_xy = envf32("ODOM_SIGMA_XY", slam_cfg.odom_sigma_xy);
+    slam_cfg.odom_sigma_yaw = envf32("ODOM_SIGMA_YAW", slam_cfg.odom_sigma_yaw);
+    slam_cfg.loops.edge_sigma_xy = envf32("LOOP_SIGMA_XY", slam_cfg.loops.edge_sigma_xy);
+    slam_cfg.loops.edge_sigma_yaw = envf32("LOOP_SIGMA_YAW", slam_cfg.loops.edge_sigma_yaw);
     // `MAP_LOAD_AT_S=<t>`: a fresh map until `t` seconds into the
     // recording, the saved one from then on, as the daemon boots live
     // (see `bench::replay_loading`); unset, the saved one from the start.
