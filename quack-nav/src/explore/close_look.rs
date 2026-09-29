@@ -24,9 +24,17 @@ const LOOKED_M: f64 = 0.8;
 /// The stand at the close look: a still window and the head's sweep.
 const LOOK_STAND_S: f64 = 6.0;
 
-/// While frontiers remain, a close look at most this often: the sessions
-/// end on their budget with frontiers left (every MuJoCo session but one),
-/// so waiting for the frontiers to be done is waiting for ever.
+/// While frontiers remain, only a close look this near by route: a detour,
+/// not a trip. Sent across the house every three minutes, casa_arredata's
+/// duck went back to places seen and the frontier it had been on — the
+/// bathroom's — was not the one it picked when it came back (the user's
+/// eye, 2026-09-29). The far ones wait for the frontiers to be done.
+pub(super) const DETOUR_ROUTE_M: f64 = 1.5;
+
+/// While frontiers remain, a near close look ([`DETOUR_ROUTE_M`]) at most
+/// this often: the sessions end on their budget with frontiers left (every
+/// MuJoCo session but one), so waiting for them to be done is waiting for
+/// ever for the near ones too.
 pub(super) const CLOSE_LOOK_EVERY_S: f64 = 180.0;
 
 /// `QK_CLOSE_LOOK=0`: no close looks.
@@ -39,7 +47,7 @@ impl Job {
     /// and the wall's centre. The densest group of far-only wall cells; the
     /// stand the reachable free point [`LOOK_FROM_M`] from its centre, in
     /// sight of it, off the drops, nearest by route.
-    fn far_wall_look(&self, grid: &Grid, from: (f64, f64)) -> Option<((f64, f64), (f64, f64))> {
+    fn far_wall_look(&self, grid: &Grid, from: (f64, f64), max_route_m: f64) -> Option<((f64, f64), (f64, f64))> {
         if self.close_looks >= LOOKS_MAX {
             return None;
         }
@@ -91,7 +99,7 @@ impl Job {
                     return None;
                 }
                 let path = path_to(grid, from.0, from.1, stand, &walls, inflate_m(), &lanes)?;
-                Some((path.len(), stand))
+                (path.len() as f64 * grid.cell_m <= max_route_m).then_some((path.len(), stand))
             })
             .min_by_key(|(len, _)| *len)
             .map(|(_, stand)| (stand, centre))
@@ -100,11 +108,11 @@ impl Job {
     /// One close look, if any is left (see the module): `None` nothing to
     /// look at; `Some(None)` looked (or tried), the explorer goes on;
     /// `Some(Some(verdict))` the job ends (stopped).
-    pub(super) fn close_look(&mut self, handle: &ExploreHandle, robot: &mut dyn Body, grid: &Grid, from: (f64, f64)) -> Option<Option<(State, String)>> {
+    pub(super) fn close_look(&mut self, handle: &ExploreHandle, robot: &mut dyn Body, grid: &Grid, from: (f64, f64), max_route_m: f64) -> Option<Option<(State, String)>> {
         if !close_look_on() {
             return None;
         }
-        let (spot, at) = self.far_wall_look(grid, from)?;
+        let (spot, at) = self.far_wall_look(grid, from, max_route_m)?;
         self.close_looks += 1;
         self.looked.push(at);
         tracing::info!(stand = ?spot, wall = ?at, n = self.close_looks, "map explore: a wall seen from afar only; going to look at it from near");

@@ -1729,7 +1729,7 @@ impl Job {
                         // The frontiers are done: the walls seen from afar
                         // only get a look from near first (see
                         // `close_look.rs`).
-                        match self.close_look(handle, robot, &grid, (x, y)) {
+                        match self.rim_look(handle, robot, &grid, (x, y), f64::INFINITY).or_else(|| self.close_look(handle, robot, &grid, (x, y), f64::INFINITY)) {
                             Some(Some(verdict)) => return verdict,
                             Some(None) => continue,
                             None => {}
@@ -1813,7 +1813,7 @@ impl Job {
                 }
                 // The frontiers are done (or out of reach): the walls seen
                 // from afar only get a look from near first.
-                match self.close_look(handle, robot, &grid, (x, y)) {
+                match self.rim_look(handle, robot, &grid, (x, y), f64::INFINITY).or_else(|| self.close_look(handle, robot, &grid, (x, y), f64::INFINITY)) {
                     Some(Some(verdict)) => return verdict,
                     Some(None) => continue,
                     None => {}
@@ -1855,7 +1855,7 @@ impl Job {
             // the next frontier (see `rim_tour.rs`).
             if self.last_rim_look.is_none_or(|t| (robot.now() - t).as_secs_f64() >= RIM_LOOK_EVERY_S) {
                 self.last_rim_look = Some(robot.now());
-                match self.rim_look(handle, robot, &grid, (x, y)) {
+                match self.rim_look(handle, robot, &grid, (x, y), DETOUR_ROUTE_M) {
                     Some(Some(verdict)) => return verdict,
                     Some(None) => continue,
                     None => {}
@@ -1865,7 +1865,7 @@ impl Job {
             // near before the next frontier (see `close_look.rs`).
             if self.last_close_look.is_none_or(|t| (robot.now() - t).as_secs_f64() >= CLOSE_LOOK_EVERY_S) {
                 self.last_close_look = Some(robot.now());
-                match self.close_look(handle, robot, &grid, (x, y)) {
+                match self.close_look(handle, robot, &grid, (x, y), DETOUR_ROUTE_M) {
                     Some(Some(verdict)) => return verdict,
                     Some(None) => continue,
                     None => {}

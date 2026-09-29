@@ -19,7 +19,8 @@ const LOOK_OUT_M: f64 = 0.6;
 const SAME_HOLE_M: f64 = 0.6;
 /// Looks at holes in one job at most.
 const RIM_LOOKS_MAX: u32 = 16;
-/// A look at a hole at most this often.
+/// A near look at a hole (see `close_look::DETOUR_ROUTE_M`) at most this
+/// often while frontiers remain; the far sides when they are done.
 pub(super) const RIM_LOOK_EVERY_S: f64 = 60.0;
 /// The stand at a hole: the still frames the books vote on, and the sweep.
 const RIM_STAND_S: f64 = 6.0;
@@ -53,9 +54,10 @@ impl Job {
         out
     }
 
-    /// The next side of a hole to look from: the stand and the hole's
-    /// centre. Sides with no free, reachable stand are marked done.
-    fn next_rim_look(&mut self, grid: &Grid, from: (f64, f64)) -> Option<((f64, f64), (f64, f64))> {
+    /// The next side of a hole to look from within `max_route_m` by route:
+    /// the stand and the hole's centre. Sides with no free, reachable stand
+    /// are marked done; sides too far are left for later.
+    fn next_rim_look(&mut self, grid: &Grid, from: (f64, f64), max_route_m: f64) -> Option<((f64, f64), (f64, f64))> {
         if self.rim_looks >= RIM_LOOKS_MAX {
             return None;
         }
@@ -73,18 +75,24 @@ impl Job {
                 if self.rim_sides[k].1 & (1 << side) != 0 {
                     continue;
                 }
-                self.rim_sides[k].1 |= 1 << side;
                 let a = f64::from(side) * std::f64::consts::FRAC_PI_2;
                 let (ux, uy) = (a.cos(), a.sin());
                 let out = points.iter().map(|p| (p.0 - centre.0) * ux + (p.1 - centre.1) * uy).fold(f64::NEG_INFINITY, f64::max);
                 let spot = (centre.0 + (out + LOOK_OUT_M) * ux, centre.1 + (out + LOOK_OUT_M) * uy);
                 let (c, r) = (((spot.0 - grid.x_min) / grid.cell_m) as isize, ((spot.1 - grid.y_min) / grid.cell_m) as isize);
                 if c < 0 || r < 0 || c as usize >= grid.cols || r as usize >= grid.rows || grid.cells[r as usize * grid.cols + c as usize] != Cell::Free {
+                    self.rim_sides[k].1 |= 1 << side;
                     continue;
                 }
-                if path_to(grid, from.0, from.1, spot, &walls, inflate_m(), &lanes).is_none() {
+                let Some(path) = path_to(grid, from.0, from.1, spot, &walls, inflate_m(), &lanes) else {
+                    self.rim_sides[k].1 |= 1 << side;
+                    continue;
+                };
+                // Too far for a detour: left for when the frontiers are done.
+                if path.len() as f64 * grid.cell_m > max_route_m {
                     continue;
                 }
+                self.rim_sides[k].1 |= 1 << side;
                 return Some((spot, centre));
             }
         }
@@ -94,11 +102,11 @@ impl Job {
     /// One look at a hole, if a side is left (see the module): `None`
     /// nothing to do; `Some(None)` looked (or tried); `Some(Some(verdict))`
     /// the job ends (stopped).
-    pub(super) fn rim_look(&mut self, handle: &ExploreHandle, robot: &mut dyn Body, grid: &Grid, from: (f64, f64)) -> Option<Option<(State, String)>> {
+    pub(super) fn rim_look(&mut self, handle: &ExploreHandle, robot: &mut dyn Body, grid: &Grid, from: (f64, f64), max_route_m: f64) -> Option<Option<(State, String)>> {
         if !rim_tour_on() {
             return None;
         }
-        let (spot, centre) = self.next_rim_look(grid, from)?;
+        let (spot, centre) = self.next_rim_look(grid, from, max_route_m)?;
         self.rim_looks += 1;
         let before = self.local.iter().filter(|(_, r)| *r >= DROP_RADIUS_M).count();
         tracing::info!(stand = ?spot, hole = ?centre, n = self.rim_looks, "map explore: round of a hole: looking at it from a side not yet seen");
