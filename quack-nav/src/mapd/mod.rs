@@ -64,6 +64,8 @@ const AUTOSAVE_EVERY: Duration = Duration::from_secs(60);
 
 /// Map publish cadence when someone is subscribed.
 const PUBLISH_EVERY: Duration = Duration::from_secs(1);
+/// The pose's, between frames (see [`crate::map::MapPose`]).
+const POSE_EVERY: Duration = Duration::from_millis(50);
 
 /// One tick's worth of the robot's own state, as `robot.state` carries it.
 #[derive(Debug, Clone, Copy)]
@@ -115,11 +117,21 @@ enum Event {
 /// subscription. A subscriber that stops reading loses frames, not the
 /// worker's time; one that hung up is dropped at the next publish.
 #[derive(Clone, Default)]
-pub struct Subscribers(Arc<Mutex<Vec<mpsc::SyncSender<MapFrame>>>>);
+pub struct Subscribers(Arc<Mutex<Vec<mpsc::SyncSender<Published>>>>);
+
+/// What goes out on a `robot.map` subscription: the map once a second,
+/// the pose in between (see [`crate::map::MapPose`]).
+#[derive(Debug, Clone)]
+pub enum Published {
+    Frame(Box<MapFrame>),
+    Pose(crate::map::MapPose),
+}
 
 impl Subscribers {
-    pub fn add(&self) -> mpsc::Receiver<MapFrame> {
-        let (tx, rx) = mpsc::sync_channel(4);
+    pub fn add(&self) -> mpsc::Receiver<Published> {
+        // Room for a second of poses beside a frame: a full queue drops
+        // what is sent, and a dropped frame is a second of stale map.
+        let (tx, rx) = mpsc::sync_channel(32);
         self.0.lock().expect("subscribers poisoned").push(tx);
         rx
     }
@@ -128,9 +140,9 @@ impl Subscribers {
         !self.0.lock().expect("subscribers poisoned").is_empty()
     }
 
-    fn send(&self, frame: &MapFrame) {
+    fn send(&self, item: &Published) {
         self.0.lock().expect("subscribers poisoned").retain(|tx| {
-            !matches!(tx.try_send(frame.clone()), Err(mpsc::TrySendError::Disconnected(_)))
+            !matches!(tx.try_send(item.clone()), Err(mpsc::TrySendError::Disconnected(_)))
         });
     }
 }
@@ -426,6 +438,7 @@ fn worker(config: &MaplocConfig, rx: mpsc::Receiver<Event>, map_tx: &Subscribers
     let mut pending: std::collections::VecDeque<Box<proto::TofFrame>> = std::collections::VecDeque::new();
     let mut notes: Vec<Note> = Vec::new();
     let mut last_publish = Instant::now();
+    let mut last_pose = Instant::now();
     let mut last_save = Instant::now();
     let mut seq = 0u64;
     let mut unsaved = false;
@@ -779,8 +792,18 @@ fn worker(config: &MaplocConfig, rx: mpsc::Receiver<Event>, map_tx: &Subscribers
             if let Some(grid) = &rendered {
                 seq += 1;
                 let seated = latest.as_ref().is_some_and(|s| s.sitting || s.fallen);
-                map_tx.send(&frame_from(&mapper, grid, seq, seated));
+                map_tx.send(&Published::Frame(Box::new(frame_from(&mapper, grid, seq, seated))));
+                last_pose = Instant::now();
             }
+        }
+
+        // The pose between frames, only on the map the last frame drew: a
+        // wipe, a load or an adoption clears `rendered`, and no pose goes
+        // out until the new map's first frame has.
+        if rendered.is_some() && seq > 0 && map_tx.any() && last_pose.elapsed() >= POSE_EVERY {
+            last_pose = Instant::now();
+            let seated = latest.as_ref().is_some_and(|s| s.sitting || s.fallen);
+            map_tx.send(&Published::Pose(pose_from(&mapper, seq, seated)));
         }
 
         if unsaved && last_save.elapsed() >= AUTOSAVE_EVERY {
@@ -969,15 +992,36 @@ fn render_grid(mapper: &Mapper) -> Option<RenderedGrid> {
     })
 }
 
+/// The pose fields of [`frame_from`], for the frame `seq`.
+fn pose_from(mapper: &Mapper, seq: u64, seated: bool) -> crate::map::MapPose {
+    let f = frame_fields(mapper);
+    crate::map::MapPose { seq, x: f.0, y: f.1, yaw: f.2, tracking: f.3, seated, pose_sigma: f.4 }
+}
+
+/// Pose, tracking and sigma, as both the frame and the pose carry them.
+fn frame_fields(mapper: &Mapper) -> (f64, f64, f64, bool, Option<crate::map::PoseSigma>) {
+    let (x, y, yaw) = mapper.slam().tracked();
+    let sigma = mapper.pose_covariance().map(|c| {
+        let s = maploc::uncertainty::sigmas(&c);
+        crate::map::PoseSigma {
+            xy_major_m: s.xy_major_m,
+            xy_minor_m: s.xy_minor_m,
+            major_axis_deg: s.major_axis.1.atan2(s.major_axis.0).to_degrees(),
+            yaw_deg: s.yaw_rad.to_degrees(),
+        }
+    });
+    (f64::from(x), f64::from(y), f64::from(yaw), mapper.tracking() && mapper.slam().n_submaps() > 0, sigma)
+}
+
 /// The wire frame: the cached grid plus everything that moves every second.
 fn frame_from(mapper: &Mapper, grid: &RenderedGrid, seq: u64, seated: bool) -> MapFrame {
-    let (x, y, yaw) = mapper.slam().tracked();
+    let (x, y, yaw, tracking, pose_sigma) = frame_fields(mapper);
     MapFrame {
         seq,
-        x: f64::from(x),
-        y: f64::from(y),
-        yaw: f64::from(yaw),
-        tracking: mapper.tracking() && mapper.slam().n_submaps() > 0,
+        x,
+        y,
+        yaw,
+        tracking,
         x_min: grid.x_min,
         y_min: grid.y_min,
         cell_m: grid.cell_m,
@@ -990,15 +1034,7 @@ fn frame_from(mapper: &Mapper, grid: &RenderedGrid, seq: u64, seated: bool) -> M
         still: mapper.still(),
         seated,
         frozen: mapper.frozen_set(),
-        pose_sigma: mapper.pose_covariance().map(|c| {
-            let s = maploc::uncertainty::sigmas(&c);
-            crate::map::PoseSigma {
-                xy_major_m: s.xy_major_m,
-                xy_minor_m: s.xy_minor_m,
-                major_axis_deg: s.major_axis.1.atan2(s.major_axis.0).to_degrees(),
-                yaw_deg: s.yaw_rad.to_degrees(),
-            }
-        }),
+        pose_sigma,
     }
 }
 

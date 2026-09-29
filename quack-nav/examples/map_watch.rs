@@ -36,6 +36,8 @@ fn main() -> anyhow::Result<()> {
                     break;
                 }
             }
+            // The pose between frames: this tool prints the frames.
+            MapEvent::Pose(_) => {}
             MapEvent::Frame(frame) => {
                 let grid = frame.grid()?;
                 let (unknown, free, wall) = grid.counts();

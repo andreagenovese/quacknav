@@ -17,7 +17,7 @@ use serde_json::Value;
 
 use super::Host;
 use super::wire::{self, MapAdoptParams, MapMatchParams, MapMatches, MapNameParams, SavedMaps};
-use crate::map::{METHOD_MAP_FRAME, METHOD_ROBOT_MAP, METHOD_ROBOT_MAP_WIPE, MapStreamResult};
+use crate::map::{METHOD_MAP_FRAME, METHOD_MAP_POSE, METHOD_ROBOT_MAP, METHOD_ROBOT_MAP_WIPE, MapStreamResult};
 
 const BAD_NAME: &str = "a map name is 1 to 64 letters, digits, '-' or '_'";
 
@@ -131,8 +131,11 @@ fn caller(stream: UnixStream, host: Host) {
 fn stream_frames(host: &Host, out: Writer) {
     let frames = host.subscribers.add();
     std::thread::spawn(move || {
-        for frame in frames {
-            let note = serde_json::json!({"jsonrpc": "2.0", "method": METHOD_MAP_FRAME, "params": frame});
+        for item in frames {
+            let note = match item {
+                super::Published::Frame(frame) => serde_json::json!({"jsonrpc": "2.0", "method": METHOD_MAP_FRAME, "params": frame}),
+                super::Published::Pose(pose) => serde_json::json!({"jsonrpc": "2.0", "method": METHOD_MAP_POSE, "params": pose}),
+            };
             if write_line(&out, &note).is_err() {
                 break; // dropping `frames` unsubscribes at the next publish
             }

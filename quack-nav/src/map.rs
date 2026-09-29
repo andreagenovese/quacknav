@@ -53,6 +53,7 @@ fn write_line(writer: &mut impl Write, message: &impl serde::Serialize) -> std::
 pub const METHOD_ROBOT_MAP: &str = "robot.map";
 pub const METHOD_ROBOT_MAP_WIPE: &str = "robot.map_wipe";
 pub const METHOD_MAP_FRAME: &str = "map.frame";
+pub const METHOD_MAP_POSE: &str = "map.pose";
 
 /// Frames come at 1 Hz while mapping runs and never while it is disabled;
 /// a minute of silence on an enabled robot means the daemon is gone.
@@ -413,12 +414,32 @@ pub fn b64_decode(input: &str) -> Option<Vec<u8>> {
     Some(out)
 }
 
+/// The pose between two frames (quack-navd's `map.pose`, every 50 ms): the
+/// frame's pose fields, as the mapper has them now. A frame comes once a
+/// second, and a pose a second old is 50° off in a turn in place; the
+/// pose sampler read the twin's yaw 17° off (RMS) where the replay of the
+/// same session had it 2.7° (x13, 2026-09-29). It applies to the frame
+/// whose `seq` it carries, never to another map's grid.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct MapPose {
+    pub seq: u64,
+    pub x: f64,
+    pub y: f64,
+    pub yaw: f64,
+    pub tracking: bool,
+    #[serde(default)]
+    pub seated: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pose_sigma: Option<PoseSigma>,
+}
+
 /// What one connection-lifetime of the map stream delivers.
 #[derive(Debug, Clone, PartialEq)]
 pub enum MapEvent {
     /// The subscribe ack: whether this robot maps at all, and how.
     Subscribed(MapStreamResult),
     Frame(Box<MapFrame>),
+    Pose(MapPose),
 }
 
 /// Why [`run_map_stream`] returned without an error.
@@ -455,10 +476,13 @@ pub fn run_map_stream(path: &str, tx: &mpsc::Sender<MapEvent>) -> anyhow::Result
             anyhow::bail!("robotd closed the map stream");
         }
         if let Ok(request) = serde_json::from_str::<proto::Request>(&line) {
-            if request.method == METHOD_MAP_FRAME
-                && let Some(params) = request.params
-                && let Ok(frame) = serde_json::from_value::<MapFrame>(params)
-                && tx.send(MapEvent::Frame(Box::new(frame))).is_err()
+            let event = match (request.method.as_str(), request.params) {
+                (METHOD_MAP_FRAME, Some(params)) => serde_json::from_value::<MapFrame>(params).ok().map(|f| MapEvent::Frame(Box::new(f))),
+                (METHOD_MAP_POSE, Some(params)) => serde_json::from_value::<MapPose>(params).ok().map(MapEvent::Pose),
+                _ => None,
+            };
+            if let Some(event) = event
+                && tx.send(event).is_err()
             {
                 return Ok(MapStreamEnd::ReceiverGone);
             }
@@ -537,6 +561,21 @@ impl MapStatus {
         reset
     }
 
+    /// A pose between frames onto the frame it belongs to: the one with
+    /// its `seq` (see [`MapPose`]). Returns whether it applied.
+    pub fn absorb_pose(&mut self, pose: MapPose) -> bool {
+        let Some(frame) = self.latest.as_mut().filter(|f| f.seq == pose.seq) else {
+            return false;
+        };
+        frame.x = pose.x;
+        frame.y = pose.y;
+        frame.yaw = pose.yaw;
+        frame.tracking = pose.tracking;
+        frame.seated = pose.seated;
+        frame.pose_sigma = pose.pose_sigma;
+        true
+    }
+
     /// The pose, only while the mapper vouches for it.
     pub fn trusted_pose(&self) -> Option<(f64, f64, f64)> {
         self.latest
@@ -599,6 +638,9 @@ fn apply(status: &mut MapStatus, event: MapEvent) {
                 enabled: ack.enabled,
                 mode: ack.mode,
             };
+        }
+        MapEvent::Pose(pose) => {
+            status.absorb_pose(pose);
         }
         MapEvent::Frame(frame) => {
             let seq = frame.seq;
@@ -694,6 +736,25 @@ mod tests {
             frozen: false,
             pose_sigma: None,
         }
+    }
+
+    #[test]
+    fn a_pose_moves_only_the_frame_it_belongs_to() {
+        let mut st = MapStatus::default();
+        st.absorb(frame(7, 3, &[1], 1, 1), Instant::now());
+        let pose = |seq| MapPose { seq, x: 1.5, y: -0.5, yaw: 2.0, tracking: false, seated: true, pose_sigma: None };
+        // Another map's pose (a load since the frame) leaves it alone.
+        assert!(!st.absorb_pose(pose(6)));
+        assert_eq!(st.latest.as_ref().unwrap().pose(), (0.1, 0.2, 0.3));
+        assert!(st.absorb_pose(pose(7)));
+        let f = st.latest.as_ref().unwrap();
+        assert_eq!((f.pose(), f.tracking, f.seated), ((1.5, -0.5, 2.0), false, true));
+        assert!(st.trusted_pose().is_none());
+        // The grid, the counters and the epoch are the frame's.
+        assert_eq!((f.n_submaps, f.windows, st.frames, st.epoch), (3, 3, 1, 0));
+        // And on the wire the pose parses beside the frame.
+        let wire = serde_json::to_value(pose(7)).unwrap();
+        assert_eq!(serde_json::from_value::<MapPose>(wire).unwrap(), pose(7));
     }
 
     #[test]
