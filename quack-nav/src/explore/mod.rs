@@ -1159,6 +1159,11 @@ pub struct Job {
     looked: Vec<(f64, f64)>,
     close_looks: u32,
     last_close_look: Option<Instant>,
+    /// The holes gone round, by centre, and which of their four sides have
+    /// been looked from (see `rim_tour.rs`).
+    rim_sides: Vec<((f64, f64), u8)>,
+    rim_looks: u32,
+    last_rim_look: Option<Instant>,
     /// Narrow-passage refusals in a row, and where the body stood.
     narrow_refusals: (u32, (f64, f64)),
     /// A fall was seen and the pose has not been trusted for
@@ -1266,6 +1271,7 @@ mod journey;
 mod mapping;
 mod close_look;
 mod navigate;
+mod rim_tour;
 mod mode;
 mod recover;
 mod stick;
@@ -1278,6 +1284,7 @@ use mapping::*;
 use mode::*;
 use close_look::*;
 use navigate::*;
+use rim_tour::*;
 use stick::*;
 use trusted::*;
 
@@ -1329,6 +1336,9 @@ impl Job {
             looked: Vec::new(),
             close_looks: 0,
             last_close_look: None,
+            rim_sides: Vec::new(),
+            rim_looks: 0,
+            last_rim_look: None,
             narrow_refusals: (0, (f64::NAN, f64::NAN)),
             fell: None,
             relocate_steps: 0,
@@ -1841,6 +1851,16 @@ impl Job {
                 continue;
             }
 
+            // A hole on the books is gone round, a side at a time, before
+            // the next frontier (see `rim_tour.rs`).
+            if self.last_rim_look.is_none_or(|t| (robot.now() - t).as_secs_f64() >= RIM_LOOK_EVERY_S) {
+                self.last_rim_look = Some(robot.now());
+                match self.rim_look(handle, robot, &grid, (x, y)) {
+                    Some(Some(verdict)) => return verdict,
+                    Some(None) => continue,
+                    None => {}
+                }
+            }
             // Now and then, a wall seen from afar only gets a look from
             // near before the next frontier (see `close_look.rs`).
             if self.last_close_look.is_none_or(|t| (robot.now() - t).as_secs_f64() >= CLOSE_LOOK_EVERY_S) {
