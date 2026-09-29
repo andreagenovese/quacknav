@@ -41,6 +41,34 @@ pub(super) fn travel_budget(route_m: f64) -> Duration {
     Duration::from_secs_f64((60.0 + 30.0 * route_m).min(300.0))
 }
 
+/// The exploration's travel plans with every unknown cell a wall, but
+/// within this of the goal (a frontier's stand borders the unknown).
+const UNKNOWN_FREE_NEAR_GOAL_M: f64 = 0.6;
+
+/// `grid` with its unknown cells walled, but within `keep_r` of `keep`.
+/// The planner prices unknown at three times free floor and will cross it
+/// (see `frontier::COST_FREE`) — on a finished map a gap not looked at, on
+/// a map still being drawn perhaps a hole: a hole's floor is never mapped,
+/// and house2's duck, its route run along the unknown of the stairwell
+/// 6-12 cm from its rim, not yet booked, fell in (MuJoCo, 2026-09-29).
+/// Walled, the unknown takes the planner's margin as any wall does.
+fn unknown_walled(grid: &Grid, keep: (f64, f64), keep_r: f64) -> Grid {
+    let mut g = grid.clone();
+    for r in 0..g.rows {
+        for c in 0..g.cols {
+            let i = r * g.cols + c;
+            if g.cells[i] != Cell::Unknown {
+                continue;
+            }
+            let p = (g.x_min + (c as f64 + 0.5) * g.cell_m, g.y_min + (r as f64 + 0.5) * g.cell_m);
+            if dist2(p, keep) > keep_r {
+                g.cells[i] = Cell::Wall;
+            }
+        }
+    }
+    g
+}
+
 impl Job {
     /// The exploration's way to a frontier's stand, on the navigation's loop:
     /// arrived, the explorer's next pass arrives there (`arrive`); failed,
@@ -140,6 +168,8 @@ impl Job {
                 robot.sleep(WAIT);
                 continue;
             };
+            // The exploration plans off the unknown (see `unknown_walled`).
+            let grid = if journey { grid } else { unknown_walled(&grid, goal, UNKNOWN_FREE_NEAR_GOAL_M) };
             // A frontier on a hole's rim is the hole: the map never knows
             // a hole's floor, so its edge stays a frontier for ever. The
             // explorer's guarded legs refused to walk there; the stick goes
