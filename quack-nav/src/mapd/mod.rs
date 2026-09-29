@@ -30,7 +30,8 @@ pub mod sweep;
 pub mod wire;
 
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::Ordering as AtomicOrdering;
 use std::sync::{Arc, Mutex, mpsc};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
@@ -1033,6 +1034,15 @@ fn head_at(recent: &std::collections::VecDeque<OdomSample>, t_ns: u64) -> Option
     Some((paired, (last.t_ns as i64 - t_ns as i64) / 1000))
 }
 
+/// Counters for the head pairing's log (see `ingest`).
+struct Pairing {
+    paired: AtomicU64,
+    fell_back: AtomicU64,
+    d_yaw_mdeg: AtomicU64,
+    d_yaw_max_mdeg: AtomicU64,
+}
+static PAIRING: Pairing = Pairing { paired: AtomicU64::new(0), fell_back: AtomicU64::new(0), d_yaw_mdeg: AtomicU64::new(0), d_yaw_max_mdeg: AtomicU64::new(0) };
+
 /// One depth frame into the mapper, projected with the odometry sample of
 /// its own instant when the ring brackets it, else with `sample`.
 #[allow(clippy::too_many_arguments)]
@@ -1054,6 +1064,7 @@ fn ingest(
     // fixed latency between the depth being taken and `t_ns`.
     let lead_ns = head_lead_ns();
     let at = if frame.t_ns > 0 { frame.t_ns.saturating_add(lead_ns) } else { 0 };
+    let latest = *sample;
     let sample = match head_at(recent, at) {
         Some((paired, lag_us)) => {
             *lag_sum_us += lag_us;
@@ -1064,10 +1075,35 @@ fn ingest(
                     "maploc: depth frames paired with the head at their own time"
                 );
             }
+            PAIRING.paired.fetch_add(1, AtomicOrdering::Relaxed);
             paired
         }
-        None => *sample,
+        None => {
+            PAIRING.fell_back.fetch_add(1, AtomicOrdering::Relaxed);
+            *sample
+        }
     };
+    // How far the head used for this frame sits from the latest sample's:
+    // what the pairing changes, logged every 600 frames with the share
+    // paired (a head sweeping at a stand, paired off by tens of
+    // milliseconds, points every beam degrees wrong — the replay of
+    // casa_arredata's first session: walls 91 % on paired to the last
+    // sample before the frame, 97 % paired to the frame's own time).
+    let d_yaw_mdeg = ((sample.head[2] - latest.head[2]).abs().to_degrees() * 1000.0) as u64;
+    PAIRING.d_yaw_mdeg.fetch_add(d_yaw_mdeg, AtomicOrdering::Relaxed);
+    PAIRING.d_yaw_max_mdeg.fetch_max(d_yaw_mdeg, AtomicOrdering::Relaxed);
+    let n = PAIRING.paired.load(AtomicOrdering::Relaxed) + PAIRING.fell_back.load(AtomicOrdering::Relaxed);
+    if n % 600 == 0 {
+        let (p, f) = (PAIRING.paired.swap(0, AtomicOrdering::Relaxed), PAIRING.fell_back.swap(0, AtomicOrdering::Relaxed));
+        let (d, dmax) = (PAIRING.d_yaw_mdeg.swap(0, AtomicOrdering::Relaxed), PAIRING.d_yaw_max_mdeg.swap(0, AtomicOrdering::Relaxed));
+        tracing::info!(
+            paired = p,
+            fell_back = f,
+            head_yaw_vs_latest_mean_deg = format!("{:.2}", d as f64 / 1000.0 / (p + f).max(1) as f64),
+            head_yaw_vs_latest_max_deg = format!("{:.2}", dmax as f64 / 1000.0),
+            "maploc: head pairing over the last 600 frames"
+        );
+    }
     let posture = Posture { gravity: sample.gravity, trunk_height_m: (sample.trunk_z > 0.02).then_some(sample.trunk_z) };
     let flat = maploc::flat::flatten(reprojector, &ranges, sample.head, &posture);
     if flat.angles_body.is_empty() {

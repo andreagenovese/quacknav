@@ -72,8 +72,29 @@ pub fn replay_loading(
     let mut latest = None;
     let mut notes: Vec<Note> = Vec::new();
     let mut out = Replayed::default();
-    for record in replayer {
-        let record = record?;
+    // `REPLAY_HEAD_DT_MS=<ms>`: each depth frame takes the head's pose from
+    // the robot-state sample nearest its own time plus this, instead of the
+    // last sample before it — to measure what the pairing of the head with
+    // the frames costs the map (a head sweeping at a stand, paired a few
+    // tens of milliseconds off, points every beam a few degrees wrong).
+    let head_dt_us: Option<i64> = std::env::var("REPLAY_HEAD_DT_MS").ok().and_then(|v| v.parse::<f64>().ok()).map(|ms| (ms * 1000.0) as i64);
+    let records: Vec<Record> = replayer.collect::<io::Result<Vec<_>>>()?;
+    let heads: Vec<(i64, [f32; 4])> = records
+        .iter()
+        .filter_map(|r| if let Record::Odom(o) = r { Some((o.ts_us as i64, o.head)) } else { None })
+        .collect();
+    let head_at = |t_us: i64| -> Option<[f32; 4]> {
+        let i = heads.partition_point(|(t, _)| *t < t_us);
+        let a = i.checked_sub(1).map(|k| heads[k]);
+        let b = heads.get(i).copied();
+        match (a, b) {
+            (Some(a), Some(b)) => Some(if (t_us - a.0) <= (b.0 - t_us) { a.1 } else { b.1 }),
+            (Some(a), None) => Some(a.1),
+            (None, Some(b)) => Some(b.1),
+            (None, None) => None,
+        }
+    };
+    for record in records {
         let t = record.ts_us() as f32 / 1e6;
         if t > max_t_s {
             break;
@@ -112,7 +133,8 @@ pub fn replay_loading(
                         }
                     }
                 }
-                let flat = crate::flat::flatten(&rp, &ranges, o.head.map(f64::from), &posture);
+                let head = head_dt_us.and_then(|dt| head_at(frame.ts_us as i64 + dt)).unwrap_or(o.head);
+                let flat = crate::flat::flatten(&rp, &ranges, head.map(f64::from), &posture);
                 if !flat.angles_body.is_empty() {
                     let scan = Scan::from_polar(&flat.angles_body, &flat.ranges, flat.sensor_xy, 1e-3);
                     mapper.frame(t, scan);
