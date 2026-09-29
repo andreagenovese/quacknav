@@ -130,6 +130,11 @@ fn main() {
     let mut odom_log = std::env::var_os("ODOM_LOG")
         .map(|p| std::io::BufWriter::new(std::fs::File::create(p).expect("ODOM_LOG")));
     let mut odom_last_logged = f64::NEG_INFINITY;
+    // `LOOP_LOG=<file>`: every closure, what it moved the pose by and the
+    // heading's error against the truth before and after — from the
+    // nearest truth sample, so judged only while the duck stands still.
+    let mut loop_log = std::env::var_os("LOOP_LOG")
+        .map(|p| std::io::BufWriter::new(std::fs::File::create(p).expect("LOOP_LOG")));
     let replayed = maploc::bench::replay_loading(&session, &mut mapper, f32::INFINITY, load, |step| {
         if let Some(w) = odom_log.as_mut()
             && step.unix_s - odom_last_logged >= 0.2
@@ -137,6 +142,29 @@ fn main() {
         {
             odom_last_logged = step.unix_s;
             writeln!(w, "{:.2}\t{:.4}\t{:.4}\t{:.4}", step.unix_s, o.0, o.1, o.2).expect("write");
+        }
+        if let Some(w) = loop_log.as_mut() {
+            for note in step.notes {
+                if let maploc::mapper::Note::LoopClosed { n_loops, dx, dy, dyaw } = note {
+                    let after = step.mapper.slam().tracked();
+                    let t = truth_at(step.unix_s);
+                    let (ey_after, ey_before, gap) = match t {
+                        Some((tt, _, _, tyaw)) if tyaw.is_finite() => {
+                            let w = |a: f64| (a + std::f64::consts::PI).rem_euclid(std::f64::consts::TAU) - std::f64::consts::PI;
+                            (w(f64::from(after.2) - tyaw).to_degrees(), w(f64::from(after.2 - dyaw) - tyaw).to_degrees(), (tt - step.unix_s).abs())
+                        }
+                        _ => (f64::NAN, f64::NAN, f64::NAN),
+                    };
+                    writeln!(
+                        w,
+                        "{:.1}\t{n_loops}\t{dx:.3}\t{dy:.3}\t{:.2}\t{ey_before:.2}\t{ey_after:.2}\t{gap:.1}\t{}",
+                        step.t_s,
+                        dyaw.to_degrees(),
+                        step.mapper.still()
+                    )
+                    .expect("write");
+                }
+            }
         }
         if let Some(w) = corr.as_mut() {
             for note in step.notes {
