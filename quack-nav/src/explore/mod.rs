@@ -1146,6 +1146,8 @@ pub struct Job {
     /// Odometry walked since the stick's last stand, and where it was.
     stick_since_stand: f64,
     stick_odom_at: Option<(f64, f64)>,
+    /// How long the stick stands (see `Job::travel`).
+    stick_stand_s: f64,
     /// Narrow-passage refusals in a row, and where the body stood.
     narrow_refusals: (u32, (f64, f64)),
     /// A fall was seen and the pose has not been trusted for
@@ -1262,6 +1264,8 @@ use guarded::*;
 use journey::*;
 use mapping::*;
 use mode::*;
+use navigate::*;
+use stick::*;
 use trusted::*;
 
 impl Job {
@@ -1305,6 +1309,7 @@ impl Job {
             stick_stalls: 0,
             stick_since_stand: 0.0,
             stick_odom_at: None,
+            stick_stand_s: STICK_STAND_S,
             narrow_refusals: (0, (f64::NAN, f64::NAN)),
             fell: None,
             relocate_steps: 0,
@@ -1631,6 +1636,19 @@ impl Job {
                             score: 0.0,
                             path,
                         };
+                        if explore_nav() {
+                            let deadline = robot.now() + travel_budget(f.distance_m);
+                            match self.travel(handle, robot, anchor, deadline, false) {
+                                (State::Stopped, why) => return (State::Stopped, why),
+                                (State::Done, _) => {}
+                                (_, why) => {
+                                    tracing::info!(why, "map explore: the way back to the old place failed; carrying on");
+                                    self.anchor = None;
+                                    self.anchored_at = Some(robot.now());
+                                }
+                            }
+                            continue;
+                        }
                         if let Some(verdict) = self.walk_leg(handle, robot, &grid, pose, &f) {
                             return verdict;
                         }
@@ -1789,6 +1807,14 @@ impl Job {
                 continue;
             }
 
+            // The way to the frontier: the navigation's (see `navigate.rs`),
+            // the explorer's own guarded legs with `QK_EXPLORE_NAV=0`.
+            if explore_nav() {
+                if let Some(verdict) = self.travel_to_frontier(handle, robot, f.stand, f.distance_m) {
+                    return verdict;
+                }
+                continue;
+            }
             if let Some(verdict) = self.walk_leg(handle, robot, &grid, pose, &f) {
                 return verdict;
             }

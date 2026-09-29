@@ -11,23 +11,82 @@
 //! on the planner's walls (the map, the books) and kept while it holds; the
 //! stick's leg (see `stick.rs`). What it shares with the rest: the planner
 //! (`frontier.rs`), maploc's pose, the books, the `Body`.
+//!
+//! The exploration travels to its frontiers on the same loop ([`Job::travel`],
+//! the user's, 2026-09-29): the explorer picks where to go and maps at the
+//! frontier; the way there is the navigation's, which crosses the passages
+//! beside the stairwells that the explorer's guarded legs refused (both
+//! houses' bathrooms unreached after two sessions).
 
 use super::*;
 
+/// `QK_EXPLORE_NAV=0`: the exploration walks to its frontiers on its own
+/// guarded legs (`walk_leg`), as before 2026-09-29.
+pub(super) fn explore_nav() -> bool {
+    switch("QK_EXPLORE_NAV").unwrap_or(true)
+}
+
+/// How long the way to a frontier `route_m` away may take: a minute, and
+/// half a minute a metre (the stick makes 0.1 m/s with its stands), five
+/// minutes at most.
+pub(super) fn travel_budget(route_m: f64) -> Duration {
+    Duration::from_secs_f64((60.0 + 30.0 * route_m).min(300.0))
+}
+
 impl Job {
+    /// The exploration's way to a frontier's stand, on the navigation's loop:
+    /// arrived, the explorer's next pass arrives there (`arrive`); failed,
+    /// the frontier is refused as a refused leg refuses it. `Some` only to
+    /// end the job (stopped).
+    pub(super) fn travel_to_frontier(&mut self, handle: &ExploreHandle, robot: &mut dyn Body, stand: (f64, f64), route_m: f64) -> Option<(State, String)> {
+        let deadline = robot.now() + travel_budget(route_m);
+        match self.travel(handle, robot, stand, deadline, false) {
+            (State::Stopped, why) => Some((State::Stopped, why)),
+            (State::Done, _) => None,
+            (_, why) => {
+                tracing::info!(why, "map explore: the way to the frontier failed; it is refused");
+                handle.update(|s| s.refusals += 1);
+                if let Some((t, _)) = self.target.take() {
+                    self.refused.push((t, BLOCK_REFUSED_M));
+                }
+                None
+            }
+        }
+    }
+
     /// Run a journey to `self.goal` (see the module).
     pub(super) fn run_journey(&mut self, handle: &ExploreHandle, robot: &mut dyn Body) -> (State, String) {
         let Some(goal) = self.goal else {
             return (State::Failed, "a journey with no goal".into());
         };
+        let deadline = self.started + Duration::from_secs_f64(self.max_s);
+        self.travel(handle, robot, goal, deadline, true)
+    }
+
+    /// Walk to `goal` by `deadline` (see the module): `Done` "arrived at",
+    /// `Failed` with why, `Stopped`. A `journey` is the whole job: its
+    /// budget and battery end it, it waits for a lost pose and confirms its
+    /// arrival after a stand, and the map's state sets its policy. For the
+    /// exploration (`journey` false) the explorer's own loop does all that:
+    /// a lost pose hands back at once, and the stick stands as the mapper
+    /// needs ([`map_stand_s`]).
+    pub(super) fn travel(&mut self, handle: &ExploreHandle, robot: &mut dyn Body, goal: (f64, f64), deadline: Instant, journey: bool) -> (State, String) {
+        self.stick_stand_s = if journey { STICK_STAND_S } else { map_stand_s() };
+        self.kept_route = None;
+        let mut stuck = 0u32;
         loop {
             if handle.stop.load(Ordering::Relaxed) {
                 return (State::Stopped, "stopped on request".into());
             }
-            if (robot.now() - self.started).as_secs_f64() > self.max_s {
-                return (State::Done, format!("time budget of {:.0} s spent", self.max_s));
+            if robot.now() > deadline {
+                return if journey {
+                    (State::Done, format!("time budget of {:.0} s spent", self.max_s))
+                } else {
+                    (State::Failed, format!("the way to ({:.2}, {:.2}) took too long", goal.0, goal.1))
+                };
             }
-            if let Some(min) = self.battery_min_pct
+            if journey
+                && let Some(min) = self.battery_min_pct
                 && self.battery_checked.is_none_or(|t| (robot.now() - t).as_secs_f64() >= BATTERY_EVERY_S)
             {
                 self.battery_checked = Some(robot.now());
@@ -42,22 +101,17 @@ impl Job {
                 continue;
             };
             self.note_fall(robot, &frame);
-            // The journey's policy, from the map's state: on a frozen map a
-            // blind journey, and the planner's radius for the drops
-            // (`planner_walls` reads it).
-            let frozen = robot.frozen_map();
-            if frozen != self.frozen {
-                tracing::info!(frozen, "map explore: the live map is {}", if frozen { "frozen: a journey trusts the planner" } else { "live: guards and stands" });
-                self.frozen = frozen;
+            if journey {
+                self.journey_policy(robot, handle);
             }
-            if self.blind() {
-                handle.update(|s| s.blind = true);
-            }
-            self.resolve_policy();
             // The pose: planned on only when maploc vouches for it; while
             // it does not, stand — standing still is what relocalization
-            // needs — and give up after `LOST_PATIENCE`.
+            // needs — and give up after `LOST_PATIENCE`. The exploration's
+            // own loop has its ways of finding itself again: handed back.
             if !robot.pose_trusted() {
+                if !journey {
+                    return (State::Failed, "the pose is not trusted on the way".into());
+                }
                 let now = robot.now();
                 let since = *self.lost_since.get_or_insert(now);
                 if now - since > LOST_PATIENCE {
@@ -81,7 +135,7 @@ impl Job {
             // journey goes on from there.
             if dist2((x, y), goal) < GOAL_ARRIVE_M {
                 let _ = stand(robot, FRONTIER_STOP_S);
-                if !self.goal_confirmed {
+                if journey && !self.goal_confirmed {
                     self.goal_confirmed = true;
                     if let Some(f) = robot.frame()
                         && dist2((f.x, f.y), goal) >= GOAL_ARRIVE_M
@@ -141,14 +195,14 @@ impl Job {
                         // doorway can close it — wider each time; a drop
                         // never. Then stand, and plan again; `STUCK_MAX`
                         // times, and the journey fails.
-                        self.stuck += 1;
-                        if self.stuck > STUCK_MAX {
+                        stuck += 1;
+                        if stuck > STUCK_MAX {
                             return (State::Failed, format!("no way to ({:.2}, {:.2}) on the map", goal.0, goal.1));
                         }
-                        let reach = LOCAL_FORGET_M * f64::from(self.stuck);
+                        let reach = LOCAL_FORGET_M * f64::from(stuck);
                         let before = self.local.len();
                         self.local.retain(|(p, r)| *r >= DROP_RADIUS_M || dist2((x, y), *p) > reach);
-                        tracing::info!(forgotten = before - self.local.len(), attempt = self.stuck, "map explore: journey: no way to the goal from here; standing");
+                        tracing::info!(forgotten = before - self.local.len(), attempt = stuck, "map explore: journey: no way to the goal from here; standing");
                         let _ = stand(robot, FRONTIER_STOP_S);
                         continue;
                     };
@@ -156,7 +210,7 @@ impl Job {
                 }
             };
             self.kept_route = Some((raw.clone(), path.clone(), at, books));
-            self.stuck = 0;
+            stuck = 0;
             let f = Frontier {
                 cells: 0,
                 centroid: goal,
@@ -168,11 +222,13 @@ impl Job {
                 path,
             };
             let straight = dist2((x, y), goal);
-            tracing::info!(at = ?(x, y), route_m = format!("{:.2}", f.distance_m), straight_m = format!("{straight:.2}"), "map explore: route to the goal");
+            tracing::info!(at = ?(x, y), route_m = format!("{:.2}", f.distance_m), straight_m = format!("{straight:.2}"), journey, "map explore: route to the goal");
             let (local, trail, route) = (self.local.clone(), self.trail.clone(), f.path.clone());
             handle.update(|s| {
                 s.trail = trail;
-                s.frontiers_left = 1;
+                if journey {
+                    s.frontiers_left = 1;
+                }
                 s.target = Some(goal);
                 s.target_distance_m = Some(straight);
                 s.local_obstacles = local.len();
@@ -185,5 +241,20 @@ impl Job {
                 return verdict;
             }
         }
+    }
+
+    /// The journey's policy, from the map's state: on a frozen map a blind
+    /// journey, and the planner's radius for the drops (`planner_walls`
+    /// reads it).
+    fn journey_policy(&mut self, robot: &dyn Body, handle: &ExploreHandle) {
+        let frozen = robot.frozen_map();
+        if frozen != self.frozen {
+            tracing::info!(frozen, "map explore: the live map is {}", if frozen { "frozen: a journey trusts the planner" } else { "live: guards and stands" });
+            self.frozen = frozen;
+        }
+        if self.blind() {
+            handle.update(|s| s.blind = true);
+        }
+        self.resolve_policy();
     }
 }

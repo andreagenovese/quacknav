@@ -41,7 +41,9 @@ const BUMP_AHEAD_M: f64 = 0.15;
 /// A stand for the mapper every this far walked, and after a turn of this.
 const STAND_EVERY_M: f64 = 0.4;
 const STAND_AFTER_TURN_RAD: f64 = 0.5;
-const STAND_S: f64 = 2.0;
+/// The stand on a journey; the exploration's travel stands as long as the
+/// mapper needs (see `Job::travel`).
+pub(super) const STICK_STAND_S: f64 = 2.0;
 /// The yaw asked per radian of heading error, as the gait turns 0.65 of
 /// it a second: the error closed over about the step.
 const YAW_GAIN: f64 = 1.0 / (0.65 * STEP_S);
@@ -111,7 +113,7 @@ impl Job {
             // ... and a stand after it: the mapper corrects the pose at the
             // stands only, and a turn is where odometry drifts most.
             if want >= STAND_AFTER_TURN_RAD {
-                let _ = stand(robot, STAND_S);
+                let _ = stand(robot, self.stick_stand_s);
                 self.stick_since_stand = 0.0;
             }
         } else if let Some(d) = robot.cliff().and_then(|c| self.blind_drop_ahead(&c, robot.now(), GAIT_M_PER_S * STEP_S + DROP_GUARD_MARGIN_M)) {
@@ -156,7 +158,7 @@ impl Job {
             self.stick_since_stand += GAIT_M_PER_S * STEP_S;
         }
         if self.stick_since_stand >= STAND_EVERY_M {
-            let _ = stand(robot, STAND_S);
+            let _ = stand(robot, self.stick_stand_s);
             self.stick_since_stand = 0.0;
         }
         None
