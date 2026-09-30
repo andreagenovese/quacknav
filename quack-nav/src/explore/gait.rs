@@ -8,7 +8,7 @@ pub(super) const STRAIGHT_LOOK_M: f64 = 2.0;
 /// `QK_REFUSED_REARM`: `0` one-shot per job, `1` after every walked
 /// leg, else (default) once the body has moved [`REARM_DIST_M`].
 pub(super) fn refused_rearm() -> u8 {
-    match quack_duck::env::knob("REFUSED_REARM").as_deref() {
+    match quack_duck::env::qk("REFUSED_REARM").as_deref() {
         Some("0") => 0,
         Some("1") => 1,
         _ => 2,
@@ -93,7 +93,7 @@ pub(super) const BACK_TRIGGER_S: f64 = 0.5;
 /// `QK_SPIN_WATCH=0`: turn in place without watching the sensor, as
 /// before. On by default: it only ever stops a blind turn early.
 pub(super) fn spin_watch() -> bool {
-    quack_duck::env::knob("SPIN_WATCH").is_none_or(|v| v != "0")
+    quack_duck::env::qk("SPIN_WATCH").is_none_or(|v| v != "0")
 }
 /// An edge nearer than this, within this half-angle of the beak, ends a
 /// turn in place.

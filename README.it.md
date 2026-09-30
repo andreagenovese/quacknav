@@ -190,7 +190,7 @@ del settore.
   negli ADR. Insieme sono difficili da ragionare, e le loro soglie sono state
   tarate su tre case simulate (due generate): possono essere adattate al gemello.
 - **Il codice lo mostra.** `explore/mod.rs` è di circa 3.000
-  righe; 64 interruttori `QK_*` nell'ambiente; le gambe sono
+  righe; 69 interruttori `QK_*` nell'ambiente (e 26 `MAPLOC_*`, tutti elencati in [`docs/knobs.it.md`](docs/knobs.it.md), generato dal codice); le gambe sono
   `serde_json::Value`; i recuperi decidono sui *messaggi* di errore
   (`e.contains("no room")`), che una frase riformulata rompe.
 - **La localizzazione è fatta di soglie, non di confidenza.** Lo standard

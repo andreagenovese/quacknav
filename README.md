@@ -180,8 +180,8 @@ prototype, not a navigation stack to the standards of the field.
   measured on the twin, and the reasons are in the code and the ADRs. Together
   they are hard to reason about, and their thresholds were tuned on three
   simulated houses (two of them generated): they may be fitted to the twin.
-- **The code shows it.** `explore/mod.rs` is some 3,000 lines; 64
-  `QK_*` environment knobs; legs are `serde_json::Value`s; recovery decides on
+- **The code shows it.** `explore/mod.rs` is some 3,000 lines; 69
+  `QK_*` environment knobs (and 26 `MAPLOC_*`, all listed in [`docs/knobs.md`](docs/knobs.md), generated from the code); legs are `serde_json::Value`s; recovery decides on
   error *messages* (`e.contains("no room")`), which a reworded sentence breaks.
 - **Localization is thresholds, not confidence.** The standard (AMCL, SLAM
   Toolbox, Cartographer) carries a covariance; here a pose is trusted or not.

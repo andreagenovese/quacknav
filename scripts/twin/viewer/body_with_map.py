@@ -66,8 +66,8 @@ def run(world, headless: bool) -> None:
     # quack-nav's plan (route, aim, goal, booked drops), through quacksat's MCP
     # proxy when quacksat runs;
     # QUACK_NAV_SOCKET asks quack-navd itself, with no quacksat in between.
-    plans = mo.PlanSource(os.environ.get("QUACKSAT_MCP", "http://127.0.0.1:8770/mcp"),
-                          os.environ.get("QUACKSAT_TOKEN", "sesame"),
+    plans = mo.PlanSource(os.environ.get("QUACK_NAV_MCP", "http://127.0.0.1:8770/mcp"),
+                          os.environ.get("QUACK_NAV_MCP_TOKEN", "sesame"),
                           nav_socket=os.environ.get("QUACK_NAV_SOCKET")).start()
 
     # A map to draw when robotd's own is still empty. The live stream stays

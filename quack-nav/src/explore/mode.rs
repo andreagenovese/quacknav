@@ -88,10 +88,9 @@ impl Policy {
     }
 }
 
-/// `QK_<name>` (or the old `QUACKSAT_<name>`): `1` on, `0` off, unset the
-/// mode's own.
+/// `QK_<name>`: `1` on, `0` off, unset the mode's own.
 fn env_switch(name: &str) -> Option<bool> {
-    match quack_duck::env::knob(name).as_deref() {
+    match quack_duck::env::qk(name).as_deref() {
         Some("1") => Some(true),
         Some("0") => Some(false),
         _ => None,

@@ -538,7 +538,7 @@ report zero falls before anything is called an improvement.
       the paper twin the re-arm is not what keeps the duck in a room —
       furniture is (walls + stairwell 5 min, + big furniture 10, full
       flat 12). Default now: clear again after a metre (`REARM_DIST_M`;
-      `QUACKSAT_REFUSED_REARM` 0/1 for measuring). MuJoCo's doorway
+      `QK_REFUSED_REARM` 0/1 for measuring). MuJoCo's doorway
       stalls ("no room ahead" at the posts) remain the open cost.
 - [x] Doorway exits (2026-09-07 night, open). The trail now outlives a
       job like the drops do (the second segment of a run inherits it).
@@ -546,7 +546,7 @@ report zero falls before anything is called an improvement.
       of the configured hand when there is no room — lost on the paper
       twin (full flat 21/30 → 16/30 complete, refusals 126 → 150; walls +
       stairwell refusals 9 → 31, a 26-minute stay) and stays behind
-      `QUACKSAT_TURN_AIM=1`. A cheap MuJoCo probe (`private/drives/
+      `QK_TURN_AIM=1`. A cheap MuJoCo probe (`private/drives/
       exit_test.py`: drive into the NE bedroom from a clean boot, explore,
       time the exit) does not reproduce run 71 either: on a fresh map the
       duck leaves in 30–100 s, because the frontier is just outside the
@@ -558,8 +558,8 @@ report zero falls before anything is called an improvement.
       map) and allow a shorter leg (0.6 s) through a sensed gap.
       Obsolete (2026-09-30): the spins came from turns that began with a
       walking kick; since b8cebfe the duck turns in place above the
-      gait's dead band (1.5 rad/s). `QUACKSAT_TURN_AIM` is gone;
-      `QUACKSAT_GUARD_ARC_FULL` remains as a knob
+      gait's dead band (1.5 rad/s). `QK_TURN_AIM` is gone;
+      `QK_GUARD_ARC_FULL` remains as a knob
       (`quack-duck/src/body.rs`).
 - [x] The trail as evidence for the guards, the arc's true advance, the
       turn in place in tight quarters (2026-09-07 late night, all measured
@@ -576,13 +576,13 @@ report zero falls before anything is called an improvement.
       walls when turning (the user's observation). Judging arcs with the
       true advance is right and loses badly on the paper twin, where a
       bump costs nothing: explorer 55 → 38 %, 10/30; guard 55 → 40 %.
-      Both behind switches (`QUACKSAT_ARC_FULL`, `QUACKSAT_GUARD_ARC_FULL`),
+      Both behind switches (`QK_ARC_FULL`, `QK_GUARD_ARC_FULL`),
       off, a debt to settle on MuJoCo where a bump has a price. (3) The
       user's rule — in tight quarters a heading change beyond 35° is a
       turn in place (kick, then spin), not an arc: halves the longest
       stays (31 → 18 min, doorways only) but costs completes (26 → 20) and
       refusals (104 → 182); tighter triggers cost more (14/30). Behind
-      `QUACKSAT_SPIN_TIGHT=1` (doorways only), off. **Measured on MuJoCo
+      `QK_SPIN_TIGHT=1` (doorways only), off. **Measured on MuJoCo
       overnight (runs 73–76b, 60 min each from a clean boot):** control
       53 % (bath 81 % at minute 49, the first time on MuJoCo; every room
       at 80 % of its ceiling by then; a pose loss at minute 58, resumed
@@ -2741,7 +2741,7 @@ nothing: it explores and asks.
       Obsolete (2026-09-30): as above — trusted floor; baseline-twin
       point 2 closed (tag baseline-twin-2026-09-21).
 - [x] rim7 replayed (2026-09-18 midday): its exact configuration
-      (`QUACKSAT_PASSAGE_HUG=0 QK_ALIGN_KICK=0 QK_PASSAGE_HELD=0
+      (`QK_PASSAGE_HUG=0 QK_ALIGN_KICK=0 QK_PASSAGE_HELD=0
       QK_PASSAGE_CLIFF_MARGIN_M=0.15 QK_SEAL=0`, and the planner's drop
       radius 0.12 by `QK_DROP_PLAN_RADIUS_M`) five more times on MuJoCo,
       guards on, corridor → living room → corridor: the living room 0/5
@@ -3073,7 +3073,7 @@ nothing: it explores and asks.
       reported = truth + bias) and reproduces it: with D the known-world
       passage is 30/30 at 10 cm, 25/30 at 15 cm west, 13/30 at 15 cm
       east, 13/30 at 20 cm; the sensor's sides in min with the map's
-      26, 9, 0/30; replacing the map's (`QUACKSAT_PASSAGE_SENSOR=2`,
+      26, 9, 0/30; replacing the map's (`QK_PASSAGE_SENSOR=2`,
       new) 24, 6, 13/30 — the ToF looks ahead and sees the wall beside
       only at times. No fall in 720 runs: the guard holds, the planner
       does not pass. So point 2 is now a statement: THE MOUTH PASSES
@@ -3813,10 +3813,10 @@ nothing: it explores and asks.
 - [x] 2026-09-30: the knobs named after quacksat are `QK_*` now
       (`QK_TRAIL`, `QK_TRAIL_LEG`, `QK_EDGE_DISCRIMINATE`,
       `QK_REFUSED_REARM`, `QK_SPIN_WATCH`, `QK_PASSAGE_SENSOR`,
-      `QK_PASSAGE_HUG`, `QK_GUARD_ARC_FULL`), the old `QUACKSAT_*` names
-      still read (`quack_duck::env::knob`); `places_path` defaults to
-      `/var/lib/quack-nav/places.json`, the old `/var/lib/quacksat/` file
-      read while it is the only one. quacksat is the voice front end only.
+      `QK_PASSAGE_HUG`, `QK_GUARD_ARC_FULL`); the old `QUACKSAT_*` names
+      are not read any more (`quack_duck::env::qk`), and `places_path`
+      defaults to `/var/lib/quack-nav/places.json`. quacksat is the voice
+      front end only.
 - [ ] Why some loop closures mis-measure the heading (x13: 5° wrong, the
       live pose 35 cm off, σ 0.08 m); being measured with dense truth
       (`LOOP_LOG`, `POSEERR_DT=0.5`). Loop heading sigma 0.5 tried and

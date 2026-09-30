@@ -24,6 +24,11 @@ jobs:
       - name: Tests
         run: cargo test --workspace --release --features maploc/kinematics
 
+      # docs/knobs.md is generated from the code: a knob added, renamed or
+      # dropped without regenerating it fails here.
+      - name: Knobs list current
+        run: python3 scripts/knobs.py --check
+
       # The explorer and the journey against the kinematic duck, fixed seeds.
       - name: Paper twin gate
         run: |

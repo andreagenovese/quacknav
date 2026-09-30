@@ -589,7 +589,7 @@ riportare zero cadute prima di chiamare qualcosa un miglioramento.
       riazzeramento a trattenere la papera in una stanza, sono i mobili
       (muri + tromba 5 min, + mobili grandi 10, casa completa 12). Nuovo
       default: riazzeramento dopo un metro (`REARM_DIST_M`;
-      `QUACKSAT_REFUSED_REARM` 0/1 per misurare). Gli stalli sulle porte di
+      `QK_REFUSED_REARM` 0/1 per misurare). Gli stalli sulle porte di
       MuJoCo ("nessuno spazio davanti" sugli stipiti) restano il costo
       aperto.
 - [x] Uscite dalle porte (notte del 2026-09-07, aperto). La scia ora
@@ -598,7 +598,7 @@ riportare zero cadute prima di chiamare qualcosa un miglioramento.
       la meta invece che verso la mano quando non c'è spazio — ha perso
       sul gemello di carta (casa completa 21/30 → 16/30 complete, rifiuti
       126 → 150; muri + tromba rifiuti 9 → 31, una sosta da 26 minuti) e
-      resta dietro `QUACKSAT_TURN_AIM=1`. Nemmeno una sonda economica su
+      resta dietro `QK_TURN_AIM=1`. Nemmeno una sonda economica su
       MuJoCo (`private/drives/exit_test.py`: guida nella camera NE da boot
       pulito, esplora, cronometra l'uscita) riproduce il run 71: su una
       mappa vuota la papera esce in 30–100 s, perché la frontiera è subito
@@ -613,7 +613,7 @@ riportare zero cadute prima di chiamare qualcosa un miglioramento.
       Obsoleto (2026-09-30): le giravolte venivano da svolte che
       cominciavano con un calcio camminando; da b8cebfe l'anatra gira
       sul posto oltre la banda morta dell'andatura (1.5 rad/s).
-      `QUACKSAT_TURN_AIM` non c'è più; `QUACKSAT_GUARD_ARC_FULL` resta
+      `QK_TURN_AIM` non c'è più; `QK_GUARD_ARC_FULL` resta
       come manopola (`quack-duck/src/body.rs`).
 - [x] La scia come prova per le guardie, l'avanzamento vero dell'arco, il
       giro sul posto negli spazi stretti (notte del 2026-09-07, tutto
@@ -631,14 +631,14 @@ riportare zero cadute prima di chiamare qualcosa un miglioramento.
       muri girando (osservazione dell'utente). Giudicare gli archi con
       l'avanzamento vero è giusto e perde male sul gemello di carta, dove
       un urto non costa nulla: esploratore 55 → 38 %, 10/30; guardia 55 →
-      40 %. Entrambi dietro interruttore (`QUACKSAT_ARC_FULL`,
-      `QUACKSAT_GUARD_ARC_FULL`), spenti, un debito da saldare su MuJoCo
+      40 %. Entrambi dietro interruttore (`QK_ARC_FULL`,
+      `QK_GUARD_ARC_FULL`), spenti, un debito da saldare su MuJoCo
       dove un urto ha un prezzo. (3) La regola dell'utente — negli spazi
       stretti una correzione oltre i 35° è un giro sul posto (calcio, poi
       rotazione), non un arco: dimezza le soste più lunghe (31 → 18 min,
       solo nei varchi) ma costa complete (26 → 20) e rifiuti (104 → 182);
       criteri più larghi costano di più (14/30). Dietro
-      `QUACKSAT_SPIN_TIGHT=1` (solo varchi), spenta. **Misurato su MuJoCo
+      `QK_SPIN_TIGHT=1` (solo varchi), spenta. **Misurato su MuJoCo
       nella notte (run 73–76b, 60 min ciascuno da boot pulito):**
       controllo 53 % (bagno 81 % al minuto 49, la prima volta su MuJoCo;
       ogni stanza all'80 % del suo tetto a quel punto; una perdita di posa
@@ -2940,7 +2940,7 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       Obsoleto (2026-09-30): come sopra — pavimento fidato; punto 2 di
       baseline-twin chiuso (tag baseline-twin-2026-09-21).
 - [x] rim7 riprodotta (2026-09-18, mezzogiorno): la sua configurazione
-      esatta (`QUACKSAT_PASSAGE_HUG=0 QK_ALIGN_KICK=0 QK_PASSAGE_HELD=0
+      esatta (`QK_PASSAGE_HUG=0 QK_ALIGN_KICK=0 QK_PASSAGE_HELD=0
       QK_PASSAGE_CLIFF_MARGIN_M=0.15 QK_SEAL=0`, e il raggio del drop del
       pianificatore 0,12 con `QK_DROP_PLAN_RADIUS_M`) altre cinque volte su
       MuJoCo, guardie accese, corridoio → soggiorno → corridoio: soggiorno
@@ -3286,7 +3286,7 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       lo riproduce: con D il passaggio nel mondo noto è 30/30 a 10 cm,
       25/30 a 15 cm ovest, 13/30 a 15 cm est, 13/30 a 20 cm; i lati dal
       sensore in min con la mappa 26, 9, 0/30; in sostituzione
-      (`QUACKSAT_PASSAGE_SENSOR=2`, nuovo) 24, 6, 13/30 — il ToF guarda
+      (`QK_PASSAGE_SENSOR=2`, nuovo) 24, 6, 13/30 — il ToF guarda
       avanti e il muro di fianco lo vede solo a tratti. Nessuna caduta
       in 720 prove: la guardia regge, il planner non passa. Quindi il
       punto 2 ora è un enunciato: LA BOCCA PASSA SE LA POSA È ENTRO
@@ -4072,11 +4072,10 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
 - [x] 2026-09-30: le manopole col nome di quacksat ora sono `QK_*`
       (`QK_TRAIL`, `QK_TRAIL_LEG`, `QK_EDGE_DISCRIMINATE`,
       `QK_REFUSED_REARM`, `QK_SPIN_WATCH`, `QK_PASSAGE_SENSOR`,
-      `QK_PASSAGE_HUG`, `QK_GUARD_ARC_FULL`), e i vecchi nomi `QUACKSAT_*`
-      si leggono ancora (`quack_duck::env::knob`); `places_path` è per
-      default `/var/lib/quack-nav/places.json`, e il vecchio file in
-      `/var/lib/quacksat/` si legge finché è l'unico. quacksat è solo il
-      front end vocale.
+      `QK_PASSAGE_HUG`, `QK_GUARD_ARC_FULL`); i vecchi nomi `QUACKSAT_*` non si
+      leggono più (`quack_duck::env::qk`), e `places_path` è per default
+      `/var/lib/quack-nav/places.json`. quacksat è solo il front end
+      vocale.
 - [ ] Perché alcune chiusure di loop misurano male l'angolo (x13: 5° di
       errore, la posa dal vivo 35 cm fuori, σ 0.08 m); si misura con la
       verità fitta (`LOOP_LOG`, `POSEERR_DT=0.5`). Sigma d'angolo del loop

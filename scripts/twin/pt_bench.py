@@ -15,7 +15,7 @@ nothing. What comes out, per goal and in total:
 
 Everything is written to <out>/bench.json as well, to diff against another
 build's (`--compare a.json b.json`). The environment reaches the twin, so a
-`QK_*` knob measures a variant: `QK_RPP=1 pt_bench.py ... rpp`.
+`QK_*` knob measures a variant: `QK_SMOOTH_PATH=0 pt_bench.py ... nosmooth`.
 """
 import json
 import os

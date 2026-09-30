@@ -44,7 +44,7 @@ pub(super) const HUG_WALL_LOOK_M: f64 = 0.6;
 /// judged clear on the books went in), while the old behaviour crossed
 /// once in two; measured one at a time from here (2026-09-08).
 pub(super) fn passage_sensor() -> bool {
-    quack_duck::env::knob("PASSAGE_SENSOR").is_some_and(|v| v == "1" || v == "2")
+    quack_duck::env::qk("PASSAGE_SENSOR").is_some_and(|v| v == "1" || v == "2")
 }
 /// `QK_PASSAGE_SENSOR=2`: the sensor's side REPLACES the map's
 /// where the sensor has one (a wall or a drop's edge beside the body),
@@ -55,7 +55,7 @@ pub(super) fn passage_sensor() -> bool {
 /// hole (paper twin `--bias`, 2026-09-20: 25–26/30 at 15 cm with either,
 /// 13 and 9/30 at 20 cm).
 pub(super) fn passage_sensor_replaces() -> bool {
-    quack_duck::env::knob("PASSAGE_SENSOR").is_some_and(|v| v == "2")
+    quack_duck::env::qk("PASSAGE_SENSOR").is_some_and(|v| v == "2")
 }
 /// The blind leg's one guard (see `guarded_step`): the lane it judges the
 /// sensor's drops in, and the margin past the leg's advance.

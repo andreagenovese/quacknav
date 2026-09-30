@@ -36,20 +36,11 @@ impl MapConfig {
     }
 }
 
-/// `/var/lib/quack-nav/places.json`; the registry quacksat kept at
-/// `/var/lib/quacksat/places.json` when the navigation lived there is read
-/// while it is the only one.
-fn default_places_path() -> String {
-    const NEW: &str = "/var/lib/quack-nav/places.json";
-    const OLD: &str = "/var/lib/quacksat/places.json";
-    if !std::path::Path::new(NEW).exists() && std::path::Path::new(OLD).exists() { OLD } else { NEW }.to_string()
-}
-
 impl Default for MapConfig {
     fn default() -> Self {
         Self {
             enabled: true,
-            places_path: default_places_path(),
+            places_path: "/var/lib/quack-nav/places.json".to_string(),
             cliff_guard: true,
             tof_socket: "/run/tofd/tof.sock".to_string(),
             explore_max_s: 1800.0,
