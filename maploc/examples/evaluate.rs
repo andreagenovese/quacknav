@@ -302,7 +302,7 @@ fn main() {
                 // reversed. A recording whose sensor numbered its columns the
                 // other way round -- the MuJoCo twin's did -- scores far
                 // better mirrored than straight, and that is how it showed.
-                if std::env::var_os("MAPLOC_MIRROR_COLS").is_some() {
+                if std::env::var("MAPLOC_MIRROR_COLS").is_ok_and(|v| v == "1") {
                     for row in ranges.chunks_mut(8) {
                         row.reverse();
                     }

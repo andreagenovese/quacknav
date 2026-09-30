@@ -1106,7 +1106,7 @@ const CLIFF_WALL_NEAR_M: f64 = 0.35;
 /// booked rim.
 /// The least margin a leg may ask for from an edge (see `plan_step`).
 const CLIFF_MARGIN_FLOOR_M: f64 = 0.12;
-fn cliff_margin_m() -> f64 {
+pub(crate) fn cliff_margin_m() -> f64 {
     static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
     *V.get_or_init(|| {
         std::env::var("QK_CLIFF_MARGIN_M").ok().and_then(|v| v.parse().ok()).unwrap_or(0.25)

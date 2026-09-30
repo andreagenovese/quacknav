@@ -113,9 +113,6 @@ pub(super) const HOLE_IN_VIEW_HALF_M: f64 = 0.6;
 pub(super) const BLIND_DROP_MARGIN_M: f64 = 0.25;
 /// The shortest a leg is cut to before a drop the sensor sees.
 pub(super) const BLIND_LEG_MIN_S: f64 = 0.8;
-/// The guard's own margin from a drop's edge (`QK_CLIFF_MARGIN_M`), as
-/// the explorer assumes it when a leg names none.
-pub(super) const CLIFF_MARGIN_DEFAULT_M: f64 = 0.25;
 /// The margin from an edge a passage leg asks of the guard. 0.15 was
 /// measured on the 17th (the user's "B": 17 cm of admissible floor in
 /// the 0.6 m passage instead of 7 — rim7 3/3, rim8 1/3); with the wall
@@ -837,7 +834,9 @@ impl Job {
             && leg.get("spin").is_none()
             && let Some(cliff) = robot.cliff()
         {
-            let margin = leg.get("cliff_margin_m").and_then(Value::as_f64).unwrap_or(CLIFF_MARGIN_DEFAULT_M);
+            // The step's own default (`QK_CLIFF_MARGIN_M`), so the cut and
+            // the step's guard judge the edge with the same margin.
+            let margin = leg.get("cliff_margin_m").and_then(Value::as_f64).unwrap_or_else(crate::tools::cliff_margin_m);
             if let Some(d) = self.blind_drop_ahead(&cliff, robot.now(), GAIT_M_PER_S * walk_s + 0.15 + margin) {
                 let fits = ((d.edge_min_m - 0.15 - margin - 0.02) / GAIT_M_PER_S).min(walk_s);
                 if fits >= BLIND_LEG_MIN_S && fits < walk_s {

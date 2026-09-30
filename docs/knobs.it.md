@@ -96,7 +96,7 @@ gemello. Le manopole che si chiamavano `QUACKSAT_*` sono `QK_*` dal
 | `MAPLOC_MCL_RESID` | numero (default 0.08) | `maploc/src/mapper.rs` |  |
 | `MAPLOC_MCL_TRAVEL` | numero (default 0.10) | `maploc/src/mapper.rs` |  |
 | `MAPLOC_MCL_YAW` | numero (default 0.8) | `maploc/src/mapper.rs` | A lock is not a candidate until the body has swept this much yaw and moved this far since the seed: the filter has no motion gate of its own (`mcl.rs`), and a stationary 45° wedge locks on a mirror image as happily as on… |
-| `MAPLOC_MIRROR_COLS` | presente = accesa (qualsiasi valore) | `maploc/examples/evaluate.rs` | MAPLOC_MIRROR_COLS=1 replays every frame with its columns reversed. |
+| `MAPLOC_MIRROR_COLS` | accesa solo con 1 | `maploc/examples/evaluate.rs` | MAPLOC_MIRROR_COLS=1 replays every frame with its columns reversed. |
 | `MAPLOC_MULTI_HYP` | accesa salvo 0 | `maploc/src/mapper.rs` | `MAPLOC_MULTI_HYP=0` turns the multi-hypothesis boot search off, for measuring against the single-best agreement it replaces. |
 | `MAPLOC_RAW` | presente = accesa (qualsiasi valore) | `maploc/examples/replay.rs` |  |
 | `MAPLOC_RAY_JUDGE` | accesa solo con 1 | `maploc/src/mapper.rs` | `MAPLOC_RAY_JUDGE=1` judges candidates along the ray (`relocalize::score_pose_rays`) instead of by endpoints alone. |
