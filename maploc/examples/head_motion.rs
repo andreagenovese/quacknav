@@ -12,6 +12,12 @@
 //! A frame is flattened with the head of the robot-state sample before it,
 //! as the old pairing did: the velocity is what the pairing's error scales
 //! with. `MAP_SESSION` / `MAP_LOAD_AT_S` as in `trajectory`.
+//!
+//! x16's eight sessions on the twin (2026-09-30), 104 000 frames: 3.2-3.3 cm
+//! from 0.05 to 1 rad/s, where 95 % of the frames are; 3.46 cm from 1 to
+//! 2 rad/s (1 % of them); 2.4 cm with the head still, at the stands the
+//! tracking corrects. A head in motion costs the map next to nothing: the
+//! velocities of API 36 have no mapping gain to give.
 
 use std::path::PathBuf;
 
