@@ -102,7 +102,8 @@ const START_REACH_FAR_M: f64 = 1.5;
 /// A frontier group smaller than this is a crack in the map, not a place
 /// to go.
 pub const MIN_FRONTIER_CELLS: usize = 8;
-/// Path cost of a known free cell and of an unknown one. Unknown is not a
+/// Path cost of an unknown cell, against a known free one's
+/// [`COST_FREE`]. Unknown is not a
 /// wall — the planner has always been willing to cross it — but at three
 /// times the price it will walk a long way round to avoid a gap the duck
 /// simply has not looked at yet, and a house mapped through a 45° wedge is
@@ -111,6 +112,8 @@ pub const MIN_FRONTIER_CELLS: usize = 8;
 /// same endpoints on a settled map cost 1.16-1.26x and the walls
 /// themselves allow 1.19x. Left at 30 (`QK_COST_UNKNOWN`, removed
 /// 2026-09-30).
+const COST_UNKNOWN: u32 = 30;
+/// Path cost of a known free cell.
 const COST_FREE: u32 = 10;
 /// A lane cell — floor the body has stood on, or a saved drive's trail —
 /// could cost less than a free cell (`QK_COST_LANE`, e.g. 5, removed
@@ -120,10 +123,10 @@ const COST_FREE: u32 = 10;
 /// 2026-09-16: 400 s at the north mouth, the human had never taken that
 /// corner). It costs a free cell's price: at 5 the route
 /// followed the human into the 0.44 m passage east of the stairwell,
-/// which the passage law forbids the body (lane2) — the human's walk is
-/// evidence of floor, not of a passage the duck's guards accept.
+/// which the passage law of the time forbade the body (lane2,
+/// 2026-09-16) — the human's walk is evidence of floor, not of a passage
+/// the duck's guards accept.
 const COST_LANE: u32 = COST_FREE;
-const COST_UNKNOWN: u32 = 30;
 /// Room costs less than a wall's side. A free cell within [`COMFORT_M`] of
 /// the nearest wall or booked obstacle pays extra, from [`COST_HUG`] at the
 /// inflation's edge down to nothing at [`COMFORT_M`]: with every free cell
@@ -896,12 +899,6 @@ fn pull(map: &Costmap, grid: &Grid, path: &[(f64, f64)], drops: &[ExtraWall]) ->
     out
 }
 
-/// The point on `path` about `lookahead_m` along it — the next leg's aim.
-pub fn waypoint(path: &[(f64, f64)], lookahead_m: f64, cell_m: f64) -> Option<(f64, f64)> {
-    let steps = (lookahead_m / cell_m).round().max(1.0) as usize;
-    path.get(steps.min(path.len().checked_sub(1)?)).copied()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1067,8 +1064,6 @@ mod tests {
         for (px, py) in &first.path {
             assert_ne!(g.at(*px, *py), Some(Cell::Wall), "{px},{py}");
         }
-        let wp = waypoint(&first.path, 0.25, 0.1).unwrap();
-        assert_ne!(g.at(wp.0, wp.1), Some(Cell::Wall));
     }
 
     #[test]

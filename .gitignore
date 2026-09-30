@@ -3,3 +3,4 @@
 /private
 /.claude/
 /skills-lock.json
+__pycache__/

@@ -14,7 +14,7 @@ The knobs once named `QUACKSAT_*` are `QK_*` since 2026-09-30.
 | `QK_BACK_REORIENT` | on unless 0 | `quack-nav/src/explore/gait.rs` | `QK_BACK_REORIENT=0`: after the step back, head for the most open floor and walk a leg there, as before. |
 | `QK_BACK_S` | number (default 1.5) | `quack-nav/src/explore/gait.rs` | The step back: this gait needs about a second to start moving at all, so a shorter one moves nothing (measured); and no more often than this. |
 | `QK_BLIND_CONE_LANE` | on unless 0 | `quack-nav/src/explore/guarded.rs` | The cone widens at short range to the lane's own angle — at 0.25 m a 12 cm lane is 26°, and a cube 0.25 m ahead at 18° inside the lane was outside the 15° cone, walked over and dragged 1.9 m (sideA016r, 2026-09-22). |
-| `QK_CLIFF_MARGIN_M` | number (default 0.25) | `quack-nav/src/tools.rs` |  |
+| `QK_CLIFF_MARGIN_M` | number (default 0.25) | `quack-nav/src/tools.rs` | Stop this far short of a drop's edge — farther than a wall's margin, because an edge is not a bump. |
 | `QK_CLOSE_LOOK` | 1 on, 0 off, else the caller's default | `quack-nav/src/explore/close_look.rs` | `QK_CLOSE_LOOK=0`: no close looks. |
 | `QK_COST_HUG` | number (default COST_HUG_DEFAULT) | `quack-nav/src/frontier.rs` |  |
 | `QK_CURVE_RAD` | number (default CURVE_RAD) | `quack-nav/src/explore/gait.rs` |  |
@@ -46,7 +46,7 @@ The knobs once named `QUACKSAT_*` are `QK_*` since 2026-09-30.
 | `MAPLOC_CONFIRM_TRAVEL` | number (default 0.5) | `maploc/src/mapper.rs` | At boot, how far the body must have moved between the window that nominated a candidate and the one that confirms it. |
 | `MAPLOC_CONTINUOUS` | set = on (any value) | `maploc/examples/replay.rs` |  |
 | `MAPLOC_GRAPH_DEBUG` | set = on (any value) | `maploc/src/pipeline.rs` |  |
-| `MAPLOC_HEAD_LEAD_MS` | number (default 5_000_000, after conversion) | `quack-nav/src/mapd/mod.rs`, `maploc/src/bench.rs` | `MAPLOC_HEAD_LEAD_MS`, as robotd read it: 5 ms by default — with 0 the standing drift was +0.17/+0.22°/min, with 20 and 40 it turned negative (twin, 2026-09-16). |
+| `MAPLOC_HEAD_LEAD_MS` | number (default 5) | `quack-nav/src/mapd/mod.rs`, `maploc/src/bench.rs` | `MAPLOC_HEAD_LEAD_MS`, as robotd read it: 5 ms by default — with 0 the standing drift was +0.17/+0.22°/min, with 20 and 40 it turned negative (twin, 2026-09-16). |
 | `MAPLOC_HYP_LEAD` | number (default 3) | `maploc/src/mapper.rs` | How many hits the leading hypothesis must have over the runner-up before it is nominated. |
 | `MAPLOC_HYP_TRAVEL` | number (default 1.0) | `maploc/src/mapper.rs` | How far the body must have got from where it first saw a hypothesis before the hypothesis can be believed — the chord, not the path. |
 | `MAPLOC_LOCAL_AFTER_BOOT` | on unless 0 | `maploc/src/mapper.rs` | `MAPLOC_LOCAL_AFTER_BOOT=0`: every loss on a resumed map searches the whole map with every hypothesis, as before 2026-09-28. |
@@ -112,7 +112,7 @@ The knobs once named `QUACKSAT_*` are `QK_*` since 2026-09-30.
 | `ROUNDS_ONLY` | a value (script) | `scripts/twin/houses/final_house.py` |  |
 | `SAVE_SESSION` | a path, or a value | `maploc/examples/trajectory.rs` | `SAVE_SESSION=<file>`: the map the replay built, saved as the live daemon saves it — for `dump_frame` and `map_vs_truth.py`. |
 | `SLANT` | number (unset: none) | `maploc/examples/submap_fit.rs` | `SLANT=x0,x1,y0,y1`: how many of this submap's wall cells fall in that box. |
-| `TRACK` | on only if 1 | `maploc/examples/evaluate.rs` |  |
+| `TRACK` | 1 on, else off; unset: mapper_cfg.tracking.enabled | `maploc/examples/evaluate.rs` |  |
 | `TRACK_COND` | number (default mapper_cfg.tracking.min_conditioning) | `maploc/examples/evaluate.rs` |  |
 | `TRACK_IMPROVE` | number (default mapper_cfg.tracking.min_improvement) | `maploc/examples/evaluate.rs` |  |
 | `TRACK_LOG` | a path, or a value | `maploc/examples/trajectory.rs` | `TRACK_LOG=<file>`: the tracked pose every 0.2 s, and every note by name the moment it comes — to see what moves a pose no correction or closure accounts for. |

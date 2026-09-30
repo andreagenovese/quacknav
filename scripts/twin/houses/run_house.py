@@ -137,6 +137,10 @@ if explore_s > 0:
         except FileNotFoundError: pass
     shutil.rmtree(f"{state}/maps", ignore_errors=True); shutil.rmtree(f"{state}/rec", ignore_errors=True)
     sp = boot(WIPE="on", MAPLOC_MODE="stop_and_scan", HOMECOMING="off")
+    if sp is None:
+        say(f"{name}: the twin did not come up; the exploration is skipped")
+# A boot that failed is skipped, not waited on over an empty log.
+if explore_s > 0 and sp is not None:
     time.sleep(15)
     t0 = time.time()
     say(f"{name}: explore", json.dumps(call("robot.map_explore", {"max_s": explore_s}))[:160])
@@ -193,6 +197,9 @@ if explore_s > 0:
 goals = [(k, v) for k, v in truth["goals"].items()]
 for rnd in range(1, rounds + 1):
     sp = boot(WIPE="on", MAPLOC_MODE="localize", HOMECOMING="on")
+    if sp is None:
+        say(f"{name} round {rnd}: the twin did not come up; the round is skipped")
+        continue
     t0 = time.time(); verdict = "timeout"
     while time.time() - t0 < 900:
         log = navlog()

@@ -55,6 +55,9 @@ def wake(i, x, y, yaw):
     shutil.copy(book_p, f"{state}/ground.json")
     shutil.rmtree(f"{state}/rec", ignore_errors=True)
     sp = boot(WIPE="on", MAPLOC_MODE="stop_and_scan", HOMECOMING="on", RESUME="on", MICRODUCK_START=f"{x},{y},{yaw}")
+    if sp is None:
+        say(f"{name} wake {i} at ({x:+.2f},{y:+.2f},{math.degrees(yaw):+.0f}°): the twin did not come up; the wake is skipped")
+        return None
     t0 = time.time(); verdict, t = "never", limit_s
     while time.time() - t0 < limit_s:
         log = navlog()
@@ -94,7 +97,10 @@ def wake(i, x, y, yaw):
 
 results = []
 for i, (x, y, yaw) in enumerate(spawns(), 1):
-    results.append(wake(i, x, y, yaw))
+    r = wake(i, x, y, yaw)
+    if r is None:
+        continue
+    results.append(r)
     json.dump(results, open(f"{out}/wakes.json", "w"), indent=1)
 n = len(results)
 right = [r for r in results if r["verdict"] == "right"]

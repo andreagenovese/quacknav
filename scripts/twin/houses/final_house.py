@@ -124,10 +124,16 @@ done = ROUNDS_ONLY
 for k in range(1, (0 if ROUNDS_ONLY else max_sessions) + 1):
     if k == 1:
         sp = boot(WIPE="on", MAPLOC_MODE="stop_and_scan", HOMECOMING="off")
+        if sp is None:
+            say(f"{name} session {k}: the twin did not come up; the session is skipped")
+            continue
         time.sleep(15)
         call("robot.map_explore", {"max_s": session_s, "save_as": name})
     else:
         sp = boot(WIPE="on", MAPLOC_MODE="stop_and_scan", HOMECOMING="on", RESUME="on", EXPLORE_S=str(int(session_s)))
+        if sp is None:
+            say(f"{name} session {k}: the twin did not come up; the session is skipped")
+            continue
         v, t, err = home()
         say(f"{name} session {k}: homecoming {v} in {t:.0f} s, pose vs truth {err} m")
         if v != "exploring on from where":
@@ -156,11 +162,14 @@ if ROUNDS_ONLY:
         shutil.rmtree(f"{state}/maps", ignore_errors=True); shutil.copytree(f"{out}/maps-after-explore", f"{state}/maps")
 if not done:
     sp = boot(WIPE="on", MAPLOC_MODE="stop_and_scan", HOMECOMING="on", RESUME="off")
-    v, t, err = home()
-    time.sleep(10)
-    r = call("robot.map_explore", {"complete": True}, timeout=200)
-    say(f"{name}: 'exploration complete' by the user: {json.dumps({k: r.get(k) for k in ('complete', 'percent_mapped', 'frozen')})} ({r.get('error', '')})")
-    down(sp, "complete")
+    if sp is None:
+        say(f"{name}: the twin did not come up; 'exploration complete' is skipped")
+    else:
+        v, t, err = home()
+        time.sleep(10)
+        r = call("robot.map_explore", {"complete": True}, timeout=200)
+        say(f"{name}: 'exploration complete' by the user: {json.dumps({k: r.get(k) for k in ('complete', 'percent_mapped', 'frozen')})} ({r.get('error', '')})")
+        down(sp, "complete")
 if ROUNDS_ONLY and done:
     # From the map and book the exploration left.
     book_after_explore = json.load(open(f"{out}/ground-after-explore.json"))

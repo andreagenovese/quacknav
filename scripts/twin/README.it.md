@@ -118,6 +118,8 @@ Copia inglese canonica: `README.md`.
 Servono `MICRODUCK`, `MICRODUCK_RL` e `POLICY_DIR` come per `twin.sh`,
 `TWIN_WORK` per gli output (predefinito `/tmp/quack-twin-work`), `QN_REPO` per
 il checkout di quack-nav di cui girano `quack-navd`, e `AB_REPO` per il
-checkout con cui un giro si confronta (i giri `main` di `final_house.py`; saltati, e lo dice, se non è un checkout completo e compilato). Una casa
+checkout con cui un giro si confronta (i giri `main` di `final_house.py`; saltati, e lo dice, se non è un checkout completo e compilato). Una sessione,
+un giro o un risveglio il cui gemello non parte è saltato, e lo dice, invece
+di aspettare su un log vuoto (dal 2026-10-01). Una casa
 richiede circa quattro ore sul gemello; tre girano in parallelo su un Mac a 12
 core con `VIEWER=off` su due di esse.

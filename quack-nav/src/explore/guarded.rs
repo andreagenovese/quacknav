@@ -41,9 +41,8 @@ pub(super) const HOLE_IN_VIEW_HALF_M: f64 = 0.6;
 pub(super) const BLIND_DROP_MARGIN_M: f64 = 0.25;
 /// The shortest a leg is cut to before a drop the sensor sees.
 pub(super) const BLIND_LEG_MIN_S: f64 = 0.8;
-/// The same on a passage leg (see [`Job::drop_on_path`]).
-pub(super) const PASSAGE_DROP_PATH_MARGIN_M: f64 = 0.03;
-/// Fine alignment (passage entry): iterations, tolerance, the pulse that
+/// Fine alignment ([`Job::align`], the turn before a step away from a
+/// drop; once the passage entry's, until 2026-09-30): iterations, tolerance, the pulse that
 /// turns 15–25° when there is room to kick, and the settle time.
 pub(super) const ALIGN_ITERS: u32 = 6;
 pub(super) const ALIGN_TOL_RAD: f64 = 0.2;
@@ -139,7 +138,6 @@ impl Job {
         // of the sensor's columns grazes a rim and "sees floor" 7 cm past
         // it (rim18, 2026-09-18), the booked rim does not.
         let trusted = self.policy.trusted_floor
-            && leg.get("spin").is_none()
             && self.leg_on_trusted_floor(pose, leg)
             && self.drop_on_path(pose, leg).is_none();
         if trusted {
@@ -251,12 +249,11 @@ impl Job {
             && vyaw.abs() < 0.05
             && !self.blind()
             && self.policy.mode == Mode::JourneyGuarded
-            && leg.get("spin").is_none()
             && let Some(cliff) = robot.cliff()
         {
             // The step's own default (`QK_CLIFF_MARGIN_M`), so the cut and
             // the step's guard judge the edge with the same margin.
-            let margin = leg.get("cliff_margin_m").and_then(Value::as_f64).unwrap_or_else(crate::tools::cliff_margin_m);
+            let margin = crate::tools::cliff_margin_m();
             if let Some(d) = self.blind_drop_ahead(&cliff, robot.now(), GAIT_M_PER_S * walk_s + 0.15 + margin) {
                 let fits = ((d.edge_min_m - 0.15 - margin - 0.02) / GAIT_M_PER_S).min(walk_s);
                 if fits >= BLIND_LEG_MIN_S && fits < walk_s {

@@ -116,7 +116,9 @@ off; `MAPLOC_SHADOW_EVERY_S` (30) and `MAPLOC_SHADOW_ASKS` (2) set it.
 They need `MICRODUCK`, `MICRODUCK_RL` and `POLICY_DIR` as `twin.sh` does,
 `TWIN_WORK` for their outputs (default `/tmp/quack-twin-work`), `QN_REPO` for
 the quack-nav checkout whose `quack-navd` they run, and `AB_REPO` for the
-checkout a round compares against (`final_house.py`'s `main` rounds; skipped, and said so, when it is not a whole, built checkout). A house takes
+checkout a round compares against (`final_house.py`'s `main` rounds; skipped, and said so, when it is not a whole, built checkout). A session,
+round or wake whose twin does not come up is skipped, and said so, not
+waited on over an empty log (since 2026-10-01). A house takes
 about four hours on the twin; three run side by side on a 12-core Mac with
 `VIEWER=off` on two of them.
 

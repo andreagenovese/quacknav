@@ -3879,6 +3879,18 @@ nothing: it explores and asks.
       the same to the byte, and `evaluate`/`trajectory` replays of ten
       recorded sessions (apartment, casa_grande, fresh and resumed) the
       same to the byte before and after.
+- [x] 2026-10-01: an audit's leftovers of the removals above. The
+      explorer's legs no longer read `passage`, `gap`, `spin` or
+      `cliff_margin_m` (nothing of its own sets them since the old leg
+      path went; `robot.map_step` keeps them for an external caller),
+      and `PASSAGE_DROP_PATH_MARGIN_M` and `frontier::waypoint` (a test's
+      only) go. The twin's house scripts skip a session, round or wake
+      whose twin did not boot instead of waiting on an empty log.
+      `scripts/knobs.py` reads `TRACK` as it is (1 on, else off; unset:
+      the config's), gives `MAPLOC_HEAD_LEAD_MS`'s default in ms, and its
+      cross-check also covers names read with `env::var`/`envf`/...
+      Tracked `__pycache__` out of git. The paper twin's gate the same
+      to the byte.
 - [ ] Why some loop closures mis-measure the heading (x13: 5° wrong, the
       live pose 35 cm off, σ 0.08 m); being measured with dense truth
       (`LOOP_LOG`, `POSEERR_DT=0.5`). Loop heading sigma 0.5 tried and

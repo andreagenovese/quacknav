@@ -439,6 +439,8 @@ impl Job {
             // from standstill either: it turns 2°/s and costs SPIN_MAX_S
             // for nothing. The next plan says what to do.
             if back.is_none() && drop_in_view {
+                // A count over the session, not a run: `in_a_row` is the
+                // key the logs have always carried.
                 self.turns_refused_at_drop += 1;
                 tracing::info!(in_a_row = self.turns_refused_at_drop, "map explore: the kick was refused beside a drop and there is no way back; no turn here");
                 return;

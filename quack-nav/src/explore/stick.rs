@@ -112,8 +112,7 @@ impl Job {
             })
             .filter(|p| !self.local.iter().any(|(q, rr)| *rr >= DROP_RADIUS_M && dist2(*q, *p) < KNOWN_RIM_M));
         let careful = self.stick_careful && unbooked_seen.is_some();
-        // ... and never beside it: off the rim first, as the explorer's own
-        // legs do (see `off_the_rim`).
+        // ... and never beside it: off the rim first (see `off_the_rim`).
         if careful && self.off_the_rim(robot, (x, y, yaw)) {
             self.stick_last = None;
             return None;

@@ -833,8 +833,8 @@ pub fn catalog() -> Vec<Value> {
                 "vyaw": {"type": "number", "description": "rad/s turn, + is left"},
                 "walk_s": {"type": "number", "minimum": 0.0, "maximum": quack_duck::body::MAX_MOVE_DURATION_S, "description": "seconds of walking before the stop (0 = just stand)"},
                 "centre": {"type": "boolean", "description": "keep to the middle between mapped walls on the way (the explorer's own legs ask for it; off by default)"},
-                "gap": {"type": "boolean", "description": "a doorway step: margins shrink to the body plus a little (the explorer's own legs ask for it; off by default)"},
-                "passage": {"type": "boolean", "description": "a short straight leg along a passage beside a drop, with a wall seen by the sensor at the body's side: the cliff guard judges a narrower lane (the explorer's passage legs ask for it; off by default)"},
+                "gap": {"type": "boolean", "description": "a doorway step: margins shrink to the body plus a little (the explorer's legs no longer ask for it since 2026-09-30; off by default)"},
+                "passage": {"type": "boolean", "description": "a short straight leg along a passage beside a drop, with a wall seen by the sensor at the body's side: the cliff guard judges a narrower lane (the explorer's legs no longer ask for it since 2026-09-30; off by default)"},
                 "stop_s": {"type": "number", "minimum": 0.0, "maximum": quack_duck::body::MAX_STOP_S, "description": "seconds of standing still after the walk; default 6"}
             }
         }
@@ -1089,13 +1089,13 @@ const CLIFF_LANE_HALF_M: f64 = 0.22;
 /// the sensed wall must be at the body's side for it to apply.
 const CLIFF_LANE_PASSAGE_M: f64 = 0.17;
 const CLIFF_WALL_NEAR_M: f64 = 0.35;
+/// The least margin a leg may ask for from an edge (see `plan_step`).
+const CLIFF_MARGIN_FLOOR_M: f64 = 0.12;
 /// Stop this far short of a drop's edge — farther than a wall's margin,
 /// because an edge is not a bump.
 /// `QK_CLIFF_MARGIN_M`: 0.25 since 2026-09-16 (was 0.35) — the flank 15 cm from the
 /// edge at the leg's end, and the same word as the planner's 0.22 round a
 /// booked rim.
-/// The least margin a leg may ask for from an edge (see `plan_step`).
-const CLIFF_MARGIN_FLOOR_M: f64 = 0.12;
 pub(crate) fn cliff_margin_m() -> f64 {
     static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
     *V.get_or_init(|| {

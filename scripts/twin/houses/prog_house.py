@@ -52,10 +52,16 @@ shutil.rmtree(f"{state}/maps", ignore_errors=True); shutil.rmtree(f"{state}/rec"
 for k in range(1, sessions + 1):
     if k == 1:
         sp = boot(WIPE="on", MAPLOC_MODE="stop_and_scan", HOMECOMING="off")
+        if sp is None:
+            say(f"{name} session {k}: the twin did not come up; the session is skipped")
+            continue
         time.sleep(15)
         say(f"{name} session 1: explore", json.dumps(call("robot.map_explore", {"max_s": session_s, "save_as": name}))[:120])
     else:
         sp = boot(WIPE="on", MAPLOC_MODE="stop_and_scan", HOMECOMING="on", RESUME="on", EXPLORE_S=str(int(session_s)))
+        if sp is None:
+            say(f"{name} session {k}: the twin did not come up; the session is skipped")
+            continue
         t0 = time.time(); verdict = "timeout"
         while time.time() - t0 < 1200:
             log = navlog()

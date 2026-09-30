@@ -4140,6 +4140,20 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       carta identico al byte, e i replay `evaluate`/`trajectory` di dieci
       sessioni registrate (apartment, casa_grande, da zero e riprese)
       identici al byte prima e dopo.
+- [x] 2026-10-01: i resti delle rimozioni qui sopra trovati da un audit.
+      Le gambe dell'esploratore non leggono più `passage`, `gap`, `spin`
+      né `cliff_margin_m` (nulla di suo li imposta da quando è andato il
+      vecchio percorso delle gambe; `robot.map_step` li tiene per un
+      chiamante esterno), e se ne vanno `PASSAGE_DROP_PATH_MARGIN_M` e
+      `frontier::waypoint` (usato solo da un test). Gli script delle case
+      del gemello saltano una sessione, un giro o un risveglio il cui
+      gemello non è partito invece di aspettare su un log vuoto.
+      `scripts/knobs.py` legge `TRACK` com'è (1 accesa, altrimenti spenta;
+      assente: quella della config), dà il default di
+      `MAPLOC_HEAD_LEAD_MS` in ms, e il suo controllo incrociato copre
+      anche i nomi letti con `env::var`/`envf`/... I `__pycache__`
+      tracciati fuori da git. Il gate del gemello di carta identico al
+      byte.
 - [ ] Perché alcune chiusure di loop misurano male l'angolo (x13: 5° di
       errore, la posa dal vivo 35 cm fuori, σ 0.08 m); si misura con la
       verità fitta (`LOOP_LOG`, `POSEERR_DT=0.5`). Sigma d'angolo del loop

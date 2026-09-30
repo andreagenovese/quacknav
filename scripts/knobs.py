@@ -2,7 +2,8 @@
 
 Writes docs/knobs.md and docs/knobs.it.md: per variable, where it is read,
 how its value is taken (a number with its default, on unless 0, on only if
-1, set = on, a path...), and the comment the code gives it. `--check`
+1, 1 on else off with the default when unset, set = on, a path...), and the
+comment the code gives it. `--check`
 writes nothing and fails when the files are not what the code says — CI
 runs it, so a knob added, renamed or dropped updates the list with it.
 
@@ -12,8 +13,9 @@ helpers that take a name — `quack_duck::env::qk("X")` and `env_switch("X")`
 `envf32` — in quack-nav, quack-duck and maploc; `os.environ` in the twin's
 Python. Variables of the build and the shell (`RUST_LOG`, `HOME`...) are
 left out. A second, cruder reading — every "QK_…"/"MAPLOC_…" literal in the
-Rust sources outside comments — must be covered by the list, or the run
-fails: the parser once swallowed a read standing close after another and
+Rust sources outside comments, and every name handed to `env::var`,
+`var_os`, `envf`, `envf32`, `switch` or `knob` line by line — must be
+covered by the list, or the run fails: the parser once swallowed a read standing close after another and
 lost four knobs, and a check of the generator against itself cannot see
 that.
 """
@@ -60,11 +62,23 @@ def semantics(fn, stmt, before):
         u = stmt.find("unwrap_or(")
         if u >= 0:
             d = " ".join(balanced(stmt, u + len("unwrap_or")).split())
-            converted = ".map(" in stmt[stmt.find(".parse") : u]
-            return f"number (default {d}{', after conversion' if converted else ''})"
+            conv = stmt[stmt.find(".parse") : u]
+            if ".map(" in conv:
+                # The default in the knob's own units: a plain scale in the
+                # conversion (`ms * 1e6` to ns) is undone on it.
+                k = re.search(r"\*\s*([0-9][0-9_.eE+-]*)\)", conv)
+                try:
+                    return f"number (default {float(d.replace('_', '')) / float(k[1].replace('_', '')):g})"
+                except (TypeError, ValueError, ZeroDivisionError):
+                    return f"number (default {d}, after conversion)"
+            return f"number (default {d})"
         return "number (unset: none)"
     if re.search(r'!=\s*"0"', stmt):
         return "on unless 0"
+    m = re.search(r'\.map\(\|\w+\|\s*\w+\s*==\s*"1"\)\s*\.unwrap_or\(', stmt)
+    if m:
+        d = " ".join(balanced(stmt, m.end() - 1).split())
+        return f"1 on, else off; unset: {d}"
     if re.search(r'==\s*"1"', stmt):
         return "on only if 1" + (" (2: more)" if '"2"' in stmt else "")
     if re.match(r'\(\s*"[A-Z0-9_]+"\s*\)\s*\.(is_some|is_ok)\(\)', stmt):
@@ -197,9 +211,11 @@ HOW_IT = {
 
 def how_it(h):
     if h.startswith("number (default"):
-        return "numero (default" + h[len("number (default") :]
+        return "numero (default" + h[len("number (default") :].replace(", after conversion", ", dopo la conversione")
     if h == "number":
         return "numero"
+    if h.startswith("1 on, else off; unset: "):
+        return "1 accesa, altrimenti spenta; assente: " + h[len("1 on, else off; unset: ") :]
     return HOW_IT.get(h, h)
 
 
@@ -217,8 +233,10 @@ def render(found, lang):
 
 def raw_names():
     """Every "QK_…" / "MAPLOC_…" string literal in the Rust sources outside
-    comments, and every name given to `qk`/`env_switch`: a second reading of
-    the code, not by the parser above, that the list must cover."""
+    comments, every name given to `qk`/`env_switch`, and every name read
+    with `env::var`/`var_os`/`envf`/`envf32`/`switch`/`knob`: a second
+    reading of the code, line by line and not by the parser above, that the
+    list must cover."""
     names = {}
     for top in ("quack-nav", "quack-duck", "maploc"):
         for dp, dn, fn in os.walk(os.path.join(ROOT, top)):
@@ -233,6 +251,9 @@ def raw_names():
                         names.setdefault(m.group(1), f"{rel}:{n}")
                     for m in re.finditer(r'(?:env::qk|env_switch)\(\s*"([A-Z0-9_]+)"', code):
                         names.setdefault("QK_" + m.group(1), f"{rel}:{n}")
+                    for m in re.finditer(r'(?:env::var_os|env::var|\benvf32|\benvf|\bswitch|\bknob)\(\s*"([A-Z][A-Z0-9_]+)"', code):
+                        if m.group(1) not in SKIP:
+                            names.setdefault(m.group(1), f"{rel}:{n}")
     return names
 
 

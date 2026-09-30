@@ -128,16 +128,7 @@ impl Job {
         if walk_s <= 0.0 || vx <= 0.0 {
             return None;
         }
-        // A passage leg holds the axis between a wall and a rim and is
-        // judged by the sensor with the body's own lane; the books' margin
-        // shrinks to the flank plus a little, or the 0.44 m passage's
-        // axis (0.22 from its rim points) is refused by the books alone.
-        let margin = if leg.get("passage").is_some() || leg.get("gap").and_then(Value::as_bool).unwrap_or(false) {
-            PASSAGE_DROP_PATH_MARGIN_M
-        } else {
-            DROP_PATH_MARGIN_M
-        };
-        self.drop_on_motion_margin(pose, vx, vyaw, walk_s, margin)
+        self.drop_on_motion_margin(pose, vx, vyaw, walk_s, DROP_PATH_MARGIN_M)
     }
 
     /// Every drop the sensor has on record, put on the books at the pose

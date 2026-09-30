@@ -176,12 +176,6 @@ const BIG_FRONTIER_CELLS: usize = 20;
 const SLIVER_PATIENCE: u32 = 12;
 const SLIVER_GROWTH_CELLS: usize = 30;
 
-
-
-
-
-
-
 /// The leg planner's knobs. Each is the measured default; the environment
 /// can override one for a measurement run (`QK_<NAME>`), which is how the
 /// automatic search on the paper twin explores them. Read at every call
@@ -202,26 +196,12 @@ fn gap_max_m() -> f64 {
     *V.get_or_init(|| knob("QK_GAP_MAX_M", GAP_MAX_M))
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
 const SLIVER_PENALTY: f64 = 1.5;
 /// Obstacles the sensor reports within this much of the line the duck
 /// would walk are in the way: half the body plus a little (the mapping
 /// step uses the same lane). A ±23° cone blocked doorways from half a
 /// metre away, their posts being inside it.
 const LANE_HALF_M: f64 = 0.16;
-
-
 
 /// A heading counts as open floor only with at least this much known free
 /// floor along it.
@@ -1133,8 +1113,9 @@ pub struct Job {
     /// Whether a drop may go on the books now: the pose trusted, the duck
     /// on its feet, no fall pending confirmation. Set each turn.
     drops_bookable: bool,
-    /// Turns in place refused beside a drop in a row (the kick refused,
-    /// no way back) without a leg between (see `TURNS_REFUSED_SEAL`).
+    /// Turns in place refused beside a drop (the kick refused, no way
+    /// back), counted over the session: never reset, it only numbers the
+    /// log line (`in_a_row`, the key kept for the logs already written).
     turns_refused_at_drop: u32,
     /// The arrival stand was taken once (see `GOAL_FIT_M`).
     goal_confirmed: bool,
@@ -1168,9 +1149,6 @@ pub struct Job {
     distrust: u32,
 }
 
-
-
-
 fn stand(robot: &mut dyn Body, stop_s: f64) -> Result<Value, String> {
     robot.step(&json!({"walk_s": 0, "stop_s": stop_s}))
 }
@@ -1186,7 +1164,6 @@ fn wrap(a: f64) -> f64 {
 fn round2(v: f64) -> f64 {
     (v * 100.0).round() / 100.0
 }
-
 
 mod books;
 mod fit;
