@@ -841,6 +841,7 @@ impl Mapper {
                 saved,
                 origin: None,
                 chord: 0.0,
+                starts: None,
                 next_ask: None,
                 prev: None,
                 agreed: 0,
@@ -1054,10 +1055,18 @@ impl Mapper {
         {
             let mut ignored = Vec::new();
             shadow.fresh.observe(t_s, sample, &mut ignored);
+            let starts = *shadow.starts.get_or_insert((shadow.fresh.slam().tracked(), self.slam.tracked()));
             if let Some(found) = shadow.ask(t_s, notes) {
                 // Where the duck stands on the saved map now: the fit
-                // carries the shadow's frame onto it.
-                let pose = compose(found, shadow.fresh.slam().tracked());
+                // carries the shadow's frame onto it, and odometry since the
+                // shadow began carries its start to here. Not the shadow's
+                // own pose at the end of its walk: a map drawn down a
+                // corridor stretches along it, and the apartment's duck,
+                // seeded where its stretched map put it, 0.35 m off along
+                // the corridor, was confirmed 0.50 m off by windows that
+                // cannot see along it (x17, 2026-09-30).
+                let (fresh0, main0) = starts;
+                let pose = compose(found, compose(fresh0, between(main0, self.slam.tracked())));
                 self.soft_seed = Some((pose, self.slam.tracked()));
                 self.seed_agreed = 0;
                 self.seed_from_map = true;
@@ -1352,6 +1361,11 @@ impl Mapper {
                         let unique = self.seed_from_map
                             || !self.resumed_from_session
                             || self.unique_at(&mut grid, composite, pose) == Some(true);
+                        // The valley test is not asked of the shadow's seed
+                        // either: kept, it refused a right seed 3 cm off in
+                        // casa_arredata and did not stop the apartment's
+                        // wrong confirmation of x17, which the windows' own
+                        // search made too (2026-09-30).
                         let unique = unique && (self.seed_from_map || !(self.resumed_from_session || self.after_fall) || {
                             let probe = composite.decimated(self.cfg.relocalize_max_beams);
                             !self.valley_blocks(&mut grid, &probe, pose, now, notes)
@@ -2914,6 +2928,10 @@ struct Shadow {
     /// confirm without leaving the spot (`a_wake_up_walks_before_it_believes`).
     origin: Option<Pose2>,
     chord: f32,
+    /// The shadow's pose and the lost mapper's (odometry's) when the
+    /// shadow saw its first sample: the seed is carried from there by
+    /// odometry, not by the shadow's own tracking.
+    starts: Option<(Pose2, Pose2)>,
     next_ask: Option<f32>,
     /// The last passing answer: its fit and the shadow's wall cells then.
     prev: Option<(Pose2, usize)>,
