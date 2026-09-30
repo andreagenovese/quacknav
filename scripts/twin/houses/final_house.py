@@ -177,6 +177,9 @@ say(f"{name}: drop book {n}: rim {real}, near {near}, phantom {len(phantom)} {ph
 new_arr, new_t, new_n, new_falls = 0, [], 0, 0
 for rnd in range(1, rounds + 1):
     sp = boot(WIPE="on", MAPLOC_MODE="stop_and_scan", HOMECOMING="on", RESUME="on", EXPLORE_S=str(int(session_s)))
+    if sp is None:
+        say(f"{name} round {rnd}: the twin did not come up; the round is skipped")
+        continue
     v, t, err = home()
     time.sleep(15)
     exploring = call("robot.map_status").get("explore", {}).get("state") == "running"
@@ -192,9 +195,19 @@ main_arr, main_t, main_n, main_falls = 0, [], 0, 0
 json.dump(book_after_explore, open(f"{state}/ground.json", "w"))
 shutil.rmtree(f"{state}/maps", ignore_errors=True); shutil.copytree(f"{out}/maps-after-explore", f"{state}/maps")
 T_new = T
-T = os.environ.get("AB_REPO", f"{S}/wt-main") + "/scripts/twin"
-for rnd in range(1, rounds + 1):
+AB = os.environ.get("AB_REPO", f"{S}/wt-main")
+T = AB + "/scripts/twin"
+# The checkout to compare with must be whole and built, or its rounds are
+# not run at all: a gutted one failed every boot and the rounds reported
+# the round before's log (x19, 2026-09-30).
+missing = [p for p in (f"{T}/twin.sh", f"{T}/detach.py", f"{T}/call.py", f"{AB}/target/release/quack-navd") if not os.path.exists(p)]
+if missing and rounds:
+    say(f"{name}: main rounds skipped — {AB} is not a built checkout (missing {', '.join(os.path.relpath(p, AB) for p in missing)})")
+for rnd in range(1, rounds + 1 if not missing else 1):
     sp = boot(WIPE="on", MAPLOC_MODE="localize", HOMECOMING="on")
+    if sp is None:
+        say(f"{name} main round {rnd}: the twin did not come up; the round is skipped")
+        continue
     t0 = time.time(); v = "timeout"
     while time.time() - t0 < 900:
         if "pose is confirmed" in navlog(): v = "confirmed"; break

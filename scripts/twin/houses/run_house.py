@@ -47,6 +47,10 @@ def twin(cmd, **env):
 
 def boot(**env):
     twin("down"); time.sleep(4)
+    # A boot that fails must not be read through the last one's log: a
+    # main round once "confirmed in 0 s" on the round before's (x19).
+    if os.path.exists(f"{state}/navd.log"):
+        os.remove(f"{state}/navd.log")
     r = twin("up", **env)
     if r.returncode != 0:
         say("  twin up failed:", r.stderr.strip()[-300:])
