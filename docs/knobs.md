@@ -50,7 +50,8 @@ The knobs once named `QUACKSAT_*` are `QK_*` since 2026-09-30.
 | `MAPLOC_HYP_LEAD` | number (default 3) | `maploc/src/mapper.rs` | How many hits the leading hypothesis must have over the runner-up before it is nominated. |
 | `MAPLOC_HYP_TRAVEL` | number (default 1.0) | `maploc/src/mapper.rs` | How far the body must have got from where it first saw a hypothesis before the hypothesis can be believed — the chord, not the path. |
 | `MAPLOC_LOCAL_AFTER_BOOT` | on unless 0 | `maploc/src/mapper.rs` | `MAPLOC_LOCAL_AFTER_BOOT=0`: every loss on a resumed map searches the whole map with every hypothesis, as before 2026-09-28. |
-| `MAPLOC_LOOP_CAP_YAW` | number (default 0.45) | `maploc/src/loop_closer.rs` | `MAPLOC_LOOP_CAP_YAW` overrides it, for measuring on the twin. |
+| `MAPLOC_LOOP_CAP_YAW` | number (default 0.07) | `maploc/src/loop_closer.rs` | `MAPLOC_LOOP_CAP_YAW` overrides it, for measuring on the twin. |
+| `MAPLOC_LOOP_DEBUG` | on only if 1 | `maploc/src/loop_closer.rs` | `MAPLOC_LOOP_DEBUG=1`: one line per accepted closure on stderr — the submaps, the correction it asks for, the match's residual and beams, the witnesses' spread — to tell the closures that turn a map wrong. |
 | `MAPLOC_MIRROR_COLS` | on only if 1 | `maploc/examples/evaluate.rs` | MAPLOC_MIRROR_COLS=1 replays every frame with its columns reversed. |
 | `MAPLOC_MULTI_HYP` | on unless 0 | `maploc/src/mapper.rs` | `MAPLOC_MULTI_HYP=0` turns the multi-hypothesis boot search off, for measuring against the single-best agreement it replaces. |
 | `MAPLOC_RAW` | set = on (any value) | `maploc/examples/replay.rs` |  |

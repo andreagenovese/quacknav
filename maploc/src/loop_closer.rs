@@ -133,13 +133,16 @@ impl Default for LoopCloserConfig {
             max_correction_base_rad: 0.05,
             max_correction_per_submap_rad: 0.03,
             // `MAPLOC_LOOP_CAP_YAW` overrides it, for measuring on the twin.
-            // At 0.04 (2.3°) it was tried and is not proven (2026-09-29):
-            // of 930 loops on the twin those above 2.3° left the pose worse
-            // 30 times in 45, and one of 6.5° turned casa_arredata's kitchen
-            // 3.9°; but an exploration with it had 16 loops where one
-            // without had 68, and its pose error doubled (0.067 -> 0.133 m
-            // median), while house2's did not move. To be measured alone.
-            max_correction_cap_rad: std::env::var("MAPLOC_LOOP_CAP_YAW").ok().and_then(|v| v.parse().ok()).unwrap_or(0.45),
+            // 0.07 rad (4°) since 2026-09-30. Single closures asked for
+            // 16–21° while the pose's heading was right to 2° (dense truth,
+            // x17–x19), and the graph, diluting them, still bent the heading
+            // 4–9° when enough came together. Twenty replayed sessions of
+            // three runs, by cap: 0.45 0.0946 m ATE RMS mean, 0.15 0.0939,
+            // 0.10 0.0905, 0.07 0.0891 (8 sessions better, 2 worse, the
+            // worst excursion 0.36 -> 0.28 m, heading RMS 2.40° -> 2.21°),
+            // 0.05 0.0911, 0.04 0.0898. An earlier live try at 0.04
+            // (2026-09-29) was confounded with other changes.
+            max_correction_cap_rad: std::env::var("MAPLOC_LOOP_CAP_YAW").ok().and_then(|v| v.parse().ok()).unwrap_or(0.07),
             verbose: false,
         }
     }
@@ -355,6 +358,16 @@ pub fn detect_loops(
             continue;
         }
 
+        if loop_debug() {
+            let spread_yaw = anchors.iter().map(|a| wrap_pi(a.2 - myaw).abs()).fold(0.0_f32, f32::max);
+            let spread_m = anchors.iter().map(|a| ((a.0 - mx).powi(2) + (a.1 - my).powi(2)).sqrt()).fold(0.0_f32, f32::max);
+            eprintln!(
+                "[loop] {older_idx}->{new_idx} gap {gap:.0} corr {corr_xy:.3} m {:+.2}° resid {worst_residual:.3} beams {min_beams} witnesses {} spread {spread_m:.3} m {:.2}°",
+                wrap_pi(measurement.2 - z_pred.2).to_degrees(),
+                anchors.len(),
+                spread_yaw.to_degrees()
+            );
+        }
         out.push(LoopClosure {
             from_idx: older_idx,
             to_idx: new_idx,
@@ -634,4 +647,12 @@ mod tests {
                  got {loops:?}"
         );
     }
+}
+
+/// `MAPLOC_LOOP_DEBUG=1`: one line per accepted closure on stderr — the
+/// submaps, the correction it asks for, the match's residual and beams,
+/// the witnesses' spread — to tell the closures that turn a map wrong.
+fn loop_debug() -> bool {
+    static V: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *V.get_or_init(|| std::env::var("MAPLOC_LOOP_DEBUG").is_ok_and(|v| v == "1"))
 }
