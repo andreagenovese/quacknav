@@ -255,6 +255,26 @@ unchanged.
   of such zones proposes no drop. The apartment's duck with its head over
   the bed's blanket read 0–1 cm in all 64 zones and had booked 18 phantom
   holes on the bed (x16).
+- **A new house, casa_grande, for the whole stack** (d60e067, 9016e8c):
+  9 x 7 m, seven rooms, a corridor 1.2 m wide that turns 90°, furniture
+  with 0.6 m or more around it, two low things (7 and 25 cm), a
+  stairwell and a sunken corner, and nothing that blocks (every goal
+  joins every other with 0.35 m of clearance; `gen.py ... casa_grande`).
+  Never used to tune anything; on the twin, with all of the above: four
+  exploration sessions and two rounds of journeys, 16/16 arrived (median
+  84 s), 0 falls; the wake bench from its eight goals 8/8 right, median
+  84 s (72–111), 2–16 cm; the map's walls 99 % on the truth, 95 % of the
+  true floor known, the rooms 93–98 %, 0 phantom drops.
+- **A session that has been everywhere it can finds the house mapped**
+  (fec3863). Frontier cells are always left on a furnished map (the band
+  of uncertain cells along every wall and piece of furniture), and the
+  unknown left sums to the furniture's footprint and the holes (10.3 m²
+  in casa_grande): its last sessions ended "stuck" and the house was
+  never done. Now what decides is the largest unknown piece touching
+  known floor — 1.0–3.9 m² on the finished maps of three houses, 5.5–7.3
+  on first sessions still exploring: no frontier within reach and no
+  piece of 4.5 m² or more, and the house is mapped.
+
 - **Tried and left off.** Loop closures' heading sigma at 0.5 rad: better
   on 8 replayed sessions, worse on 4 more; back to 0.24
   (`MAPLOC_LOOP_SIGMA_YAW`). maploc's parameters are judged on 12

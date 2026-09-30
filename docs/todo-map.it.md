@@ -3984,6 +3984,13 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       registrate le velocità dei giunti della testa (record di odometria
       da 69 byte), `maploc/examples/head_motion.rs`: una testa che gira non
       costa quasi niente alla mappa.
+- [x] 2026-09-30: casa_grande (`gen.py ... casa_grande`), 9 x 7 m, un
+      corridoio che gira di 90°, due buche, niente che blocchi: 16/16
+      viaggi, 8/8 risvegli (mediana 84 s), 0 cadute, muri al 99 %, 0
+      fantasmi.
+- [x] 2026-09-30: la fine di una sessione sul pezzo di ignoto più grande
+      (< 4.5 m² senza frontiere raggiungibili: la casa è mappata), non
+      sulle celle di frontiera che una mappa arredata tiene sempre.
 - [ ] Perché alcune chiusure di loop misurano male l'angolo (x13: 5° di
       errore, la posa dal vivo 35 cm fuori, σ 0.08 m); si misura con la
       verità fitta (`LOOP_LOG`, `POSEERR_DT=0.5`). Sigma d'angolo del loop

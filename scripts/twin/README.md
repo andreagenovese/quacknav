@@ -100,7 +100,7 @@ off; `MAPLOC_SHADOW_EVERY_S` (30) and `MAPLOC_SHADOW_ASKS` (2) set it.
 
 | file | what it is |
 |---|---|
-| `gen.py <robot dir> <out>` | writes casa_libera and casa_arredata: the MuJoCo scenes (into microduck_rl's robot directory), maploc's truth (`.toml`), the paper twin's world (`.world.json`) and the holes, rooms and goals (`.truth.json`) |
+| `gen.py <robot dir> <out> [house ...]` | writes the houses named (casa_libera and casa_arredata by default; casa_grande too, 9 x 7 m, a corridor turning 90°, nothing that blocks): the MuJoCo scenes (into microduck_rl's robot directory), maploc's truth (`.toml`), the paper twin's world (`.world.json`) and the holes, rooms and goals (`.truth.json`) |
 | `final_house.py <name> <scene> <state> <port> <truth> <out> [session_s] [sessions] [rounds]` | the release protocol on one house: progressive exploration from nothing, "exploration complete" if the duck has not finished, three restarts with a go_to tour on the frozen map, and the same on `main`'s build (`AB_REPO`, a worktree of main with its release built). `ROUNDS_ONLY=1` starts at the tours, from the map and book the exploration left in `<out>` |
 | `aggregate.py` | the tables of `docs/results.md` from the protocol's outputs |
 | `modes_test.py` | resume, "how far along", complete, the frozen map after a restart, a fresh map replacing the old one only when it saves |

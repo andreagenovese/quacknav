@@ -110,6 +110,10 @@ breve:
   180°): 23 su 24 giuste, nessuna sbagliata, nessuna caduta; mediane di
   87–105 s, e 105–123 s girate (174–192 s e 126–135 s prima della mappa
   ombra).
+- **Una casa mai usata per mettere a punto nulla** (casa_grande,
+  2026-09-30: sette ambienti, un corridoio che gira di 90°, due buche):
+  16/16 viaggi, 8/8 risvegli (mediana 84 s), nessuna caduta, muri al 99 %
+  sulla verità.
 - **La tromba delle scale**: il passaggio accanto a un buco, largo
   0,54 m, camminato con le guardie accese quando la posa sta entro
   10 cm — e perché a decidere è la posa, non le regole (lo scan matcher

@@ -264,6 +264,26 @@ cambiano.
   zone così non propone nessun drop. La papera dell'apartment, con la testa
   sopra la coperta del letto, leggeva 0–1 cm in tutte le 64 zone e aveva
   registrato 18 buchi fantasma sul letto (x16).
+- **Una casa nuova, casa_grande, per tutto lo stack** (d60e067, 9016e8c):
+  9 x 7 m, sette ambienti, un corridoio largo 1.2 m che gira di 90°, mobili
+  con 0.6 m o più attorno, due oggetti bassi (7 e 25 cm), una tromba delle
+  scale e un angolo ribassato, e niente che blocchi (ogni meta si collega a
+  ogni altra con 0.35 m di margine; `gen.py ... casa_grande`). Mai usata per
+  mettere a punto nulla; sul gemello, con tutto quanto sopra: quattro
+  sessioni di esplorazione e due giri di viaggi, 16/16 arrivati (mediana
+  84 s), 0 cadute; il banco dei risvegli dalle sue otto mete 8/8 giusti,
+  mediana 84 s (72–111), 2–16 cm; i muri della mappa al 99 % sulla verità,
+  il 95 % del pavimento vero noto, le stanze al 93–98 %, 0 buchi fantasma.
+- **Una sessione che è stata ovunque può trova la casa mappata** (fec3863).
+  Su una mappa arredata restano sempre celle di frontiera (la fascia di celle
+  incerte lungo ogni muro e ogni mobile), e l'ignoto rimasto somma
+  l'impronta dei mobili e le buche (10.3 m² in casa_grande): le sue ultime
+  sessioni finivano "stuck" e la casa non risultava mai fatta. Ora decide il
+  pezzo di ignoto più grande che tocca pavimento noto — 1.0–3.9 m² sulle
+  mappe finite di tre case, 5.5–7.3 nelle prime sessioni ancora in
+  esplorazione: nessuna frontiera raggiungibile e nessun pezzo da 4.5 m² o
+  più, e la casa è mappata.
+
 - **Provati e lasciati spenti.** La sigma d'angolo delle chiusure di loop a
   0.5 rad: meglio su 8 sessioni rigiocate, peggio su altre 4; tornata a
   0.24 (`MAPLOC_LOOP_SIGMA_YAW`). D'ora in poi i parametri di maploc si

@@ -102,7 +102,7 @@ Copia inglese canonica: `README.md`.
 
 | file | cos'è |
 |---|---|
-| `gen.py <robot dir> <out>` | scrive casa_libera e casa_arredata: le scene MuJoCo (nella cartella robot di microduck_rl), la verità di maploc (`.toml`), il mondo del gemello di carta (`.world.json`) e buche, stanze e mete (`.truth.json`) |
+| `gen.py <robot dir> <out> [casa ...]` | scrive le case indicate (casa_libera e casa_arredata di default; anche casa_grande, 9 x 7 m, un corridoio che gira di 90°, niente che blocchi): le scene MuJoCo (nella cartella robot di microduck_rl), la verità di maploc (`.toml`), il mondo del gemello di carta (`.world.json`) e buche, stanze e mete (`.truth.json`) |
 | `final_house.py <nome> <scena> <state> <porta> <truth> <out> [session_s] [sessioni] [giri]` | il protocollo di release su una casa: esplorazione progressiva da zero, "esplorazione completata" se la papera non ha finito, tre riavvii con un giro di go_to sulla mappa congelata, e lo stesso con la build di `main` (`AB_REPO`, un worktree di main con la sua release compilata). `ROUNDS_ONLY=1` parte dai giri, dalla mappa e dal libro lasciati dall'esplorazione in `<out>` |
 | `aggregate.py` | le tabelle di `docs/results.it.md` dagli output del protocollo |
 | `modes_test.py` | ripresa, "a che punto sei", completata, la mappa congelata dopo un riavvio, una mappa nuova che sostituisce la vecchia solo quando salva |

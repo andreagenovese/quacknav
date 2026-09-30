@@ -3728,6 +3728,12 @@ nothing: it explores and asks.
       joint velocities recorded (69-byte odometry records),
       `maploc/examples/head_motion.rs`: a turning head costs the map next
       to nothing.
+- [x] 2026-09-30: casa_grande (`gen.py ... casa_grande`), 9 x 7 m, a
+      corridor turning 90°, two holes, nothing that blocks: 16/16
+      journeys, 8/8 wakes (median 84 s), 0 falls, walls 99 %, 0 phantoms.
+- [x] 2026-09-30: a session's end on the largest unknown piece (< 4.5
+      m² with no frontier in reach: the house is mapped), not on the
+      frontier cells a furnished map always keeps.
 - [ ] Why some loop closures mis-measure the heading (x13: 5° wrong, the
       live pose 35 cm off, σ 0.08 m); being measured with dense truth
       (`LOOP_LOG`, `POSEERR_DT=0.5`). Loop heading sigma 0.5 tried and

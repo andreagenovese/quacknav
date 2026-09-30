@@ -104,6 +104,9 @@ shape of it:
   12 spawns across two houses, then the same turned 180°): 23 of 24
   right, none wrong, no fall; medians 87–105 s, and 105–123 s turned
   (174–192 s and 126–135 s before the shadow map).
+- **A house never used to tune anything** (casa_grande, 2026-09-30:
+  seven rooms, a corridor turning 90°, two holes): 16/16 journeys, 8/8
+  wakes (median 84 s), no fall, walls 99 % on the truth.
 - **The stairwell**: the passage beside a hole, 0.54 m wide, walked
   with the guards on when the pose is within 10 cm — and why it is the
   pose, not the rules, that decides (the scan matcher lags 8–10 cm
