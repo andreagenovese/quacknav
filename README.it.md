@@ -17,6 +17,8 @@ migliaia di volte all'ora, così una regola si misura prima di crederci.
 Progetto indipendente, non affiliato a Pollen Robotics. Apache-2.0.
 Separato da [quacksat](https://github.com/andreagenovese/quacksat) il
 2026-09-22 (ADR 0006), con la storia di ogni misura che l'ha fatto.
+quacksat ora è solo il front end vocale: inoltra i comandi a voce
+dell'utente agli strumenti di quack-nav e non fa navigazione.
 
 > **Un esperimento — da prendere con le pinze.** Tutto quello che c'è qui
 > ha girato solo sul gemello MuJoCo e su quello di carta, mai su una
@@ -200,8 +202,11 @@ del settore.
   e i recuperi in un behavior tree. Qui: Dijkstra, un filo teso, gambe a
   stop-and-go, e recuperi sparsi nell'esploratore. Il libro dei drop è uno
   strato di costmap in tutto tranne che nel nome.
-- **Test.** 152 test (`#[test]`, 2026-09-30); il comportamento si verifica solo con giri
-  di ore, non deterministici, sul gemello. Il gemello di carta non gira in CI.
+- **Test.** 152 test (`#[test]`, 2026-09-30). Il gemello di carta gira in CI
+  come soglia su semi fissi (esplorazione 40 × 1200 s, `go_to` 30;
+  `.github/workflows/ci.yml`, `scripts/ci/paper_twin_gate.py`); oltre a
+  quello, il comportamento si verifica con giri di ore, non deterministici,
+  sul gemello MuJoCo.
 - **Solo simulazione.** Il sensore, il pavimento e il passo veri sposteranno
   molti dei numeri.
 
@@ -217,7 +222,8 @@ il comportamento e dargli le forme del settore:
 4. la confidenza della posa come misura (la matrice dell'informazione della
    scan match), non un sì o un no;
 5. il gemello di carta in CI, con i criteri di release di `docs/results.md`
-   come soglia;
+   come soglia (la soglia gira; le sue barre sono numeri a semi fissi, non
+   quei criteri);
 6. la papera fisica.
 
 ## Stato

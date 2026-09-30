@@ -18,6 +18,32 @@ innesca chiusura dei loop e ottimizzazione del grafo. Ne esce una
 griglia ternaria più una posa, una volta al secondo, verso chi si è
 sottoscritto. La telecamera non c'entra.
 
+**Stato al 2026-09-30.** Quel che segue è il disegno di prima: maploc
+dentro robotd, come lo aveva la PR 127. Dal 2026-09-23 (ADR 0007)
+`maploc` è vendorizzato in questo repo e ospitato in `quack-navd`
+(`quack-nav/src/mapd/`) contro il robotd rilasciato, non modificato: la
+struttura per tick arriva da `robot.subscribe` (ogni tick, 50 Hz) e i
+frame da `tof.stream`, appaiati coi loro timestamp; `moving` e `sitting`
+sono ricostruiti dall'etichetta del passo; lo sweep della testa è
+`robot.head` da fuori; `[maploc]` sta in `quack-nav.toml`, la sessione in
+`/var/lib/quack-nav/maploc.session`, e `robot.map` con la libreria
+(`robot.map_save|list|load|match|adopt`) risponde su
+`/run/quack-nav/map.sock`. Cambiato da allora, inoltre:
+
+- un `map.pose` leggero (posa, tracking, seated, sigma) ogni 50 ms tra i
+  `map.frame` a ~1 Hz, così la posa si legge a 20 Hz (e92aa14);
+- il `.mdlg` v2 porta il `t_ns` di robotd in ogni record di odometria
+  (53 B; i 45 B si leggono ancora) e il `t_ns` del frame in ogni record
+  ToF, e il bench appaia la testa come dal vivo (f38b341);
+- l'accumulatore tiene 3 m, non 2 (`maploc/src/accumulator.rs`);
+- un mapper ripreso perso su una mappa salvata tiene una mappa ombra del
+  suo cammino e chiede ogni 30 s dove sta in quella salvata (10f5a22,
+  2247634, 9c37473);
+- il salto di una rilocalizzazione non si porta più via la posa col
+  congelamento che provoca (7e2825b);
+- pianificatore e follower, qui dormienti, non si usano: quack-nav
+  pianifica e segue da sé (`explore/navigate.rs`, `robot.go_to`).
+
 ## 1. Cosa entra in robotd
 
 | Sorgente | Percorso | Frequenza | Contenuto usato da maploc |
@@ -175,7 +201,7 @@ byte per byte.
 
 | Uscita | Percorso | Cadenza | Contenuto |
 |---|---|---|---|
-| notifiche `map.frame` | sottoscrittori di `robot.map` su `/run/robotd.sock`, buffer broadcast 4 | 1 Hz, solo mentre qualcuno è sottoscritto | `seq`, posa `x, y, yaw` nel frame mappa, `tracking`, origine `x_min, y_min`, `cell_m` (0,05), `rows × cols`, `cells` base64 (0 ignota, 1 libera, 2 muro: log-odds > 150 muro, < −50 libera), `n_submaps`, `n_loops`, `windows`, `still`, `seated` |
+| notifiche `map.frame` | sottoscrittori di `robot.map` su `/run/robotd.sock`, buffer broadcast 4 | 1 Hz, solo mentre qualcuno è sottoscritto (dal 2026-09-29 in quack-navd: più un `map.pose` ogni 50 ms) | `seq`, posa `x, y, yaw` nel frame mappa, `tracking`, origine `x_min, y_min`, `cell_m` (0,05), `rows × cols`, `cells` base64 (0 ignota, 1 libera, 2 muro: log-odds > 150 muro, < −50 libera), `n_submaps`, `n_loops`, `windows`, `still`, `seated` |
 | override dello yaw della testa | il loop di controllo legge `Host::searching()` | ogni tick in piedi, se `search_sweep` e (in ricerca **oppure** modalità stop-and-scan) | onda triangolare ±0,9 rad su 6 s solo sullo yaw della testa — un cono di 45° diventa un composito di ~150°. **È l'arco di retroazione che rende ciclico il flusso**: lo stato del mapper muove la testa, la testa muove il sensore, il sensore alimenta il mapper |
 | file di sessione | `map_path` | autosalvataggio ogni 60 s se sporca, allo shutdown, allo smontaggio da panic | submap + pose graph + posa tracciata, scrittura atomica |
 | registrazione `.mdlg` | `record_dir/<unix time>.mdlg` | continua mentre attiva | tutto ciò che il mapper ha consumato |
@@ -198,12 +224,17 @@ sguardo) esiste in main indipendentemente.
 | chiusura della finestra di sosta | a fine sosta o 3 s |
 | sweep della testa | 6 s per triangolo |
 | congelamento submap | 8 s (se mosso ≥ 15 cm) o 0,8 m percorsi |
-| pubblicazione mappa | 1 s |
+| pubblicazione mappa | 1 s (quack-navd: posa ogni 50 ms, e92aa14) |
 | log di stato | 5 s |
 | autosalvataggio sessione | 60 s |
 | ricerca di rilocalizzazione | "qualche centinaio di ms" una tantum su griglia 4×4 m |
 
-## 9. Cosa significa per quacksat
+## 9. Cosa significa per il client (2026-09-04)
+
+Scritto quando il client era quacksat, che allora portava la
+navigazione. Dall'ADR 0006 (2026-09-22) il client è `quack-navd`;
+quacksat si limita a inoltrare i comandi a voce dell'utente ai tool di
+quack-nav.
 
 - **Consumiamo un solo stream.** Sottoscrivere `robot.map`, tenere il
   `map.frame` più recente, decodificare la griglia base64 solo quando
@@ -230,3 +261,4 @@ sguardo) esiste in main indipendentemente.
 - **Niente con cui navigare, ancora.** `go_to` aspetta un RPC di goal
   che cabli pianificatore e follower; la griglia grezza è sul filo se
   mai volessimo pianificare da soli, ma l'ADR 0005 dice di no.
+  (Superato: quack-nav pianifica da sé su quella griglia, `robot.go_to`.)

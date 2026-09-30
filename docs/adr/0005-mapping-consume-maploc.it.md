@@ -1,6 +1,6 @@
 # ADR 0005: Mappa e localizzazione — consumare il maploc di robotd
 
-- Stato: accettata; emendata dall'ADR 0007 (2026-09-23: il mapper è ospitato in quack-navd, con il robotd ufficiale)
+- Stato: accettata; emendata dall'ADR 0006 (2026-09-22: la navigazione è un demone a sé, quack-navd) e dall'ADR 0007 (2026-09-23: il mapper è ospitato in quack-navd, con il robotd ufficiale)
 - Data: 2026-09-04
 - Input: `docs/todo-map.md` (versione del 2026-08-31, ora superata), PR
   upstream 127 "Maploc: mapping & localization as a robotd-hosted
@@ -113,3 +113,16 @@ non lascia mai il server locale.
 - Il server GPU, la pipeline di registrazione e la valutazione dei
   modelli SLAM del piano precedente escono dalla roadmap. Se la fase 4
   partirà mai, avrà il suo ADR.
+
+## Aggiunta del 2026-09-30
+
+Dove questo ADR dice quacksat, intende la navigazione com'era allora,
+dentro quacksat. Dall'ADR 0006 il registro dei luoghi, `where_am_i`, i
+tool dei luoghi, `go_to` e le sessioni di mappatura sono di `quack-navd`;
+quacksat è il front end vocale e inoltra i comandi a voce dell'utente ai
+tool di quack-nav. Dall'ADR 0007 `maploc` gira in `quack-navd`, non in
+robotd, quindi il "compito di robotd" del §1 era il disegno di prima. Il
+§3 non ha aspettato: pianificatore e follower girano in quack-nav
+(`robot.go_to`, `explore/navigate.rs`), e la rilocalizzazione all'avvio è
+l'homecoming di questo repo (`quack-nav/src/homecoming/`), non un RPC
+upstream.

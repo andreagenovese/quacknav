@@ -1,5 +1,13 @@
 # maploc — audit delle perdite di posa (2026-09-06)
 
+**Stato al 2026-09-30.** Lasciato come misurato. Le modifiche di
+`maploc-study` (tolleranza stretta, correzione del tracking) sono nel
+`maploc` vendorizzato in questo repo e ospitato in `quack-navd` (ADR
+0007), non più un robotd ricompilato; il bench rigioca registrazioni
+`.mdlg` v2 con i timestamp e appaia la testa come dal vivo (f38b341), e il
+salto di una rilocalizzazione non si porta più via la posa col
+congelamento che provoca (7e2825b).
+
 Complemento di `maploc-dataflow.it.md` (cosa entra ed esce dal worker).
 Questa nota risponde a due domande sollevate dai run sul twin: *cosa fa
 davvero maploc con la posa* e *perché la perde*. Tutto è stato misurato

@@ -82,7 +82,9 @@ The work lives on the branch `phase-2` until a step is measured better.
 (2026-09-30: `phase-2`'s work, steps 0 and 1, is on `main`. The shadow
 map of 2026-09-29 — a lost duck's map of its walk, asked map-to-map where
 it fits in the saved one, no particle filter — is a step toward step 4's
-global relocalization, not the MCL itself.)
+global relocalization, not the MCL itself. The relocalization jump fix of
+2026-09-30, 7e2825b, is measured in ATE: 20 replayed sessions,
+mean ATE 0.1045 -> 0.0975 m.)
 docs/results.md gains ATE and RPE columns from step 0 on, so every later
 step reports in the numbers other systems publish. `map_status` gains
 the pose's uncertainty with step 1, and the homecoming, the resume and

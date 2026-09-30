@@ -11,6 +11,14 @@ Supersedes the 2026-08-31 version of this file, which assumed an
 off-board visual SLAM on a GPU server. That track is demoted to an
 optional last phase; see ADR 0005 for why.
 
+Status 2026-09-30: built, and not inside robotd. maploc is vendored in
+this repo and runs inside quack-navd (`mapd`, ADR 0007), which serves
+`robot.map` and the map library. Until 2026-09-22 the navigation lived
+in quacksat (`quacksat-core`), so entries before that date say quacksat
+for what is now quack-nav (ADR 0006). Since then quacksat is the voice
+front end only: it relays the user's spoken commands to quack-nav's
+tools and does no navigation.
+
 ## What upstream provides (or will)
 
 - `maploc/` subcrate hosted by robotd (PR 127): 2D submap SLAM on the
@@ -152,7 +160,7 @@ optional last phase; see ADR 0005 for why.
       pose ~4 cm from truth at the return, 0.035 m mean wall error; the
       live `map.frame` stream was read from a plain socket client).
 
-## 1. quacksat consumes the map
+## 1. quacksat consumes the map (until 2026-09-22; quack-nav since)
 
 **How we measure (adopted 2026-09-08).** A single MuJoCo run cannot tell
 ten points of coverage from noise: across runs 70–77 the same explorer
@@ -173,8 +181,11 @@ report zero falls before anything is called an improvement.
       (2026-09-04: `quacksat-core/src/map.rs`, `[map]` config, wired in
       the binary, `map_watch` example; both paths checked live against
       the MuJoCo twin and a main-branch `robotd --fake`).
-- [ ] `robotd --fake` support: check whether the fake serves `robot.map`;
+- [x] `robotd --fake` support: check whether the fake serves `robot.map`;
       if not, a fixture that replays a recorded frame sequence.
+      Obsolete (2026-09-30): the map is served by quack-navd's `mapd`
+      now, not by robotd (ADR 0007); the benches replay `.mdlg`
+      recordings instead.
 - [x] Detect "map frame changed" (wipe, restore failure, relocalization
       after a session reset) and invalidate anything anchored to it
       (2026-09-04: `MapStatus::epoch`, bumped on a `seq` regression or
@@ -346,7 +357,7 @@ report zero falls before anything is called an improvement.
       0.15 m inflation are in the human's range. Data under
       `private/drives/`.
 
-- [ ] Map memory and relocalization on our side (2026-09-05, user's ask):
+- [x] Map memory and relocalization on our side (2026-09-05, user's ask):
       even before Pollen wires boot relocalization, the duck should not
       lose its map and its place names at every power cycle. To study:
       what `robot.map` exposes that could be saved (the grid and pose are
@@ -356,7 +367,11 @@ report zero falls before anything is called an improvement.
       last grid, match the fresh map against it (2D scan-to-map or
       grid-to-grid alignment) once a few submaps exist, and re-anchor the
       places registry to the new frame. Talk to upstream first.
-- [ ] Iteration after the human drive (2026-09-05, on trial in run 39):
+      Done (2026-09-30): maploc runs inside quack-navd (`mapd`, ADR
+      0007); the library is `robot.map_save/list/load/match`
+      (`quack-nav/src/tools.rs`, `mapd/server.rs`) and the boot
+      relocalization is `quack-nav/src/homecoming/`.
+- [x] Iteration after the human drive (2026-09-05, on trial in run 39):
       (1) the frontier is the target, the *standing point* is 0.5 m
       short of it along the path (`Frontier::stand`) — a frontier sits by
       definition against walls and furniture, walking onto it put the
@@ -446,6 +461,8 @@ report zero falls before anything is called an improvement.
       it and the wall impassable, and a drop edge on the books had a
       0.45 m radius — 0.6 m with inflation — sealing the same passage on
       the map; now 0.20 m (user's observation, run 56).
+      Done (2026-09-30): kept — `Frontier::stand` in
+      `quack-nav/src/frontier.rs`.
 - [x] The paper twin (2026-09-06, user's idea): `quacksat-core/examples/
       paper_twin.rs` runs the real explorer (`explore.rs`, `frontier.rs`,
       `tools::plan_step` — the guards of `map_step`, now a pure function)
@@ -523,7 +540,7 @@ report zero falls before anything is called an improvement.
       flat 12). Default now: clear again after a metre (`REARM_DIST_M`;
       `QUACKSAT_REFUSED_REARM` 0/1 for measuring). MuJoCo's doorway
       stalls ("no room ahead" at the posts) remain the open cost.
-- [ ] Doorway exits (2026-09-07 night, open). The trail now outlives a
+- [x] Doorway exits (2026-09-07 night, open). The trail now outlives a
       job like the drops do (the second segment of a run inherits it).
       The obvious fix for the doorway spins — turn toward the aim instead
       of the configured hand when there is no room — lost on the paper
@@ -539,6 +556,11 @@ report zero falls before anything is called an improvement.
       to test there: when spins alternate sign with no leg between, take
       the planned path's first cells as the heading (they are free by the
       map) and allow a shorter leg (0.6 s) through a sensed gap.
+      Obsolete (2026-09-30): the spins came from turns that began with a
+      walking kick; since b8cebfe the duck turns in place above the
+      gait's dead band (1.5 rad/s). `QUACKSAT_TURN_AIM` is gone;
+      `QUACKSAT_GUARD_ARC_FULL` remains as a knob
+      (`quack-duck/src/body.rs`).
 - [x] The trail as evidence for the guards, the arc's true advance, the
       turn in place in tight quarters (2026-09-07 late night, all measured
       on the full flat with phantoms, thirty seeds, ninety minutes; base
@@ -845,7 +867,7 @@ report zero falls before anything is called an improvement.
       Routes anchored to places, not to coordinates, and verified while
       walked with the map-versus-sensor check: maploc's pose is what it
       is, and the session resets at boot.
-- [ ] A map library and boot relocalization (2026-09-07, user's
+- [x] A map library and boot relocalization (2026-09-07, user's
       direction): several saved maps; at boot the duck sweeps (panorama,
       a full turn if needed), tries each map with the global search under
       the uniqueness and agreement gates, takes the one confident match,
@@ -857,6 +879,9 @@ report zero falls before anything is called an improvement.
       starts elsewhere (the kidnap test). Caveats: the 8×8 ToF's signature
       of a room is poor (the uniqueness gate is the defence); the session
       is schema-less bincode, so saved maps die with a format bump.
+      Done (2026-09-30), on our side rather than upstream: the library
+      in `quack-nav/src/mapd/server.rs`, the boot search and adoption in
+      `quack-nav/src/homecoming/mod.rs` + `search.rs`.
 - [x] The three calls exist, on the local branches (2026-09-09).
       `robot.map_save <name>` copies the live map into a `maps/` directory
       beside the working session; `robot.map_list` says what is there,
@@ -963,7 +988,7 @@ report zero falls before anything is called an improvement.
       0.51–0.79 when right, 0.96–0.99 when wrong — a wrong winner is
       indistinguishable from its own second choice, which is what not
       recognising a place actually looks like.
-- [ ] Acceptance must be ABSOLUTE, never "the best of the library"
+- [x] Acceptance must be ABSOLUTE, never "the best of the library"
       (2026-09-09, user's point): the duck may be in a house that is in no
       map it holds, so the question has to have "none of these" as an
       answer. A map is adopted because it clears a bar of its own; the
@@ -973,6 +998,9 @@ report zero falls before anything is called an improvement.
       be in neither; none → stay on the fresh map and keep exploring,
       which is the ordinary case the first time it is switched on
       anywhere.
+      Done (2026-09-30): a map is adopted on its own bar — overlap ≥
+      0.5, margin ≤ 0.5, three agreeing asks — and a near tie is refused
+      (`quack-nav/src/homecoming/mod.rs`, 3b5d4df).
 - [x] Measured with the overlap instrument, both houses, live
       (2026-09-09, night). Thirteen asks in flat A against flat A's saved
       map: 0.107–0.138, every one naming the right place. Fourteen asks in
@@ -993,12 +1021,15 @@ report zero falls before anything is called an improvement.
       an old map with its own drift baked in and `flat_b` was built the
       same evening. A better map is recognised better — the two goals are
       one goal.
-- [ ] Still to measure with the overlap instrument: both dry series
+- [x] Still to measure with the overlap instrument: both dry series
       re-run live (does the score stay flat as the map grows?), flat B
       with BOTH maps in the library (the right answer is flat_b alone),
       and a third house — the duck in C with A and B in the library must
       say none. Then the bar, from the distributions.
-- [ ] Next, and measured before deciding: `[homecoming] dry_run = true`
+      Done (2026-09-30): `maploc/examples/wake_match.rs`, 27 replayed
+      wakes: 626 of 655 right answers pass the bar, none from the other
+      house (3b5d4df).
+- [x] Next, and measured before deciding: `[homecoming] dry_run = true`
       asks every two minutes and writes down what it *would* have done,
       so a run yields the whole series instead of stopping at its first
       mistake. Two series to collect — flat B against flat A's map, and
@@ -1008,6 +1039,9 @@ report zero falls before anything is called an improvement.
       three asks instead of two, or the winner having to beat the
       runner-up across maps. Also owed: the dock case measured live, and
       the places registry carried across a swap by the same transform.
+      Done (2026-09-30): `dry_run` in `HomecomingConfig`
+      (`quack-nav/src/config.rs`); the rule chosen from the
+      distributions (3b5d4df); the dock case measured live (b95f961).
 
 - [ ] A window cannot form while the pose is suspect (2026-09-10, found
       while building the travel bench). After `robot.map_adopt`, standing
@@ -1828,7 +1862,7 @@ nothing: it explores and asks.
       rooms are the evidence), and the next map for a wake-up bench is
       taken after a tour that enters every room.
 
-- [ ] velstand, main's walk since policy set v5, measured against alpha
+- [x] velstand, main's walk since policy set v5, measured against alpha
       (2026-09-14, after the merge; the user's rule for the day: gait
       probes in a big empty room, or the probe measures the furniture).
       Upstream's `velstand.onnx` is one network that walks on a twist and
@@ -1908,8 +1942,9 @@ nothing: it explores and asks.
       robotd fix — that one is right whichever network walks. Alpha
       remains the gait; revisit when upstream gives velstand a way up
       (a stand-up skill, or `limp_fall` with a standing target).
+      Done (2026-09-30): measured, 9309af2.
 
-- [ ] Walk before believing (2026-09-14, evening). Three pieces, then a
+- [x] Walk before believing (2026-09-14, evening). Three pieces, then a
       round of six wake-ups against round three.
       **The mapper** (`9e54857`): a hypothesis' travel is the chord from
       where it was first seen, not the path — a duck turning on the spot
@@ -2006,6 +2041,8 @@ nothing: it explores and asks.
       that covers every room. Kept on: chord travel (1.0 m), the
       confirmation chord (0.5 m), the lead margin (harmless, not the
       lever), turns-then-legs with back-off and turn-away.
+      Done (2026-09-30): the rounds of wake-ups ran (bc91d4a and the
+      commits after it).
 
 - [x] The journeys without the phantom (2026-09-15, 00:30 — the user's
       order: re-measure exploration and go_to first, then the wake-up
@@ -2233,7 +2270,7 @@ nothing: it explores and asks.
       refusal turns to the freer side, not to the aim. Next after the
       map: simulate every leg before walking it (as in the passage), and
       turn toward the aim.
-- [ ] Two of the user's questions, answered from the code (2026-09-15).
+- [x] Two of the user's questions, answered from the code (2026-09-15).
       **"If the pose is off, Dijkstra plans through a wall — what does the
       duck do when the route does not match reality?"** Every leg is
       judged by the sensor, whatever the map says, so a leg into a real
@@ -2264,6 +2301,10 @@ nothing: it explores and asks.
       Also fixed on the way: the explorer answered the passage law's
       "turn in place" refusal with a step back — twenty in a row (grow5);
       now it turns as told (`dfd78ad`).
+      Done (2026-09-30) except the camera: the middle level exists —
+      `route_contradicted` / `ROUTE_CHECK_M`
+      (`quack-nav/src/explore/guarded.rs`, called from
+      `explore/mod.rs`). The camera stays open for the real hardware.
 - [x] The fresh session that fell in the stairwell (fresh1, 2026-09-15
       afternoon: first look 600 s, then the living-room door + 600 s, then
       the bathroom door). Clean map — 1316 wall cells, median 0 cm, worst
@@ -2602,7 +2643,7 @@ nothing: it explores and asks.
       it), pose 8 cm, the book untouched. The guarded journey through
       the stairwell's side still fails (rim2/rim3: 421 s and 447 s
       legs) — the guards-vs-stairwell knot of the 16th, untouched today.
-- [ ] A DRIVE MODE, as a feature (2026-09-17, the user's: "the human
+- [x] A DRIVE MODE, as a feature (2026-09-17, the user's: "the human
       drive is nearly perfect; this mode must exist"). Today it is a
       private script (`drivesetup.sh`) and the shadow recorder, and the
       books came from guarded sessions afterwards. Wanted in quacksat:
@@ -2611,7 +2652,10 @@ nothing: it explores and asks.
       its stands, the guard as a safety net that refuses the step into
       the hole even when the human asks for it — and the map is saved
       with its book at the end. What the tour of 2026-09-16 did by hand.
-- [ ] The stairwell knot, 2026-09-17/18 — where it stands. Done and kept:
+      Done (2026-09-30): `map_explore` with `{"watch": true}` — somebody
+      else drives, the duck only books what it sees at each stop
+      (`quack-nav/src/tools.rs`, a9f46e4).
+- [x] The stairwell knot, 2026-09-17/18 — where it stands. Done and kept:
       the wall as the guide (hug on by default, the axis the wall's own
       line from the map, the route on the wall's side with 0.25 of a rim
       point); a refused kick makes room first, and nothing blind or
@@ -2638,6 +2682,9 @@ nothing: it explores and asks.
       full from the start, as house2 is), then the seal measured there
       and on MuJoCo; the blind journeys are untouched by all this
       (house3tour 6/6, 499 s).
+      Obsolete (2026-09-30): superseded by the trusted floor below; the
+      stairwell point closed in docs/study/baseline-twin.md ("point 2
+      closed", tag baseline-twin-2026-09-21).
 - [x] Walking straight by taps — measured, the formula recorded, kept
       off (2026-09-18, the user's: "if it pulls right, brief taps to the
       left, and it straightens"). `straightprobe.py`/`straightrun.sh`
@@ -2662,7 +2709,7 @@ nothing: it explores and asks.
       a wall and walk a narrow corridor straight, as the user asked, the
       legs would have to be long ones with the hold on — an experiment
       for the passage law (one 3 s held leg instead of two of 1.5 s).
-- [ ] The stairwell knot, the 18th, evening and night: probe D done
+- [x] The stairwell knot, the 18th, evening and night: probe D done
       (alignment ±30° → +0.4…+5.5° turning right, −8…−13° turning left,
       inside the 11° tolerance — to tighten to ~7° for left turns); the
       held 3 s passage leg is in (`QK_PASSAGE_HELD`) and untested on
@@ -2691,7 +2738,9 @@ nothing: it explores and asks.
       same code and failed), then change ONE thing at a time on the
       bench first — the alignment's cost (70 s a failure) and the axis
       bias into the wall are the two named faults.
-- [ ] rim7 replayed (2026-09-18 midday): its exact configuration
+      Obsolete (2026-09-30): as above — trusted floor; baseline-twin
+      point 2 closed (tag baseline-twin-2026-09-21).
+- [x] rim7 replayed (2026-09-18 midday): its exact configuration
       (`QUACKSAT_PASSAGE_HUG=0 QK_ALIGN_KICK=0 QK_PASSAGE_HELD=0
       QK_PASSAGE_CLIFF_MARGIN_M=0.15 QK_SEAL=0`, and the planner's drop
       radius 0.12 by `QK_DROP_PLAN_RADIUS_M`) five more times on MuJoCo,
@@ -2706,7 +2755,9 @@ nothing: it explores and asks.
       by the seal (rim14: the route through the kitchen, budget 600 s
       to finish it), and the drive mode to write the books. The passage
       stays open as a study, not a task: `queue-rim7.sh` replays it.
-- [ ] TRUSTED FLOOR — the user's idea (2026-09-18 afternoon): "in
+      Obsolete (2026-09-30): as above — trusted floor; baseline-twin
+      point 2 closed (tag baseline-twin-2026-09-21).
+- [x] TRUSTED FLOOR — the user's idea (2026-09-18 afternoon): "in
       exploration, plan with Dijkstra to the farthest known point and
       follow the route as the blind journeys do; if it works it applies
       everywhere". Measured on the bench before anything (thirty runs,
@@ -2734,6 +2785,9 @@ nothing: it explores and asks.
       gating on the paper twin, thirty runs, falls the veto; then MuJoCo
       on a fresh house from the corridor, against explmap1 (46 min,
       the south corridor at 22 min).
+      Done (2026-09-30): built, see the next item —
+      `quack-nav/src/explore/trusted.rs` (6e702e9 in the satellite's
+      history, 766814a here).
 - [x] TRUSTED FLOOR, built and measured (2026-09-18 afternoon/evening,
       commits 6e702e9, e889ffc, 091a7f4). `explore/trusted.rs`: 5 cm
       cells the body walked (0.10 around the trail) or a stand's frames
@@ -3196,7 +3250,7 @@ nothing: it explores and asks.
       remains: from that spot the search still stalls about half the
       time — it turns in place among "boxed in" verdicts of 0.10–0.44 m
       without making chord, and only maploc's own gates can end it.
-- [ ] The boot search, two asks (2026-09-16 evening, the user's): (1) in
+- [x] The boot search, two asks (2026-09-16 evening, the user's): (1) in
       Localize the "no confirmation → fresh map and explore" fallback is
       meaningless (nothing can ink; "not sure of its position yet" and it
       stands there — fast2's first boot, 12 refusals in the 0.4 m
@@ -3213,6 +3267,11 @@ nothing: it explores and asks.
       things under the ToF's wedge and things beside the body go unseen;
       to look at whether the search should walk with the explorer's
       books and the sensor's obstacle rays, not only its refusals.
+      Done (2026-09-30), (1) and (2): on a frozen map the search goes on
+      instead of a fresh map (`quack-nav/src/homecoming/mod.rs`); the
+      search's leg goes where the guard saw the most room and a bearing
+      back over its own trail counts as short (`homecoming/search.rs`).
+      (3) not addressed.
 - [ ] What the floor-scrubbers do that we could (2026-09-10, the user's
       question — why do they map a whole floor without a millimetre of
       error?). Most of the answer is that they play another game: a
@@ -3293,7 +3352,7 @@ nothing: it explores and asks.
       recording at the same range: flat C 29.3 % → 14.4 %, flat A 13.4 % →
       1.9 % and 14.2 % → 8.0 %, flat B 13.2 % → 5.4 % — four of four, with
       doubled walls in flat C falling from 20.6 % to 0.5 %.
-- [ ] **The accumulator keeps only the nearest two metres**
+- [x] **The accumulator keeps only the nearest two metres**
       (`AccumulatorConfig::max_range_m` = 2.0, "the sensor's noise past
       here costs more than the coverage buys"). The sensor reaches four.
       That is why the far half of an open room is never inked, and why
@@ -3308,8 +3367,13 @@ nothing: it explores and asks.
       two metres to gain and only the noise to lose. Promising, not
       decided: it wants repeats, and it wants the real sensor's noise at
       three metres, which is upstream's number and not the twin's.
+      Done (2026-09-30): 3 m is the default
+      (`maploc/src/accumulator.rs`, `max_range_m` 3.0);
+      `MAPLOC_MAX_RANGE` overrides it, and 2.5 m replayed over 18
+      recordings (93.1 % on against 91.7 %, noisy) did not change it
+      (ec23fb5).
 
-- [ ] A walking policy that can turn on the spot (2026-09-11, from the
+- [x] A walking policy that can turn on the spot (2026-09-11, from the
       user: uduckmoves.com, a community registry of Microduck policies,
       Apache-2.0, 18 moves, 8 with a hardware claim). Two facts first: the
       registry's "Alpha Dynamic Walk" has the same SHA256 as the
@@ -3344,6 +3408,9 @@ nothing: it explores and asks.
       spin-in-place branch stops being a last resort. And the caveat that
       travels with everything from this registry: none of the Genesis
       policies has ever walked on a physical duck.
+      Obsolete (2026-09-30): the official policy turns in place above
+      its dead band — 50–60°/s at ±1.5 rad/s, the body within 4 cm
+      (b8cebfe).
 
 - [x] The policy that pivots loses anyway (2026-09-11). A full 25-minute
       mapping run in flat A with each gait, same code, same house:
@@ -3489,7 +3556,7 @@ nothing: it explores and asks.
       the CPU cost rises 50–70 %; and disowning the worst loop edge
       (`OptimizerConfig::reject_sigmas`, now in the optimizer) helps a
       little everywhere — 21.6 → 18.7, 1.2 → 0.9 — and ships off.
-- [ ] **So the fix belongs in the walking, not in the solver**: make the
+- [x] **So the fix belongs in the walking, not in the solver**: make the
       duck close loops on purpose. It already knows where it has been (the
       trail), and `go_to` can take it there. Every few minutes, break off
       exploring, return to a well-mapped place, stand, and resume — the
@@ -3497,6 +3564,8 @@ nothing: it explores and asks.
       terms. That is the next thing to build, and the instrument to judge
       it by is the tally above: a run that re-anchors should show more
       closures and less spread, not just a better mean.
+      Done (2026-09-30): re-anchoring, the duck sent back to close a
+      loop (2da3acd); no revisit starts beside a drop (4898d26).
 
 - [x] Re-anchoring built and measured, and the theory behind it refuted
       (2026-09-11, `explore.rs`). Every three minutes the explorer breaks
@@ -3529,11 +3598,14 @@ nothing: it explores and asks.
       its consequences — the pose against the truth, second by second,
       which the twin can give and we have never plotted.
       The gentle parameters are what ships.
-- [ ] Follow upstream for a `robot.goto`-style RPC (planner + follower
+- [x] Follow upstream for a `robot.goto`-style RPC (planner + follower
       exist in the crate, not wired). If nothing appears by December,
       propose it as a PR on the Pollen repo with the duck in hand.
-- [ ] `go_to(place)` tool on top of it: plan, follow, report arrival or
+      Obsolete (2026-09-30): duplicate of §3, already ticked — `go_to`
+      is ours, in quack-nav.
+- [x] `go_to(place)` tool on top of it: plan, follow, report arrival or
       failure; the ToF avoidance in M9 is upstream's job, not ours.
+      Obsolete (2026-09-30): duplicate of §3, already ticked.
 - [ ] `look_at` via the existing `robot.look`.
 
 - [x] **The drift itself, at last** (2026-09-11 evening,
@@ -3696,7 +3768,11 @@ nothing: it explores and asks.
 - [ ] The valley test refuses right poses 92 % of the time (84 of 91,
       replayed): step 4 must keep its 7 catches (all one alias in
       casa_arredata) and let the rest through.
-- [ ] Step 2: layered costmap and Regulated Pure Pursuit.
+- [x] Step 2: layered costmap and Regulated Pure Pursuit.
+      Tried and not adopted (2026-09-30): the layered costmap (e7b8e07)
+      lost on MuJoCo and the linear band is the default again (7488321),
+      then removed (e26fa4a); Regulated Pure Pursuit measured behind
+      `QK_RPP` (ba8d6f9) and reverted (e5e7aaa).
 - [x] 2026-09-28: the homecoming split in two, the decision
       (`homecoming/mod.rs`) and the boot search (`search.rs`).
 - [x] 2026-09-28: `scripts/twin/houses/wake_bench.py`, wake-ups from spots

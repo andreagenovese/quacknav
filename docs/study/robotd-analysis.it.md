@@ -1,5 +1,12 @@
 # robotd — analisi approfondita (robotd-design.md, draft 2026-08-20)
 
+**Stato al 2026-09-30.** Un'analisi della bozza di design, lasciata com'è.
+La navigazione gira contro il robotd rilasciato, non modificato (`main`
+fissato a daemon-v0.14.4, API 34; daemon-v0.15.0, API 37, validato sul
+gemello solo sul branch `microduck-015`). robotd non ospita `maploc`: è
+vendorizzato in questo repo e gira in `quack-navd`, un client di robotd
+come gli altri (ADR 0006, ADR 0007).
+
 Hardware v1: solo variante alpha, solo board Radxa (RK3566), solo scheda
 `imu_to_dxl` v2. Il modo "roller" (ruote) non è una variante hardware ma un
 preset: `policy.mode = "roller"` seleziona policy e tuning.

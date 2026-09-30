@@ -11,6 +11,14 @@ Sostituisce la versione del 2026-08-31 di questo file, che assumeva uno
 SLAM visivo fuori bordo su server GPU. Quella pista è retrocessa a fase
 finale opzionale; il perché è nell'ADR 0005.
 
+Stato al 2026-09-30: costruito, e non dentro robotd. maploc è incluso in
+questo repo e gira dentro quack-navd (`mapd`, ADR 0007), che serve
+`robot.map` e la libreria di mappe. Fino al 2026-09-22 la navigazione
+stava in quacksat (`quacksat-core`), quindi le voci prima di quella data
+dicono quacksat per ciò che oggi è quack-nav (ADR 0006). Da allora
+quacksat è solo il front end vocale: inoltra i comandi a voce
+dell'utente agli strumenti di quack-nav e non fa navigazione.
+
 ## Cosa fornisce (o fornirà) upstream
 
 - Sottocrate `maploc/` ospitato da robotd (PR 127): SLAM 2D a submap sul
@@ -165,7 +173,7 @@ finale opzionale; il perché è nell'ADR 0005.
       ritorno, 0,035 m di errore medio sui muri; lo stream `map.frame` dal
       vivo letto da un semplice client socket).
 
-## 1. quacksat consuma la mappa
+## 1. quacksat consuma la mappa (fino al 2026-09-22; poi quack-nav)
 
 **Come misuriamo (adottato il 2026-09-08).** Un singolo run MuJoCo non
 distingue dieci punti di copertura dal rumore: nei run 70–77 lo stesso
@@ -188,9 +196,12 @@ riportare zero cadute prima di chiamare qualcosa un miglioramento.
       cablato nel binario, esempio `map_watch`; entrambi i percorsi
       verificati dal vivo contro il gemello MuJoCo e un `robotd --fake`
       di main).
-- [ ] Supporto `robotd --fake`: verificare se il finto serve `robot.map`;
+- [x] Supporto `robotd --fake`: verificare se il finto serve `robot.map`;
       altrimenti una fixture che riproduce una sequenza di frame
       registrata.
+      Obsoleto (2026-09-30): la mappa ora la serve `mapd` in quack-navd,
+      non robotd (ADR 0007); i banchi riproducono le registrazioni
+      `.mdlg`.
 - [x] Rilevare "il frame mappa è cambiato" (wipe, ripristino fallito,
       rilocalizzazione dopo un reset di sessione) e invalidare tutto ciò
       che vi è ancorato (2026-09-04: `MapStatus::epoch`, incrementato su
@@ -381,7 +392,7 @@ riportare zero cadute prima di chiamare qualcosa un miglioramento.
       frontale di 0,25 e il gonfiaggio di 0,15 sono nel suo intervallo.
       Dati in `private/drives/`.
 
-- [ ] Memoria della mappa e rilocalizzazione dalla nostra parte
+- [x] Memoria della mappa e rilocalizzazione dalla nostra parte
       (2026-09-05, richiesta dell'utente): anche prima che Pollen cabli la
       rilocalizzazione all'avvio, la papera non deve perdere mappa e nomi
       dei luoghi a ogni accensione. Da studiare: cosa espone `robot.map`
@@ -393,7 +404,11 @@ riportare zero cadute prima di chiamare qualcosa un miglioramento.
       griglia-su-griglia in 2D) appena esistono alcune sottomappe, e
       riancorare il registro dei luoghi al nuovo riferimento. Prima
       parlarne con upstream.
-- [ ] Iterazione dopo il giro umano (2026-09-05, in prova nella corsa
+      Fatto (2026-09-30): maploc gira dentro quack-navd (`mapd`, ADR
+      0007); la libreria è `robot.map_save/list/load/match`
+      (`quack-nav/src/tools.rs`, `mapd/server.rs`) e la rilocalizzazione
+      al boot è `quack-nav/src/homecoming/`.
+- [x] Iterazione dopo il giro umano (2026-09-05, in prova nella corsa
       39): (1) la frontiera è il bersaglio, il *punto di sosta* sta 0,5 m
       prima lungo il percorso (`Frontier::stand`) — una frontiera sta per
       definizione contro muri e mobili, andarci sopra metteva il becco
@@ -490,6 +505,8 @@ riportare zero cadute prima di chiamare qualcosa un miglioramento.
       di dislivello registrato aveva raggio 0,45 m — 0,6 col gonfiaggio —
       che sigillava lo stesso passaggio sulla mappa; ora 0,20 m
       (osservazione dell'utente, corsa 56).
+      Fatto (2026-09-30): tenuto — `Frontier::stand` in
+      `quack-nav/src/frontier.rs`.
 - [x] Il gemello di carta (2026-09-06, idea dell'utente):
       `quacksat-core/examples/paper_twin.rs` fa girare l'esploratore vero
       (`explore.rs`, `frontier.rs`, `tools::plan_step` — i guardiani di
@@ -575,7 +592,7 @@ riportare zero cadute prima di chiamare qualcosa un miglioramento.
       `QUACKSAT_REFUSED_REARM` 0/1 per misurare). Gli stalli sulle porte di
       MuJoCo ("nessuno spazio davanti" sugli stipiti) restano il costo
       aperto.
-- [ ] Uscite dalle porte (notte del 2026-09-07, aperto). La scia ora
+- [x] Uscite dalle porte (notte del 2026-09-07, aperto). La scia ora
       sopravvive al lavoro come i drop (la seconda tranche di un run la
       eredita). La correzione ovvia per i giri sulla porta — girare verso
       la meta invece che verso la mano quando non c'è spazio — ha perso
@@ -593,6 +610,11 @@ riportare zero cadute prima di chiamare qualcosa un miglioramento.
       prime celle del percorso pianificato (libere per la mappa) e
       permettere una tappa più corta (0,6 s) attraverso un varco visto dal
       sensore.
+      Obsoleto (2026-09-30): le giravolte venivano da svolte che
+      cominciavano con un calcio camminando; da b8cebfe l'anatra gira
+      sul posto oltre la banda morta dell'andatura (1.5 rad/s).
+      `QUACKSAT_TURN_AIM` non c'è più; `QUACKSAT_GUARD_ARC_FULL` resta
+      come manopola (`quack-duck/src/body.rs`).
 - [x] La scia come prova per le guardie, l'avanzamento vero dell'arco, il
       giro sul posto negli spazi stretti (notte del 2026-09-07, tutto
       misurato sulla casa completa con i fantasmi, trenta semi, novanta
@@ -926,7 +948,7 @@ riportare zero cadute prima di chiamare qualcosa un miglioramento.
       entrambi. Tratte ancorate ai luoghi, non alle coordinate, e
       verificate mentre si percorrono con il controllo mappa/sensore: la
       posa di maploc è quella che è, e la sessione si azzera al boot.
-- [ ] Libreria di mappe e rilocalizzazione al boot (2026-09-07,
+- [x] Libreria di mappe e rilocalizzazione al boot (2026-09-07,
       indicazione dell'utente): più mappe salvate; al boot la papera fa
       il panorama (un giro intero se serve), prova ogni mappa con la
       ricerca globale sotto le guardie di unicità e accordo, prende
@@ -940,6 +962,9 @@ riportare zero cadute prima di chiamare qualcosa un miglioramento.
       Cautele: la firma di una stanza col ToF 8×8 è povera (la guardia di
       unicità è la difesa); la sessione è bincode senza schema, le mappe
       salvate muoiono a ogni cambio di formato.
+      Fatto (2026-09-30), dalla nostra parte e non upstream: la libreria
+      in `quack-nav/src/mapd/server.rs`, la ricerca al boot e l'adozione
+      in `quack-nav/src/homecoming/mod.rs` + `search.rs`.
 - [x] Le tre chiamate esistono, sui rami locali (2026-09-09).
       `robot.map_save <nome>` copia la mappa viva in una cartella `maps/`
       accanto alla sessione di lavoro; `robot.map_list` dice cosa c'è, con
@@ -1053,7 +1078,7 @@ riportare zero cadute prima di chiamare qualcosa un miglioramento.
       0,96–0,99 quando è sbagliato — un vincitore falso non si distingue
       dalla propria seconda scelta, che è esattamente l'aspetto che ha il
       non riconoscere un posto.
-- [ ] L'accettazione dev'essere ASSOLUTA, mai "la migliore della
+- [x] L'accettazione dev'essere ASSOLUTA, mai "la migliore della
       libreria" (2026-09-09, osservazione dell'utente): l'anatra può
       trovarsi in una casa che non è in nessuna mappa che possiede,
       quindi la domanda deve avere "nessuna di queste" fra le risposte.
@@ -1064,6 +1089,10 @@ riportare zero cadute prima di chiamare qualcosa un miglioramento.
       né l'una né l'altra; nessuna → resta sulla mappa fresca e continua
       a esplorare, che è il caso ordinario la prima volta che viene
       accesa da qualche parte.
+      Fatto (2026-09-30): una mappa si adotta sulla propria soglia —
+      sovrapposizione ≥ 0.5, margine ≤ 0.5, tre richieste concordi — e
+      un quasi pareggio si rifiuta (`quack-nav/src/homecoming/mod.rs`,
+      3b5d4df).
 - [x] Misurato con lo strumento della sovrapposizione, in tutte e due le
       case, dal vivo (2026-09-09, notte). Tredici domande in casa A contro
       la mappa salvata di A: 0,107–0,138, tutte col posto giusto.
@@ -1085,13 +1114,16 @@ riportare zero cadute prima di chiamare qualcosa un miglioramento.
       vecchia e ha la propria deriva dentro mentre `flat_b` è stata
       costruita la stessa sera. Una mappa migliore si riconosce meglio —
       i due obiettivi sono lo stesso obiettivo.
-- [ ] Da misurare ancora con lo strumento della sovrapposizione: le due
+- [x] Da misurare ancora con lo strumento della sovrapposizione: le due
       serie a vuoto rifatte dal vivo (il punteggio resta piatto mentre la
       mappa cresce?), casa B con ENTRAMBE le mappe in libreria (la
       risposta giusta è solo `flat_b`), e una terza casa — l'anatra in C
       con A e B in libreria deve dire nessuna. Poi la barra, dalle
       distribuzioni.
-- [ ] Prossimo, e misurato prima di decidere: `[homecoming] dry_run =
+      Fatto (2026-09-30): `maploc/examples/wake_match.rs`, 27 risvegli
+      in replay: 626 risposte giuste su 655 passano la soglia, nessuna
+      dall'altra casa (3b5d4df).
+- [x] Prossimo, e misurato prima di decidere: `[homecoming] dry_run =
       true` chiede ogni due minuti e mette a verbale ciò che *avrebbe*
       fatto, così un giro dà tutta la serie invece di fermarsi al primo
       errore. Due serie da raccogliere — casa B contro la mappa di A, e
@@ -1102,6 +1134,9 @@ riportare zero cadute prima di chiamare qualcosa un miglioramento.
       secondo fra mappe diverse. Restano anche: il caso della base
       misurato dal vivo, e il registro dei luoghi portato oltre lo
       scambio con la stessa trasformazione.
+      Fatto (2026-09-30): `dry_run` in `HomecomingConfig`
+      (`quack-nav/src/config.rs`); la regola scelta dalle distribuzioni
+      (3b5d4df); il caso del dock misurato dal vivo (b95f961).
 
 - [ ] Una finestra non può formarsi mentre la posa è sospetta
       (2026-09-10, trovato costruendo il banco di velocità). Dopo
@@ -1978,7 +2013,7 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       (le altre quattro stanze sono la prova), e la prossima mappa per un
       banco di risvegli si prende dopo un giro che entra in ogni stanza.
 
-- [ ] velstand, l'andatura di main dal set di policy v5, misurata contro
+- [x] velstand, l'andatura di main dal set di policy v5, misurata contro
       alpha (2026-09-14, dopo il merge; la regola dell'utente per oggi:
       le tarature si fanno in una stanza grande e vuota, altrimenti la
       prova misura i mobili). `velstand.onnx` di upstream è una rete sola
@@ -2063,8 +2098,9 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       resta l'andatura; da rivedere quando upstream darà a velstand un
       modo di rialzarsi (una skill di rialzo, o `limp_fall` con un
       bersaglio di stazione).
+      Fatto (2026-09-30): misurato, 9309af2.
 
-- [ ] Camminare prima di credere (2026-09-14, sera). Tre pezzi, poi una
+- [x] Camminare prima di credere (2026-09-14, sera). Tre pezzi, poi una
       tornata di sei risvegli contro la tornata tre.
       **Il mapper** (`9e54857`): il "travel" di un'ipotesi è la corda da
       dove è stata vista la prima volta, non il percorso — una papera che
@@ -2170,6 +2206,8 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       in ogni stanza. Tenuti: corda (1,0 m), corda di conferma (0,5 m),
       margine di vantaggio (innocuo, non la leva), giri-poi-gambe con
       indietreggio e giro-via.
+      Fatto (2026-09-30): i giri di risvegli sono stati fatti (bc91d4a e
+      i commit che seguono).
 
 - [x] I viaggi senza il fantasma (2026-09-15, 00:30 — l'ordine
       dell'utente: prima rimisurare esplorazione e go_to, poi il risveglio
@@ -2409,7 +2447,7 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       un rifiuto gira verso il lato libero, non verso la mira. Dopo la
       mappa: simulare ogni gamba prima di farla (come nel passaggio), e
       girare verso la mira.
-- [ ] Due domande dell'utente, con risposta dal codice (2026-09-15).
+- [x] Due domande dell'utente, con risposta dal codice (2026-09-15).
       **"Se la posa è sbagliata, Dijkstra pianifica attraverso un muro —
       cosa fa la papera quando la rotta non coincide con la realtà?"**
       Ogni gamba è giudicata dal sensore, qualunque cosa dica la mappa,
@@ -2443,6 +2481,10 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       Corretto strada facendo: l'esploratore rispondeva al rifiuto "gira
       sul posto" della legge del passaggio con un passo indietro — venti
       di fila (grow5); ora gira come gli viene detto (`dfd78ad`).
+      Fatto (2026-09-30) tranne la camera: il livello intermedio esiste
+      — `route_contradicted` / `ROUTE_CHECK_M`
+      (`quack-nav/src/explore/guarded.rs`, chiamato da
+      `explore/mod.rs`). La camera resta aperta per l'hardware vero.
 - [x] La sessione fresca caduta nella tromba delle scale (fresh1,
       2026-09-15 pomeriggio: first look 600 s, poi porta del soggiorno +
       600 s, poi porta del bagno). Mappa pulita — 1316 celle muro, mediana
@@ -2796,7 +2838,7 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       Il viaggio con le guardie dal fianco della tromba fallisce ancora
       (rim2/rim3: gambe da 421 e 447 s) — il nodo guardie-vs-tromba del
       16, oggi non toccato.
-- [ ] Una MODALITÀ GUIDA, come funzione (2026-09-17, dell'utente: "il
+- [x] Una MODALITÀ GUIDA, come funzione (2026-09-17, dell'utente: "il
       giro umano è quasi perfetto; questa modalità deve esserci"). Oggi è
       uno script privato (`drivesetup.sh`) più il registratore ombra, e i
       libri sono venuti dopo, dalle sessioni con le guardie. Voluta in
@@ -2806,7 +2848,10 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       rifiuta il passo nel buco anche se lo chiede l'umano — e la mappa
       salvata col suo libro alla fine. Ciò che il giro del 2026-09-16 ha
       fatto a mano.
-- [ ] Il nodo della tromba, 2026-09-17/18 — dove sta. Fatto e tenuto: il
+      Fatto (2026-09-30): `map_explore` con `{"watch": true}` — guida
+      qualcun altro, l'anatra mette a libro solo ciò che vede a ogni
+      sosta (`quack-nav/src/tools.rs`, a9f46e4).
+- [x] Il nodo della tromba, 2026-09-17/18 — dove sta. Fatto e tenuto: il
       muro come guida (hug acceso di default, l'asse è la linea del muro
       dalla mappa, la rotta dal lato del muro con 0,25 da un punto del
       bordo); un calcio rifiutato prima fa spazio, e nulla di cieco o
@@ -2834,6 +2879,9 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       `--known` per il gemello di carta (mappa piena dall'inizio, come
       house2), poi il sigillo misurato lì e su MuJoCo; i viaggi ciechi non
       sono toccati da tutto questo (house3tour 6/6, 499 s).
+      Obsoleto (2026-09-30): superato dal pavimento fidato più sotto; il
+      punto della tromba è chiuso in docs/study/baseline-twin.md ("punto
+      2 chiuso", tag baseline-twin-2026-09-21).
 - [x] Camminare dritto a colpetti — misurato, formula registrata, tenuta
       spenta (2026-09-18, dell'utente: "se tira a destra colpetti a
       sinistra, brevissimi, e raddrizza"). `straightprobe.py`/
@@ -2859,7 +2907,7 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       corridoio stretto, come chiede l'utente, le gambe dovrebbero essere
       lunghe con la tenuta accesa — un esperimento per la legge del
       passaggio (una gamba tenuta da 3 s invece di due da 1,5).
-- [ ] Il nodo della tromba, il 18, sera e notte: sonda D fatta
+- [x] Il nodo della tromba, il 18, sera e notte: sonda D fatta
       (allineamento ±30° → +0,4…+5,5° girando a destra, −8…−13° a
       sinistra, dentro la tolleranza di 11° — da stringere a ~7° per la
       sinistra); la gamba tenuta da 3 s c'è (`QK_PASSAGE_HELD`) e su
@@ -2889,7 +2937,9 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       fallito), poi cambiare UNA cosa alla volta, prima sul banco — il
       costo dell'allineamento (70 s a fallimento) e l'asse spinto nel muro
       sono i due guasti con un nome.
-- [ ] rim7 riprodotta (2026-09-18, mezzogiorno): la sua configurazione
+      Obsoleto (2026-09-30): come sopra — pavimento fidato; punto 2 di
+      baseline-twin chiuso (tag baseline-twin-2026-09-21).
+- [x] rim7 riprodotta (2026-09-18, mezzogiorno): la sua configurazione
       esatta (`QUACKSAT_PASSAGE_HUG=0 QK_ALIGN_KICK=0 QK_PASSAGE_HELD=0
       QK_PASSAGE_CLIFF_MARGIN_M=0.15 QK_SEAL=0`, e il raggio del drop del
       pianificatore 0,12 con `QK_DROP_PLAN_RADIUS_M`) altre cinque volte su
@@ -2905,7 +2955,9 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       dalla cucina, budget 600 s per finirla), e la modalità guida per
       scrivere i libri. Il passaggio resta aperto come studio, non come
       compito: `queue-rim7.sh` lo ripete.
-- [ ] PAVIMENTO FIDATO — l'idea dell'utente (2026-09-18 pomeriggio): "in
+      Obsoleto (2026-09-30): come sopra — pavimento fidato; punto 2 di
+      baseline-twin chiuso (tag baseline-twin-2026-09-21).
+- [x] PAVIMENTO FIDATO — l'idea dell'utente (2026-09-18 pomeriggio): "in
       esplorazione usare Dijkstra verso il punto conosciuto più lontano e
       seguire il tragitto come nei giri ciechi; se funziona vale ovunque".
       Misurata sul banco prima di tutto (trenta prove, esplora poi il
@@ -2934,6 +2986,9 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       gemello di carta, trenta prove, cadute = veto; poi MuJoCo su una
       casa fresca dal corridoio, contro explmap1 (46 min, corridoio sud al
       22°).
+      Fatto (2026-09-30): costruito, vedi la voce seguente —
+      `quack-nav/src/explore/trusted.rs` (6e702e9 nella storia del
+      satellite, 766814a qui).
 - [x] PAVIMENTO FIDATO, costruito e misurato (2026-09-18 pomeriggio/sera,
       commit 6e702e9, e889ffc, 091a7f4). `explore/trusted.rs`: celle da
       5 cm percorse dal corpo (0,10 attorno alla scia) o giudicate
@@ -3415,7 +3470,7 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       ricerca si pianta ancora circa una volta su due — gira sul posto
       fra verdetti "chiusa" di 0,10–0,44 m senza fare corda, e solo i
       cancelli di maploc possono chiuderla.
-- [ ] La ricerca al boot, due richieste (sera del 2026-09-16, dell'utente):
+- [x] La ricerca al boot, due richieste (sera del 2026-09-16, dell'utente):
       (1) in Localize il ripiego "nessuna conferma → mappa fresca ed
       esplora" non ha senso (nulla può inchiostrare; "non è sicura della
       posizione" e resta lì — primo boot di fast2, 12 rifiuti nel corridoio
@@ -3433,6 +3488,12 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       restano invisibili; da vedere se la ricerca debba camminare con i
       libri dell'explorer e i raggi degli ostacoli del sensore, non solo
       con i suoi rifiuti.
+      Fatto (2026-09-30), (1) e (2): su una mappa congelata la ricerca
+      continua invece di una mappa nuova
+      (`quack-nav/src/homecoming/mod.rs`); la tappa della ricerca va
+      dove il guardiano ha visto più spazio e una direzione che torna
+      sulla propria scia conta come corta (`homecoming/search.rs`). (3)
+      non affrontato.
 - [ ] Cosa fanno i lavapavimenti che potremmo fare anche noi (2026-09-10,
       domanda dell'utente — perché mappano un piano intero senza sbagliare
       di un millimetro?). Gran parte della risposta è che giocano un altro
@@ -3518,7 +3579,7 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       casa C 29,3 % → 14,4 %, casa A 13,4 % → 1,9 % e 14,2 % → 8,0 %, casa
       B 13,2 % → 5,4 % — quattro su quattro, e i muri raddoppiati di casa C
       dal 20,6 % allo 0,5 %.
-- [ ] **L'accumulatore tiene solo i primi due metri**
+- [x] **L'accumulatore tiene solo i primi due metri**
       (`AccumulatorConfig::max_range_m` = 2.0, "il rumore del sensore oltre
       questo punto costa più di quanto la copertura renda"). Il sensore
       arriva a quattro. È il motivo per cui la metà lontana di una stanza
@@ -3534,8 +3595,12 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       Promettente, non decisa: vuole ripetizioni, e vuole il rumore del
       sensore vero a tre metri, che è un numero di upstream e non del
       gemello.
+      Fatto (2026-09-30): 3 m è il default (`maploc/src/accumulator.rs`,
+      `max_range_m` 3.0); `MAPLOC_MAX_RANGE` lo sovrascrive, e 2.5 m in
+      replay su 18 registrazioni (93.1 % contro 91.7 %, rumoroso) non
+      l'ha cambiato (ec23fb5).
 
-- [ ] Una politica di cammino che sa girare sul posto (2026-09-11, su
+- [x] Una politica di cammino che sa girare sul posto (2026-09-11, su
       segnalazione dell'utente: uduckmoves.com, un registro comunitario di
       politiche per il Microduck, Apache-2.0, 18 mosse, 8 con dichiarazione
       di prova su hardware). Due fatti prima di tutto: la "Alpha Dynamic
@@ -3573,6 +3638,9 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       l'ultima risorsa. Con l'avvertenza che accompagna tutto ciò che
       viene da quel registro: nessuna delle politiche Genesis ha mai
       camminato su un'anatra fisica.
+      Obsoleto (2026-09-30): la policy ufficiale gira sul posto oltre la
+      sua banda morta — 50–60°/s a ±1.5 rad/s, il corpo entro 4 cm
+      (b8cebfe).
 
 - [x] La politica che pernia perde lo stesso (2026-09-11). Un giro intero
       di mappatura da 25 minuti in casa A con ciascuna andatura, stesso
@@ -3728,7 +3796,7 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       peggiora e la CPU sale del 50–70 %; e rinnegare l'arco peggiore
       (`OptimizerConfig::reject_sigmas`, ora nell'ottimizzatore) aiuta un
       poco ovunque — 21,6 → 18,7, 1,2 → 0,9 — e va in produzione spento.
-- [ ] **Quindi il rimedio sta nel camminare, non nel risolutore**: far
+- [x] **Quindi il rimedio sta nel camminare, non nel risolutore**: far
       chiudere gli anelli all'anatra di proposito. Sa già dov'è stata (la
       scia), e `go_to` sa portarcela. Ogni pochi minuti interrompere
       l'esplorazione, tornare in un punto ben mappato, sostare, e
@@ -3737,6 +3805,9 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       costruire, e lo strumento per giudicarla è la tabella qui sopra: un
       giro che si riancora deve mostrare più chiusure e meno dispersione,
       non solo una media migliore.
+      Fatto (2026-09-30): il ri-ancoraggio, l'anatra rimandata indietro
+      a chiudere un loop (2da3acd); nessuna rivisita parte accanto a un
+      dislivello (4898d26).
 
 - [x] Riancoraggio costruito e misurato, e la teoria che lo reggeva
       confutata (2026-09-11, `explore.rs`). Ogni tre minuti l'esploratore
@@ -3771,13 +3842,16 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       verità, secondo per secondo, che il gemello può dare e che non
       abbiamo mai tracciato.
       Ciò che va in produzione sono i parametri leggeri.
-- [ ] Seguire upstream per un RPC tipo `robot.goto` (pianificatore e
+- [x] Seguire upstream per un RPC tipo `robot.goto` (pianificatore e
       follower esistono nel crate, non sono cablati). Se entro dicembre
       non compare nulla, proporlo come PR sul repo Pollen con l'anatra in
       mano.
-- [ ] Strumento `go_to(place)` sopra di esso: pianifica, segue, riferisce
+      Obsoleto (2026-09-30): doppione del §3, già spuntato — `go_to` è
+      nostro, in quack-nav.
+- [x] Strumento `go_to(place)` sopra di esso: pianifica, segue, riferisce
       arrivo o fallimento; l'evitamento ToF di M9 è compito di upstream,
       non nostro.
+      Obsoleto (2026-09-30): doppione del §3, già spuntato.
 - [ ] `look_at` tramite il `robot.look` esistente.
 
 - [x] **La deriva stessa, finalmente** (2026-09-11 sera,
@@ -3948,7 +4022,11 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
 - [ ] Il test della valle rifiuta pose giuste il 92 % delle volte (84 su
       91, in replay): il passo 4 deve tenere le sue 7 catture (tutte un
       alias in casa_arredata) e far passare il resto.
-- [ ] Passo 2: costmap a strati e Regulated Pure Pursuit.
+- [x] Passo 2: costmap a strati e Regulated Pure Pursuit.
+      Provato e non adottato (2026-09-30): la costmap a strati (e7b8e07)
+      ha perso su MuJoCo e la fascia lineare è tornata il default
+      (7488321), poi rimossa (e26fa4a); Regulated Pure Pursuit misurato
+      dietro `QK_RPP` (ba8d6f9) e annullato (e5e7aaa).
 - [x] 2026-09-28: l'homecoming diviso in due, la decisione
       (`homecoming/mod.rs`) e la ricerca al boot (`search.rs`).
 - [x] 2026-09-28: `scripts/twin/houses/wake_bench.py`, risvegli da punti

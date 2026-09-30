@@ -1,5 +1,9 @@
 # Studio: superficie di duck-ipc-proto, updaterd, ordine di restart
 
+**Stato al 2026-09-30.** Scritto per quacksat; le stesse regole valgono
+ora anche per `quack-navd`, il demone della navigazione dall'ADR 0006
+(unit e socket: ADR 0006 §2).
+
 Fonte: `pollen-robotics/microduck` @ clone del 2026-08-31 (workspace
 v0.10.0, edition 2024, rust-version 1.89). Note complementari:
 `microduck-client-pattern.md`; quelle della voce, `microduck-speaker-path.md`

@@ -3,6 +3,10 @@ flowchart LR
     %% Read with docs/study/maploc-dataflow.md. The flow is cyclic: the
     %% mapper's "searching" state moves the head, the head moves the ToF,
     %% the ToF feeds the mapper.
+    %% Status 2026-09-30: the earlier design. maploc is now vendored in
+    %% quack-nav and hosted in quack-navd against the released robotd
+    %% (ADR 0007); map.frame at ~1 Hz plus map.pose every 50 ms (e92aa14)
+    %% on /run/quack-nav/map.sock. See the status note in the .md.
 
     %% ───────────── BODY ─────────────
     subgraph BODY["🦆 the robot's body"]
@@ -75,7 +79,7 @@ flowchart LR
     subgraph OUT["consumers"]
         direction TB
         MON["robotctl monitor<br/>map panel · m = fullscreen"]
-        QS["quacksat (planned)<br/>places registry · where_am_i"]
+        QS["planned client, 2026-09-04: quacksat<br/>places registry · where_am_i<br/>(since ADR 0006/0007: quack-navd)"]
         LOG["journal<br/>status every 5 s + notes"]
     end
 

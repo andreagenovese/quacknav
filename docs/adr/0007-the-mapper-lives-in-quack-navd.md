@@ -134,3 +134,23 @@ relocalize search weighs a tenth of the control loop under contention.
 - Found on the way, not caused by it: the panorama's turn froze when its
   kick was refused (fixed, 495e8b7), and the example config's tofd
   socket and default socket paths were wrong for the board.
+
+## Addendum 2026-09-30
+
+- §2's dialect gained one message of this daemon's own: a light
+  `map.pose` (pose, tracking, seated, sigma) every 50 ms between the
+  ~1 Hz `map.frame`s (e92aa14, 2026-09-29). The pose in a frame was up to
+  a second old; the live yaw as sampled went from 17° RMS off to about 2°.
+- The vendored `maploc` now has two paths the fork does not: a mapper
+  resumed lost on a saved map keeps a shadow map of its walk and asks
+  every 30 s where it fits in the saved one (10f5a22, 2247634, 9c37473;
+  `MAPLOC_SHADOW=0` turns it off) — on the twin 23 of 24 wakes right,
+  none wrong, medians 87–123 s against 126–192 s; and a relocalization's
+  new node is joined as a relocalization, so the freeze its own jump
+  causes no longer carries the pose off (7e2825b: 0.43 m / 7° in the
+  apartment's corridor; 20 replayed sessions, mean ATE 0.1045 ->
+  0.0975 m).
+- The release: daemon-v0.15.0 (API 37) is validated on the twin only on
+  the branch `microduck-015` (four sessions per house, no regression);
+  `main` stays pinned to daemon-v0.14.4. The joint velocities of upstream
+  PR #260, recorded there, give the map nothing measurable from the head.

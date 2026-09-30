@@ -78,3 +78,17 @@ duck's own number for how far along it is errs on the low side after a
 session and on the high side in a new map's first minutes. A map the user
 closed early is navigated as it is: its unknown parts are walked with the
 guard on, not explored.
+
+## Addendum 2026-09-30
+
+Done is found two more ways. A session that ends at 95 % mapped or more
+(7b67880, 2026-09-24: the share errs low once a session is done). And a
+session with no frontier within reach whose largest unknown piece
+touching known floor is under 4.5 m² (fec3863): a furnished map always
+keeps frontier cells along its walls and round its furniture, and
+casa_grande ended two sessions "stuck" with 95 % of the true floor known
+and 10.3 m² unknown — its furniture and holes. The largest piece measured
+1.0–3.9 m² on the finished maps of three houses, 5.5–7.3 m² on first
+sessions still exploring. casa_grande (d60e067, 9016e8c: seven rooms, a
+corridor turning 90°, two holes), a house never used to tune anything:
+16/16 journeys, 8/8 wakes (median 84 s), no fall.

@@ -1,5 +1,12 @@
 # maploc — audit of the pose losses (2026-09-06)
 
+**Status 2026-09-30.** Kept as measured. The `maploc-study` changes
+(tight allowance, tracking correction) are in the `maploc` vendored in
+this repo and hosted in `quack-navd` (ADR 0007), no longer a rebuilt
+robotd; the bench replays stamped `.mdlg` v2 recordings pairing the head
+as live (f38b341), and a relocalization's jump no longer drags the pose
+with the freeze it causes (7e2825b).
+
 Companion to `maploc-dataflow.md` (what enters and leaves the worker).
 This note answers two questions the twin runs raised: *what does
 maploc actually do with the pose*, and *why does it lose it*. Everything

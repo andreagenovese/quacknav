@@ -17,6 +17,31 @@ submap triggers loop closure and graph optimization. What comes out is a
 trinary grid plus a pose, once a second, to whoever subscribed. The
 camera plays no part.
 
+**Status 2026-09-30.** What follows is the earlier design: maploc
+inside robotd, as PR 127 had it. Since 2026-09-23 (ADR 0007) `maploc` is
+vendored in this repo and hosted in `quack-navd` (`quack-nav/src/mapd/`)
+against the released robotd, unmodified: the per-tick struct comes from
+`robot.subscribe` (every tick, 50 Hz) and the frames from `tof.stream`,
+paired by their stamps; `moving` and `sitting` are rebuilt from the step
+label; the head sweep is `robot.head` from outside; `[maploc]` lives in
+`quack-nav.toml`, the session in `/var/lib/quack-nav/maploc.session`, and
+`robot.map` with the library (`robot.map_save|list|load|match|adopt`)
+answers on `/run/quack-nav/map.sock`. Changed since, besides:
+
+- a light `map.pose` (pose, tracking, seated, sigma) every 50 ms between
+  the ~1 Hz `map.frame`s, so the pose is read at 20 Hz (e92aa14);
+- the `.mdlg` v2 carries robotd's `t_ns` in every odometry record (53 B;
+  45 B still read) and the frame's `t_ns` in every ToF record, and the
+  bench pairs the head as live does (f38b341);
+- the accumulator keeps 3 m, not 2 (`maploc/src/accumulator.rs`);
+- a mapper resumed lost on a saved map keeps a shadow map of its walk and
+  asks every 30 s where it fits in the saved one (10f5a22, 2247634,
+  9c37473);
+- a relocalization's jump no longer drags the pose along with the freeze
+  it causes (7e2825b);
+- the planner and follower left dormant here are not used: quack-nav
+  plans and follows on its own (`explore/navigate.rs`, `robot.go_to`).
+
 ## 1. What enters robotd
 
 | Source | Path | Rate | Content used by maploc |
@@ -160,7 +185,7 @@ the offline bench replays it through the same `Mapper` byte for byte.
 
 | Output | Path | Cadence | Content |
 |---|---|---|---|
-| `map.frame` notifications | `robot.map` subscribers on `/run/robotd.sock`, broadcast buffer 4 | 1 Hz, only while someone is subscribed | `seq`, pose `x, y, yaw` in the map frame, `tracking`, grid origin `x_min, y_min`, `cell_m` (0.05), `rows × cols`, `cells` base64 (0 unknown, 1 free, 2 wall: log-odds > 150 wall, < −50 free), `n_submaps`, `n_loops`, `windows`, `still`, `seated` |
+| `map.frame` notifications | `robot.map` subscribers on `/run/robotd.sock`, broadcast buffer 4 | 1 Hz, only while someone is subscribed (2026-09-29 in quack-navd: plus a `map.pose` every 50 ms) | `seq`, pose `x, y, yaw` in the map frame, `tracking`, grid origin `x_min, y_min`, `cell_m` (0.05), `rows × cols`, `cells` base64 (0 unknown, 1 free, 2 wall: log-odds > 150 wall, < −50 free), `n_submaps`, `n_loops`, `windows`, `still`, `seated` |
 | head yaw override | control loop reads `Host::searching()` | every tick while standing, if `search_sweep` and (searching **or** stop-and-scan mode) | triangle wave ±0.9 rad over 6 s on head yaw only — a 45° wedge becomes a ~150° composite. **This is the feedback edge that makes the flow cyclic**: the mapper's state moves the head, the head moves the sensor, the sensor feeds the mapper |
 | session file | `map_path` | autosave every 60 s when dirty, on shutdown, on panic teardown | submaps + pose graph + tracked pose, atomic write |
 | `.mdlg` recording | `record_dir/<unix time>.mdlg` | continuous while enabled | everything the mapper consumed |
@@ -183,12 +208,16 @@ independently.
 | still-window flush | on stand end or 3 s |
 | head sweep | 6 s per triangle |
 | submap freeze | 8 s (if moved ≥ 15 cm) or 0.8 m travel |
-| map publish | 1 s |
+| map publish | 1 s (quack-navd: pose every 50 ms, e92aa14) |
 | status log | 5 s |
 | session autosave | 60 s |
 | relocalize search | "a few hundred ms" one-shot on a 4×4 m grid |
 
-## 9. What this means for quacksat
+## 9. What this means for the client (2026-09-04)
+
+Written when the client was quacksat, which then carried the
+navigation. Since ADR 0006 (2026-09-22) the client is `quack-navd`;
+quacksat only relays the user's spoken commands to quack-nav's tools.
 
 - **We consume one stream.** Subscribe to `robot.map`, keep the newest
   `map.frame`, decode the base64 grid only when needed. A robotd older
@@ -213,3 +242,4 @@ independently.
 - **Nothing to navigate with yet.** `go_to` waits for a goal RPC that
   wires the planner and follower; the raw grid is on the wire if we
   ever needed to plan ourselves, but ADR 0005 says we do not.
+  (Superseded: quack-nav plans on that grid itself, `robot.go_to`.)

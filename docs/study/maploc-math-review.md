@@ -1,5 +1,12 @@
 # maploc: the mathematics, read for correctness
 
+**Status 2026-09-30.** Kept as reviewed. The crate reviewed here is now
+vendored in this repo and runs in `quack-navd` (ADR 0007). Found since,
+outside these findings: a relocalization's new node followed the frozen
+submap's closures rigidly and carried a right pose 0.43 m off; it is now
+joined as a relocalization (7e2825b, 20 replayed sessions, mean ATE
+0.1045 -> 0.0975 m).
+
 2026-09-15. A review of the formulas and algorithms in `maploc` (Pollen
 PR 202, our worktree branch `maploc-study`), module by module, asked for
 by the user after the wake-up work: *are the SLAM's maths and algorithms

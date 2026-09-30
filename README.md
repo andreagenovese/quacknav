@@ -15,7 +15,8 @@ times an hour, so a rule is measured before it is believed.
 Independent project, not affiliated with Pollen Robotics. Apache-2.0.
 Split out of [quacksat](https://github.com/andreagenovese/quacksat) on
 2026-09-22 (ADR 0006), with the history of every measurement that made
-it.
+it. quacksat is now the voice front end only: it relays the user's spoken
+commands to quack-nav's tools and does no navigation.
 
 > **An experiment — take it with a pinch of salt.** Everything here has
 > run on the MuJoCo and paper twins only, never on a physical duck. A
@@ -191,8 +192,11 @@ prototype, not a navigation stack to the standards of the field.
   behaviour tree. Here: Dijkstra, a string pulled taut, stop-and-go legs, and
   recoveries spread through the explorer. The drop book is a costmap layer in
   all but name.
-- **Tests.** 152 tests (`#[test]`, 2026-09-30); behaviour is only verified by hours-long,
-  non-deterministic runs on the twin. The paper twin does not run in CI.
+- **Tests.** 152 tests (`#[test]`, 2026-09-30). The paper twin runs in CI as a
+  gate on fixed seeds (explore 40 × 1200 s, `go_to` 30;
+  `.github/workflows/ci.yml`, `scripts/ci/paper_twin_gate.py`); beyond it,
+  behaviour is verified by hours-long, non-deterministic runs on the MuJoCo
+  twin.
 - **Simulation only.** The real sensor, floor and gait will move many of the
   numbers.
 
@@ -208,7 +212,7 @@ behaviour and put it in the field's shapes:
 4. the pose's confidence as a measure (the scan match's information matrix),
    not a yes or no;
 5. the paper twin in CI, with the release criteria of `docs/results.md` as its
-   gate;
+   gate (the gate runs; its bars are fixed-seed numbers, not those criteria);
 6. the physical duck.
 
 ## Status

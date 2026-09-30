@@ -1,5 +1,11 @@
 # Punto fermo sul gemello — 2026-09-17
 
+**Stato al 2026-09-30.** Un punto fermo del 2026-09-17/21, lasciato
+com'era. Allora la navigazione viveva in quacksat e robotd veniva da
+`maploc-study`; da allora la navigazione è `quack-navd` (ADR 0006) e
+maploc gira lì contro il robotd rilasciato (ADR 0007). I numeri di oggi
+sono in `docs/results.md`.
+
 Cosa fa la papera sul gemello MuJoCo a questo commit, perché un cambio
 futuro si possa misurare contro di esso: stessi comandi, confronto dei
 numeri. Una regressione è una caduta, un goal mancato, o un tempo ben
@@ -9,7 +15,7 @@ variano del ±20 %).
 Condizioni: casa `house2` (il giro umano del 2026-09-16, robotd
 corretto), il suo libro a 51 drop (`private/drives/runs/house2/ground-51.json`),
 robotd dal worktree `maploc-study` in modo `localize` con
-`MAPLOC_RAY_JUDGE=1`; quacksat coi suoi default — su mappa congelata un
+`MAPLOC_RAY_JUDGE=1`; quacksat (allora casa della navigazione) coi suoi default — su mappa congelata un
 viaggio cammina cieco (`QK_NO_GUARDS`, `QK_FOLLOW_ROUTE`, `QK_FAST` non
 impostati), rotta tirata e tenuta; la ricerca al boot guarda prima di
 camminare e scansiona l'orizzonte quando davanti non c'è nulla.
@@ -144,7 +150,7 @@ volta); 4 (la cucina 375 → 332 s: il verdetto della scansione sopra
 un'occhiata chiusa, gli impulsi da 5° passano al calcio e allo yaw; il
 boot incastrato su uno stipite si libera con un calcio cieco); 5, 6 e 1
 (il 19); 7 (il cane da guardia di maploc conta solo i raggi lunghi —
-explmap5 zero "tracking lost"; quacksat continua a mappare con una posa
+explmap5 zero "tracking lost"; la navigazione, allora in quacksat, continua a mappare con una posa
 non fidata ma stabile); 8 (un knob, non un default: la carta non ha il
 bias a sinistra e la tolleranza più stretta le costava); 10 (`--known`:
 la carta misura il sigillo, e mostra la cucina di carta chiusa da nord

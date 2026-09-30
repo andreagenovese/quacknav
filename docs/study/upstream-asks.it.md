@@ -1,18 +1,55 @@
-# Cosa quacksat chiederebbe allo stack di Pollen
+# Cosa quack-nav chiederebbe allo stack di Pollen
 
 Scritto il 2026-09-09, dopo due settimane di lavoro sulla mappatura con il
 gemello MuJoCo (`pollen-robotics/microduck` PR 127 `maploc` e il simulatore
 della PR 202, più `microduck_rl`). Progetto indipendente, nessuna
 affiliazione; tutto ciò che segue è un'osservazione con la corsa che l'ha
 prodotta, non una lista dei desideri. Nulla di tutto questo è ancora stato
-mandato a monte.
+mandato a monte. (Scritto la prima volta come di quacksat: la navigazione
+è vissuta in quacksat fino al 2026-09-22, ADR 0006; oggi quacksat si
+limita a inoltrare i comandi a voce a quack-nav.)
 
 Ogni numero viene dal gemello, non dall'hardware: la papera vera arriva a
 dicembre. Dove un'osservazione è probabilmente un artefatto del simulatore
 e non del robot, è detto.
 
 Le prime quattro sezioni riguardano la correttezza di `maploc` e crediamo
-valgano il tempo di upstream a prescindere da quacksat. Il resto è minore.
+valgano il tempo di upstream a prescindere da questo progetto. Il resto è minore.
+
+**Stato al 2026-09-30.** Ancora non mandato, e niente aspetta più
+upstream: `maploc` è vendorizzato in questo repo e ospitato in
+`quack-navd` contro il robotd rilasciato (ADR 0007), con dentro ogni
+modifica qui sotto. Sezione per sezione:
+
+- §1–3, 5a, 5b, 6b: sempre correttezza di `maploc`, sempre degne del
+  tempo di upstream.
+- §4, dal vivo contro bench: la registrazione porta gli orologi di robotd
+  e di tofd (`.mdlg` v2, record di odometria da 53 byte) e il bench appaia
+  la testa come dal vivo; una sessione con i timestamp si rigioca entro
+  2–4 cm (mediana) dalla posa dal vivo (f38b341).
+- §5, la libreria di mappe: non si chiede più a robotd — `quack-navd`
+  serve `robot.map_save|list|load|match|adopt` su
+  `/run/quack-nav/map.sock`. Il ritorno a casa adotta con overlap 0,5 e
+  margine 0,5, chiedendo ogni 60 s, tre risposte concordi (3b5d4df); una
+  papera ripresa persa su una mappa salvata tiene anche una mappa ombra
+  del suo cammino e chiede dove sta (10f5a22, 2247634, 9c37473): sul
+  gemello 23 risvegli giusti su 24, nessuno sbagliato, mediane 87–123 s.
+- §5a: i 3 m dell'accumulatore sono il default del crate vendorizzato.
+- §6, niente rotazione sul posto da fermo: solo sotto la zona morta
+  dell'andatura; sopra, la policy gira sul posto, 30°/s a 1,2 rad/s e
+  50–60°/s a 1,5 (b8cebfe).
+- §6a, `moving`: ricostruito dall'etichetta del passo in quack-navd (ADR
+  0007 §3); vale sempre la pena chiederlo alla release.
+- §6c: risolto da fuori — `robot.state` e `tof.stream` portano lo stesso
+  orologio, e quack-navd appaia ogni frame con la testa interpolata al
+  suo timestamp.
+- §7, mobili bassi letti come buco: da parte nostra, un sensore coperto da
+  una coperta (zone valide sotto 30 mm) è occlusione, non un buco
+  (953285b).
+- Da allora: daemon-v0.15.0 (API 37) è validato sul gemello solo sul
+  branch `microduck-015`, `main` resta fissato a daemon-v0.14.4; le
+  velocità dei giunti della PR upstream #260, registrate lì, dalla testa
+  non danno alla mappa nulla di misurabile.
 
 ## 1. Le chiusure d'anello scattano sul rumore della mappa e spostano la posa
 
@@ -293,7 +330,7 @@ aspettarlo. L'instradamento segue `robot.map_wipe`: `mediad` le porta,
 map-save|map-list|map-load` le guida a mano.
 
 Anche il client è costruito, e funziona. Il ritorno a casa di `quacksat`
-carica all'avvio la mappa salvata più recente, resta fermo un minuto nel
+(in quacksat fino al 2026-09-22; oggi `quack-nav/src/homecoming/`) carica all'avvio la mappa salvata più recente, resta fermo un minuto nel
 caso il mapper confermi una posa da solo, e altrimenti azzera, esplora e
 fa la domanda mappa contro mappa ogni tre minuti, adottando quando due
 domande nominano la stessa mappa nello stesso punto con la mappa viva più
@@ -313,8 +350,8 @@ percorsi appesi — senza una soglia che qualcuno abbia dovuto tarare.
 ## 5a. Tre costanti, ciascuna misurata contro i muri veri di una casa
 
 Sono uscite dal valutare le mappe contro la verità invece che l'una
-contro l'altra — lo strumento è `private/drives/mapquality.py` di
-quacksat, che adatta una mappa alla casa in modo rigido e poi chiede
+contro l'altra — lo strumento era `private/drives/mapquality.py` di
+quacksat (oggi `scripts/twin/houses/map_vs_truth.py`), che adatta una mappa alla casa in modo rigido e poi chiede
 quanto ogni muro mappato disti da uno vero. Tutte e tre sono modifiche di
 una riga.
 
@@ -375,7 +412,8 @@ steso dopo rende la mappa ancora più storta.
 convinzione del mapper, una volta al secondo per giri di venti minuti,
 come spostamenti dal proprio inizio, e valutato le mappe risultanti
 contro i muri della casa (entrambi gli strumenti stanno in
-`private/drives/` di quacksat; le case in `sim-maploc/houses/`). Su cinque
+`private/drives/` di quacksat, oggi `scripts/twin/houses/poseerr.py` e
+`map_vs_truth.py`; le case in `sim-maploc/houses/`). Su cinque
 giri la deriva mediana predice la mappa in modo monotono: 6,8 cm di
 deriva hanno dato una mappa con il 2,4 % dei muri oltre 10 cm dal vero, e
 14,0 cm hanno dato il 12,2 %.

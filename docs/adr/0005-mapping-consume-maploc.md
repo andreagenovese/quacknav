@@ -1,6 +1,6 @@
 # ADR 0005: Mapping and localization — consume robotd's maploc
 
-- Status: accepted; amended by ADR 0007 (2026-09-23: the mapper is hosted in quack-navd against the released robotd)
+- Status: accepted; amended by ADR 0006 (2026-09-22: the navigation is its own daemon, quack-navd) and ADR 0007 (2026-09-23: the mapper is hosted in quack-navd against the released robotd)
 - Date: 2026-09-04
 - Inputs: `docs/todo-map.md` (2026-08-31 version, now superseded),
   upstream PR 127 "Maploc: mapping & localization as a robotd-hosted
@@ -104,3 +104,15 @@ local server.
 - The GPU server, the recording pipeline and the SLAM model evaluation
   from the previous plan are dropped from the roadmap. If phase 4 ever
   starts, it gets its own ADR.
+
+## Addendum 2026-09-30
+
+Where this ADR says quacksat, it means the navigation as it then lived
+inside quacksat. Since ADR 0006 the places registry, `where_am_i`, the
+places tools, `go_to` and the mapping sessions are `quack-navd`'s;
+quacksat is the voice front end and relays the user's spoken commands to
+quack-nav's tools. Since ADR 0007 `maploc` runs in `quack-navd`, not in
+robotd, so §1's "robotd's job" was the earlier design. §3 did not wait:
+the planner and follower run in quack-nav (`robot.go_to`,
+`explore/navigate.rs`), and boot relocalization is this repo's
+homecoming (`quack-nav/src/homecoming/`), not an upstream RPC.

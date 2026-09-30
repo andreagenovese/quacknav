@@ -143,3 +143,26 @@ quando i core sono contesi.
   si bloccava quando il suo colpetto veniva rifiutato (corretto,
   495e8b7), e il socket di tofd dell'esempio e i percorsi di default dei
   socket erano sbagliati per il board.
+
+## Aggiunta del 2026-09-30
+
+- Il dialetto del §2 ha acquistato un messaggio tutto di questo demone:
+  un `map.pose` leggero (posa, tracking, seated, sigma) ogni 50 ms tra i
+  `map.frame` a ~1 Hz (e92aa14, 2026-09-29). La posa in un frame poteva
+  avere un secondo; lo yaw dal vivo campionato è passato da 17° RMS di
+  errore a circa 2°.
+- Il `maploc` vendorizzato ha ora due percorsi che il fork non ha: un
+  mapper ripreso perso su una mappa salvata tiene una mappa ombra del suo
+  cammino e chiede ogni 30 s dove sta in quella salvata (10f5a22,
+  2247634, 9c37473; `MAPLOC_SHADOW=0` la spegne) — sul gemello 23
+  risvegli giusti su 24, nessuno sbagliato, mediane 87–123 s contro
+  126–192 s; e il nodo nuovo di una rilocalizzazione è unito come
+  rilocalizzazione, così il congelamento provocato dal suo stesso salto
+  non si porta più via la posa (7e2825b: 0,43 m / 7° nel corridoio
+  dell'appartamento; 20 sessioni rigiocate, ATE medio 0,1045 ->
+  0,0975 m).
+- La release: daemon-v0.15.0 (API 37) è validato sul gemello solo sul
+  branch `microduck-015` (quattro sessioni per casa, nessuna
+  regressione); `main` resta fissato a daemon-v0.14.4. Le velocità dei
+  giunti della PR upstream #260, registrate lì, dalla testa non danno
+  alla mappa nulla di misurabile.

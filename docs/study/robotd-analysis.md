@@ -1,5 +1,12 @@
 # robotd — in-depth analysis (robotd-design.md, draft 2026-08-20)
 
+**Status 2026-09-30.** An analysis of the design draft, kept as written.
+The navigation runs against the released robotd, unmodified (`main`
+pinned to daemon-v0.14.4, API 34; daemon-v0.15.0, API 37, validated on
+the twin only on the branch `microduck-015`). robotd does not host
+`maploc`: it is vendored in this repo and runs in `quack-navd`, a robotd
+client like any other (ADR 0006, ADR 0007).
+
 Hardware v1: alpha variant only, Radxa board (RK3566) only, `imu_to_dxl` v2
 board only. The "roller" mode (wheels) is not a hardware variant but a
 preset: `policy.mode = "roller"` selects policy and tuning.

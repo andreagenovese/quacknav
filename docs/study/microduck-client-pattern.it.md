@@ -1,5 +1,10 @@
 # Studio: padd come modello per il client robotd di quacksat
 
+**Stato al 2026-09-30.** Scritto per quacksat quando portava ancora la
+navigazione. Dall'ADR 0006 la navigazione è `quack-navd`, un client di
+robotd a sé costruito sullo stesso schema; quacksat è il front end vocale
+e inoltra i comandi a voce ai tool di quack-nav.
+
 Fonte: `pollen-robotics/microduck` @ clone del 2026-08-31. Blueprint per il
 client di `quacksat-core`. Note complementari (in quacksat):
 `microduck-speaker-path.md`, `microduck-mic-path.md`.

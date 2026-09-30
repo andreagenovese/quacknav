@@ -1,5 +1,12 @@
 # maploc: la matematica, letta per correttezza
 
+**Stato al 2026-09-30.** Lasciata come rivista. Il crate rivisto qui è
+ora vendorizzato in questo repo e gira in `quack-navd` (ADR 0007).
+Trovato dopo, fuori da queste scoperte: il nodo nuovo di una
+rilocalizzazione seguiva rigido le chiusure della submap congelata e
+portava una posa giusta a 0,43 m; ora è unito come rilocalizzazione
+(7e2825b, 20 sessioni rigiocate, ATE medio 0,1045 -> 0,0975 m).
+
 2026-09-15. Una revisione delle formule e degli algoritmi di `maploc`
 (PR 202 di Pollen, il nostro ramo `maploc-study` nel worktree), modulo per
 modulo, chiesta dall'utente dopo il lavoro sui risvegli: *la matematica e

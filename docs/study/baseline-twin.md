@@ -1,5 +1,11 @@
 # Baseline on the twin — 2026-09-17
 
+**Status 2026-09-30.** A baseline of 2026-09-17/21, kept as it was. Then
+the navigation lived in quacksat and robotd came from `maploc-study`;
+since, the navigation is `quack-navd` (ADR 0006) and maploc runs in it
+against the released robotd (ADR 0007). Today's numbers are in
+`docs/results.md`.
+
 What the duck does on the MuJoCo twin at this commit, so a later change
 can be measured against it: run the same commands, compare the numbers.
 A regression is a fall, a goal missed, or a time well outside the range
@@ -8,7 +14,7 @@ below (these are single runs; twins of the same run vary by ±20 %).
 Conditions: house `house2` (the human drive of 2026-09-16, robotd fixed),
 its ground book at 51 drops (`private/drives/runs/house2/ground-51.json`),
 robotd from the worktree `maploc-study` in `localize` mode with
-`MAPLOC_RAY_JUDGE=1`; quacksat with its defaults — on a frozen map a
+`MAPLOC_RAY_JUDGE=1`; quacksat (then the navigation's home) with its defaults — on a frozen map a
 journey walks blind (`QK_NO_GUARDS`, `QK_FOLLOW_ROUTE`, `QK_FAST` unset),
 the route pulled and kept; the boot search looks before it walks and
 scans the horizon when nothing is ahead.
@@ -140,7 +146,7 @@ kitchen 375 → 332 s: the scan's verdict over a boxed-in look, the
 5°-pulses fall through to the kick and yaw; the boot wedged on a door
 post escapes by a blind kick); 5, 6 and 1 (the 19th); 7 (maploc's
 watchdog counts long beams only — explmap5 zero "tracking lost";
-quacksat maps on with a stable untrusted pose); 8 (a knob, not a
+the navigation, then in quacksat, maps on with a stable untrusted pose); 8 (a knob, not a
 default: the paper twin has no left bias and paid for the tighter
 tolerance); 10 (`--known`: the paper twin measures the seal, and shows
 the paper kitchen sealed from the north by its own furniture, so the

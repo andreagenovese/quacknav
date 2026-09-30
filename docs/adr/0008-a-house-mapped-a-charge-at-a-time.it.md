@@ -83,3 +83,18 @@ danni. La stima della papera su a che punto è sbaglia per difetto dopo una
 sessione e per eccesso nei primi minuti di una mappa nuova. Una mappa
 chiusa prima dall'utente si naviga com'è: le parti sconosciute si
 percorrono con la guardia, non si esplorano.
+
+## Aggiunta del 2026-09-30
+
+La casa si trova completa in altri due modi. Una sessione che finisce al
+95 % mappato o più (7b67880, 2026-09-24: la quota sbaglia per difetto a
+sessione finita). E una sessione senza frontiere a portata il cui pezzo
+di sconosciuto più grande a contatto col pavimento noto è sotto i 4,5 m²
+(fec3863): una mappa arredata tiene sempre celle di frontiera lungo i
+muri e attorno ai mobili, e casa_grande ha chiuso due sessioni "stuck"
+col 95 % del pavimento vero noto e 10,3 m² sconosciuti — i suoi mobili e i
+suoi buchi. Il pezzo più grande misurava 1,0–3,9 m² sulle mappe finite di
+tre case, 5,5–7,3 m² sulle prime sessioni ancora in esplorazione.
+casa_grande (d60e067, 9016e8c: sette stanze, un corridoio che gira di
+90°, due buchi), una casa mai usata per tarare niente: 16/16 viaggi, 8/8
+risvegli (mediana 84 s), nessuna caduta.

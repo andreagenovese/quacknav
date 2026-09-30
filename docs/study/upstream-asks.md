@@ -1,17 +1,53 @@
-# What quacksat would ask of Pollen's stack
+# What quack-nav would ask of Pollen's stack
 
 Written 2026-09-09, from a fortnight of mapping work on the MuJoCo twin
 (`pollen-robotics/microduck` PR 127 `maploc` and PR 202's simulator, plus
 `microduck_rl`). Independent project, no affiliation; everything below is
 a finding with the run that produced it, not a wish list. Nothing here has
-been sent upstream yet.
+been sent upstream yet. (First written as quacksat's: the navigation lived
+in quacksat until 2026-09-22, ADR 0006; quacksat now only relays spoken
+commands to quack-nav.)
 
 Every number comes from the twin, not from hardware — the physical duck
 arrives in December. Where a finding is likely to be a simulator artefact
 rather than the robot's, it says so.
 
 The first four sections are `maploc` correctness and are, we think, worth
-upstream's time whatever quacksat does. The rest are smaller.
+upstream's time whatever this project does. The rest are smaller.
+
+**Status 2026-09-30.** Still not sent, and none of it waits on upstream any
+more: `maploc` is vendored in this repo and hosted in `quack-navd` against
+the released robotd (ADR 0007), with every change below in it. Section by
+section:
+
+- §1–3, 5a, 5b, 6b: still `maploc` correctness, still worth upstream's
+  time.
+- §4, live against bench: the recording stamps robotd's and tofd's clocks
+  (`.mdlg` v2, 53-byte odometry records) and the bench pairs the head as
+  live does; a stamped session replays within 2–4 cm (median) of the live
+  pose (f38b341).
+- §5, the map library: no longer asked of robotd — `quack-navd` serves
+  `robot.map_save|list|load|match|adopt` on `/run/quack-nav/map.sock`.
+  The homecoming adopts on overlap 0.5 and margin 0.5, asking every 60 s,
+  three agreeing asks (3b5d4df); a duck resumed lost on a saved map also
+  keeps a shadow map of its walk and asks where it fits (10f5a22,
+  2247634, 9c37473): on the twin 23 of 24 wakes right, none wrong,
+  medians 87–123 s.
+- §5a: the accumulator's 3 m is the vendored crate's default.
+- §6, no turn in place from a standstill: only below the gait's dead band;
+  above it the policy turns in place, 30°/s at 1.2 rad/s and 50–60°/s at
+  1.5 (b8cebfe).
+- §6a, `moving`: rebuilt from the step label in quack-navd (ADR 0007 §3);
+  still worth asking the release for.
+- §6c: solved from outside — `robot.state` and `tof.stream` carry the same
+  clock, and quack-navd pairs each frame with the head interpolated at its
+  stamp.
+- §7, low furniture read as a hole: on our side, a sensor covered by a
+  blanket (valid zones under 30 mm) is occlusion, not a hole (953285b).
+- Since: daemon-v0.15.0 (API 37) is validated on the twin only on the
+  branch `microduck-015`, `main` stays pinned to daemon-v0.14.4; the joint
+  velocities of upstream PR #260, recorded there, give the map nothing
+  measurable from the head.
 
 ## 1. Loop closures fire on map noise, and walk the pose off
 
@@ -279,7 +315,8 @@ Routing follows `robot.map_wipe`: `mediad` carries them, `btd` refuses
 them, the updater does not know them. `robotctl robot map-save|map-list|
 map-load` drives them by hand.
 
-The client is built too, and it works. `quacksat`'s homecoming loads the
+The client is built too, and it works. `quacksat`'s homecoming (in
+quacksat until 2026-09-22; now `quack-nav/src/homecoming/`) loads the
 newest saved map at boot, stands still for a minute in case the mapper
 confirms a pose by itself, and otherwise wipes, explores, and asks the
 map-to-map question every three minutes, adopting when two asks name the
@@ -299,7 +336,8 @@ hanging off it — without a threshold anybody had to calibrate.
 ## 5a. Three constants, each measured against a house's own walls
 
 These came out of scoring maps against ground truth rather than against
-each other — the tool is quacksat's `private/drives/mapquality.py`, which
+each other — the tool was quacksat's `private/drives/mapquality.py`
+(today `scripts/twin/houses/map_vs_truth.py`), which
 fits a map to the house rigidly and then asks how far each mapped wall is
 from a real one. All three are one-line changes.
 
@@ -356,7 +394,8 @@ and the ink laid afterwards makes the map wronger still.
 **Measured.** We logged the twin's true pose beside the mapper's belief
 once a second through twenty-minute runs, as displacements from each
 one's own start, and scored the resulting maps against the house's walls
-(both tools are in quacksat's `private/drives/`; the houses are in
+(both tools were in quacksat's `private/drives/`, today
+`scripts/twin/houses/poseerr.py` and `map_vs_truth.py`; the houses are in
 `sim-maploc/houses/`). Over five runs the median drift predicts the map
 monotonically: 6.8 cm of drift gave a map with 2.4 % of its walls more
 than 10 cm from a true one, and 14.0 cm gave 12.2 %.

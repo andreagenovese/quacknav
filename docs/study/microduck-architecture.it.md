@@ -1,5 +1,12 @@
 # Microduck — Architettura di sistema (prima lettura)
 
+**Stato al 2026-09-30.** Una prima lettura, lasciata com'è. Accanto alla
+griglia qui sotto gira ora `quack-navd`, il demone di navigazione di
+questo repo (mappa, localizzazione, ritorno a casa, esploratore; ADR
+0006), che ospita `maploc` da sé contro il robotd rilasciato (ADR 0007).
+Il satellite vocale del §6 è diventato quacksat, che inoltra i comandi a
+voce ai tool di quack-nav e non fa navigazione.
+
 Fonte: `docs/design/architecture.md` (draft 2026-07-22) + README + roadmap.
 Stack: Rust, un workspace, nessun framework. Supervisore: systemd.
 SoC: Rockchip RK3566 · 1 GB RAM · 15 servo Dynamixel + IMU su un solo bus UART.
