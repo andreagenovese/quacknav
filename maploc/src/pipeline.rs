@@ -105,6 +105,10 @@ pub struct Slam {
     edge_into_current: Option<usize>,
     /// Set by anything that changes what a render would show.
     dirty: bool,
+    /// `set_tracked` just moved the pose farther than odometry could: the
+    /// next submap to open is joined to the old chain as a relocalization,
+    /// and that tick's optimization does not carry the pose (see `tick`).
+    jumped: bool,
 }
 
 /// A re-anchor farther than this is a relocalization, and the edge into
@@ -124,6 +128,7 @@ impl Slam {
             last_odom: None,
             edge_into_current: None,
             dirty: false,
+            jumped: false,
             cfg,
         }
     }
@@ -162,6 +167,7 @@ impl Slam {
             last_odom: None,
             edge_into_current,
             dirty: true,
+            jumped: false,
             cfg,
         }
     }
@@ -174,6 +180,11 @@ impl Slam {
     /// odometry anchor so the next delta composes from fresh readings —
     /// the previous raw odometry is in a different frame now.
     pub fn set_tracked(&mut self, pose: Pose2) {
+        if (pose.0 - self.tracked.0).hypot(pose.1 - self.tracked.1) > RELOCALIZED_JUMP_M
+            || wrap_pi(pose.2 - self.tracked.2).abs() > RELOCALIZED_SIGMA_YAW
+        {
+            self.jumped = true;
+        }
         self.tracked = pose;
         self.last_odom = None;
     }
@@ -258,6 +269,7 @@ impl Slam {
                         }
                     }
                 }
+                self.jumped = false;
                 return false;
             }
             TickOutcome::Opened => {}
@@ -271,16 +283,21 @@ impl Slam {
         // every frozen anchor while tracking sails on uncorrected (the
         // prototype's wiring had exactly this hole).
         self.edge_into_current = None;
+        // Opened by a relocalization's jump (the current submap was not
+        // empty, so it froze instead of re-anchoring): the new place is
+        // joined to the old chain by the search's word, not odometry's.
+        let jumped = std::mem::take(&mut self.jumped);
         if let Some(&prev_node) = self.node_for_submap.last() {
             let prev_pose = self.graph.nodes()[prev_node].pose;
             self.graph.add_edge(PoseEdge {
                 from: prev_node,
                 to: node,
                 measurement: between(prev_pose, anchor),
-                information: information_from_sigmas(
-                    self.cfg.odom_sigma_xy,
-                    self.cfg.odom_sigma_yaw,
-                ),
+                information: if jumped {
+                    information_from_sigmas(RELOCALIZED_SIGMA_XY, RELOCALIZED_SIGMA_YAW)
+                } else {
+                    information_from_sigmas(self.cfg.odom_sigma_xy, self.cfg.odom_sigma_yaw)
+                },
             });
             self.edge_into_current = Some(self.graph.edges().len() - 1);
         }
@@ -320,8 +337,22 @@ impl Slam {
                         cur.set_anchor_pose(pose);
                     }
                 }
-                let new_anchor = self.graph.nodes()[cur_node].pose;
-                self.tracked = compose(new_anchor, between(old_anchor, self.tracked));
+                if jumped {
+                    // The pose was just measured against the map where the
+                    // duck stands; the closures of the submap the jump froze
+                    // move the old chain, and the new node — a leaf on it —
+                    // would follow rigidly. The apartment's duck, confirmed
+                    // 6 cm off at the corridor's north end, was carried
+                    // 0.43 m and 7° off by the freeze of the session's last
+                    // submap, and tracked on 0.55 m off (x17, 2026-09-30).
+                    self.graph.nodes_mut()[cur_node].pose = old_anchor;
+                    if let Some(cur) = self.mgr.current_mut() {
+                        cur.set_anchor_pose(old_anchor);
+                    }
+                } else {
+                    let new_anchor = self.graph.nodes()[cur_node].pose;
+                    self.tracked = compose(new_anchor, between(old_anchor, self.tracked));
+                }
             }
         }
         self.dirty = true;

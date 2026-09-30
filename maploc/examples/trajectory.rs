@@ -130,6 +130,12 @@ fn main() {
     let mut odom_log = std::env::var_os("ODOM_LOG")
         .map(|p| std::io::BufWriter::new(std::fs::File::create(p).expect("ODOM_LOG")));
     let mut odom_last_logged = f64::NEG_INFINITY;
+    // `TRACK_LOG=<file>`: the tracked pose every 0.2 s, and every note by
+    // name the moment it comes — to see what moves a pose no correction
+    // or closure accounts for.
+    let mut track_log = std::env::var_os("TRACK_LOG")
+        .map(|p| std::io::BufWriter::new(std::fs::File::create(p).expect("TRACK_LOG")));
+    let mut track_last = f64::NEG_INFINITY;
     // `LOOP_LOG=<file>`: every closure, what it moved the pose by and the
     // heading's error against the truth before and after — from the
     // nearest truth sample, so judged only while the duck stands still.
@@ -142,6 +148,17 @@ fn main() {
         {
             odom_last_logged = step.unix_s;
             writeln!(w, "{:.2}\t{:.4}\t{:.4}\t{:.4}", step.unix_s, o.0, o.1, o.2).expect("write");
+        }
+        if let Some(w) = track_log.as_mut() {
+            let p = step.mapper.slam().tracked();
+            for note in step.notes {
+                let name = format!("{note:?}");
+                writeln!(w, "{:.2}\tnote\t{}", step.t_s, name.split(|c: char| c == ' ' || c == '{' || c == '(').next().unwrap_or("")).expect("write");
+            }
+            if step.unix_s - track_last >= 0.2 {
+                track_last = step.unix_s;
+                writeln!(w, "{:.2}\tpose\t{:.3}\t{:.3}\t{:.1}\t{}", step.t_s, p.0, p.1, p.2.to_degrees(), step.mapper.tracking()).expect("write");
+            }
         }
         if let Some(w) = loop_log.as_mut() {
             for note in step.notes {
