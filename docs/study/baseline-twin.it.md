@@ -17,7 +17,7 @@ corretto), il suo libro a 51 drop (`private/drives/runs/house2/ground-51.json`),
 robotd dal worktree `maploc-study` in modo `localize` con
 `MAPLOC_RAY_JUDGE=1`; quacksat (allora casa della navigazione) coi suoi default — su mappa congelata un
 viaggio cammina cieco (`QK_NO_GUARDS`, `QK_FOLLOW_ROUTE`, `QK_FAST` non
-impostati), rotta tirata e tenuta; la ricerca al boot guarda prima di
+impostati — manopole poi tolte, in b6c32fa e 1fffbac), rotta tirata e tenuta; la ricerca al boot guarda prima di
 camminare e scansiona l'orizzonte quando davanti non c'è nulla.
 
 ## Boot: la posa confermata sulla mappa salvata

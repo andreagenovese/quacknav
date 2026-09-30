@@ -67,7 +67,7 @@ voice satellite's `[nav] socket` at `$STATE/nav.sock` and its
 | `probe.py <robotd.sock> <tof.sock>` | what a mapper outside robotd receives: rates, fields, the two clocks |
 | `spin.py <robotd.sock>` | how fast the panorama's turn turns (22–24°/s on both robotd) |
 | `headwatch.py <robotd.sock> <s> [sway]` | who has the head; with `sway`, a thinking pose the sweep must yield to |
-| `turnprobe.py <robotd.sock> <port>` | turning from a standstill: dead below ~1.2 rad/s, 30–60°/s above it |
+| `turnprobe.py <robotd.sock> <port> <label> [reps]` | turning from a standstill: dead below ~1.2 rad/s, 30–60°/s above it |
 | `segs.py <file.mdlg> [from] [to]` | a recording as runs of moving and still — how the slow start was found |
 | `ab_round.sh <n>` | the same route on the fork and here, both scored against the true walls (`FORK_TWIN`) |
 | `scan_walk.py <s> <robotd.sock> <port>` | that route (Peter Schade's, PR 202) |
@@ -113,8 +113,10 @@ off; `MAPLOC_SHADOW_EVERY_S` (30) and `MAPLOC_SHADOW_ASKS` (2) set it.
 | `oracle_book.py <truth.json> <name> <book in> <book out>` | the oracle's drop book: the true holes' rims in place of the booked ones |
 | `cut_mdlg.py <in.mdlg> <seconds> <out.mdlg> [pose.tsv out.truth.tsv]` | the first seconds of a recording as a fixture, with its truth rows |
 
-They need `MICRODUCK`, `MICRODUCK_RL` and `POLICY_DIR` as `twin.sh` does, and
-`TWIN_WORK` for their outputs (default `/tmp/quack-twin-work`). A house takes
+They need `MICRODUCK`, `MICRODUCK_RL` and `POLICY_DIR` as `twin.sh` does,
+`TWIN_WORK` for their outputs (default `/tmp/quack-twin-work`), `QN_REPO` for
+the quack-nav checkout whose `quack-navd` they run, and `AB_REPO` for the
+checkout a round compares against (`final_house.py`'s `main` rounds). A house takes
 about four hours on the twin; three run side by side on a 12-core Mac with
 `VIEWER=off` on two of them.
 

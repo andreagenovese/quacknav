@@ -212,7 +212,8 @@ const SLIVER_GROWTH_CELLS: usize = 30;
 
 /// The leg planner's knobs. Each is the measured default; the environment
 /// can override one for a measurement run (`QK_<NAME>`), which is how the
-/// automatic search on the paper twin explores them. Read once.
+/// automatic search on the paper twin explores them. Read at every call
+/// (the daemon's environment does not change while it runs).
 fn knob(name: &str, default: f64) -> f64 {
     std::env::var(name).ok().and_then(|v| v.parse().ok()).unwrap_or(default)
 }

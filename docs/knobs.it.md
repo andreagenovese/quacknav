@@ -38,7 +38,7 @@ gemello. Le manopole che si chiamavano `QUACKSAT_*` sono `QK_*` dal
 | `QK_GAP_MAX_M` | numero (default GAP_MAX_M) | `quack-nav/src/explore/mod.rs` |  |
 | `QK_GUARD_ARC_FULL` | accesa solo con 1 | `quack-duck/src/body.rs` | Turning costs little forward speed: 0.110 m/s at vyaw 0.7 against 0.121 straight, measured on the human drive (2026-09-07). |
 | `QK_HOLD_HEADING` | accesa solo con 1 | `quack-nav/examples/paper_twin.rs`, `quack-duck/src/body.rs` | The heading hold (`tools::timed_move_held`, 2026-09-18): on a walking leg that is not an arc the taps cancel the veer — measured 1–3 cm of lateral drift per metre in place of 1–14, the heading within ±4°. |
-| `QK_INFLATE_M` | numero (default 0.12) | `quack-nav/src/frontier.rs` | The inflation the planner runs with: the body's half-width, 0.10 (`QK_INFLATE_M`). |
+| `QK_INFLATE_M` | numero (default 0.12) | `quack-nav/src/frontier.rs` | The inflation the planner runs with: 0.12, a little over the body's half-width, 0.10 (`QK_INFLATE_M`). |
 | `QK_LANE_HALF_M` | numero (default LANE_HALF_M) | `quack-nav/src/explore/mod.rs` |  |
 | `QK_LANE_RAILS` | numero (default usize::MAX) | `quack-nav/src/map.rs` | How many rails [`Grid::lane_clear`] samples across the lane: 3 is the old behaviour, anything more means every half cell. |
 | `QK_LEG_RESERVE_M` | numero (default LEG_RESERVE_M) | `quack-nav/src/explore/mod.rs` |  |
@@ -61,13 +61,13 @@ gemello. Le manopole che si chiamavano `QUACKSAT_*` sono `QK_*` dal
 | `QK_PULL_DEVIATION_M` | numero (default 0.20) | `quack-nav/src/frontier.rs` | A straight run may stray this far from the Dijkstra route it replaces: the staircase is smoothed, the route is not redrawn — a diagonal across the room cut corners and brushed walls Dijkstra had kept away from (the user'… |
 | `QK_PULL_ROUTE` | accesa salvo 0 | `quack-nav/src/frontier.rs` | `QK_PULL_ROUTE=0` leaves Dijkstra's staircase as it is. |
 | `QK_REACH_TO_FLOOR` | accesa salvo 0 | `quack-nav/src/explore/books.rs` | `QK_REACH_TO_FLOOR=0`: the reach behind a rim ignores where the floor comes back (see `record_drops`). |
-| `QK_REANCHOR` | accesa salvo 0 | `quack-nav/src/explore/journey.rs` | Aim at the farthest point of the path the body can walk to in a straight line, instead of the one a fixed number of cells ahead. |
+| `QK_REANCHOR` | accesa salvo 0 | `quack-nav/src/explore/journey.rs` | `QK_REANCHOR=0`: no trip back to mapped floor now and then to close a loop while the exploration walks new floor (see the explorer's run). |
 | `QK_REFUSED_REARM` | one of 0, 1, else the default | `quack-nav/src/explore/gait.rs` | `QK_REFUSED_REARM`: `0` one-shot per job, `1` after every walked leg, else (default) once the body has moved [`REARM_DIST_M`]. |
 | `QK_RIM_OFF` | 1 accesa, 0 spenta, altrimenti il default del chiamante | `quack-nav/src/explore/mod.rs` |  |
 | `QK_RIM_TOUR` | 1 accesa, 0 spenta, altrimenti il default del chiamante | `quack-nav/src/explore/rim_tour.rs` | `QK_RIM_TOUR=0`: no rounds of the holes. |
 | `QK_ROUTE_CHECK_M` | numero (default ROUTE_CHECK_M) | `quack-nav/src/explore/guarded.rs` |  |
 | `QK_SEAL` | 1 accesa, 0 spenta, altrimenti quella del modo | `quack-nav/src/explore/mode.rs` |  |
-| `QK_SMOOTH_PATH` | accesa salvo 0 | `quack-nav/src/explore/journey.rs` |  |
+| `QK_SMOOTH_PATH` | accesa salvo 0 | `quack-nav/src/explore/journey.rs` | Aim at the farthest point of the path the body can walk to in a straight line, instead of the one a fixed number of cells ahead. |
 | `QK_SPIN_RAD` | numero (default 0.6) | `quack-nav/src/explore/gait.rs` | `QK_SPIN_RAD`: a leg whose aim is more than this off the nose turns in place first (closed on the yaw, [`Job::align`]) instead of walking a curve — a curve from a standstill drifts sideways for its first second, into a w… |
 | `QK_SPIN_WATCH` | accesa salvo 0 | `quack-nav/src/explore/gait.rs` | `QK_SPIN_WATCH=0`: turn in place without watching the sensor, as before. |
 | `QK_STICK_CAREFUL` | 1 accesa, 0 spenta, altrimenti il default del chiamante | `quack-nav/src/explore/navigate.rs` |  |

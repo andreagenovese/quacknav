@@ -67,7 +67,7 @@ nome (default "Qui dove siamo?"). Per parlarci, puntare `[nav] socket` di un sat
 | `probe.py <robotd.sock> <tof.sock>` | cosa riceve un mapper fuori da robotd: frequenze, campi, i due orologi |
 | `spin.py <robotd.sock>` | quanto gira la rotazione del panorama (22–24°/s con entrambi i robotd) |
 | `headwatch.py <robotd.sock> <s> [sway]` | chi ha la testa; con `sway`, una posa pensante a cui la scansione deve cedere |
-| `turnprobe.py <robotd.sock> <porta>` | rotazione da fermo: nulla sotto ~1,2 rad/s, 30–60°/s sopra |
+| `turnprobe.py <robotd.sock> <porta> <etichetta> [ripetizioni]` | rotazione da fermo: nulla sotto ~1,2 rad/s, 30–60°/s sopra |
 | `segs.py <file.mdlg> [da] [a]` | una registrazione come tratti in movimento e fermi — come si è trovato l'avvio lento |
 | `ab_round.sh <n>` | lo stesso percorso sul fork e qui, entrambi valutati sui muri veri (`FORK_TWIN`) |
 | `scan_walk.py <s> <robotd.sock> <porta>` | quel percorso (di Peter Schade, PR 202) |
@@ -115,7 +115,9 @@ Copia inglese canonica: `README.md`.
 | `oracle_book.py <truth.json> <nome> <libro in> <libro out>` | il libro dei drop dell'oracolo: i bordi dei buchi veri al posto di quelli registrati |
 | `cut_mdlg.py <in.mdlg> <secondi> <out.mdlg> [pose.tsv out.truth.tsv]` | i primi secondi di una registrazione come fixture, con le sue righe di verità |
 
-Servono `MICRODUCK`, `MICRODUCK_RL` e `POLICY_DIR` come per `twin.sh`, e
-`TWIN_WORK` per gli output (predefinito `/tmp/quack-twin-work`). Una casa
+Servono `MICRODUCK`, `MICRODUCK_RL` e `POLICY_DIR` come per `twin.sh`,
+`TWIN_WORK` per gli output (predefinito `/tmp/quack-twin-work`), `QN_REPO` per
+il checkout di quack-nav di cui girano `quack-navd`, e `AB_REPO` per il
+checkout con cui un giro si confronta (i giri `main` di `final_house.py`). Una casa
 richiede circa quattro ore sul gemello; tre girano in parallelo su un Mac a 12
 core con `VIEWER=off` su due di esse.

@@ -25,8 +25,8 @@ use crate::map::{Cell, Grid};
 /// on purpose: the sensor's wedge is narrow and a fresh map has little
 /// floor to spare; the mapping step's own wall margin does the rest.
 pub const INFLATE_M: f64 = 0.15;
-/// The inflation the planner runs with: the body's half-width, 0.10
-/// (`QK_INFLATE_M`). Passability is physics; keeping away from walls
+/// The inflation the planner runs with: 0.12, a little over the body's
+/// half-width, 0.10 (`QK_INFLATE_M`). Passability is physics; keeping away from walls
 /// where there is room is the graded cost's job (`COMFORT_M`). With 0.15
 /// the 0.54 m passage beside the twin's stairwell had 0.13 m of plannable
 /// floor and a doorway of 0.42–0.50 m was always at the limit (the user's

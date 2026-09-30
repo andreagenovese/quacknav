@@ -86,6 +86,11 @@ pub(super) const ANCHOR_RETRY_S: f64 = 30.0;
 pub(super) const ANCHOR_STAND_S: f64 = 6.0;
 /// Close enough to count as arrived.
 pub(super) const ANCHOR_ARRIVE_M: f64 = 0.35;
+/// `QK_REANCHOR=0`: no trip back to mapped floor now and then to close a
+/// loop while the exploration walks new floor (see the explorer's run).
+pub(super) fn reanchor() -> bool {
+    std::env::var("QK_REANCHOR").map(|v| v != "0").unwrap_or(true)
+}
 /// Aim at the farthest point of the path the body can walk to in a
 /// straight line, instead of the one a fixed number of cells ahead.
 ///
@@ -94,9 +99,7 @@ pub(super) const ANCHOR_ARRIVE_M: f64 = 0.35;
 /// on the twin, three metres of journey cost thirteen turns in place, each
 /// asking for 64° to 101° of heading change. Pulling the string straight
 /// is the classic answer and it costs one lane test per candidate.
-pub(super) fn reanchor() -> bool {
-    std::env::var("QK_REANCHOR").map(|v| v != "0").unwrap_or(true)
-}
+/// `QK_SMOOTH_PATH=0` turns it off.
 pub(super) fn smooth_path() -> bool {
     std::env::var("QK_SMOOTH_PATH").map(|v| v != "0").unwrap_or(true)
 }

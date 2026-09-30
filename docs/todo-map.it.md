@@ -19,6 +19,15 @@ dicono quacksat per ciò che oggi è quack-nav (ADR 0006). Da allora
 quacksat è solo il front end vocale: inoltra i comandi a voce
 dell'utente agli strumenti di quack-nav e non fa navigazione.
 
+Manopole citate nelle voci qui sotto che non esistono più: `QK_COMMIT`,
+`QK_FOLLOW_ROUTE`, `QK_GOAL_LOOKAHEAD_M`, `QK_MOUTH_AIM`, `QK_TRUSTED_KICK`
+(tolte in b6c32fa), `QK_FAST`, `QK_FAST_GOAL`, `QK_FAST_STAND_S`,
+`QK_KEEP_ROUTE` (1fffbac, il vecchio percorso dei viaggi), `QK_ARC_FULL`,
+`QK_SPIN_TIGHT`, `QK_TURN_AIM` (di quacksat, prima della separazione),
+`MAPLOC_SWEEP`, `MAPLOC_ODOM_SCALE` (del fork di robotd di allora); le
+manopole che esistono sono tutte in [`knobs.it.md`](knobs.it.md), generato dal
+codice.
+
 ## Cosa fornisce (o fornirà) upstream
 
 - Sottocrate `maploc/` ospitato da robotd (PR 127): SLAM 2D a submap sul
@@ -2583,7 +2592,10 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       endpoint**: loc3 confermata a 0,9 m di distanza e da lì 4–6 m di
       errore. Una scala di boot su explmap1: `MAPLOC_RAY_JUDGE=1` 4/4
       giuste, heading ≤ 0,5°; il giudice sugli endpoint 4 giuste + quell'alias,
-      heading fino a 3,8°. Giudice a raggi, dunque.
+      heading fino a 3,8°. Giudice a raggi, dunque. (Poi misurato spento,
+      2026-09-15: ha anche reso sbagliata una posa giusta dove la mappa aveva
+      muri doppi; `MAPLOC_RAY_JUDGE` è spento per default, vedi
+      `maploc/src/mapper.rs` `ray_judge`.)
       Cosa dicono poi i viaggi: con la posa buona (7–11 cm, ~1°) il duck
       ha comunque mancato la porta del soggiorno 4 volte su 5 — alla
       bocca nord della tromba, dove la rotta del pianificatore taglia
@@ -4060,7 +4072,7 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
 - [x] 2026-09-30: daemon-v0.15.0 (API 37) sul branch `microduck-015`,
       pushato, non unito: quattro sessioni per casa, nessuna regressione;
       registrate le velocità dei giunti della testa (record di odometria
-      da 69 byte), `maploc/examples/head_motion.rs`: una testa che gira non
+      da 69 byte), `maploc/examples/head_motion.rs` (su quel branch): una testa che gira non
       costa quasi niente alla mappa.
 - [x] 2026-09-30: casa_grande (`gen.py ... casa_grande`), 9 x 7 m, un
       corridoio che gira di 90°, due buche, niente che blocchi: 16/16

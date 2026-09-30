@@ -19,6 +19,14 @@ for what is now quack-nav (ADR 0006). Since then quacksat is the voice
 front end only: it relays the user's spoken commands to quack-nav's
 tools and does no navigation.
 
+Knobs named in the entries below that no longer exist: `QK_COMMIT`,
+`QK_FOLLOW_ROUTE`, `QK_GOAL_LOOKAHEAD_M`, `QK_MOUTH_AIM`, `QK_TRUSTED_KICK`
+(removed in b6c32fa), `QK_FAST`, `QK_FAST_GOAL`, `QK_FAST_STAND_S`,
+`QK_KEEP_ROUTE` (1fffbac, the old journey path), `QK_ARC_FULL`,
+`QK_SPIN_TIGHT`, `QK_TURN_AIM` (quacksat's, before the split),
+`MAPLOC_SWEEP`, `MAPLOC_ODOM_SCALE` (the robotd fork's of the time); the
+knobs that exist are all in [`knobs.md`](knobs.md), generated from the code.
+
 ## What upstream provides (or will)
 
 - `maploc/` subcrate hosted by robotd (PR 127): 2D submap SLAM on the
@@ -2397,7 +2405,9 @@ nothing: it explores and asks.
       confirmed 0.9 m off and sailed 4–6 m from there. A boot ladder on
       explmap1: `MAPLOC_RAY_JUDGE=1` 4/4 correct, heading ≤ 0.5°; the
       endpoint judge 4 correct + that alias, heading up to 3.8°. The ray
-      judge it is.
+      judge it is. (Later measured off, 2026-09-15: it also turned a right
+      fix wrong where the map had doubled walls; `MAPLOC_RAY_JUDGE` is off
+      by default, see `maploc/src/mapper.rs` `ray_judge`.)
       What the journeys then say: with the pose good (7–11 cm, ~1°) the
       duck still failed the living-room door 4 times of 5 — at the
       stairwell's north mouth, where the planner's route cuts the NW
@@ -3802,7 +3812,7 @@ nothing: it explores and asks.
 - [x] 2026-09-30: daemon-v0.15.0 (API 37) on the branch `microduck-015`,
       pushed, not merged: four sessions per house, no regression; head
       joint velocities recorded (69-byte odometry records),
-      `maploc/examples/head_motion.rs`: a turning head costs the map next
+      `maploc/examples/head_motion.rs` (on that branch): a turning head costs the map next
       to nothing.
 - [x] 2026-09-30: casa_grande (`gen.py ... casa_grande`), 9 x 7 m, a
       corridor turning 90°, two holes, nothing that blocks: 16/16
