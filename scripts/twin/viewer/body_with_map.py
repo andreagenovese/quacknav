@@ -63,7 +63,8 @@ def run(world, headless: bool) -> None:
         )
 
     source = mo.MapSource(ROBOT_SOCKET).start()
-    # quacksat's plan (route, aim, goal, booked drops), when quacksat runs.
+    # quack-nav's plan (route, aim, goal, booked drops), through quacksat's MCP
+    # proxy when quacksat runs;
     # QUACK_NAV_SOCKET asks quack-navd itself, with no quacksat in between.
     plans = mo.PlanSource(os.environ.get("QUACKSAT_MCP", "http://127.0.0.1:8770/mcp"),
                           os.environ.get("QUACKSAT_TOKEN", "sesame"),

@@ -2,9 +2,9 @@
 
 use super::*;
 
-/// `QUACKSAT_TRAIL_LEG=0`: no doorway margins on the trail, for measuring.
+/// `QK_TRAIL_LEG=0`: no doorway margins on the trail, for measuring.
 pub(super) fn trail_leg_enabled() -> bool {
-    trail_enabled() && std::env::var("QUACKSAT_TRAIL_LEG").map(|v| v != "0").unwrap_or(true)
+    trail_enabled() && quack_duck::env::knob("TRAIL_LEG").is_none_or(|v| v != "0")
 }
 /// A leg "on the trail": trail points within [`TRAIL_NEAR_M`] of the
 /// heading line for the first `TRAIL_LEG_M` ahead, sampled every 5 cm,
@@ -22,7 +22,7 @@ pub(super) fn reach_to_floor() -> bool {
     std::env::var("QK_REACH_TO_FLOOR").map(|v| v != "0").unwrap_or(true)
 }
 pub(super) fn trail_enabled() -> bool {
-    std::env::var("QUACKSAT_TRAIL").map(|v| v != "0").unwrap_or(true)
+    quack_duck::env::knob("TRAIL").is_none_or(|v| v != "0")
 }
 /// Spacing of the trail points, and the most kept (the oldest go first).
 pub(super) const TRAIL_STEP_M: f64 = 0.05;
@@ -56,11 +56,11 @@ pub(super) const DROP_REACH_M: f64 = 0.30;
 /// bearing is nearer by more than this: the rim's nearest point.
 pub(super) const REACH_NEIGHBOUR_RAD: f64 = 0.25;
 pub(super) const REACH_SLOPE_M: f64 = 0.03;
-/// `QUACKSAT_EDGE_DISCRIMINATE=0`: every sensed drop goes on the books as
+/// `QK_EDGE_DISCRIMINATE=0`: every sensed drop goes on the books as
 /// a hole, as before. A drop with an obstacle within this bearing and this
 /// range of it is the edge of that obstacle, not a hole (see `is_true_hole`).
 pub(super) fn edge_discriminate() -> bool {
-    std::env::var("QUACKSAT_EDGE_DISCRIMINATE").map(|v| v != "0").unwrap_or(true)
+    quack_duck::env::knob("EDGE_DISCRIMINATE").is_none_or(|v| v != "0")
 }
 pub(super) const EDGE_BEARING_RAD: f64 = 0.12;
 pub(super) const EDGE_RANGE_M: f64 = 0.35;
@@ -396,7 +396,7 @@ impl Job {
     /// The body went from `from` to `to`: the straight line between them
     /// joins the trail, a point every [`TRAIL_STEP_M`]. A leg is short
     /// (0.3–0.5 m) and its arc shallow, so the chord is the path within a
-    /// cell or two. Off with `QUACKSAT_TRAIL=0`, for measuring.
+    /// cell or two. Off with `QK_TRAIL=0`, for measuring.
     pub(super) fn walked(&mut self, from: (f64, f64), to: (f64, f64)) {
         self.trusted.walked(from, to);
         let d = dist2(from, to);

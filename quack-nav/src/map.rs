@@ -1,10 +1,11 @@
-//! `robot.map` client: the live occupancy map robotd's `maploc` worker
-//! publishes (quacksat ADR 0005, docs/study/maploc-dataflow.md).
+//! `robot.map` client: the live occupancy map quack-navd's mapper (`mapd`,
+//! maploc hosted in this daemon, ADR 0007) publishes — once a robotd
+//! fork's `maploc` worker did (ADR 0005, docs/study/maploc-dataflow.md).
 //!
-//! Same padd model as quacksat's robotd client: one unprivileged NDJSON connection,
-//! a `robot.map` subscription, then `map.frame` notifications at ~1 Hz for
-//! as long as the peer lives. quacksat never touches the sensors; it reads
-//! what robotd already decided.
+//! The padd model of the robotd client: one unprivileged NDJSON
+//! connection, a `robot.map` subscription, then `map.frame` notifications
+//! at ~1 Hz for as long as the peer lives. The lane never touches the
+//! sensors; it reads what the mapper already decided.
 //!
 //! Between the frames, quack-navd's mapd also sends a light `map.pose`
 //! every 50 ms (20 Hz, 2026-09-29): the pose alone, stamped with the seq
@@ -534,7 +535,7 @@ pub struct MapStatus {
     pub latest: Option<MapFrame>,
     /// When `latest` arrived.
     pub received_at: Option<Instant>,
-    /// Frames received since quacksat started.
+    /// Frames received since this lane started.
     pub frames: u64,
     /// Bumped whenever the map frame may no longer be the one earlier
     /// poses were expressed in — a wipe, or a boot that started a fresh

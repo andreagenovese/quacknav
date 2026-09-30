@@ -69,30 +69,31 @@ impl Policy {
         let guarded = mode == Mode::JourneyGuarded;
         Policy {
             mode,
-            hug: env_switch("QUACKSAT_PASSAGE_HUG").unwrap_or(guarded),
-            align_kick: env_switch("QK_ALIGN_KICK").unwrap_or(guarded),
-            held_leg: env_switch("QK_PASSAGE_HELD").unwrap_or(guarded),
+            hug: env_switch("PASSAGE_HUG").unwrap_or(guarded),
+            align_kick: env_switch("ALIGN_KICK").unwrap_or(guarded),
+            held_leg: env_switch("PASSAGE_HELD").unwrap_or(guarded),
             drop_plan_radius_m: std::env::var("QK_DROP_PLAN_RADIUS_M")
                 .ok()
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(if guarded { DROP_PLAN_RADIUS_GUARDED_M } else { DROP_PLAN_RADIUS_M }),
-            seal: env_switch("QK_SEAL").unwrap_or(guarded),
+            seal: env_switch("SEAL").unwrap_or(guarded),
             tight_kick_s: if guarded { TIGHT_KICK_S } else { PANO_KICK_S },
-            trusted_floor: env_switch("QK_TRUSTED_FLOOR").unwrap_or(mode != Mode::JourneyBlind),
+            trusted_floor: env_switch("TRUSTED_FLOOR").unwrap_or(mode != Mode::JourneyBlind),
             align_tol_left_rad: std::env::var("QK_ALIGN_TOL_LEFT_RAD")
                 .ok()
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(ALIGN_TOL_RAD),
-            wall_fit: env_switch("QK_WALL_FIT").unwrap_or(guarded),
+            wall_fit: env_switch("WALL_FIT").unwrap_or(guarded),
         }
     }
 }
 
-/// `1` on, `0` off, unset the mode's own.
+/// `QK_<name>` (or the old `QUACKSAT_<name>`): `1` on, `0` off, unset the
+/// mode's own.
 fn env_switch(name: &str) -> Option<bool> {
-    match std::env::var(name).as_deref() {
-        Ok("1") => Some(true),
-        Ok("0") => Some(false),
+    match quack_duck::env::knob(name).as_deref() {
+        Some("1") => Some(true),
+        Some("0") => Some(false),
         _ => None,
     }
 }

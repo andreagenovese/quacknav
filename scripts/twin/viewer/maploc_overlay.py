@@ -41,7 +41,8 @@ COLOR_FREE = (0.20, 0.55, 0.95, 0.28)
 COLOR_WALL = (1.00, 0.35, 0.15, 0.55)
 COLOR_POSE = (1.00, 0.90, 0.10, 0.95)
 COLOR_TRAIL = (1.00, 0.20, 0.40, 0.85)
-# quacksat's plan, polled from its MCP: the route it means to walk, the
+# quack-nav's plan (asked of quack-navd's socket, or of quacksat's MCP,
+# which only proxies the tool): the route it means to walk, the
 # point the current leg aims at, the goal, and the drops on its books.
 COLOR_ROUTE = (0.10, 0.85, 0.20, 0.95)
 COLOR_AIM = (0.95, 0.95, 0.10, 0.95)
@@ -374,7 +375,7 @@ def draw(scn, frame: MapFrame, trail=None, show_free=True, truth=None, plan=None
             _add(scn, mujoco.mjtGeom.mjGEOM_SPHERE, (0.025, 0, 0),
                  (wx, wy, 0.05), _EYE, COLOR_TRAIL)
 
-    # quacksat's plan: the route as a chain of capsules a hand above the
+    # quack-nav's plan: the route as a chain of capsules a hand above the
     # floor, the aim as a sphere, the goal as a post, the booked drops as
     # red discs — every one of them in the map frame, through `_w`.
     if plan:

@@ -4069,6 +4069,14 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
 - [x] 2026-09-30: la fine di una sessione sul pezzo di ignoto più grande
       (< 4.5 m² senza frontiere raggiungibili: la casa è mappata), non
       sulle celle di frontiera che una mappa arredata tiene sempre.
+- [x] 2026-09-30: le manopole col nome di quacksat ora sono `QK_*`
+      (`QK_TRAIL`, `QK_TRAIL_LEG`, `QK_EDGE_DISCRIMINATE`,
+      `QK_REFUSED_REARM`, `QK_SPIN_WATCH`, `QK_PASSAGE_SENSOR`,
+      `QK_PASSAGE_HUG`, `QK_GUARD_ARC_FULL`), e i vecchi nomi `QUACKSAT_*`
+      si leggono ancora (`quack_duck::env::knob`); `places_path` è per
+      default `/var/lib/quack-nav/places.json`, e il vecchio file in
+      `/var/lib/quacksat/` si legge finché è l'unico. quacksat è solo il
+      front end vocale.
 - [ ] Perché alcune chiusure di loop misurano male l'angolo (x13: 5° di
       errore, la posa dal vivo 35 cm fuori, σ 0.08 m); si misura con la
       verità fitta (`LOOP_LOG`, `POSEERR_DT=0.5`). Sigma d'angolo del loop

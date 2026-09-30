@@ -3,7 +3,7 @@
 //! was written with (rim1, 2026-09-16: seventeen centimetres of pose put
 //! thirty phantom drops on the corridor's floor), and maploc gives no
 //! measure of it (the still window's residual does not correlate with
-//! the truth: `agreecheck.py`, ρ −0.42). This one is quacksat's own:
+//! the truth: `agreecheck.py`, ρ −0.42). This one is the navigation's own:
 //! every obstacle the fresh frames saw, projected onto the map at the
 //! pose of now, and the distance from it to the nearest mapped wall;
 //! the median of those distances is the fit, in metres. Measured

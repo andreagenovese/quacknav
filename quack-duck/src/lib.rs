@@ -5,6 +5,7 @@
 //! voice satellite, the navigation is its own repo — and both of them
 //! talk to the same daemon through the same socket).
 pub mod body;
+pub mod env;
 pub mod gait;
 pub mod lane;
 

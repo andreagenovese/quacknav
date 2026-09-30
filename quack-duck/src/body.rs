@@ -56,11 +56,11 @@ pub fn step_advance_m(vx: f64, vyaw: f64, walk_s: f64) -> f64 {
     // Turning costs little forward speed: 0.110 m/s at vyaw 0.7 against
     // 0.121 straight, measured on the human drive (2026-09-07). The
     // quarter this had before let arcs end against walls.
-    // `QUACKSAT_GUARD_ARC_FULL=1` judges with the measured advance. Off by
+    // `QK_GUARD_ARC_FULL=1` (`QUACKSAT_GUARD_ARC_FULL` still read) judges with the measured advance. Off by
     // default: it is the truth about the gait, but on the paper twin the
     // guard then refuses so much that the full flat drops from 55 to 40 %
     // (falls stayed at zero either way). A debt to settle on MuJoCo.
-    let slow = if std::env::var("QUACKSAT_GUARD_ARC_FULL").is_ok_and(|v| v == "1") { 0.1 } else { 0.75 };
+    let slow = if crate::env::knob("GUARD_ARC_FULL").is_some_and(|v| v == "1") { 0.1 } else { 0.75 };
     0.4 * vx.abs() * walk_s * (1.0 - slow * arc)
 }
 

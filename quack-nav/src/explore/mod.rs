@@ -2287,7 +2287,7 @@ impl Job {
                     // frontier once ended "stuck" in the passage beside the
                     // stairwell with eight of them reachable (paper twin,
                     // 16 of 30 seeds).
-                    // (`QUACKSAT_REFUSED_REARM=0` keeps the clearing one-shot
+                    // (`QK_REFUSED_REARM=0` keeps the clearing one-shot
                     // per job, for measuring: on MuJoCo the room stays grew
                     // from 5–11 to 15–32 minutes with the re-arm on the books.)
                     match refused_rearm() {
@@ -2852,7 +2852,7 @@ fn no_blind_step_back_with_a_drop_at_hand() {
 /// ends it (casa_arredata, 2026-09-26: the search saved over the house).
 #[test]
 fn the_boots_search_is_no_houses_map_until_one_is_adopted() {
-    let dir = std::env::temp_dir().join(format!("quacksat-search-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("quack-nav-search-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let h = ExploreHandle::new().with_ground(dir.join("places.json").to_str().unwrap());
     h.map_named("house");
@@ -2870,7 +2870,7 @@ fn the_boots_search_is_no_houses_map_until_one_is_adopted() {
 
 #[test]
 fn the_ground_book_keeps_the_drops_the_body_never_walked_over() {
-    let dir = std::env::temp_dir().join(format!("quacksat-ground-{}", std::process::id()));
+    let dir = std::env::temp_dir().join(format!("quack-nav-ground-{}", std::process::id()));
     std::fs::create_dir_all(&dir).unwrap();
     let places = dir.join("places.json");
     let h = ExploreHandle::new().with_ground(places.to_str().unwrap());

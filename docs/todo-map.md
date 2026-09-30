@@ -3810,6 +3810,13 @@ nothing: it explores and asks.
 - [x] 2026-09-30: a session's end on the largest unknown piece (< 4.5
       m² with no frontier in reach: the house is mapped), not on the
       frontier cells a furnished map always keeps.
+- [x] 2026-09-30: the knobs named after quacksat are `QK_*` now
+      (`QK_TRAIL`, `QK_TRAIL_LEG`, `QK_EDGE_DISCRIMINATE`,
+      `QK_REFUSED_REARM`, `QK_SPIN_WATCH`, `QK_PASSAGE_SENSOR`,
+      `QK_PASSAGE_HUG`, `QK_GUARD_ARC_FULL`), the old `QUACKSAT_*` names
+      still read (`quack_duck::env::knob`); `places_path` defaults to
+      `/var/lib/quack-nav/places.json`, the old `/var/lib/quacksat/` file
+      read while it is the only one. quacksat is the voice front end only.
 - [ ] Why some loop closures mis-measure the heading (x13: 5° wrong, the
       live pose 35 cm off, σ 0.08 m); being measured with dense truth
       (`LOOP_LOG`, `POSEERR_DT=0.5`). Loop heading sigma 0.5 tried and

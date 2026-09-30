@@ -5,12 +5,12 @@ use super::*;
 /// How far the straight line to the standing point is checked for walls
 /// before the grid path is followed instead.
 pub(super) const STRAIGHT_LOOK_M: f64 = 2.0;
-/// `QUACKSAT_REFUSED_REARM`: `0` one-shot per job, `1` after every walked
+/// `QK_REFUSED_REARM`: `0` one-shot per job, `1` after every walked
 /// leg, else (default) once the body has moved [`REARM_DIST_M`].
 pub(super) fn refused_rearm() -> u8 {
-    match std::env::var("QUACKSAT_REFUSED_REARM").as_deref() {
-        Ok("0") => 0,
-        Ok("1") => 1,
+    match quack_duck::env::knob("REFUSED_REARM").as_deref() {
+        Some("0") => 0,
+        Some("1") => 1,
         _ => 2,
     }
 }
@@ -90,10 +90,10 @@ pub(super) fn spin_rad() -> f64 {
 /// The +yaw stretch that gets the gait stepping before a mirrored or
 /// straight step back.
 pub(super) const BACK_TRIGGER_S: f64 = 0.5;
-/// `QUACKSAT_SPIN_WATCH=0`: turn in place without watching the sensor, as
+/// `QK_SPIN_WATCH=0`: turn in place without watching the sensor, as
 /// before. On by default: it only ever stops a blind turn early.
 pub(super) fn spin_watch() -> bool {
-    std::env::var("QUACKSAT_SPIN_WATCH").map(|v| v != "0").unwrap_or(true)
+    quack_duck::env::knob("SPIN_WATCH").is_none_or(|v| v != "0")
 }
 /// An edge nearer than this, within this half-angle of the beak, ends a
 /// turn in place.

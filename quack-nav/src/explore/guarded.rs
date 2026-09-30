@@ -44,9 +44,9 @@ pub(super) const HUG_WALL_LOOK_M: f64 = 0.6;
 /// judged clear on the books went in), while the old behaviour crossed
 /// once in two; measured one at a time from here (2026-09-08).
 pub(super) fn passage_sensor() -> bool {
-    std::env::var("QUACKSAT_PASSAGE_SENSOR").is_ok_and(|v| v == "1" || v == "2")
+    quack_duck::env::knob("PASSAGE_SENSOR").is_some_and(|v| v == "1" || v == "2")
 }
-/// `QUACKSAT_PASSAGE_SENSOR=2`: the sensor's side REPLACES the map's
+/// `QK_PASSAGE_SENSOR=2`: the sensor's side REPLACES the map's
 /// where the sensor has one (a wall or a drop's edge beside the body),
 /// instead of the nearer of the two. The map's side moves with the
 /// pose's error — 10–17 cm along the stairwell's passage on MuJoCo — and
@@ -55,7 +55,7 @@ pub(super) fn passage_sensor() -> bool {
 /// hole (paper twin `--bias`, 2026-09-20: 25–26/30 at 15 cm with either,
 /// 13 and 9/30 at 20 cm).
 pub(super) fn passage_sensor_replaces() -> bool {
-    std::env::var("QUACKSAT_PASSAGE_SENSOR").is_ok_and(|v| v == "2")
+    quack_duck::env::knob("PASSAGE_SENSOR").is_some_and(|v| v == "2")
 }
 /// The blind leg's one guard (see `guarded_step`): the lane it judges the
 /// sensor's drops in, and the margin past the leg's advance.
@@ -249,7 +249,7 @@ pub(super) const ROUTE_REPEAT_MAX: u32 = 2;
 /// A thing on the line ahead is not a side but what the route must avoid,
 /// and the guard's: counted as one, the stairwell's rim 0.5 m ahead read
 /// as "right 0.0" and every passage as 6 cm wide (paper twin, 2026-09-27:
-/// go_to 3/30 with `QUACKSAT_PASSAGE_SENSOR=2`, 26/30 without).
+/// go_to 3/30 with `QK_PASSAGE_SENSOR=2`, 26/30 without).
 /// Nor is one straight ahead of the nose however near: the rim 0.3 m
 /// ahead and 7 mm off the axis read as a side 7 mm away, and the duck,
 /// facing the hole, gave the goal up as "a passage narrower than the body".

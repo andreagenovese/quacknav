@@ -12,14 +12,14 @@
 //! and bumps it when the map was evidently reset: the map lane's epoch
 //! changed in-process (see [`crate::map::MapStatus::epoch`]), or robotd
 //! reports fewer submaps than this registry has ever seen — a wipe that
-//! happened while quacksat was down. Places from an older generation are
+//! happened while quack-navd was down. Places from an older generation are
 //! *stale*: listed, never matched, and replaced when re-taught. A robotd
 //! restart that restores its saved session keeps the submap count, so it
 //! does not bump. (Blind spot: a wipe of a one-submap map looks like a
 //! restore; the next teach fixes it.)
 //!
-//! Persisted as JSON, written atomically, under quacksat's own state
-//! directory — never in robotd's.
+//! Persisted as JSON, written atomically, under quack-nav's own state
+//! directory (`/var/lib/quack-nav`) — never in robotd's.
 
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -388,7 +388,7 @@ mod tests {
         let mut reg = Registry::load(&path).unwrap();
         assert_eq!(reg.places().len(), 1);
         assert_eq!(reg.places()[0].anchors[0].y, 2.0);
-        // The wipe that happened while quacksat was down shows as fewer
+        // The wipe that happened while quack-navd was down shows as fewer
         // submaps than the file remembers.
         assert!(reg.observe(0, 1).unwrap());
         assert!(reg.is_stale(&reg.places()[0]));
