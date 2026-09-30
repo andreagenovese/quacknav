@@ -1,11 +1,13 @@
-"""Two five-room houses for the twin: `casa_libera` (bare rooms, doors only)
-and `casa_arredata` (furniture, a corridor, narrow gaps, two holes).
+"""Five-room houses for the twin: `casa_libera` (bare rooms, doors only),
+`casa_arredata` (furniture, a corridor, narrow gaps, two holes), and a
+seven-room `casa_grande` (furnished, two holes, nothing that blocks: every
+door 0.9 m or more, every gap beside furniture or a hole 0.6 m or more).
 
 Writes, per house: <robot dir>/<name>.xml and scene_<name>.xml (MuJoCo),
 <out>/<name>.toml (maploc evaluate truth, cm), <out>/<name>.world.json
 (paper twin), <out>/<name>.truth.json (holes and rooms, for scoring drops).
 
-    python3 gen.py <robot dir> <out dir>
+    python3 gen.py <robot dir> <out dir> [house ...]
 """
 import json, sys
 from pathlib import Path
@@ -13,6 +15,12 @@ from pathlib import Path
 ROBOT, OUT = Path(sys.argv[1]), Path(sys.argv[2])
 T, H = 0.12, 0.50  # wall thickness and height
 X0, X1, Y0, Y1 = -4.0, 4.0, -3.0, 3.0
+
+
+def bounds(x0, x1, y0, y1):
+    """The house's outer walls (the default 8 x 6 m unless a house says)."""
+    global X0, X1, Y0, Y1
+    X0, X1, Y0, Y1 = x0, x1, y0, y1
 
 
 def wall_x(name, y, xa, xb, doors):
@@ -56,6 +64,7 @@ def floor_tiles(holes):
 
 
 def house_libera():
+    bounds(-4.0, 4.0, -3.0, 3.0)
     boxes = outer()
     boxes += wall_x("wS", -0.8, X0, X1, [(-3.3, -2.5), (0.5, 1.3), (2.4, 3.2)])
     boxes += wall_y("wAB", -1.4, -0.8, Y1, [(0.6, 1.4)])
@@ -68,6 +77,7 @@ def house_libera():
 
 
 def house_arredata():
+    bounds(-4.0, 4.0, -3.0, 3.0)
     boxes = outer()
     # The corridor, y in [-0.5, 0.5], the whole width; the rooms off it.
     boxes += wall_x("wN", 0.5, X0, X1, [(-2.8, -2.0), (1.0, 1.8)])
@@ -101,6 +111,51 @@ def house_arredata():
              "bedroom": [-4, -1.3, -3, -0.5], "office": [-1.3, 1.4, -3, -0.5], "bath": [1.4, 4, -3, -0.5]}
     goals = {"kitchen": [-2.9, 1.9], "living": [1.4, 1.2], "bedroom": [-2.1, -1.1],
              "office": [-0.6, -1.3], "bath": [3.3, -1.2], "home": [0.0, 0.0]}
+    return boxes, holes, rooms, goals, ["shoes", "chair"]
+
+
+def house_grande():
+    """Seven rooms, 9 x 7 m, furnished, two holes, and no passage the duck
+    cannot take: the house to test the whole stack on, not its limits
+    (2026-09-30). A corridor 1.2 m wide across the house; the kitchen,
+    living room and study north of it, a bedroom, the bath and a second
+    bedroom south. The stairwell stands against the living room's north
+    wall and a sunken corner in the second bedroom, both 0.9 m or more
+    from any furniture and well off every door."""
+    bounds(-4.5, 4.5, -3.5, 3.5)
+    boxes = outer()
+    boxes += wall_x("wN", 0.6, X0, X1, [(-3.4, -2.5), (0.0, 1.2), (3.0, 3.9)])
+    boxes += wall_x("wS", -0.6, X0, X1, [(-3.4, -2.5), (-1.0, -0.1), (1.5, 2.4)])
+    boxes += wall_y("wKL", -1.5, 0.6, Y1, [(1.8, 2.8)])
+    boxes += wall_y("wLS", 2.5, 0.6, Y1, [])
+    boxes += wall_y("wB1", -1.5, Y0, -0.6, [])
+    boxes += wall_y("wB2", 0.5, Y0, -0.6, [])
+    furniture = [
+        # kitchen
+        ("counter", -4.4, -2.0, 3.0, 3.44, 0.45), ("kit_table", -3.6, -2.8, 1.6, 2.2, 0.40),
+        ("fridge", -4.4, -3.9, 0.7, 1.2, 0.50),
+        # living: the stairwell against the north wall, the sofa 0.9 m east of it
+        ("sofa", 1.8, 2.4, 1.5, 3.3, 0.40), ("coffee_table", 0.6, 1.2, 1.3, 1.8, 0.30),
+        ("bookshelf", -1.4, -1.0, 0.7, 1.4, 0.50),
+        # study
+        ("desk", 3.4, 4.4, 3.0, 3.44, 0.45), ("shelf", 2.6, 2.9, 2.0, 3.4, 0.50),
+        ("chair", 3.7, 4.1, 2.4, 2.8, 0.25),
+        # bedroom
+        ("bed", -4.4, -3.0, -3.4, -1.8, 0.45), ("armadio", -2.1, -1.6, -3.4, -2.4, 0.50),
+        # bath
+        ("tub", -1.4, 0.4, -3.4, -2.7, 0.35), ("sink", 0.0, 0.4, -1.6, -1.1, 0.45),
+        # second bedroom: the sunken corner 1.2 m from the bed
+        ("bed2", 1.0, 2.4, -3.4, -2.0, 0.45), ("desk2", 3.9, 4.4, -1.6, -0.7, 0.45),
+        # corridor: a low shoe rack at the west end, a plant at the east
+        ("shoes", -4.3, -4.0, -0.1, 0.3, 0.07), ("plant", 4.1, 4.4, -0.3, 0.3, 0.50),
+    ]
+    boxes += furniture
+    holes = [(0.0, 0.9, 2.8, 3.44), (3.6, 4.44, -3.44, -2.6)]
+    rooms = {"kitchen": [-4.5, -1.5, 0.6, 3.5], "living": [-1.5, 2.5, 0.6, 3.5], "study": [2.5, 4.5, 0.6, 3.5],
+             "corridor": [-4.5, 4.5, -0.6, 0.6], "bedroom": [-4.5, -1.5, -3.5, -0.6], "bath": [-1.5, 0.5, -3.5, -0.6],
+             "bedroom2": [0.5, 4.5, -3.5, -0.6]}
+    goals = {"kitchen": [-2.4, 1.3], "living": [0.2, 1.2], "study": [3.2, 1.6], "bedroom": [-2.5, -1.4],
+             "bath": [-0.6, -1.8], "bedroom2": [3.0, -1.5], "home": [0.0, 0.0]}
     return boxes, holes, rooms, goals, ["shoes", "chair"]
 
 
@@ -144,8 +199,11 @@ def write(name, house):
         f"# Ground truth for {name}, cm and degrees, room frame == MuJoCo world frame.\n"
         "walls = [\n" + "\n".join(segs) + "\n]\n\nstart = [0.0, 0.0, 0.0]\nkidnap = [200.0, -200.0, 180.0]\n")
     keys = ["kitchen", "bath", "corridor_n", "corridor_s", "west", "east"]
+    # The paper twin's six room names for the five-room houses, as before;
+    # a bigger house keeps its own.
+    names = keys if len(rooms) <= len(keys) else list(rooms)
     world = {"source": f"{name}, generated", "bounds": [X0 - 0.3, X1 + 0.3, Y0 - 0.3, Y1 + 0.3], "start": [0.0, 0.0, 0.0],
-             "holes": [list(h) for h in holes], "rooms": {k: v for k, v in zip(keys, rooms.values())},
+             "holes": [list(h) for h in holes], "rooms": {k: v for k, v in zip(names, rooms.values())},
              "boxes": [[n, x0, x1, y0, y1] for (n, x0, x1, y0, y1, h) in boxes if h > 0.03], "low": low}
     (OUT / f"{name}.world.json").write_text(json.dumps(world, indent=1))
     (OUT / f"{name}.truth.json").write_text(json.dumps({"holes": holes, "rooms": rooms, "goals": goals,
@@ -154,5 +212,6 @@ def write(name, house):
 
 
 OUT.mkdir(parents=True, exist_ok=True)
-write("casa_libera", house_libera())
-write("casa_arredata", house_arredata())
+HOUSES = {"casa_libera": house_libera, "casa_arredata": house_arredata, "casa_grande": house_grande}
+for name in sys.argv[3:] or ["casa_libera", "casa_arredata"]:
+    write(name, HOUSES[name]())
