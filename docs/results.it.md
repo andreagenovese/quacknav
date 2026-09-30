@@ -216,18 +216,21 @@ sotto).
   mancata in tutti e tre i giri — anche dalla build di `main`, con lo stesso
   libro. Un passaggio che la papera ha percorso resta aperto (le corsie), ma
   non uno che ha solo guardato.
-- **Una sessione che mappa pavimento nuovo deriva finché un loop non si
-  chiude.** La seconda sessione di casa_arredata è tornata a casa con 12 cm
-  di errore — ma quello è soprattutto lo scostamento della mappa salvata
-  dalla casa; rigiocata, la posa è poi passata da 9 a 34 cm di errore in
-  cinque minuti di pavimento nuovo (il bagno, dal suo passaggio di 0.49 m),
-  finché una chiusura di loop non ha ripreso 16 cm. I suoi muri sono passati
-  da 3.8 a 17 cm dalla verità dal vivo (6.0 cm in replay), e i due avvii
-  successivi non sono riusciti a ritrovarsi. La prima diagnosi — una ripresa
-  su una posa un po' sbagliata — è stata misurata e non è quella (fase due,
-  passo 1, qui sopra). house2 ha fatto quattro sessioni senza danni. Finché
-  l'esploratore non torna su pavimento noto quando la posa si è allontanata
-  troppo (passo 6), una mappa si può rifare da zero (`fresh`).
+- **Corretto dopo la release (2026-09-25): una sessione ripresa poteva
+  rompere la mappa.** La seconda sessione di casa_arredata ha portato i suoi
+  muri da 3.8 a 17 cm dalla verità. La causa non era la posa con cui era
+  tornata a casa ma un bug di maploc: quando un avvio ritrova la papera
+  altrove, l'ultima submap (vuota) della mappa salvata viene ri-ancorata lì,
+  e il vincolo di odometria che vi entra restava a dire dov'era — 3.7 m più
+  in là in un caso rigiocato — finché la prima chiusura di loop non lasciava
+  che l'ottimizzatore lo soddisfacesse, e la posa saltava di 1.7 m. In
+  replay, undici sessioni registrate delle tre case: errore dei muri da 6.9 a
+  4.6 cm in media, il peggior errore di traiettoria da 1.95 a 0.16 m;
+  rimappata sul gemello con la correzione, le quattro sessioni di
+  casa_arredata hanno migliorato la mappa una dopo l'altra (3.5 cm di errore
+  dei muri, dopo la sovrapposizione rigida) e ogni viaggio partito è
+  arrivato, bagno compreso. Le tabelle qui sopra sono quelle della release,
+  misurate prima della correzione.
 - **Tornare a casa in una casa regolare può essere lungo, o fallire.** Il test
   della valle rifiuta una posa che un muro lungo e liscio non riesce a fissare:
   nessuna posa sbagliata è stata creduta, ma in casa_arredata (una casa
