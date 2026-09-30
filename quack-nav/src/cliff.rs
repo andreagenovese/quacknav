@@ -26,6 +26,13 @@
 //! one never saw. Whatever was seen before the body moved is forgotten
 //! the moment it moves, because it was seen from somewhere else.
 //!
+//! A valid return under [`OCCLUDED_MM`] is the sensor against something,
+//! not a beam that found no floor: on the apartment's twin the duck with
+//! its head over the bed's blanket read 0–1 cm in all 64 zones and had
+//! booked eighteen phantom holes on the bed (x16, 2026-09-30). Such a zone
+//! is not judged, and a frame with at least [`OCCLUDED_SHARE`] of its
+//! zones occluded proposes no drop at all.
+//!
 //! Caveats, to be settled on hardware: a real sensor also returns nothing
 //! on very dark floors, and its far-range noise grows; the thresholds here
 //! come from the twin. The guard advises; robotd's safety stays in charge.

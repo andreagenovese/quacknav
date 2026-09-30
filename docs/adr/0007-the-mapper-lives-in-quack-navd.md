@@ -47,6 +47,12 @@ outside:
 - `[maploc]` in `quack-nav.toml` holds robotd's old section, off by
   default. Off, the map comes from a robotd that hosts maploc (the fork
   still works); on, from this daemon.
+- Addendum 2026-09-29: the `.mdlg` recording (v2) carries robotd's
+  `t_ns` on every odometry record (53 bytes; the 45-byte v1 records are
+  still read) and the frame's own `t_ns` on every ToF record, and
+  `maploc::bench` pairs the head as live does (interpolated at the
+  frame's stamp plus the 5 ms lead, with the same pending queue). A
+  stamped session replays within 2–4 cm (median) of the live pose.
 
 ### 2. The map keeps robotd's dialect, on a socket of its own
 

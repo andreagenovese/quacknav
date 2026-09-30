@@ -31,6 +31,9 @@ A survey of the Pollen repos on 2026-09-03 changed the premise:
   over IPC: `robot.map` subscription, `map.frame` notifications at ~1 Hz
   (pose in the map frame, tracking flag, trinary occupancy grid),
   `robot.map_wipe`. Off by default via `[maploc]` in robotd.toml.
+  (2026-09-29: quack-navd's own mapper, ADR 0007, also sends a light
+  `map.pose` every 50 ms between the frames, so the pose is read at
+  20 Hz; the frames stay at ~1 Hz.)
 - PR 202 (2026-09-02) ran it on the MuJoCo twin and, after fixing three
   simulator-side issues, measured the tracked pose within ~6 cm of ground
   truth while raw odometry drifted up to 0.35 m.

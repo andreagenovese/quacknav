@@ -50,7 +50,12 @@ scripts/twin/twin.sh down
 session, the saved maps and a `.mdlg` recording of every run; keep it
 short, a unix socket's path is at most 104 bytes on macOS. `MAPLOC_MODE`
 (`stop_and_scan` or `localize`), `HOMECOMING` (`on`/`off`) and `WIPE`
-(`on`/`off`) set up a boot on a saved house; `ASK_PHRASE` is what the
+(`on`/`off`) set up a boot on a saved house; `RESUME=on` is progressive
+exploration (home on a map still being explored, saved at the session's
+end), `EXPLORE_S` the budget of the exploring the homecoming starts (720)
+and `BOOT_SEARCH_S` how long it stands to confirm before it searches
+(240). `PORT` is the simulator's port (7872), `SCENE` the MuJoCo scene
+(default the apartment). `ASK_PHRASE` is what the
 explorer asks at a nameless area (default "Qui dove siamo?"). To talk to it, point a
 voice satellite's `[nav] socket` at `$STATE/nav.sock` and its
 `robotd_socket` at `$STATE/robotd.sock`.
@@ -69,7 +74,25 @@ voice satellite's `[nav] socket` at `$STATE/nav.sock` and its
 
 `maploc`'s own bench replays any recording: `cargo run -p maploc
 --release --features kinematics --example evaluate -- <rec.mdlg>
-<truth.toml> <out>`.
+<truth.toml> <out>`. Beside it, same features:
+
+- `trajectory -- <session.mdlg> <pose.tsv> <out.tsv>`: the replayed pose
+  against the truth, for `traj_metrics.py`; `MAP_SESSION` /
+  `MAP_LOAD_AT_S` replay into the saved map the session resumed on,
+  `SAVE_SESSION` saves the map built; `CORR_LOG`, `ODOM_LOG`, `LOOP_LOG`
+  (every closure with its heading error against the truth) and
+  `TRACK_LOG` write per-event logs; `ODOM_SIGMA_XY/YAW` and
+  `LOOP_SIGMA_XY/YAW` override the graph's sigmas.
+- `wake_match -- <session.mdlg> <pose.tsv> <start_s> <map.session>...`:
+  the homecoming's map-to-map question asked offline, every answer judged
+  against the truth (`ASK_EVERY_S`, `ASK_FOR_S`).
+- quack-nav's `drop_replay -- <session.mdlg> <pose.tsv> <truth.json>
+  "x,y;..."` (`cargo run -p quack-nav --release --example drop_replay`):
+  where a recording's drops land by the replayed pose and by the truth;
+  `BOOK=` for the book mode.
+
+`MAPLOC_SHADOW=0` (maploc's, live and on the bench) turns the shadow map
+off; `MAPLOC_SHADOW_EVERY_S` (30) and `MAPLOC_SHADOW_ASKS` (2) set it.
 
 ## The test houses and the release protocol
 
@@ -82,7 +105,13 @@ voice satellite's `[nav] socket` at `$STATE/nav.sock` and its
 | `aggregate.py` | the tables of `docs/results.md` from the protocol's outputs |
 | `modes_test.py` | resume, "how far along", complete, the frozen map after a restart, a fresh map replacing the old one only when it saves |
 | `run_house.py`, `prog_house.py` | the one-exploration and the sessions-only versions |
-| `poseerr.py <nav.sock> <port> <out.tsv>` | the map's pose against the simulator's truth every 5 s (`<out>.untracked` while the mapper vouches for none) |
+| `poseerr.py <nav.sock> <port> <out.tsv>` | the map's pose against the simulator's truth every 5 s (`POSEERR_DT`; 0.5 for loop closures), `<out>.untracked` while the mapper vouches for none |
+| `wake_bench.py <name> <scene> <state> <port> <truth> <out> <maps_dir> <book.json> [limit_s]` | wake-ups from spots across the house on a saved map (the duck put there with `MICRODUCK_START`), each judged right, wrong or never against the truth; `WAKE_TURN` turns every spawn, `WAKE_SPAWNS="x,y,yaw;..."` replaces them |
+| `traj_metrics.py <pose.tsv>` | ATE and RPE from a sampler's file (live or `trajectory`'s), `--tum` for `evo` |
+| `map_vs_truth.py <frame.json> <truth.toml> <truth.json> [book.json name]` | an explored map against the house, room by room: walls on, thickened or phantom, free inside walls, faces, floor, fit, book |
+| `room_fit.py <frame.json> <truth.toml> <truth.json>` | the rigid misfit of the map and of each room against the true walls |
+| `oracle_book.py <truth.json> <name> <book in> <book out>` | the oracle's drop book: the true holes' rims in place of the booked ones |
+| `cut_mdlg.py <in.mdlg> <seconds> <out.mdlg> [pose.tsv out.truth.tsv]` | the first seconds of a recording as a fixture, with its truth rows |
 
 They need `MICRODUCK`, `MICRODUCK_RL` and `POLICY_DIR` as `twin.sh` does, and
 `TWIN_WORK` for their outputs (default `/tmp/quack-twin-work`). A house takes

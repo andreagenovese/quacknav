@@ -83,7 +83,11 @@ qualcosa che chiunque può costruire sul socket.
 ## Conseguenze
 
 Il lavoro vive sul branch `phase-2` finché un passo non risulta misurato
-migliore. docs/results.it.md acquista le colonne ATE e RPE dal passo 0,
+migliore. (2026-09-30: il lavoro di `phase-2`, passi 0 e 1, è su `main`. La
+mappa ombra del 2026-09-29 — la mappa del cammino di una papera persa,
+chiesta mappa-contro-mappa dove sta in quella salvata, senza filtro a
+particelle — è un passo verso la rilocalizzazione globale del passo 4, non
+l'MCL stessa.) docs/results.it.md acquista le colonne ATE e RPE dal passo 0,
 così ogni passo successivo riporta nei numeri che pubblicano gli altri
 sistemi. `map_status` acquista l'incertezza della posa con il passo 1, e
 l'homecoming, la ripresa e l'esploratore possono chiedere quanto la papera

@@ -104,8 +104,12 @@ breve:
 - **Viaggi ciechi su mappa salvata**: sei goal per un appartamento,
   6/6, circa otto minuti, nessuna caduta — corsa dopo corsa dal
   2026-09-16.
-- **Il boot**: la papera si sveglia, riconosce la casa che ha salvato e
-  conferma la posa in 70–330 s a seconda della stanza.
+- **Il boot**: la papera si sveglia dove l'hanno portata, riconosce la
+  casa che ha salvato e conferma la posa. Al banco dei risvegli
+  (2026-09-30, 12 partenze sparse in due case, poi le stesse girate di
+  180°): 23 su 24 giuste, nessuna sbagliata, nessuna caduta; mediane di
+  87–105 s, e 105–123 s girate (174–192 s e 126–135 s prima della mappa
+  ombra).
 - **La tromba delle scale**: il passaggio accanto a un buco, largo
   0,54 m, camminato con le guardie accese quando la posa sta entro
   10 cm — e perché a decidere è la posa, non le regole (lo scan matcher
@@ -192,7 +196,7 @@ del settore.
   e i recuperi in un behavior tree. Qui: Dijkstra, un filo teso, gambe a
   stop-and-go, e recuperi sparsi nell'esploratore. Il libro dei drop è uno
   strato di costmap in tutto tranne che nel nome.
-- **Test.** Circa 140 test unitari; il comportamento si verifica solo con giri
+- **Test.** 152 test (`#[test]`, 2026-09-30); il comportamento si verifica solo con giri
   di ore, non deterministici, sul gemello. Il gemello di carta non gira in CI.
 - **Solo simulazione.** Il sensore, il pavimento e il passo veri sposteranno
   molti dei numeri.
@@ -223,3 +227,7 @@ arriva a dicembre 2026. Due modi di farlo girare:
 - **Un robotd che ospita maploc** — la PR 127 upstream, ancora aperta,
   più la libreria di mappe di `docs/study/upstream-asks.md` §5, che vive su
   un fork di `pollen-robotics/microduck` — con `[maploc]` spento.
+
+daemon-v0.15.0 (API 37) è validato sul gemello solo sul branch
+`microduck-015` (quattro sessioni per casa, nessuna regressione); `main`
+resta fissato a daemon-v0.14.4.

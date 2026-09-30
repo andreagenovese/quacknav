@@ -112,9 +112,11 @@ percorso). "Dal vivo" è ciò che la papera ha riportato durante il giro;
 "replay" è la stessa registrazione rigiocata nel mapper sul banco
 (`maploc/examples/trajectory.rs`), che dà gli stessi numeri ogni volta ed è
 su cui si misurano le modifiche della fase due. Il dato dal vivo è un po'
-peggiore perché la posa dal vivo si legge dal frame della mappa, pubblicato
-circa una volta al secondo, mentre la verità si legge all'istante: dentro
-c'è fino a un secondo di cammino a 0.12 m/s. Questi file non hanno l'angolo,
+peggiore perché, in queste sessioni (prima del 2026-09-29), la posa dal
+vivo si leggeva dal frame della mappa, pubblicato circa una volta al
+secondo, mentre la verità si legge all'istante: dentro c'è fino a un
+secondo di cammino a 0.12 m/s. Dal 2026-09-29 la posa esce anche tra un
+frame e l'altro, ogni 50 ms (`map.pose`, vedi sotto). Questi file non hanno l'angolo,
 quindi l'RPE è quello dello spostamento nel riferimento del mondo; da ora il
 campionatore registra anche l'angolo.
 
@@ -133,8 +135,8 @@ millimetro (verificato sulle sessioni di house2).
 
 ### Fase due, passo 1: l'incertezza della posa, misurata
 
-Sul branch `phase-2` (ADR 0009), sul banco di replay, le stesse sessioni di
-sopra.
+Sviluppato sul branch `phase-2` (ADR 0009), ora su `main`; sul banco di
+replay, le stesse sessioni di sopra.
 
 **Una covarianza sulla posa.** maploc tiene una covarianza 3×3 (x, y,
 angolo) come un EKF: l'odometria la fa crescere (5 cm per √metro, 1.7° per
@@ -180,8 +182,9 @@ finali), ognuna contro la verità:
 | rifiutata dal test della valle | 91 | 84 | 7 |
 
 Il test della valle è molto prudente — il 92 % di ciò che ha rifiutato era
-giusto, per lo più entro 10 cm — ed è per questo che tornare a casa è lento,
-e in casa_arredata è fallito due volte. Ma la Hessiana non può sostituirlo:
+giusto, per lo più entro 10 cm — ed è per questo che tornare a casa era lento,
+e in casa_arredata è fallito due volte (dal 2026-09-29 la mappa ombra, qui
+sotto, dà un seme alle finestre e dimezza l'attesa). Ma la Hessiana non può sostituirlo:
 le 7 pose sbagliate (tutte in casa_arredata, 6 in un solo avvio, un alias a
 circa 4 m) sono ben condizionate, rapporti degli autovalori fino a 0.71;
 sono un'altra valle che combacia, non una direzione che scivola. È una
@@ -206,6 +209,72 @@ Una sessione molto meglio, le altre pari o un po' peggio — e peggio proprio
 su quella per cui era stato scritto, perché la seconda sessione di
 casa_arredata non è stata danneggiata dalla ripresa (vedi i limiti noti qui
 sotto).
+
+### Dopo la release (2026-09-28..30)
+
+Sul gemello e sul banco di replay; le tabelle della release qui sopra non
+cambiano.
+
+- **La posa a 20 Hz** (e92aa14). mapd manda un `map.pose` leggero ogni
+  50 ms tra i `map.frame` a 1 Hz; la corsia della mappa lo fonde nel frame
+  con lo stesso seq, e dopo un wipe, un load o un adopt nessuna posa esce
+  finché non arriva il primo frame della mappa nuova. L'errore d'angolo dal
+  vivo, così come campionato, è sceso da 17° RMS (una posa vecchia fino a
+  un secondo, nelle curve) a circa 2°.
+- **Il replay come dal vivo** (f38b341). La registrazione `.mdlg` porta i
+  timestamp degli orologi di robotd e di tofd (record di odometria da 53
+  byte; quelli da 45 si leggono ancora) e il banco abbina la testa come dal
+  vivo (interpolazione al timestamp del frame, i 5 ms di anticipo, la coda
+  di attesa). Una sessione con i timestamp si rigioca entro 2–4 cm
+  (mediana) dalla posa dal vivo.
+- **La regola di adozione dell'homecoming** (3b5d4df): sovrapposizione
+  almeno 0.50 (era 0.70), margine al massimo 0.50 (era 0.80), una domanda
+  ogni 60 s (era 180; 120 sul gemello), tre risposte concordi come prima.
+  Su 27 risvegli rigiocati (`maploc/examples/wake_match.rs`, 920 domande,
+  655 con la risposta giusta): la regola vecchia faceva passare 565
+  risposte giuste e 9 dell'altra casa, la nuova 626 e nessuna sbagliata.
+- **La mappa ombra** (10f5a22, 2247634, 9c37473). Un mapper ripreso perso
+  su una mappa salvata tiene una mappa nuova del suo cammino e ogni 30 s
+  chiede alla mappa salvata dove combacia (`align::match_maps`). Due
+  risposte concordi con margine ≤ 0.5, o quattro con ≤ 0.8, una volta che
+  la papera ha camminato 0.5 m, danno un seme morbido — l'allineamento
+  composto con l'odometria dall'inizio dell'ombra — che due finestre
+  confermano. `MAPLOC_SHADOW=0` la spegne. 37 risvegli rigiocati:
+  confermati da 13 a 35, mediana da 123 a 92 s, nessuno sbagliato. Sul
+  banco dei risvegli del gemello, prima e con l'ombra:
+
+  | Banco | | giusti | mediana casa_arredata | mediana apartment | sbagliati | cadute |
+  |---|---|---|---|---|---|---|
+  | w3, partenze sparse per la casa | prima | — | 174 s | 192 s | — | — |
+  | w3 | ombra | 11/12 | 87 s | 105 s | 0 | 0 |
+  | w4, le stesse partenze girate di 180° | prima | — | 135 s | 126 s | — | — |
+  | w4 | ombra | 12/12 | 105 s | 123 s | 0 | 0 |
+
+- **Il salto di una rilocalizzazione non si porta più via la sua posa**
+  (7e2825b). Dopo una rilocalizzazione il salto congelava l'ultima submap
+  della sessione; le sue chiusure spostavano la catena vecchia, e la submap
+  appena aperta (una foglia) trascinava la posa appena confermata di 0.43 m
+  e 7° — in fondo a nord del corridoio dell'apartment (x17, sessione 4) la
+  papera tracciava 0.55 m fuori, e sembrava un alias ma non lo era. Ora il
+  nodo nuovo è attaccato come rilocalizzazione e l'ottimizzazione di quel
+  tick non lo sposta. 20 sessioni rigiocate: ATE media da 0.1045 a
+  0.0975 m; il caso di x17 da 0.242 a 0.107 m.
+- **Un sensore coperto non è un buco** (953285b). Una zona ToF valida sotto
+  i 30 mm è il sensore contro qualcosa; un frame con almeno un quarto di
+  zone così non propone nessun drop. La papera dell'apartment, con la testa
+  sopra la coperta del letto, leggeva 0–1 cm in tutte le 64 zone e aveva
+  registrato 18 buchi fantasma sul letto (x16).
+- **Provati e lasciati spenti.** La sigma d'angolo delle chiusure di loop a
+  0.5 rad: meglio su 8 sessioni rigiocate, peggio su altre 4; tornata a
+  0.24 (`MAPLOC_LOOP_SIGMA_YAW`). D'ora in poi i parametri di maploc si
+  giudicano su almeno 12 sessioni. Cancellare i buchi registrati dove poi
+  si è visto il pavimento (`QK_FLOOR_STRIKE=1`): con un errore di posa non
+  visto di 11–15 cm cancellava anche punti veri del bordo.
+- **daemon-v0.15.0** (API 37) è validato sul gemello solo sul branch
+  `microduck-015`: quattro sessioni per casa, nessuna regressione. Lì si è
+  misurato che una testa che gira non costa quasi niente alla mappa
+  (3.2–3.3 cm di residuo da 0.05 a 1 rad/s; 3.46 cm sull'1 % di frame
+  oltre). `main` resta su daemon-v0.14.4.
 
 ## Limiti noti
 
@@ -235,7 +304,17 @@ sotto).
   della valle rifiuta una posa che un muro lungo e liscio non riesce a fissare:
   nessuna posa sbagliata è stata creduta, ma in casa_arredata (una casa
   generata, molto regolare, con il bagno mappato a metà) due avvii su
-  diciassette si sono fermati dopo 16 minuti.
+  diciassette si sono fermati dopo 16 minuti. Dal 2026-09-29 la mappa ombra
+  dà un seme alle finestre: 23 risvegli su 24 al banco del gemello
+  confermati giusti, nessuno sbagliato, mediane di 87–123 s contro 126–192 s
+  di prima. Resta lento: la papera dell'apartment svegliata a est del vano
+  scala, dove le finestre rifiutano per minuti un seme giusto.
+- **Alcune chiusure di loop misurano male l'angolo** — di qualche grado, e
+  la posa dal vivo deriva con loro: i buchi fantasma a nord del vano scala
+  di casa_arredata (x13) venivano da una posa 35 cm fuori dopo una chiusura
+  sbagliata di 5°, e la covarianza di maploc non lo segnalava (σ 0.08 m a
+  0.35 m di errore). Il perché si sta misurando, con la verità campionata
+  fitta (`LOOP_LOG`, `POSEERR_DT=0.5`).
 - **Più lenta di `main`.** La mediana di un viaggio è 106–111 s contro i 66–101 s
   di `main`; su pavimento libero (casa_libera) 1.7 volte tanto. È il prezzo del
   seguire la rotta pianificata (il filo teso al massimo 0.6 m, mai accanto a un

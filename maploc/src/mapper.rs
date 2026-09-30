@@ -21,7 +21,12 @@
 //! keeps mapping. While lost, nothing inks and every window becomes a
 //! brute-force relocalize attempt ([`crate::relocalize`]); an accepted
 //! pose snaps tracking there and mapping resumes. The same watchdog heals
-//! a resumed session whose robot moved while the daemon was down.
+//! a resumed session whose robot moved while the daemon was down. A
+//! mapper resumed lost on a saved map also keeps a *shadow*: a fresh map
+//! of its walk, asked every 30 s where it fits in the saved one
+//! ([`crate::align::match_maps`]); agreeing answers give a soft seed
+//! (the fit composed with the odometry since the shadow began) that two
+//! windows confirm like any candidate (`MAPLOC_SHADOW=0` turns it off).
 
 use crate::accumulator::{AccumulatorConfig, WindowAccumulator};
 use crate::grid::OccupancyGrid;
@@ -2913,7 +2918,10 @@ fn shadow_asks() -> u32 {
 }
 
 /// The lost duck's own map of what it has walked since boot, kept beside
-/// the search and asked, every minute, where it sits in the saved map. A
+/// the search and asked, every 30 s (`MAPLOC_SHADOW_EVERY_S`), where it
+/// sits in the saved map. Two agreeing answers at margin ≤ 0.5 (or four at
+/// margin ≤ 0.8, the wide rule), once the duck has walked 0.5 m, make a
+/// soft seed that two windows must still confirm. A
 /// window of 200 beams in a corridor fits a dozen places; the walk's map
 /// fits one. casa_arredata's duck, woken in its corridor, found nothing
 /// in 240 s of windows, while its fresh map, once the search gave up,

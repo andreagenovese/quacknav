@@ -3924,7 +3924,7 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
 - [x] CI: i test unitari, i percorsi golden, i test su proprietà e il
       gemello di carta a ogni push (già nel debito tecnico del README).
 
-## 2d. Fase due (ADR 0009), sul branch `phase-2`
+## 2d. Fase due (ADR 0009), sviluppata sul branch `phase-2`, ora su `main`
 - [x] Passo 0, le misure (2026-09-25): tutto il 2c qui sopra, ATE/RPE
       della release in docs/results.it.md (dal vivo e in replay), e
       `maploc/examples/trajectory.rs`, il banco di replay deterministico.
@@ -3949,15 +3949,55 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       91, in replay): il passo 4 deve tenere le sue 7 catture (tutte un
       alias in casa_arredata) e far passare il resto.
 - [ ] Passo 2: costmap a strati e Regulated Pure Pursuit.
+- [x] 2026-09-28: l'homecoming diviso in due, la decisione
+      (`homecoming/mod.rs`) e la ricerca al boot (`search.rs`).
+- [x] 2026-09-28: `scripts/twin/houses/wake_bench.py`, risvegli da punti
+      sparsi per la casa giudicati contro la verità (`WAKE_TURN` per gli
+      stessi punti girati di 180°).
+- [x] 2026-09-29: `map.pose`, la posa ogni 50 ms tra i frame a 1 Hz;
+      l'errore d'angolo dal vivo, così come campionato, da 17° RMS a
+      circa 2°.
+- [x] 2026-09-29: la registrazione `.mdlg` porta i timestamp degli orologi
+      di robotd e di tofd (v2, record di odometria da 53 byte) e il banco
+      abbina la testa come dal vivo; replay entro 2–4 cm (mediana) dal
+      vivo.
+- [x] 2026-09-29: l'homecoming adotta con sovrapposizione 0.50 e margine
+      0.50, chiedendo ogni 60 s, tre domande
+      (`maploc/examples/wake_match.rs`, 27 risvegli rigiocati: passano 626
+      delle 655 risposte giuste, nessuna sbagliata).
+- [x] 2026-09-29/30: la mappa ombra — una papera persa su una mappa salvata
+      tiene una mappa del suo cammino e ogni 30 s chiede dove combacia; 37
+      risvegli rigiocati, confermati da 13 a 35, nessuno sbagliato; sul
+      gemello 23 risvegli su 24 giusti, mediane 87–123 s contro 126–192 s.
+- [x] 2026-09-29: `quack-nav/examples/drop_replay.rs`, dove cadono i drop
+      di una registrazione secondo la posa rigiocata e secondo la verità
+      (`BOOK=`).
+- [x] 2026-09-30: la posa di una rilocalizzazione non viene più portata
+      via dal congelamento causato dal suo stesso salto (0.43 m / 7° nel
+      corridoio dell'apartment, x17 — non un alias); 20 sessioni, ATE
+      media da 0.1045 a 0.0975 m.
+- [x] 2026-09-30: un sensore coperto non è un buco (`OCCLUDED_MM`,
+      `OCCLUDED_SHARE`): spariti i 18 buchi fantasma sul letto
+      dell'apartment.
+- [x] 2026-09-30: daemon-v0.15.0 (API 37) sul branch `microduck-015`,
+      pushato, non unito: quattro sessioni per casa, nessuna regressione;
+      registrate le velocità dei giunti della testa (record di odometria
+      da 69 byte), `maploc/examples/head_motion.rs`: una testa che gira non
+      costa quasi niente alla mappa.
+- [ ] Perché alcune chiusure di loop misurano male l'angolo (x13: 5° di
+      errore, la posa dal vivo 35 cm fuori, σ 0.08 m); si misura con la
+      verità fitta (`LOOP_LOG`, `POSEERR_DT=0.5`). Sigma d'angolo del loop
+      a 0.5 provata e tolta: i parametri di maploc si giudicano su almeno
+      12 sessioni.
+- [ ] I risvegli dell'apartment a est del vano scala sono lenti: le
+      finestre rifiutano per minuti un seme giusto.
 
-## 3. `go_to` (serve un RPC di goal upstream)
-- [ ] Seguire upstream per un RPC tipo `robot.goto` (pianificatore e
-      follower esistono nel crate, non sono cablati). Se entro dicembre
-      non compare nulla, proporlo come PR sul repo Pollen con l'anatra in
-      mano.
-- [ ] Strumento `go_to(place)` sopra di esso: pianifica, segue, riferisce
-      arrivo o fallimento; l'evitamento ToF di M9 è compito di upstream,
-      non nostro.
+## 3. `go_to` (fatto in quack-nav, senza RPC upstream)
+- [x] ~~Seguire upstream per un RPC tipo `robot.goto`~~ — non serve:
+      pianificatore e follower girano in quack-nav (`robot.go_to`,
+      `explore/navigate.rs`).
+- [x] Strumento `go_to(place)`: `robot.go_to` cammina fino a un posto noto
+      o a un punto della mappa e riferisce arrivo o fallimento.
 - [ ] `look_at` tramite il `robot.look` esistente.
 
 ## 4. Più avanti, opzionale: semantica dalla telecamera (fuori bordo)
@@ -3996,9 +4036,16 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
 - La PR 127 è senza review e in conflitto con main: la forma dell'IPC
   può ancora cambiare. Costruire contro una versione API fissata,
   aspettarsi un bump.
-- La rilocalizzazione al boot non è ancora cablata in robotd: le
-  etichette dei luoghi sopravvivono solo quanto la sessione salvata. Il
-  registro va indicizzato per sessione e deve tollerare un reset.
+- ~~La rilocalizzazione al boot non è ancora cablata in robotd~~
+  (superato: l'homecoming, `quack-nav/src/homecoming/`, rilocalizza sul
+  mapper di quack-navd). Le etichette dei luoghi sopravvivono ancora solo
+  quanto la mappa salvata; il registro tollera un reset con la sua
+  generazione (`places.rs`).
+- Alcune chiusure di loop misurano male l'angolo, e la covarianza di maploc
+  non segnala la deriva che ne segue (σ 0.08 m a 0.35 m di errore, x13): i
+  buchi fantasma si registrano dove li mette la posa. In corso (§2d).
+- I risvegli dell'apartment a est del vano scala sono lenti: le finestre
+  rifiutano per minuti un seme giusto (§2d).
 - La mappatura stop-and-scan è lavoro deliberato: qualcuno deve portare
   l'anatra in giro con delle pause. Progettare il giro guidato, non darlo
   per scontato.
@@ -4009,4 +4056,7 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
 - Più anatre: una mappa per robot per ora; una mappa condivisa è un
   problema di upstream, se mai arriverà.
 - Nessun file di licenza su `microduck_maploc_rs`; il codice dentro il
-  repo Pollen è Apache-2.0. Lo consumiamo via IPC, non lo incorporiamo.
+  repo Pollen è Apache-2.0. ~~Lo consumiamo via IPC, non lo incorporiamo.~~
+  Dall'ADR 0007 `maploc` è incluso come crate del workspace (il
+  `maploc-quacknav` del fork, con il `NOTICE` che riconosce la PR 127 di
+  Pollen).

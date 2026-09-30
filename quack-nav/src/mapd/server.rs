@@ -2,7 +2,8 @@
 //!
 //! What the robotd fork answered on its own socket, answered here with the
 //! same shapes: `robot.map` (a [`MapStreamResult`], then a `map.frame` a
-//! second), the library (`map_save`, `map_list`, `map_load`, `map_match`,
+//! second and, between frames, a light `map.pose` every 50 ms carrying the
+//! seq of the frame it belongs to), the library (`map_save`, `map_list`, `map_load`, `map_match`,
 //! `map_adopt`) and `map_wipe`. NDJSON JSON-RPC 2.0, one thread per
 //! caller. Anything else is `METHOD_NOT_FOUND`: this is the map, not the
 //! robot.

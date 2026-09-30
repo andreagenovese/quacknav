@@ -110,9 +110,11 @@ error of the motion over each metre walked). "Live" is what the duck
 reported during the run; "replay" is the same recording replayed through
 the mapper on the bench (`maploc/examples/trajectory.rs`), which gives the
 same numbers every time and is what phase two's changes are measured on.
-The live figure is a little worse because the live pose is read from the
-map frame, published about once a second, while the truth is read at the
-instant: up to a second of walking at 0.12 m/s is in it. These files carry
+The live figure is a little worse because, in these sessions (before
+2026-09-29), the live pose was read from the map frame, published about
+once a second, while the truth is read at the instant: up to a second of
+walking at 0.12 m/s is in it. Since 2026-09-29 the pose also goes out
+between frames every 50 ms (`map.pose`, see below). These files carry
 no heading, so the RPE is of the displacement in the world frame; the
 sampler records the heading from now on.
 
@@ -131,7 +133,8 @@ millimetre (checked on house2's sessions).
 
 ### Phase two, step 1: the pose's uncertainty, measured
 
-On `phase-2` (ADR 0009), on the replay bench, the same sessions as above.
+Developed on `phase-2` (ADR 0009), now on `main`; on the replay bench, the
+same sessions as above.
 
 **A covariance on the pose.** maploc keeps a 3×3 covariance (x, y, yaw) as
 an EKF does: odometry grows it (5 cm per √metre, 1.7° per √radian turned),
@@ -175,8 +178,9 @@ against the truth:
 | refused by the valley test | 91 | 84 | 7 |
 
 The valley test is very cautious — 92 % of what it refused was right,
-most within 10 cm — and that is why coming home is slow, and failed twice
-in casa_arredata. But the Hessian cannot replace it: the 7 wrong poses (all
+most within 10 cm — and that is why coming home was slow, and failed twice
+in casa_arredata (since 2026-09-29 the shadow map, below, gives the windows
+a seed and halves the wait). But the Hessian cannot replace it: the 7 wrong poses (all
 in casa_arredata, 6 in one boot, an alias about 4 m off) are well
 conditioned, eigenvalue ratios up to 0.71; they are another basin that
 fits, not a direction that slides. That is a global question, for step 4's
@@ -199,6 +203,69 @@ nothing until two windows in a row agree and move it less than 2 cm and
 One session much better, the rest even or a little worse — and worse on
 the one it was written for, because casa_arredata's second session was not
 harmed by its resume at all (see the known limits below).
+
+### Since the release (2026-09-28..30)
+
+On the twin and on the replay bench; the release's tables above are
+unchanged.
+
+- **The pose at 20 Hz** (e92aa14). mapd sends a light `map.pose` every
+  50 ms between the 1 Hz `map.frame`s; the map lane folds it into the
+  frame of the same seq, and after a wipe, load or adopt no pose goes out
+  until the new map's first frame. The live yaw error as sampled went from
+  17° RMS (a pose up to a second old, in turns) to about 2°.
+- **Replay as live** (f38b341). The `.mdlg` recording stamps robotd's and
+  tofd's clocks (odometry records of 53 bytes; the 45-byte ones are still
+  read) and the bench pairs the head as live does (interpolation at the
+  frame's stamp, the 5 ms lead, the pending queue). A stamped session
+  replays within 2–4 cm (median) of the live pose.
+- **The homecoming's adoption rule** (3b5d4df): overlap at least 0.50
+  (was 0.70), margin at most 0.50 (was 0.80), an ask every 60 s (was
+  180; the twin's 120), three agreeing asks as before. On 27 replayed
+  wakes (`maploc/examples/wake_match.rs`, 920 asks, 655 of them right):
+  the old rule passed 565 right answers and 9 of the other house, the new
+  one 626 and none wrong.
+- **The shadow map** (10f5a22, 2247634, 9c37473). A mapper resumed lost on
+  a saved map keeps a fresh map of its walk and every 30 s asks the saved
+  map where it fits (`align::match_maps`). Two agreeing answers at margin
+  ≤ 0.5, or four at ≤ 0.8, once the duck has walked 0.5 m, give a soft
+  seed — the fit composed with the odometry since the shadow began — that
+  two windows confirm. `MAPLOC_SHADOW=0` turns it off. 37 wakes replayed:
+  confirmed 13 → 35, median 123 → 92 s, none wrong. On the twin's wake
+  bench, off (before) and on:
+
+  | Bench | | right | median casa_arredata | median apartment | wrong | falls |
+  |---|---|---|---|---|---|---|
+  | w3, spawns across the house | before | — | 174 s | 192 s | — | — |
+  | w3 | shadow | 11/12 | 87 s | 105 s | 0 | 0 |
+  | w4, the same spawns turned 180° | before | — | 135 s | 126 s | — | — |
+  | w4 | shadow | 12/12 | 105 s | 123 s | 0 | 0 |
+
+- **A relocalization's jump no longer drags its own pose** (7e2825b).
+  After a relocalization the jump froze the session's last submap; its
+  closures moved the old chain, and the newly opened submap (a leaf)
+  pulled the just-confirmed pose 0.43 m and 7° off — at the north end of
+  the apartment's corridor (x17, session 4) the duck tracked 0.55 m off
+  what looked like an alias and was not. The new node is now joined as a
+  relocalization and that tick's optimization does not move it. 20
+  replayed sessions: mean ATE 0.1045 → 0.0975 m; the x17 case 0.242 →
+  0.107 m.
+- **A covered sensor is not a hole** (953285b). A valid ToF zone under
+  30 mm is the sensor against something; a frame with a quarter or more
+  of such zones proposes no drop. The apartment's duck with its head over
+  the bed's blanket read 0–1 cm in all 64 zones and had booked 18 phantom
+  holes on the bed (x16).
+- **Tried and left off.** Loop closures' heading sigma at 0.5 rad: better
+  on 8 replayed sessions, worse on 4 more; back to 0.24
+  (`MAPLOC_LOOP_SIGMA_YAW`). maploc's parameters are judged on 12
+  sessions or more from now on. A strike of booked holes where the floor
+  was later seen (`QK_FLOOR_STRIKE=1`): under an unseen 11–15 cm pose
+  error it also struck true rim points.
+- **daemon-v0.15.0** (API 37) is validated on the twin only on the branch
+  `microduck-015`: four sessions per house, no regression. There a
+  turning head was measured to cost the map next to nothing (3.2–3.3 cm
+  of residual from 0.05 to 1 rad/s; 3.46 cm on the 1 % of frames above).
+  `main` stays on daemon-v0.14.4.
 
 ## Known limits
 
@@ -225,6 +292,16 @@ harmed by its resume at all (see the known limits below).
   refuses a pose a long plain wall cannot pin down: no wrong pose was
   believed, but in casa_arredata (a generated, very regular house, its
   bathroom half mapped) two boots of seventeen stood down after 16 minutes.
+  Since 2026-09-29 the shadow map gives the windows a seed: 23 of 24
+  wakes on the twin's bench confirmed right, none wrong, medians 87–123 s
+  against 126–192 s before. Still slow: the apartment's duck woken east of
+  the stairwell, where the windows refute a right seed for minutes.
+- **Some loop closures measure the heading wrong** — a few degrees, and
+  the live pose drifts with it: phantom holes north of casa_arredata's
+  stairwell (x13) came from a pose 35 cm off after a closure 5° wrong, and
+  maploc's covariance did not flag it (σ 0.08 m at 0.35 m off). Why is
+  being measured, with the truth sampled densely (`LOOP_LOG`,
+  `POSEERR_DT=0.5`).
 - **Slower than `main`.** A journey's median is 106–111 s against `main`'s
   66–101 s; on open floor (casa_libera) 1.7 times as long. It is the price of
   walking the planned route (the string pulled 0.6 m at most, none beside a

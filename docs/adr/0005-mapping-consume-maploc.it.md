@@ -33,6 +33,9 @@ Una ricognizione dei repo Pollen il 2026-09-03 ha cambiato la premessa:
   `robot.map`, notifiche `map.frame` a ~1 Hz (posa nel frame mappa, flag
   di tracking, griglia di occupazione ternaria), `robot.map_wipe`. Spento
   di default tramite `[maploc]` in robotd.toml.
+  (2026-09-29: il mapper di quack-navd, ADR 0007, manda anche un
+  `map.pose` leggero ogni 50 ms tra un frame e l'altro, così la posa si
+  legge a 20 Hz; i frame restano a ~1 Hz.)
 - La PR 202 (2026-09-02) l'ha eseguito sul gemello MuJoCo e, dopo aver
   corretto tre problemi lato simulatore, ha misurato la posa tracciata
   entro ~6 cm dalla verità mentre l'odometria grezza derivava fino a

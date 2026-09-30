@@ -19,8 +19,12 @@
 //! Believing the answer is the part no threshold can settle: the flat's
 //! own mirror image scores 0.7–0.8 of the winner even when the winner is
 //! right. What separates them is the map growing. The rule here is that
-//! two successive asks, minutes apart and with the map bigger the second
-//! time, must name the same map and put it in the same place. A wrong
+//! three consecutive asks, a minute apart and with the map bigger each
+//! time, must name the same map and put it in the same place, each at an
+//! overlap of at least 0.5 and a margin of at most 0.5
+//! (`HomecomingConfig::adopt_asks`, `recognize_every_s`,
+//! `adopt_min_overlap`, `adopt_max_margin`; 27 replayed wakes, 2026-09-29:
+//! 626 of 655 right answers pass, none of the other house). A wrong
 //! candidate does not survive its own map growing into the rooms next
 //! door; the right one gets better.
 //!

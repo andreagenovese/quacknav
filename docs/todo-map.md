@@ -3674,7 +3674,7 @@ nothing: it explores and asks.
 - [x] CI: the unit tests, the golden routes, the property tests and the
       paper twin on every push (already in the README's technical debt).
 
-## 2d. Phase two (ADR 0009), on the branch `phase-2`
+## 2d. Phase two (ADR 0009), developed on the branch `phase-2`, now on `main`
 - [x] Step 0, measurement (2026-09-25): everything of 2c above, the
       release's ATE/RPE in docs/results.md (live and replayed), and
       `maploc/examples/trajectory.rs`, the deterministic replay bench.
@@ -3697,13 +3697,50 @@ nothing: it explores and asks.
       replayed): step 4 must keep its 7 catches (all one alias in
       casa_arredata) and let the rest through.
 - [ ] Step 2: layered costmap and Regulated Pure Pursuit.
+- [x] 2026-09-28: the homecoming split in two, the decision
+      (`homecoming/mod.rs`) and the boot search (`search.rs`).
+- [x] 2026-09-28: `scripts/twin/houses/wake_bench.py`, wake-ups from spots
+      across the house judged against the truth (`WAKE_TURN` for the same
+      spots turned 180°).
+- [x] 2026-09-29: `map.pose`, the pose every 50 ms between the 1 Hz
+      frames; the live yaw error as sampled 17° RMS -> about 2°.
+- [x] 2026-09-29: the `.mdlg` recording stamps robotd's and tofd's clocks
+      (v2, 53-byte odometry records) and the bench pairs the head as live;
+      replay within 2–4 cm (median) of live.
+- [x] 2026-09-29: the homecoming adopts on overlap 0.50 and margin 0.50,
+      asking every 60 s, three asks (`maploc/examples/wake_match.rs`, 27
+      replayed wakes: 626 of 655 right answers pass, none wrong).
+- [x] 2026-09-29/30: the shadow map — a lost duck on a saved map keeps a
+      map of its walk and asks every 30 s where it fits; 37 replayed
+      wakes 13 -> 35 confirmed, none wrong; on the twin 23 of 24 wakes
+      right, medians 87–123 s against 126–192 s.
+- [x] 2026-09-29: `quack-nav/examples/drop_replay.rs`, where a
+      recording's drops land by the replayed pose and by the truth
+      (`BOOK=`).
+- [x] 2026-09-30: a relocalization's pose is not carried off by the
+      freeze its own jump caused (0.43 m / 7° in the apartment's
+      corridor, x17 — not an alias); 20 sessions, mean ATE 0.1045 ->
+      0.0975 m.
+- [x] 2026-09-30: a covered sensor is not a hole (`OCCLUDED_MM`,
+      `OCCLUDED_SHARE`): 18 phantom holes on the apartment's bed gone.
+- [x] 2026-09-30: daemon-v0.15.0 (API 37) on the branch `microduck-015`,
+      pushed, not merged: four sessions per house, no regression; head
+      joint velocities recorded (69-byte odometry records),
+      `maploc/examples/head_motion.rs`: a turning head costs the map next
+      to nothing.
+- [ ] Why some loop closures mis-measure the heading (x13: 5° wrong, the
+      live pose 35 cm off, σ 0.08 m); being measured with dense truth
+      (`LOOP_LOG`, `POSEERR_DT=0.5`). Loop heading sigma 0.5 tried and
+      reverted: judge maploc's parameters on 12 sessions or more.
+- [ ] The apartment's wakes east of the stairwell are slow: the windows
+      refute a right seed for minutes.
 
-## 3. `go_to` (needs an upstream goal RPC)
-- [ ] Follow upstream for a `robot.goto`-style RPC (planner + follower
-      exist in the crate, not wired). If nothing appears by December,
-      propose it as a PR on the Pollen repo with the duck in hand.
-- [ ] `go_to(place)` tool on top of it: plan, follow, report arrival or
-      failure; the ToF avoidance in M9 is upstream's job, not ours.
+## 3. `go_to` (done in quack-nav, no upstream RPC)
+- [x] ~~Follow upstream for a `robot.goto`-style RPC~~ — not needed: the
+      planner and the follower run in quack-nav (`robot.go_to`,
+      `explore/navigate.rs`).
+- [x] `go_to(place)` tool: `robot.go_to` walks to a known place or a point
+      on the map and reports arrival or failure.
 - [ ] `look_at` via the existing `robot.look`.
 
 ## 4. Later, optional: semantics from the camera (off-board)
@@ -3737,9 +3774,15 @@ nothing: it explores and asks.
   map shows floor) — see the explorer.
 - PR 127 is unreviewed and conflicting with main: the IPC shape may
   still change. Build against a pinned API version, expect a bump.
-- Boot relocalization is not wired in robotd yet: place labels survive
-  only as long as the saved session does. The registry must be keyed by
-  session and tolerate a reset.
+- ~~Boot relocalization is not wired in robotd yet~~ (superseded: the
+  homecoming, `quack-nav/src/homecoming/`, relocalizes on quack-navd's own
+  mapper). Place labels still survive only as long as the saved map does;
+  the registry tolerates a reset by its generation (`places.rs`).
+- Some loop closures mis-measure the heading, and maploc's covariance does
+  not flag the drift that follows (σ 0.08 m at 0.35 m off, x13): phantom
+  holes are booked where the pose has them. Under investigation (§2d).
+- The apartment's wakes east of the stairwell are slow: the windows refute
+  a right seed for minutes (§2d).
 - Stop-and-scan mapping is deliberate work: somebody has to walk the
   duck around with pauses. Design the guided tour, do not assume it.
 - Cell pitch, map extent and CPU cost on the RK3566 are to be measured
@@ -3748,4 +3791,6 @@ nothing: it explores and asks.
 - Multiple ducks: one map per robot for now; a shared map is upstream's
   problem if it ever comes.
 - No license file on `microduck_maploc_rs`; the code inside the Pollen
-  repo is Apache-2.0. We consume it over IPC, we do not vendor it.
+  repo is Apache-2.0. ~~We consume it over IPC, we do not vendor it.~~
+  Since ADR 0007 `maploc` is vendored as a workspace crate (the fork's
+  `maploc-quacknav`, with `NOTICE` crediting Pollen's PR 127).

@@ -99,8 +99,11 @@ shape of it:
 
 - **Blind journeys on a saved map**: six goals round a flat, 6/6, about
   eight minutes, no fall — run after run since 2026-09-16.
-- **The boot**: the duck wakes up, recognises the house it saved and
-  confirms its pose in 70–330 s depending on the room.
+- **The boot**: the duck wakes up where it was carried, recognises the
+  house it saved and confirms its pose. On the wake bench (2026-09-30,
+  12 spawns across two houses, then the same turned 180°): 23 of 24
+  right, none wrong, no fall; medians 87–105 s, and 105–123 s turned
+  (174–192 s and 126–135 s before the shadow map).
 - **The stairwell**: the passage beside a hole, 0.54 m wide, walked
   with the guards on when the pose is within 10 cm — and why it is the
   pose, not the rules, that decides (the scan matcher lags 8–10 cm
@@ -185,7 +188,7 @@ prototype, not a navigation stack to the standards of the field.
   behaviour tree. Here: Dijkstra, a string pulled taut, stop-and-go legs, and
   recoveries spread through the explorer. The drop book is a costmap layer in
   all but name.
-- **Tests.** About 140 unit tests; behaviour is only verified by hours-long,
+- **Tests.** 152 tests (`#[test]`, 2026-09-30); behaviour is only verified by hours-long,
   non-deterministic runs on the twin. The paper twin does not run in CI.
 - **Simulation only.** The real sensor, floor and gait will move many of the
   numbers.
@@ -216,3 +219,7 @@ arrives in December 2026. Two ways to run it:
 - **A robotd that hosts maploc** — upstream PR 127, still open, plus the
   map library of `docs/study/upstream-asks.md` §5, which lives on a fork
   of `pollen-robotics/microduck` — with `[maploc]` off.
+
+daemon-v0.15.0 (API 37) is validated on the twin only on the branch
+`microduck-015` (four sessions per house, no regression); `main` stays
+pinned to daemon-v0.14.4.

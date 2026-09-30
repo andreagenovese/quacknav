@@ -49,6 +49,13 @@ riga per riga, alimentato da fuori:
 - `[maploc]` in `quack-nav.toml` tiene la vecchia sezione di robotd,
   spenta per default. Spenta, la mappa arriva da un robotd che ospita
   maploc (il fork funziona ancora); accesa, da questo demone.
+- Aggiunta del 2026-09-29: la registrazione `.mdlg` (v2) porta il `t_ns`
+  di robotd su ogni record di odometria (53 byte; i record v1 da 45 byte
+  si leggono ancora) e il `t_ns` del frame su ogni record ToF, e
+  `maploc::bench` abbina la testa come dal vivo (interpolata al timestamp
+  del frame più i 5 ms di anticipo, con la stessa coda di attesa). Una
+  sessione con i timestamp si rigioca entro 2–4 cm (mediana) dalla posa
+  dal vivo.
 
 ### 2. La mappa tiene il dialetto di robotd, su un socket suo
 

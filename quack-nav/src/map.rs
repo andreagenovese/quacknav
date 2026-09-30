@@ -6,6 +6,15 @@
 //! as long as the peer lives. quacksat never touches the sensors; it reads
 //! what robotd already decided.
 //!
+//! Between the frames, quack-navd's mapd also sends a light `map.pose`
+//! every 50 ms (20 Hz, 2026-09-29): the pose alone, stamped with the seq
+//! of the frame it belongs to. [`MapStatus::absorb_pose`] folds it into the
+//! last frame of the same seq, so a reader's pose is at most 50 ms old
+//! instead of up to a second (in turns, the live yaw error as sampled went
+//! from 17° RMS to about 2°). After a wipe, load or adopt no pose goes out
+//! until the new map's first frame. A peer that sends only frames (a
+//! robotd hosting maploc) is read as before.
+//!
 //! **Wire shape pinned to upstream PR 127 (API v17).** The `duck-ipc-proto`
 //! release this workspace pins predates `robot.map`, so the two types live
 //! here as a mirror of the PR's `MapStreamResult` and `MapFrame`, with the

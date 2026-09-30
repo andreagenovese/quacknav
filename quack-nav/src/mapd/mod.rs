@@ -20,8 +20,9 @@
 //!
 //! Frames are reprojected through the head FK with the IMU-levelled floor
 //! filter and handed to [`maploc::mapper::Mapper`], which owns every
-//! mapping decision. This file only moves bytes: channel in, log lines and
-//! map frames out, the session to disk, and (when `record_dir` is set) a
+//! mapping decision. This file only moves bytes: channel in, log lines,
+//! map frames (about once a second) and the pose between them (`map.pose`,
+//! every 50 ms) out, the session to disk, and (when `record_dir` is set) a
 //! `.mdlg` recording of everything the mapper consumed.
 
 pub mod feed;

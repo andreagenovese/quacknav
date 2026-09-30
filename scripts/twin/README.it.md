@@ -51,7 +51,12 @@ sessione, le mappe salvate e una registrazione `.mdlg` di ogni giro;
 tenerlo corto, su macOS il percorso di un socket unix è al massimo di 104
 byte. `MAPLOC_MODE` (`stop_and_scan` o `localize`), `HOMECOMING`
 (`on`/`off`) e `WIPE` (`on`/`off`) preparano un avvio su una casa
-salvata; `ASK_PHRASE` è ciò che l'esploratore chiede in una zona senza
+salvata; `RESUME=on` è l'esplorazione progressiva (a casa su una mappa
+ancora in esplorazione, salvata a fine sessione), `EXPLORE_S` il budget
+dell'esplorazione che l'homecoming avvia (720) e `BOOT_SEARCH_S` quanto
+resta fermo a confermare prima di cercare (240). `PORT` è la porta del
+simulatore (7872), `SCENE` la scena MuJoCo (default l'appartamento).
+`ASK_PHRASE` è ciò che l'esploratore chiede in una zona senza
 nome (default "Qui dove siamo?"). Per parlarci, puntare `[nav] socket` di un satellite vocale su
 `$STATE/nav.sock` e il suo `robotd_socket` su `$STATE/robotd.sock`.
 
@@ -69,7 +74,25 @@ nome (default "Qui dove siamo?"). Per parlarci, puntare `[nav] socket` di un sat
 
 Il banco di `maploc` rigioca qualsiasi registrazione: `cargo run -p maploc
 --release --features kinematics --example evaluate -- <rec.mdlg>
-<verità.toml> <out>`.
+<verità.toml> <out>`. Accanto, con le stesse feature:
+
+- `trajectory -- <sessione.mdlg> <pose.tsv> <out.tsv>`: la posa rigiocata
+  contro la verità, per `traj_metrics.py`; `MAP_SESSION` /
+  `MAP_LOAD_AT_S` rigiocano nella mappa salvata su cui la sessione è
+  ripartita, `SAVE_SESSION` salva la mappa costruita; `CORR_LOG`,
+  `ODOM_LOG`, `LOOP_LOG` (ogni chiusura con il suo errore d'angolo contro
+  la verità) e `TRACK_LOG` scrivono log per evento; `ODOM_SIGMA_XY/YAW` e
+  `LOOP_SIGMA_XY/YAW` sostituiscono le sigma del grafo.
+- `wake_match -- <sessione.mdlg> <pose.tsv> <start_s> <mappa.session>...`:
+  la domanda mappa-contro-mappa dell'homecoming posta offline, ogni
+  risposta giudicata contro la verità (`ASK_EVERY_S`, `ASK_FOR_S`).
+- `drop_replay` di quack-nav, `-- <sessione.mdlg> <pose.tsv> <truth.json>
+  "x,y;..."` (`cargo run -p quack-nav --release --example drop_replay`):
+  dove cadono i drop di una registrazione secondo la posa rigiocata e
+  secondo la verità; `BOOK=` per la modalità libro.
+
+`MAPLOC_SHADOW=0` (di maploc, dal vivo e sul banco) spegne la mappa ombra;
+`MAPLOC_SHADOW_EVERY_S` (30) e `MAPLOC_SHADOW_ASKS` (2) la regolano.
 
 Copia inglese canonica: `README.md`.
 
@@ -84,7 +107,13 @@ Copia inglese canonica: `README.md`.
 | `aggregate.py` | le tabelle di `docs/results.it.md` dagli output del protocollo |
 | `modes_test.py` | ripresa, "a che punto sei", completata, la mappa congelata dopo un riavvio, una mappa nuova che sostituisce la vecchia solo quando salva |
 | `run_house.py`, `prog_house.py` | le versioni con un'esplorazione sola e con le sole sessioni |
-| `poseerr.py <nav.sock> <porta> <out.tsv>` | la posa della mappa contro la verità del simulatore ogni 5 s (`<out>.untracked` mentre il mapper non ne garantisce nessuna) |
+| `poseerr.py <nav.sock> <porta> <out.tsv>` | la posa della mappa contro la verità del simulatore ogni 5 s (`POSEERR_DT`; 0.5 per le chiusure di loop), `<out>.untracked` mentre il mapper non ne garantisce nessuna |
+| `wake_bench.py <nome> <scena> <state> <porta> <truth> <out> <maps_dir> <book.json> [limit_s]` | risvegli da punti sparsi per la casa su una mappa salvata (la papera messa lì con `MICRODUCK_START`), ognuno giudicato giusto, sbagliato o mai contro la verità; `WAKE_TURN` gira ogni partenza, `WAKE_SPAWNS="x,y,yaw;..."` le sostituisce |
+| `traj_metrics.py <pose.tsv>` | ATE e RPE da un file del campionatore (dal vivo o di `trajectory`), `--tum` per `evo` |
+| `map_vs_truth.py <frame.json> <truth.toml> <truth.json> [book.json nome]` | una mappa esplorata contro la casa, stanza per stanza: muri giusti, ispessiti o fantasma, libero dentro i muri, facce, pavimento, allineamento, libro |
+| `room_fit.py <frame.json> <truth.toml> <truth.json>` | lo scostamento rigido della mappa e di ogni stanza contro i muri veri |
+| `oracle_book.py <truth.json> <nome> <libro in> <libro out>` | il libro dei drop dell'oracolo: i bordi dei buchi veri al posto di quelli registrati |
+| `cut_mdlg.py <in.mdlg> <secondi> <out.mdlg> [pose.tsv out.truth.tsv]` | i primi secondi di una registrazione come fixture, con le sue righe di verità |
 
 Servono `MICRODUCK`, `MICRODUCK_RL` e `POLICY_DIR` come per `twin.sh`, e
 `TWIN_WORK` per gli output (predefinito `/tmp/quack-twin-work`). Una casa
