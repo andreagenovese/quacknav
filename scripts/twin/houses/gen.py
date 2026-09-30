@@ -1,7 +1,8 @@
 """Five-room houses for the twin: `casa_libera` (bare rooms, doors only),
 `casa_arredata` (furniture, a corridor, narrow gaps, two holes), and a
-seven-room `casa_grande` (furnished, two holes, nothing that blocks: every
-door 0.9 m or more, every gap beside furniture or a hole 0.6 m or more).
+seven-room `casa_grande` (furnished, two holes, a corridor turning 90
+degrees, nothing that blocks: every door 0.9 m or more, every gap beside
+furniture or a hole 0.6 m or more).
 
 Writes, per house: <robot dir>/<name>.xml and scene_<name>.xml (MuJoCo),
 <out>/<name>.toml (maploc evaluate truth, cm), <out>/<name>.world.json
@@ -117,45 +118,50 @@ def house_arredata():
 def house_grande():
     """Seven rooms, 9 x 7 m, furnished, two holes, and no passage the duck
     cannot take: the house to test the whole stack on, not its limits
-    (2026-09-30). A corridor 1.2 m wide across the house; the kitchen,
-    living room and study north of it, a bedroom, the bath and a second
-    bedroom south. The stairwell stands against the living room's north
-    wall and a sunken corner in the second bedroom, both 0.9 m or more
-    from any furniture and well off every door."""
+    (2026-09-30). The corridor, 1.2 m wide, runs east from the west wall
+    and turns 90 degrees south at x 1.3, down to the south wall: the
+    kitchen and a long living room north of it, a bedroom and the bath in
+    the corner the turn leaves, the study and a second bedroom opening off
+    the south leg. The stairwell stands against the living room's north
+    wall and a sunken corner in the second bedroom, well off every door."""
     bounds(-4.5, 4.5, -3.5, 3.5)
     boxes = outer()
-    boxes += wall_x("wN", 0.6, X0, X1, [(-3.4, -2.5), (0.0, 1.2), (3.0, 3.9)])
-    boxes += wall_x("wS", -0.6, X0, X1, [(-3.4, -2.5), (-1.0, -0.1), (1.5, 2.4)])
+    # the corridor: y in [-0.6, 0.6] for x < 1.9, then x in [0.7, 1.9] south
+    boxes += wall_x("wN", 0.6, X0, X1, [(-3.4, -2.5), (0.0, 1.2)])
+    boxes += wall_x("wS", -0.6, X0, 0.7, [(-3.4, -2.5), (-1.0, -0.1)])
+    boxes += wall_y("wCW", 0.7, Y0, -0.6, [])
+    boxes += wall_y("wCE", 1.9, Y0, 0.6, [(-1.1, -0.2), (-2.6, -1.7)])
+    boxes += wall_x("wSB", -1.3, 1.9, X1, [])
     boxes += wall_y("wKL", -1.5, 0.6, Y1, [(1.8, 2.8)])
-    boxes += wall_y("wLS", 2.5, 0.6, Y1, [])
-    boxes += wall_y("wB1", -1.5, Y0, -0.6, [])
-    boxes += wall_y("wB2", 0.5, Y0, -0.6, [])
+    boxes += wall_y("wBB", -1.5, Y0, -0.6, [])
     furniture = [
         # kitchen
         ("counter", -4.4, -2.0, 3.0, 3.44, 0.45), ("kit_table", -3.6, -2.8, 1.6, 2.2, 0.40),
         ("fridge", -4.4, -3.9, 0.7, 1.2, 0.50),
-        # living: the stairwell against the north wall, the sofa 0.9 m east of it
-        ("sofa", 1.8, 2.4, 1.5, 3.3, 0.40), ("coffee_table", 0.6, 1.2, 1.3, 1.8, 0.30),
-        ("bookshelf", -1.4, -1.0, 0.7, 1.4, 0.50),
-        # study
-        ("desk", 3.4, 4.4, 3.0, 3.44, 0.45), ("shelf", 2.6, 2.9, 2.0, 3.4, 0.50),
-        ("chair", 3.7, 4.1, 2.4, 2.8, 0.25),
+        # living room: the stairwell against the north wall
+        ("bookshelf", -1.4, -1.0, 0.7, 1.4, 0.50), ("coffee_table", 1.4, 2.0, 1.4, 1.9, 0.30),
+        ("sofa", 2.6, 3.2, 1.6, 3.3, 0.40), ("tv_stand", 4.0, 4.4, 2.0, 3.2, 0.50),
+        ("armchair", 3.8, 4.4, 0.75, 1.35, 0.40),
+        # study, off the corridor's south leg
+        ("desk", 3.4, 4.4, 0.05, 0.5, 0.45), ("shelf", 2.4, 3.0, 0.2, 0.5, 0.50),
+        ("chair", 3.7, 4.1, -0.55, -0.15, 0.25),
         # bedroom
         ("bed", -4.4, -3.0, -3.4, -1.8, 0.45), ("armadio", -2.1, -1.6, -3.4, -2.4, 0.50),
         # bath
-        ("tub", -1.4, 0.4, -3.4, -2.7, 0.35), ("sink", 0.0, 0.4, -1.6, -1.1, 0.45),
-        # second bedroom: the sunken corner 1.2 m from the bed
-        ("bed2", 1.0, 2.4, -3.4, -2.0, 0.45), ("desk2", 3.9, 4.4, -1.6, -0.7, 0.45),
-        # corridor: a low shoe rack at the west end, a plant at the east
-        ("shoes", -4.3, -4.0, -0.1, 0.3, 0.07), ("plant", 4.1, 4.4, -0.3, 0.3, 0.50),
+        ("tub", -1.4, 0.6, -3.4, -2.7, 0.35), ("sink", 0.2, 0.6, -1.6, -1.1, 0.45),
+        # second bedroom: the bed along its north wall, 0.65 m from the sunken corner
+        ("bed2", 2.8, 4.4, -1.95, -1.4, 0.45),
+        # corridor: a low shoe rack at the west end, a plant at the south end
+        ("shoes", -4.3, -4.0, -0.1, 0.3, 0.07), ("plant", 1.0, 1.6, -3.4, -3.1, 0.50),
     ]
     boxes += furniture
     holes = [(0.0, 0.9, 2.8, 3.44), (3.6, 4.44, -3.44, -2.6)]
-    rooms = {"kitchen": [-4.5, -1.5, 0.6, 3.5], "living": [-1.5, 2.5, 0.6, 3.5], "study": [2.5, 4.5, 0.6, 3.5],
-             "corridor": [-4.5, 4.5, -0.6, 0.6], "bedroom": [-4.5, -1.5, -3.5, -0.6], "bath": [-1.5, 0.5, -3.5, -0.6],
-             "bedroom2": [0.5, 4.5, -3.5, -0.6]}
-    goals = {"kitchen": [-2.4, 1.3], "living": [0.2, 1.2], "study": [3.2, 1.6], "bedroom": [-2.5, -1.4],
-             "bath": [-0.6, -1.8], "bedroom2": [3.0, -1.5], "home": [0.0, 0.0]}
+    rooms = {"kitchen": [-4.5, -1.5, 0.6, 3.5], "living": [-1.5, 4.5, 0.6, 3.5],
+             "corridor": [-4.5, 1.9, -0.6, 0.6], "corridor_s": [0.7, 1.9, -3.5, -0.6],
+             "bedroom": [-4.5, -1.5, -3.5, -0.6], "bath": [-1.5, 0.7, -3.5, -0.6],
+             "study": [1.9, 4.5, -1.3, 0.6], "bedroom2": [1.9, 4.5, -3.5, -1.3]}
+    goals = {"kitchen": [-2.4, 1.3], "living": [1.0, 2.2], "study": [2.8, -0.4], "bedroom": [-2.5, -1.4],
+             "bath": [-0.6, -1.8], "bedroom2": [2.6, -2.8], "corridor_end": [1.3, -2.5], "home": [0.0, 0.0]}
     return boxes, holes, rooms, goals, ["shoes", "chair"]
 
 
