@@ -45,6 +45,14 @@ pub const DEEP_RATIO: f64 = 1.5;
 /// A missing return counts only where the floor would be within this
 /// slant distance — farther out the sensor may simply be out of range.
 pub const MAX_FLOOR_M: f64 = 1.2;
+/// A valid return this short is the sensor against something — its face
+/// in a blanket — not a beam that found no floor. On the apartment's twin
+/// the duck 8 cm from the bed, its head over the blanket, read 0–1 cm in
+/// all 64 zones, status valid, and every zero counted as a missing return
+/// booked eighteen holes on the bed (x16, 2026-09-30). Such a zone is not judged; a frame with a quarter of them
+/// proposes no drop at all.
+pub const OCCLUDED_MM: i16 = 30;
+pub const OCCLUDED_SHARE: f64 = 0.25;
 /// A floor return within this fraction of the floor's distance is the
 /// floor itself (see `CliffFrame::floors`).
 pub const FLOOR_TRUE_RATIO: f64 = 0.15;
@@ -250,6 +258,12 @@ pub fn analyze(
     let mut floor_beams = 0;
     let mut floors = Vec::new();
     let mut judged = 0;
+    let occluded = frame
+        .distance_mm
+        .iter()
+        .zip(&frame.status)
+        .filter(|(d, st)| matches!(**st, 5 | 9) && **d <= OCCLUDED_MM)
+        .count();
     for (i, beam) in rp.beams().iter().enumerate() {
         let dir = sensor.quat.rotate(*beam);
         let downward = dir[0] * down[0] + dir[1] * down[1] + dir[2] * down[2];
@@ -264,7 +278,11 @@ pub fn analyze(
         let horizontal = (1.0 - downward * downward).max(0.0).sqrt();
         let bearing = dir[1].atan2(dir[0]);
         let range_m = expected * horizontal;
-        let valid = matches!(frame.status[i], 5 | 9) && frame.distance_mm[i] > 0;
+        let status_valid = matches!(frame.status[i], 5 | 9);
+        if status_valid && frame.distance_mm[i] <= OCCLUDED_MM {
+            continue;
+        }
+        let valid = status_valid && frame.distance_mm[i] > 0;
         if !valid {
             verdicts[i] = Some(Verdict::Drop(bearing, range_m, DropKind::Missing));
             continue;
@@ -315,7 +333,7 @@ pub fn analyze(
             kind,
         });
     }
-    if drops.len() < MIN_BEAMS {
+    if drops.len() < MIN_BEAMS || occluded as f64 >= OCCLUDED_SHARE * N as f64 {
         drops.clear();
     }
     // Obstacles, by robotd's own floor and range filters.
