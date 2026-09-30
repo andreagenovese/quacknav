@@ -51,6 +51,11 @@ const RELOCATE_STAND_S: f64 = 6.0;
 /// A session that ends with only unreachable frontiers left and less than
 /// this much unknown floor within reach of them finds the house done.
 const DONE_LEFT_M2: f64 = 2.0;
+/// The session's end finds the house mapped when no frontier is within
+/// reach and no piece of unknown floor left is this big (see where the
+/// end is decided: the finished maps of three houses 1.0–3.9 m², first
+/// sessions still exploring 5.5–7.3).
+const DONE_PIECE_M2: f64 = 4.5;
 /// A session that ends with this share of the house mapped finds it done.
 const DONE_SHARE: f64 = 0.95;
 /// How often a session looks at the battery.
@@ -956,6 +961,56 @@ pub struct Session {
 /// floor it knows plus the unknown still reachable from a frontier inside
 /// the map's walls. Unknown pockets walled in on every side (the inside
 /// of a sofa, a box) are not left to explore, and are not counted.
+/// The largest piece of unknown, in m², that touches known floor within
+/// the walls' box: under a bed, inside a hole — or a room not seen yet.
+pub(crate) fn largest_unknown_piece_m2(grid: &Grid) -> f64 {
+    let (rows, cols) = (grid.rows, grid.cols);
+    let (mut r0, mut r1, mut c0, mut c1) = (rows, 0, cols, 0);
+    for r in 0..rows {
+        for c in 0..cols {
+            if grid.cell(r, c) == Some(Cell::Wall) {
+                r0 = r0.min(r); r1 = r1.max(r); c0 = c0.min(c); c1 = c1.max(c);
+            }
+        }
+    }
+    if r0 > r1 {
+        return 0.0;
+    }
+    let mut seen = vec![false; rows * cols];
+    let mut best = 0usize;
+    for r in r0..=r1 {
+        for c in c0..=c1 {
+            if seen[r * cols + c] || grid.cell(r, c) != Some(Cell::Unknown) {
+                continue;
+            }
+            seen[r * cols + c] = true;
+            let (mut stack, mut n, mut touches) = (vec![(r, c)], 0usize, false);
+            while let Some((rr, cc)) = stack.pop() {
+                n += 1;
+                for (dr, dc) in [(-1i64, 0i64), (1, 0), (0, -1), (0, 1)] {
+                    let (a, b) = (rr as i64 + dr, cc as i64 + dc);
+                    if a < r0 as i64 || b < c0 as i64 || a > r1 as i64 || b > c1 as i64 {
+                        continue;
+                    }
+                    let (a, b) = (a as usize, b as usize);
+                    match grid.cell(a, b) {
+                        Some(Cell::Free) => touches = true,
+                        Some(Cell::Unknown) if !seen[a * cols + b] => {
+                            seen[a * cols + b] = true;
+                            stack.push((a, b));
+                        }
+                        _ => {}
+                    }
+                }
+            }
+            if touches {
+                best = best.max(n);
+            }
+        }
+    }
+    best as f64 * grid.cell_m * grid.cell_m
+}
+
 pub(crate) fn explored_share(grid: &Grid) -> (f64, usize, usize) {
     let (rows, cols) = (grid.rows, grid.cols);
     let (mut r0, mut r1, mut c0, mut c1) = (rows, 0, cols, 0);
@@ -1818,10 +1873,24 @@ impl Job {
                     Some(None) => continue,
                     None => {}
                 }
-                let why = if cells_left >= MIN_FRONTIER_CELLS {
-                    "stuck: frontiers remain but none is reachable from here"
+                // Frontier cells are always left on a furnished map — the
+                // band of uncertain cells along every wall and round every
+                // piece of furniture touches unknown — so what says whether
+                // the house is mapped is the unknown itself: nothing but
+                // small pieces, under the furniture and in the holes.
+                // casa_grande's last two sessions ended "stuck" with 95 % of
+                // the true floor known, their largest unknown piece 3.3 m²
+                // (casa_arredata's 3.9, the apartment's 1.0; a first session
+                // still exploring had 5.5–7.3) (x18, x19, 2026-09-30).
+                let piece = largest_unknown_piece_m2(&grid);
+                let mapped = format!("no frontier within reach, and what is left unknown is in pieces of {piece:.1} m² at most — under furniture and in holes: the house is mapped");
+                let stuck = format!("stuck: frontiers remain but none is reachable from here, the largest unknown piece {piece:.1} m²");
+                let why = if cells_left < MIN_FRONTIER_CELLS {
+                    "no frontier left".to_string()
+                } else if piece < DONE_PIECE_M2 {
+                    mapped
                 } else {
-                    "no frontier left"
+                    stuck
                 };
                 return (
                     State::Done,
@@ -2635,6 +2704,38 @@ mod tests {
         let (share, free, open) = explored_share(&g);
         assert_eq!(open, 18 * 9, "the unknown half, not the pocket");
         assert!((share - free as f64 / (free + open) as f64).abs() < 1e-9 && share > 0.45 && share < 0.55, "{share}");
+    }
+
+    /// The largest unknown piece touching known floor: a bed's footprint in
+    /// a mapped room is small, an unseen room is not.
+    #[test]
+    fn the_largest_unknown_piece_tells_a_bed_from_a_room() {
+        let (rows, cols) = (100, 100);
+        let mut cells = vec![Cell::Free; rows * cols];
+        for r in 0..rows {
+            for c in 0..cols {
+                if r == 0 || c == 0 || r == rows - 1 || c == cols - 1 {
+                    cells[r * cols + c] = Cell::Wall;
+                }
+            }
+        }
+        // A bed, 1.0 x 1.5 m, unknown under it and open on its sides.
+        for r in 10..40 {
+            for c in 10..30 {
+                cells[r * cols + c] = Cell::Unknown;
+            }
+        }
+        let g = Grid { rows, cols, x_min: 0.0, y_min: 0.0, cell_m: 0.05, cells: cells.clone() };
+        let bed = largest_unknown_piece_m2(&g);
+        assert!((bed - 1.5).abs() < 1e-9 && bed < DONE_PIECE_M2, "{bed}");
+        // A room of 2.5 x 2.5 m not seen yet.
+        for r in 40..90 {
+            for c in 45..95 {
+                cells[r * cols + c] = Cell::Unknown;
+            }
+        }
+        let g = Grid { rows, cols, x_min: 0.0, y_min: 0.0, cell_m: 0.05, cells };
+        assert!(largest_unknown_piece_m2(&g) > DONE_PIECE_M2);
     }
 
     /// A low thing booked ahead, however far it is pushed, stays an
