@@ -181,7 +181,7 @@ prototype, not a navigation stack to the standards of the field.
   they are hard to reason about, and their thresholds were tuned on three
   simulated houses (two of them generated): they may be fitted to the twin.
 - **The code shows it.** `explore/mod.rs` is some 2,000 lines; 35
-  `QK_*` environment knobs (and 26 `MAPLOC_*`, all listed in [`docs/knobs.md`](docs/knobs.md), generated from the code); legs are `serde_json::Value`s; recovery decides on
+  `QK_*` environment knobs (and 17 `MAPLOC_*`, all listed in [`docs/knobs.md`](docs/knobs.md), generated from the code); legs are `serde_json::Value`s; recovery decides on
   error *messages* (the homecoming's `why.contains("° right")`), which a reworded sentence breaks.
 - **Localization is thresholds, not confidence.** The standard (AMCL, SLAM
   Toolbox, Cartographer) carries a covariance; here a pose is trusted or not.

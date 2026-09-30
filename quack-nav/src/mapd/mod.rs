@@ -760,7 +760,6 @@ fn worker(config: &MaplocConfig, rx: mpsc::Receiver<Event>, map_tx: &Subscribers
         if last_status.elapsed() >= Duration::from_secs(5) {
             last_status = Instant::now();
             tracing::info!(
-                boot = ?mapper.boot_search(),
                 odom = n_odom,
                 frames = n_frames,
                 kept = n_frames_kept,

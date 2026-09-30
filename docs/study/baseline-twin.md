@@ -14,7 +14,7 @@ below (these are single runs; twins of the same run vary by ±20 %).
 Conditions: house `house2` (the human drive of 2026-09-16, robotd fixed),
 its ground book at 51 drops (`private/drives/runs/house2/ground-51.json`),
 robotd from the worktree `maploc-study` in `localize` mode with
-`MAPLOC_RAY_JUDGE=1`; quacksat (then the navigation's home) with its defaults — on a frozen map a
+`MAPLOC_RAY_JUDGE=1` (removed 2026-09-30); quacksat (then the navigation's home) with its defaults — on a frozen map a
 journey walks blind (`QK_NO_GUARDS`, `QK_FOLLOW_ROUTE`, `QK_FAST` unset — knobs removed since, in b6c32fa and 1fffbac),
 the route pulled and kept; the boot search looks before it walks and
 scans the horizon when nothing is ahead.

@@ -189,7 +189,7 @@ multi-hypothesis localization. The valley test stays.
 **Settling after a resume** — a resumed session corrects its pose but inks
 nothing until two windows in a row agree and move it less than 2 cm and
 1° — was measured on the six resumed sessions and is **off** by default
-(`MAPLOC_SETTLE=1` on the bench):
+(`MAPLOC_SETTLE=1` on the bench, removed 2026-09-30):
 
 | Session | walls mean / p90, off | on | ATE, off | on |
 |---|---|---|---|---|
@@ -277,7 +277,7 @@ unchanged.
 
 - **Tried and left off.** Loop closures' heading sigma at 0.5 rad: better
   on 8 replayed sessions, worse on 4 more; back to 0.24
-  (`MAPLOC_LOOP_SIGMA_YAW`). maploc's parameters are judged on 12
+  (`MAPLOC_LOOP_SIGMA_YAW`, removed 2026-09-30). maploc's parameters are judged on 12
   sessions or more from now on. A strike of booked holes where the floor
   was later seen (`QK_FLOOR_STRIKE=1`, removed 2026-09-30): under an unseen 11–15 cm pose
   error it also struck true rim points.

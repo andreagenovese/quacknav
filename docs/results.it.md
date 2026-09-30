@@ -194,7 +194,7 @@ test della valle resta.
 **L'assestamento dopo una ripresa** — una sessione ripresa corregge la posa
 ma non scrive nulla finché due finestre di fila non sono d'accordo e la
 spostano di meno di 2 cm e 1° — è stato misurato sulle sei sessioni riprese
-ed è **spento** per default (`MAPLOC_SETTLE=1` sul banco):
+ed è **spento** per default (`MAPLOC_SETTLE=1` sul banco, tolta il 2026-09-30):
 
 | Sessione | muri media / p90, spento | acceso | ATE, spento | acceso |
 |---|---|---|---|---|
@@ -286,7 +286,7 @@ cambiano.
 
 - **Provati e lasciati spenti.** La sigma d'angolo delle chiusure di loop a
   0.5 rad: meglio su 8 sessioni rigiocate, peggio su altre 4; tornata a
-  0.24 (`MAPLOC_LOOP_SIGMA_YAW`). D'ora in poi i parametri di maploc si
+  0.24 (`MAPLOC_LOOP_SIGMA_YAW`, tolta il 2026-09-30). D'ora in poi i parametri di maploc si
   giudicano su almeno 12 sessioni. Cancellare i buchi registrati dove poi
   si è visto il pavimento (`QK_FLOOR_STRIKE=1`, tolta il 2026-09-30): con un errore di posa non
   visto di 11–15 cm cancellava anche punti veri del bordo.

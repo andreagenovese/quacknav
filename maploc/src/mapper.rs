@@ -32,7 +32,7 @@ use crate::accumulator::{AccumulatorConfig, WindowAccumulator};
 use crate::grid::OccupancyGrid;
 use crate::pipeline::Slam;
 use crate::pose_graph::{between, compose, wrap_pi};
-use crate::relocalize::{RelocalizeConfig, relocalize_against_grid, score_pose, score_pose_rays};
+use crate::relocalize::{RelocalizeConfig, relocalize_against_grid, score_pose};
 use crate::scan_matcher::{ScanMatchConfig, match_scan};
 use crate::submap::{Pose2, Scan};
 
@@ -333,7 +333,10 @@ pub struct MapperConfig {
 /// casa_arredata's walls went from 3.8 to 17 cm off (2026-09-24). A window
 /// the map cannot judge — new floor — neither settles nor unsettles; after
 /// `max_held_windows` held windows inking resumes anyway, noted, so a duck
-/// sent to new floor is not stopped from mapping it.
+/// sent to new floor is not stopped from mapping it. Off by default
+/// (`enabled`): on six resumed sessions one came out much better and the
+/// rest even or a little worse, casa_arredata's among them (docs/results.md;
+/// `MAPLOC_SETTLE=1`, the bench's switch, removed 2026-09-30).
 #[derive(Debug, Clone, Copy)]
 pub struct SettleConfig {
     pub enabled: bool,
@@ -348,7 +351,7 @@ pub struct SettleConfig {
 impl Default for SettleConfig {
     fn default() -> Self {
         Self {
-            enabled: std::env::var("MAPLOC_SETTLE").map(|v| v == "1").unwrap_or(false),
+            enabled: false,
             windows: 2,
             max_correction_m: 0.02,
             max_correction_rad: 0.02,
@@ -628,8 +631,6 @@ pub struct Mapper {
     /// while vs-truth 0.3–0.5). Ink earned during a stand never testifies
     /// for that stand.
     stand_grid: Option<OccupancyGrid>,
-    /// The particle filter at boot, see [`BootSearch`]; `None` otherwise.
-    boot: Option<BootSearch>,
     /// `continuous` only: frames since the last correction, and when that
     /// was. See [`MapperConfig::continuous_correct_s`].
     roll: WindowAccumulator,
@@ -705,19 +706,6 @@ fn valley_cross() -> bool {
 /// Refused valleys remembered while lost.
 const VALLEYS_KEPT: usize = 12;
 
-/// `MAPLOC_RAY_JUDGE=1` judges candidates along the ray
-/// (`relocalize::score_pose_rays`) instead of by endpoints alone. OFF by
-/// default, measured off (2026-09-15): on the two boot recordings against
-/// run 71's map it turned one wrong fix right (1788872069) and one right
-/// fix wrong (1788929139, the kitchen alias at 57 s) — a true pose in a
-/// map with doubled walls has beams that "cross" a phantom wall, and the
-/// judge refuses the truth until an alias that crosses nothing comes
-/// along. The test is right in principle and needs a tolerance for the
-/// map's own noise before it can be the default.
-fn ray_judge() -> bool {
-    std::env::var("MAPLOC_RAY_JUDGE").map(|v| v == "1").unwrap_or(false)
-}
-
 /// At boot, how far the body must have moved between the window that
 /// nominated a candidate and the one that confirms it. Two windows from
 /// the same spot are the same window twice, and an alias agrees with
@@ -730,68 +718,10 @@ fn confirm_travel_m() -> f32 {
         .unwrap_or(0.5)
 }
 
-/// `MAPLOC_MCL=1` runs the particle filter (`mcl.rs`, wired to nothing
-/// before this) as a boot search on a resumed map: it proposes, the still
-/// windows judge, exactly as the brute-force search's candidates are judged.
-fn boot_mcl() -> bool {
-    std::env::var("MAPLOC_MCL")
-        .map(|v| v == "1")
-        .unwrap_or(false)
-}
-fn boot_mcl_particles() -> usize {
-    std::env::var("MAPLOC_MCL_N")
-        .ok()
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(800)
-}
-/// A lock is not a candidate until the body has swept this much yaw and
-/// moved this far since the seed: the filter has no motion gate of its own
-/// (`mcl.rs`), and a stationary 45° wedge locks on a mirror image as
-/// happily as on the truth.
-fn boot_mcl_yaw_rad() -> f32 {
-    std::env::var("MAPLOC_MCL_YAW")
-        .ok()
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(0.8)
-}
-fn boot_mcl_travel_m() -> f32 {
-    std::env::var("MAPLOC_MCL_TRAVEL")
-        .ok()
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(0.10)
-}
-fn boot_mcl_lock_residual_m() -> f32 {
-    std::env::var("MAPLOC_MCL_RESID")
-        .ok()
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(0.08)
-}
-
-/// The particle filter's boot search: alive only while a resumed mapper is
-/// lost. Fed every frame — walking or standing, which the still-window
-/// search cannot use — and every odometry tick; when it locks and the body
-/// has moved enough for the lock to mean something, its pose goes into
-/// `pending_reloc` like any other candidate, to be confirmed or refuted by
-/// the next still window.
-struct BootSearch {
-    mcl: crate::mcl::Localizer,
-    grid: OccupancyGrid,
-    last_odom: Option<Pose2>,
-    origin_odom: Option<Pose2>,
-    /// Body-frame motion since the last frame, folded into one `predict`.
-    pending: Pose2,
-    yaw_swept: f32,
-    posture_ok: bool,
-    frames: u32,
-    proposed: Option<Pose2>,
-    /// Locks put to the uniqueness test, how many it turned away, and how
-    /// many it could not judge (thin window, no basin).
-    judged: u32,
-    refused: u32,
-    unjudged: u32,
-    /// The window the last judgement used: one judgement per window.
-    judged_window: Option<Pose2>,
-}
+/// The particle filter (`mcl.rs`) once ran here as a boot search on a
+/// resumed map (`MAPLOC_MCL=1`, with `_N`, `_YAW`, `_TRAVEL`, `_RESID`):
+/// measured and left off (docs/todo-map.md), the multi-hypothesis search
+/// and the shadow map took its place, and it was removed 2026-09-30. `mcl.rs` stays, Pollen's code.
 
 /// A place the search thinks the duck might be, while it is lost on a map
 /// it already has.
@@ -853,39 +783,6 @@ impl Mapper {
                 agreed_wide: 0,
             }));
         }
-        if boot_mcl()
-            && let Some(grid) = mapper.slam.render()
-        {
-            let mcfg = crate::mcl::MclConfig {
-                n_particles: boot_mcl_particles(),
-                // The mapper's own wall definition, so the grid's one-slot
-                // distance-field cache is shared with the watchdog.
-                wall_threshold_fp: 150,
-                see_through_fp: 300,
-                unknown_residual_m: Some(0.20),
-                locked_max_residual_m: boot_mcl_lock_residual_m(),
-                ..crate::mcl::MclConfig::default()
-            };
-            let mut mcl = crate::mcl::Localizer::new(mcfg, 0xC0FF_EE);
-            // A fifth of the cloud around where the session ended: a duck
-            // switched on where it was switched off locks in a stand.
-            mcl.seed_mixed(&[mapper.slam.tracked()], 0.2, &grid, 0.3, 0.3);
-            mapper.boot = Some(BootSearch {
-                mcl,
-                grid,
-                last_odom: None,
-                origin_odom: None,
-                pending: (0.0, 0.0, 0.0),
-                yaw_swept: 0.0,
-                posture_ok: true,
-                frames: 0,
-                proposed: None,
-                judged: 0,
-                refused: 0,
-                unjudged: 0,
-                judged_window: None,
-            });
-        }
         mapper
     }
 
@@ -926,7 +823,6 @@ impl Mapper {
             shadow: None,
             seed_from_map: false,
             stand_grid: None,
-            boot: None,
             roll: WindowAccumulator::new(rolling),
             roll_at: 0.0,
             last_window: None,
@@ -1038,14 +934,6 @@ impl Mapper {
         Some(own <= self.cfg.relocalize.uniqueness_ratio * rival)
     }
 
-    /// The boot search, if one is running: locked now, locks judged,
-    /// refused, and left unjudged. `None` when there is no search.
-    pub fn boot_search(&self) -> Option<(bool, u32, u32, u32)> {
-        self.boot
-            .as_ref()
-            .map(|b| (b.mcl.is_locked(), b.judged, b.refused, b.unjudged))
-    }
-
     /// The pose and composite of the last closed window (see field doc).
     pub fn last_window(&self) -> Option<&(Pose2, Scan)> {
         self.last_window.as_ref()
@@ -1086,17 +974,6 @@ impl Mapper {
         }
         self.cov_odom = Some(sample.odom);
         self.slam.observe_odom(sample.odom);
-        if let Some(b) = self.boot.as_mut() {
-            if let Some(prev) = b.last_odom {
-                let d = between(prev, sample.odom);
-                b.pending = compose(b.pending, d);
-                b.yaw_swept += d.2.abs();
-            } else {
-                b.origin_odom = Some(sample.odom);
-            }
-            b.last_odom = Some(sample.odom);
-            b.posture_ok = !sample.sitting && !sample.fallen;
-        }
         self.correct_while_walking(t_s, notes);
         self.odom_window
             .push((t_s, sample.odom.0, sample.odom.1, sample.odom.2));
@@ -1200,108 +1077,6 @@ impl Mapper {
         {
             shadow.fresh.frame(t_s, scan.clone());
         }
-        if self.lost
-            && let Some(b) = self.boot.as_mut()
-            && b.posture_ok
-        {
-            let d = std::mem::take(&mut b.pending);
-            b.mcl.predict(d.0, d.1, d.2);
-            b.mcl.update(&mut b.grid, &scan);
-            b.frames += 1;
-            let travelled = match (b.origin_odom, b.last_odom) {
-                (Some(o), Some(l)) => (l.0 - o.0).hypot(l.1 - o.1),
-                _ => 0.0,
-            };
-            if b.mcl.is_locked()
-                && b.yaw_swept >= boot_mcl_yaw_rad()
-                && travelled >= boot_mcl_travel_m()
-                && b.proposed.is_none()
-                && self.pending_reloc.is_none()
-                && let Some((win_pose, composite)) = self.last_window.as_ref()
-                && b.judged_window != Some(*win_pose)
-            {
-                // The lock is the filter's word; the map's own matcher gets
-                // the last one. On the replay bench (2026-09-14) the filter
-                // locked, with its yaw 58° off, on a pose the still window
-                // then confirmed (residual 0.036) — an alias the cloud
-                // cannot see because it only ever scores where it is.
-                //
-                // So the lock is judged the way the brute force judges
-                // itself, and with the same numbers: the search runs on the
-                // last composite, the basin at the lock is `own`, the best
-                // basin elsewhere is the rival, and the lock is proposed
-                // only if own beats rival by `uniqueness_ratio`. Same
-                // metric on both sides — a first cut scored the lock with
-                // `score_pose` (observed endpoints only, lenient) against
-                // basins scored by `score_offsets` (every beam, strict),
-                // which is not the brute force's test at all.
-                //
-                // The composite was measured at the window's pose, and the
-                // body has walked since: the lock is carried back to the
-                // window before it is judged, and proposed as a candidate
-                // *at* that window so `check_candidate` carries it forward
-                // exactly as it does the brute force's own.
-                b.judged_window = Some(*win_pose);
-                let now = self.slam.tracked();
-                let at_window = compose(b.mcl.dominant_cluster_mean(), between(now, *win_pose));
-                // The search is taken out of `self` while `self` judges its
-                // grid, and put back the same way.
-                let mut b = self
-                    .boot
-                    .take()
-                    .expect("the boot search was here a moment ago");
-                let verdict = self.unique_at(&mut b.grid, composite, at_window);
-                self.boot = Some(b);
-                let b = self.boot.as_mut().expect("just put back");
-                let Some(unique) = verdict else {
-                    b.unjudged += 1;
-                    return self.frame_rest(t_s, scan);
-                };
-                // The rivals, for the re-seed on refusal.
-                let probe = composite.decimated(self.cfg.relocalize_max_beams);
-                let far: Vec<Pose2> =
-                    relocalize_against_grid(&mut b.grid, &probe, &self.cfg.relocalize)
-                        .map(|r| {
-                            r.basins
-                                .iter()
-                                .filter(|(bp, _)| {
-                                    (bp.0 - at_window.0).hypot(bp.1 - at_window.1) > 0.40
-                                        || wrap_pi(bp.2 - at_window.2).abs() > 0.60
-                                })
-                                .map(|(bp, _)| *bp)
-                                .collect()
-                        })
-                        .unwrap_or_default();
-                b.judged += 1;
-                if unique {
-                    // Proposed, not believed: the next still window judges
-                    // it as it judges any candidate, and `resume_at` is the
-                    // only way in.
-                    b.proposed = Some(at_window);
-                    self.pending_reloc = Some((at_window, *win_pose));
-                } else {
-                    b.refused += 1;
-                    // Not unique — or no basin at the lock at all. The cloud
-                    // is sent where the search found the rivals, not back
-                    // to the pose just refused (half the cloud re-seeded on
-                    // the alias re-locked there in 25 frames, and the gate
-                    // saw the same window again), and the motion gates start
-                    // over so a new proposal needs new evidence.
-                    if far.is_empty() {
-                        b.mcl.seed_uniform(&b.grid);
-                    } else {
-                        b.mcl.seed_mixed(&far, 0.5, &b.grid, 0.3, 0.3);
-                    }
-                    b.origin_odom = b.last_odom;
-                    b.yaw_swept = 0.0;
-                }
-            }
-        }
-        self.frame_rest(t_s, scan)
-    }
-
-    /// The part of [`Mapper::frame`] after the boot search: ink or window.
-    fn frame_rest(&mut self, t_s: f32, scan: Scan) -> bool {
         if self.cfg.continuous && !self.lost {
             if self.cfg.continuous_correct_s > 0.0 {
                 self.roll.push(self.slam.tracked(), scan.clone());
@@ -1478,14 +1253,6 @@ impl Mapper {
                         mean_residual_m: resid,
                     });
                 } else {
-                    if let Some(b) = self.boot.as_ref()
-                        && b.proposed.is_some()
-                    {
-                        notes.push(Note::RelocalizeCandidate {
-                            pose: cand,
-                            mean_residual_m: resid,
-                        });
-                    }
                     self.resume_at(&mut grid, pose, composite, t_s);
                     notes.push(Note::Relocalized {
                         pose,
@@ -1495,10 +1262,6 @@ impl Mapper {
                 }
             }
 
-            if let Some(b) = self.boot.as_mut() {
-                // Judged — confirmed or not — the filter may propose again.
-                b.proposed = None;
-            }
             // Hard-lost for too long: odometry has carried the pose all
             // along; resume there rather than keep the map cold.
             if self.hard_lost && self.cfg.lost_give_up_windows > 0 && !self.after_fall {
@@ -1925,7 +1688,6 @@ impl Mapper {
         self.hard_lost = false;
         self.after_fall = false;
         self.valleys.clear();
-        self.boot = None;
         // The boot's global, never-give-up search was for a pose nobody
         // could vouch for. Confirmed, the pose is a pose: a later "lost"
         // — two windows contradicting a frozen map at an unmapped corner
@@ -1985,9 +1747,7 @@ impl Mapper {
     ) -> (Pose2, Verdict) {
         let wd = self.cfg.watchdog;
         let implied = compose(cand, between(tracked_then, tracked_now));
-        // A candidate is not a trusted pose: it is judged along the ray
-        // too, or the mirror image confirms itself (see
-        // `relocalize::score_pose_rays`).
+        // A candidate is not a trusted pose (see `judge_untrusted`).
         let a = self.judge_untrusted(
             grid,
             composite,
@@ -2024,8 +1784,16 @@ impl Mapper {
         (implied, verdict)
     }
 
-    /// The judge for a pose that is NOT trusted: along the ray unless the
-    /// bench says otherwise.
+    /// The judge for a pose that is NOT trusted: by endpoints. Along the
+    /// ray (`relocalize::score_pose_rays`, `MAPLOC_RAY_JUDGE=1`, removed
+    /// 2026-09-30) was measured off (2026-09-15): on the two boot
+    /// recordings against run 71's map it turned one wrong fix right
+    /// (1788872069) and one right fix wrong (1788929139, the kitchen alias
+    /// at 57 s) — a true pose in a map with doubled walls has beams that
+    /// "cross" a phantom wall, and the judge refuses the truth until an
+    /// alias that crosses nothing comes along. The test is right in
+    /// principle and needs a tolerance for the map's own noise before it
+    /// can be the default.
     fn judge_untrusted(
         &self,
         grid: &mut OccupancyGrid,
@@ -2035,19 +1803,7 @@ impl Mapper {
         wall_threshold_fp: i16,
         observed_fp: i16,
     ) -> crate::relocalize::PoseAgreement {
-        if ray_judge() {
-            score_pose_rays(
-                grid,
-                scan,
-                pose,
-                clamp_m,
-                wall_threshold_fp,
-                observed_fp,
-                self.cfg.relocalize.see_through_fp,
-            )
-        } else {
-            score_pose(grid, scan, pose, clamp_m, wall_threshold_fp, observed_fp)
-        }
+        score_pose(grid, scan, pose, clamp_m, wall_threshold_fp, observed_fp)
     }
 
     /// Localize only, and localised: the map is frozen once the pose is

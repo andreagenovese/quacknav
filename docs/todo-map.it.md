@@ -35,7 +35,10 @@ Manopole citate nelle voci qui sotto che non esistono più: `QK_COMMIT`,
 (2026-09-30, con le vecchie gambe dell'esploratore), `QK_ALIGN_TOL_LEFT_RAD`,
 `QK_COST_LANE`, `QK_COST_UNKNOWN`, `QK_FLOOR_STRIKE`, `QK_HOLD_HEADING`,
 `QK_LANE_RAILS`, `QK_MAP_STAND_S`, `QK_TRAVEL_OFF_UNKNOWN` (2026-09-30,
-esperimenti conclusi: resta il default misurato), `MAPLOC_SWEEP`,
+esperimenti conclusi: resta il default misurato), `MAPLOC_LOOP_SIGMA_YAW`,
+`MAPLOC_MAX_RANGE`, `MAPLOC_MCL`, `MAPLOC_MCL_N`, `MAPLOC_MCL_RESID`,
+`MAPLOC_MCL_TRAVEL`, `MAPLOC_MCL_YAW`, `MAPLOC_RAY_JUDGE`, `MAPLOC_SETTLE`
+(2026-09-30, lo stesso, di maploc), `MAPLOC_SWEEP`,
 `MAPLOC_ODOM_SCALE` (del fork di robotd di allora); le manopole che
 esistono sono tutte in [`knobs.it.md`](knobs.it.md), generato dal codice.
 L'impostazione `[map] explore_turn` si carica ancora ma dal 2026-09-30 non
@@ -1844,7 +1847,7 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       0,8 rad e percorso 0,10 m, la sua posa entra in `pending_reloc` come
       qualunque candidato della forza bruta, perché la finestra immobile
       successiva la giudichi. Le celle non mappate ora valgono 0,20 fisso
-      e restano fuori dal residuo del blocco. `MAPLOC_MCL=1`; `_N`, `_YAW`,
+      e restano fuori dal residuo del blocco. `MAPLOC_MCL=1` (tolta il 2026-09-30); `_N`, `_YAW`,
       `_TRAVEL`, `_RESID` per esplorare.
       Al banco di riproduzione, due registrazioni accese sulla mappa
       salvata del giro 71:
@@ -1902,7 +1905,7 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       finestre immobili, quindi il filtro non può più battere le finestre
       al verdetto di minuti; le batte al verdetto *giusto*. Due
       registrazioni sono due; su questa evidenza è sicuro e talvolta
-      migliore, e resta dietro `MAPLOC_MCL=1` finché il gemello non ci si
+      migliore, e resta dietro `MAPLOC_MCL=1` (tolta il 2026-09-30) finché il gemello non ci si
       sarà risvegliato sopra una dozzina di volte.
 
 - [x] La prova di unicità, corretta dalla revisione: giusta su
@@ -1931,7 +1934,7 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
 
       Nessun alias, nessuna perdita, e un verdetto in 73 s dove la forza
       bruta ne impiega 220–253. Sempre due registrazioni e sempre
-      `MAPLOC_MCL=1`; la prova di risveglio sul gemello — una dozzina di
+      `MAPLOC_MCL=1` (tolta il 2026-09-30); la prova di risveglio sul gemello — una dozzina di
       risvegli sulla mappa salvata, con `duckwatch.py` a leggere il momento
       in cui dice casa — è ciò che la renderebbe predefinita.
 
@@ -1975,7 +1978,7 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       del filtro è ciò che manca a quelle conferme, e applicarla a loro è la
       prossima cosa da provare. Fino ad allora il risveglio non è
       affidabile dopo un trasporto, che è il caso per cui esiste.
-      `MAPLOC_MCL` resta a richiesta.
+      `MAPLOC_MCL` (tolta il 2026-09-30) resta a richiesta.
 
 - [x] Dodici risvegli, terza tornata: gli alias da sei secondi sono
       spariti, quelli del filtro no (2026-09-14). Prima sono entrate tre
@@ -2013,7 +2016,7 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       finestra non è evidenza; il percorso fra una finestra e l'altra lo
       è.** Il ramo a più ipotesi lo dice già (due finestre e 1,5 m), e un
       risveglio che gira sul posto non ci arriva mai.
-      `MAPLOC_MCL` resta spento. La prossima modifica al risveglio non è
+      `MAPLOC_MCL` (tolta il 2026-09-30) resta spento. La prossima modifica al risveglio non è
       un'altra rete: è far camminare l'anatra — qualche giro, poi tappe
       brevi sorvegliate — e rifiutare qualunque conferma al risveglio
       senza mezzo metro di percorso fra la finestra che ha nominato una
@@ -2369,7 +2372,7 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       test che inganna il giudice a estremi e non quello sul raggio;
       sulle due registrazioni di boot ha corretto un alias e ne ha creato
       un altro (una posa vera in una mappa con muri doppi "attraversa"
-      anche lei muri fantasma), quindi resta spento (`MAPLOC_RAY_JUDGE=1`)
+      anche lei muri fantasma), quindi resta spento (`MAPLOC_RAY_JUDGE=1`, tolta il 2026-09-30)
       finché non tollera il rumore della mappa. Trovato anche: i ritorni
       di pavimento vengono buttati (`flatten` tiene solo i colpi sui
       muri), quindi la mappa non impara mai il pavimento libero se non
@@ -2603,11 +2606,11 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       hanno tenuto 7–20 cm e 1–5° per 10–15 min ciascuna.
       **(3) La ricerca al boot può aliasare con il giudice sugli
       endpoint**: loc3 confermata a 0,9 m di distanza e da lì 4–6 m di
-      errore. Una scala di boot su explmap1: `MAPLOC_RAY_JUDGE=1` 4/4
+      errore. Una scala di boot su explmap1: `MAPLOC_RAY_JUDGE=1` (tolta il 2026-09-30) 4/4
       giuste, heading ≤ 0,5°; il giudice sugli endpoint 4 giuste + quell'alias,
       heading fino a 3,8°. Giudice a raggi, dunque. (Poi misurato spento,
       2026-09-15: ha anche reso sbagliata una posa giusta dove la mappa aveva
-      muri doppi; `MAPLOC_RAY_JUDGE` è spento per default, vedi
+      muri doppi; `MAPLOC_RAY_JUDGE` (tolta il 2026-09-30) è spento per default, vedi
       `maploc/src/mapper.rs` `ray_judge`.)
       Cosa dicono poi i viaggi: con la posa buona (7–11 cm, ~1°) il duck
       ha comunque mancato la porta del soggiorno 4 volte su 5 — alla
@@ -3621,7 +3624,8 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       sensore vero a tre metri, che è un numero di upstream e non del
       gemello.
       Fatto (2026-09-30): 3 m è il default (`maploc/src/accumulator.rs`,
-      `max_range_m` 3.0); `MAPLOC_MAX_RANGE` lo sovrascrive, e 2.5 m in
+      `max_range_m` 3.0); `MAPLOC_MAX_RANGE` lo sovrascriveva (tolta il
+      2026-09-30; resta `ACC_RANGE` del banco), e 2.5 m in
       replay su 18 registrazioni (93.1 % contro 91.7 %, rumoroso) non
       l'ha cambiato (ec23fb5).
 
@@ -4125,6 +4129,17 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       (`ExploreHandle::forget_ground`, `Grid::unknown_around`,
       `Control::request_method`, i limiti della testa in
       `quack_duck::body`). Il gate del gemello di carta identico al byte.
+- [x] 2026-09-30: tolte nove manopole di maploc di esperimenti conclusi,
+      ognuna al default misurato (elencate in cima): la sigma d'angolo
+      delle chiusure di loop 0.24, la portata dell'accumulatore 3 m,
+      nessun assestamento dopo una ripresa, nessun filtro a particelle al
+      boot (`MAPLOC_MCL` e le sue quattro; il modulo `mcl.rs` resta, codice
+      di Pollen, e se ne va `Mapper::boot_search`), i candidati giudicati
+      dagli estremi, non lungo il raggio. I banchi tengono i loro
+      override (`LOOP_SIGMA_YAW`, `ACC_RANGE`). Il gate del gemello di
+      carta identico al byte, e i replay `evaluate`/`trajectory` di dieci
+      sessioni registrate (apartment, casa_grande, da zero e riprese)
+      identici al byte prima e dopo.
 - [ ] Perché alcune chiusure di loop misurano male l'angolo (x13: 5° di
       errore, la posa dal vivo 35 cm fuori, σ 0.08 m); si misura con la
       verità fitta (`LOOP_LOG`, `POSEERR_DT=0.5`). Sigma d'angolo del loop

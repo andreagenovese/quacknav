@@ -71,8 +71,9 @@ impl Default for AccumulatorConfig {
         Self {
             cell_m: 0.05,
             min_frames: 3,
-            // `MAPLOC_MAX_RANGE` overrides it, for the bench.
-            max_range_m: std::env::var("MAPLOC_MAX_RANGE").ok().and_then(|v| v.parse().ok()).unwrap_or(3.0),
+            // The bench's `ACC_RANGE` overrides it (`MAPLOC_MAX_RANGE`, the
+            // daemon's, removed 2026-09-30: 2.5 m did not change it).
+            max_range_m: 3.0,
             min_window_frames: 6,
         }
     }

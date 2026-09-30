@@ -35,7 +35,10 @@ Knobs named in the entries below that no longer exist: `QK_COMMIT`,
 (2026-09-30, with the explorer's old legs), `QK_ALIGN_TOL_LEFT_RAD`,
 `QK_COST_LANE`, `QK_COST_UNKNOWN`, `QK_FLOOR_STRIKE`, `QK_HOLD_HEADING`,
 `QK_LANE_RAILS`, `QK_MAP_STAND_S`, `QK_TRAVEL_OFF_UNKNOWN` (2026-09-30,
-concluded experiments: the measured default stays), `MAPLOC_SWEEP`,
+concluded experiments: the measured default stays), `MAPLOC_LOOP_SIGMA_YAW`,
+`MAPLOC_MAX_RANGE`, `MAPLOC_MCL`, `MAPLOC_MCL_N`, `MAPLOC_MCL_RESID`,
+`MAPLOC_MCL_TRAVEL`, `MAPLOC_MCL_YAW`, `MAPLOC_RAY_JUDGE`, `MAPLOC_SETTLE`
+(2026-09-30, the same, maploc's), `MAPLOC_SWEEP`,
 `MAPLOC_ODOM_SCALE` (the robotd fork's of the time); the knobs that exist
 are all in [`knobs.md`](knobs.md), generated from the code. The
 `[map] explore_turn` setting still loads but steers nothing since
@@ -1705,7 +1708,7 @@ nothing: it explores and asks.
       swept 0.8 rad and moved 0.10 m, its pose goes into `pending_reloc`
       like any brute-force candidate, for the next still window to judge.
       Unmapped cells now score a flat 0.20 and are left out of the lock
-      residual. `MAPLOC_MCL=1`; `_N`, `_YAW`, `_TRAVEL`, `_RESID` to sweep.
+      residual. `MAPLOC_MCL=1` (removed 2026-09-30); `_N`, `_YAW`, `_TRAVEL`, `_RESID` to sweep.
       On the replay bench, two recordings booted on the saved map of run 71:
 
       | recording | search | relocalized at | right? (vs truth, next 30 s) | lost again | final vs truth |
@@ -1758,7 +1761,7 @@ nothing: it explores and asks.
       only from still windows, so the filter can no longer beat the
       windows to a verdict by minutes; it beats them to the *right*
       verdict. Two recordings are two; on this evidence it is safe and
-      sometimes better, and it stays behind `MAPLOC_MCL=1` until the twin
+      sometimes better, and it stays behind `MAPLOC_MCL=1` (removed 2026-09-30) until the twin
       has booted on it a dozen times.
 
 - [x] The uniqueness test, corrected by review: right on both, three
@@ -1784,7 +1787,7 @@ nothing: it explores and asks.
       | 1788929139 | 220.4 s, a quarter metre out, final 0.357 | 174.4 s, right | **72.6 s, right (0.03–0.05), final 0.020** |
 
       No alias, no loss, and a verdict in 73 s where the brute force
-      takes 220–253. Still two recordings and still `MAPLOC_MCL=1`; the
+      takes 220–253. Still two recordings and still `MAPLOC_MCL=1` (removed 2026-09-30); the
       twin boot test — a dozen wake-ups on the saved map, with
       `duckwatch.py` reading the moment it says home — is what would make
       it the default.
@@ -1827,7 +1830,7 @@ nothing: it explores and asks.
       all. The uniqueness test that now gates the filter's lock is what
       those confirmations lack, and applying it to them is the next thing
       to try. Until then the homecoming is not to be trusted after a carry,
-      which is the case it exists for. `MAPLOC_MCL` stays opt-in.
+      which is the case it exists for. `MAPLOC_MCL` (removed 2026-09-30) stays opt-in.
 
 - [x] Twelve wake-ups, third round: the six-second aliases are gone, the
       filter's are not (2026-09-14). Three fixes to the wake-up went in
@@ -1863,7 +1866,7 @@ nothing: it explores and asks.
       between windows is.** The multi-hypothesis path already says so
       (two windows and 1.5 m), and a wake-up that turns in place never
       reaches it.
-      `MAPLOC_MCL` stays off. The next wake-up change is not another gate:
+      `MAPLOC_MCL` (removed 2026-09-30) stays off. The next wake-up change is not another gate:
       it is to make the duck walk — a few turns, then short guarded legs
       — and to refuse any confirmation at boot without half a metre of
       travel between the window that nominated a pose and the one that
@@ -2197,7 +2200,7 @@ nothing: it explores and asks.
       the endpoint judge and not the ray one; on the two boot recordings
       it fixed one alias and made another (a true pose in a map with
       doubled walls "crosses" phantom walls too), so it stays off
-      (`MAPLOC_RAY_JUDGE=1`) until it tolerates map noise. Also found:
+      (`MAPLOC_RAY_JUDGE=1`, removed 2026-09-30) until it tolerates map noise. Also found:
       floor returns are thrown away (`flatten` keeps wall hits only), so
       the map never learns free floor except along wall beams — the
       "only 0.08 m of known floor" refusals come from there.
@@ -2417,10 +2420,10 @@ nothing: it explores and asks.
       1–5° over 10–15 min each.
       **(3) The boot search can alias with the endpoint judge**: loc3
       confirmed 0.9 m off and sailed 4–6 m from there. A boot ladder on
-      explmap1: `MAPLOC_RAY_JUDGE=1` 4/4 correct, heading ≤ 0.5°; the
+      explmap1: `MAPLOC_RAY_JUDGE=1` (removed 2026-09-30) 4/4 correct, heading ≤ 0.5°; the
       endpoint judge 4 correct + that alias, heading up to 3.8°. The ray
       judge it is. (Later measured off, 2026-09-15: it also turned a right
-      fix wrong where the map had doubled walls; `MAPLOC_RAY_JUDGE` is off
+      fix wrong where the map had doubled walls; `MAPLOC_RAY_JUDGE` (removed 2026-09-30) is off
       by default, see `maploc/src/mapper.rs` `ray_judge`.)
       What the journeys then say: with the pose good (7–11 cm, ~1°) the
       duck still failed the living-room door 4 times of 5 — at the
@@ -3393,7 +3396,8 @@ nothing: it explores and asks.
       three metres, which is upstream's number and not the twin's.
       Done (2026-09-30): 3 m is the default
       (`maploc/src/accumulator.rs`, `max_range_m` 3.0);
-      `MAPLOC_MAX_RANGE` overrides it, and 2.5 m replayed over 18
+      `MAPLOC_MAX_RANGE` overrode it (removed 2026-09-30; the bench's
+      `ACC_RANGE` stays), and 2.5 m replayed over 18
       recordings (93.1 % on against 91.7 %, noisy) did not change it
       (ec23fb5).
 
@@ -3864,6 +3868,17 @@ nothing: it explores and asks.
       (`ExploreHandle::forget_ground`, `Grid::unknown_around`,
       `Control::request_method`, the head limits in `quack_duck::body`).
       The paper twin's gate the same to the byte.
+- [x] 2026-09-30: maploc's nine knobs of concluded experiments removed,
+      each at its measured default (listed at the top): the loop
+      closures' heading sigma 0.24, the accumulator's range 3 m, no
+      settling after a resume, no particle filter at boot (`MAPLOC_MCL`
+      and its four; the `mcl.rs` module stays, Pollen's code, and
+      `Mapper::boot_search` with it goes), candidates judged by
+      endpoints, not along the ray. The benches keep their own
+      overrides (`LOOP_SIGMA_YAW`, `ACC_RANGE`). The paper twin's gate
+      the same to the byte, and `evaluate`/`trajectory` replays of ten
+      recorded sessions (apartment, casa_grande, fresh and resumed) the
+      same to the byte before and after.
 - [ ] Why some loop closures mis-measure the heading (x13: 5° wrong, the
       live pose 35 cm off, σ 0.08 m); being measured with dense truth
       (`LOOP_LOG`, `POSEERR_DT=0.5`). Loop heading sigma 0.5 tried and

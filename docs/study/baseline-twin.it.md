@@ -15,7 +15,7 @@ variano del ±20 %).
 Condizioni: casa `house2` (il giro umano del 2026-09-16, robotd
 corretto), il suo libro a 51 drop (`private/drives/runs/house2/ground-51.json`),
 robotd dal worktree `maploc-study` in modo `localize` con
-`MAPLOC_RAY_JUDGE=1`; quacksat (allora casa della navigazione) coi suoi default — su mappa congelata un
+`MAPLOC_RAY_JUDGE=1` (tolta il 2026-09-30); quacksat (allora casa della navigazione) coi suoi default — su mappa congelata un
 viaggio cammina cieco (`QK_NO_GUARDS`, `QK_FOLLOW_ROUTE`, `QK_FAST` non
 impostati — manopole poi tolte, in b6c32fa e 1fffbac), rotta tirata e tenuta; la ricerca al boot guarda prima di
 camminare e scansiona l'orizzonte quando davanti non c'è nulla.
