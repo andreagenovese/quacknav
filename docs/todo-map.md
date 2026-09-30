@@ -24,8 +24,19 @@ Knobs named in the entries below that no longer exist: `QK_COMMIT`,
 (removed in b6c32fa), `QK_FAST`, `QK_FAST_GOAL`, `QK_FAST_STAND_S`,
 `QK_KEEP_ROUTE` (1fffbac, the old journey path), `QK_ARC_FULL`,
 `QK_SPIN_TIGHT`, `QK_TURN_AIM` (quacksat's, before the split),
-`MAPLOC_SWEEP`, `MAPLOC_ODOM_SCALE` (the robotd fork's of the time); the
-knobs that exist are all in [`knobs.md`](knobs.md), generated from the code.
+`QK_ARC_RESERVE_M`, `QK_CENTRE`, `QK_DEADBAND_RAD`, `QK_DROP_LEG_S`,
+`QK_EXPLORE_NAV`, `QK_GAP_LEG_RESERVE_M`, `QK_GAP_LEG_S`,
+`QK_LEG_RESERVE_M`, `QK_LOOKAHEAD_M`, `QK_LOW_BOOK_PUSH_M`, `QK_MOUTH_M`,
+`QK_PASSAGE_BOOK`, `QK_PASSAGE_CLIFF_MARGIN_M`, `QK_PASSAGE_HELD`,
+`QK_PASSAGE_HUG`, `QK_PASSAGE_LAW`, `QK_PASSAGE_MIN_W`,
+`QK_PASSAGE_SENSOR`, `QK_PROP_TURN`, `QK_REFUSED_REARM`, `QK_RIM_OFF`,
+`QK_ROUTE_CHECK_M`, `QK_SEAL`, `QK_SMOOTH_PATH`, `QK_SPIN_RAD`,
+`QK_STRAIGHT_LOOK_M`, `QK_STRING_PULL_M`, `QK_TRAIL_LEG`, `QK_WALL_FIT`
+(2026-09-30, with the explorer's old legs), `MAPLOC_SWEEP`,
+`MAPLOC_ODOM_SCALE` (the robotd fork's of the time); the knobs that exist
+are all in [`knobs.md`](knobs.md), generated from the code. The
+`[map] explore_turn` setting still loads but steers nothing since
+2026-09-30.
 
 ## What upstream provides (or will)
 
@@ -3827,6 +3838,17 @@ nothing: it explores and asks.
       are not read any more (`quack_duck::env::qk`), and `places_path`
       defaults to `/var/lib/quack-nav/places.json`. quacksat is the voice
       front end only.
+- [x] 2026-09-30: the explorer's old leg path is removed — `walk_leg`, the
+      passage law beside a drop (`passage`), `leg`, `refusal`,
+      `route_contradicted`, the string pulled taut, the aim centred beside
+      a drop, the seal and the widening — with its 29 knobs (listed at the
+      top). It ran only with `QK_EXPLORE_NAV=0`: the exploration travels
+      to its frontiers on the journey's loop since 67cde18 (2026-09-29,
+      `navigate.rs`), and every journey since 1fffbac. 2,030 lines of Rust
+      less, `explore/mod.rs` 2,942 → 2,052; the paper twin's gate the same
+      to the byte (explore 40 runs, 0 falls, 53.2 %; go_to 30/30). The
+      `[map] explore_turn` hand steered only those legs: it still loads,
+      and does nothing.
 - [ ] Why some loop closures mis-measure the heading (x13: 5° wrong, the
       live pose 35 cm off, σ 0.08 m); being measured with dense truth
       (`LOOP_LOG`, `POSEERR_DT=0.5`). Loop heading sigma 0.5 tried and

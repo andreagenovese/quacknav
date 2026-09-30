@@ -32,7 +32,7 @@ hosts it on a socket of its own.
 | `explore` | the jobs that drive: map a house, walk to a goal on a map already made, and the rules that keep a leg off the stairs |
 | `homecoming` | waking up in a house the duck has mapped before: load the newest saved map, confirm the pose, or explore and ask again |
 | `mapd` | the mapper itself, when robotd does not host it: `maploc` fed from `robot.state` and tofd's stream, the head panned at stops, the map and its library served in robotd's `robot.map*` dialect on a socket of its own (`[maploc]`) |
-| `config` | the `[map]` section (`enabled`, `places_path`, `cliff_guard`, `tof_socket`, `explore_max_s`, `ask_phrase`, `explore_turn`), `[homecoming]`, and the daemon's own file (`NavdConfig`) |
+| `config` | the `[map]` section (`enabled`, `places_path`, `cliff_guard`, `tof_socket`, `explore_max_s`, `ask_phrase`, `explore_turn` — no effect since 2026-09-30), `[homecoming]`, and the daemon's own file (`NavdConfig`) |
 
 Wire shape pinned to upstream API v17 (`MAP_API_VERSION`); the types are
 a local mirror until the `duck-ipc-proto` release that carries them.

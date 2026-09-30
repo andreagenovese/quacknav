@@ -20,12 +20,6 @@
 
 use super::*;
 
-/// `QK_EXPLORE_NAV=0`: the exploration walks to its frontiers on its own
-/// guarded legs (`walk_leg`), as before 2026-09-29.
-pub(super) fn explore_nav() -> bool {
-    switch("QK_EXPLORE_NAV").unwrap_or(true)
-}
-
 /// A frontier's stand this near a drop on the books is the drop's own edge
 /// (see `Job::travel`); the passages beside the stairwells, 0.49-0.54 m,
 /// keep their middles 0.25 m from the rim.

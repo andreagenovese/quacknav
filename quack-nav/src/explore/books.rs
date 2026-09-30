@@ -2,16 +2,8 @@
 
 use super::*;
 
-/// `QK_TRAIL_LEG=0`: no doorway margins on the trail, for measuring.
-pub(super) fn trail_leg_enabled() -> bool {
-    trail_enabled() && quack_duck::env::qk("TRAIL_LEG").is_none_or(|v| v != "0")
-}
-/// A leg "on the trail": trail points within [`TRAIL_NEAR_M`] of the
-/// heading line for the first `TRAIL_LEG_M` ahead, sampled every 5 cm,
-/// each sample covered. The shortest such leg is [`TRAIL_LEG_MIN_S`].
-pub(super) const TRAIL_LEG_M: f64 = 0.30;
+/// A point this near a trail point is on the trail (see `back_on_trail`).
 pub(super) const TRAIL_NEAR_M: f64 = 0.10;
-pub(super) const TRAIL_LEG_MIN_S: f64 = 0.6;
 pub(super) fn drop_reach_m() -> f64 {
     static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
     *V.get_or_init(|| knob("QK_DROP_REACH_M", DROP_REACH_M))
@@ -141,13 +133,7 @@ impl Job {
             .iter()
             .map(|(p, r)| {
                 if *r >= DROP_RADIUS_M {
-                    // The whole rim within reach, not the one point: the
-                    // refusals come at the mouth, the passage is beside
-                    // the points further on.
-                    let sealed = self.sealed.iter().any(|w| dist2(*w, *p) < SEAL_MATCH_M);
-                    let widened = self.widened.iter().any(|w| dist2(*w, *p) < WIDEN_MATCH_M);
-                    let r = self.policy.drop_plan_radius_m;
-                    (*p, if sealed { r + DROP_SEAL_M } else if widened { r + DROP_WIDEN_M } else { r })
+                    (*p, self.policy.drop_plan_radius_m)
                 } else {
                     (*p, *r)
                 }
@@ -414,37 +400,13 @@ impl Job {
         }
     }
 
-    /// Whether the first `ahead_m` of the heading line from `pose` runs
-    /// over the trail: every 5 cm sample has a trail point within
-    /// [`TRAIL_NEAR_M`].
-    pub(super) fn on_trail(&self, (x, y, yaw): (f64, f64, f64), ahead_m: f64) -> bool {
-        if self.trail.is_empty() {
-            return false;
-        }
-        let n = (ahead_m / 0.05).ceil() as usize;
-        (1..=n).all(|k| {
-            let d = k as f64 * 0.05;
-            let p = (x + d * yaw.cos(), y + d * yaw.sin());
-            self.trail.iter().rev().take(4000).any(|t| dist2(*t, p) < TRAIL_NEAR_M)
-        })
-    }
-
     /// Cells the planner may use whatever the margins say: where this
     /// body has walked, and the book's lanes.
     pub(super) fn lanes(&self) -> Vec<(f64, f64)> {
         if !trail_enabled() {
             return Vec::new();
         }
-        // A sealed rim (see `DROP_SEAL_M`) seals its lanes too: the lanes
-        // are what let the route through whatever the margins say, and
-        // a route through a passage the guard refuses three times over
-        // is the one thing the seal is for.
-        self.trail
-            .iter()
-            .chain(self.lanes.iter())
-            .copied()
-            .filter(|l| !self.sealed.iter().any(|w| dist2(*w, *l) < SEAL_MATCH_M))
-            .collect()
+        self.trail.iter().chain(self.lanes.iter()).copied().collect()
     }
 
     /// Is a drop on the books within `near` of the body?
@@ -472,30 +434,6 @@ impl Job {
             return;
         }
         self.local.push((point, radius));
-    }
-
-    /// A drop booked from the guard's REFUSAL — the edge estimated from
-    /// the refusal's range and bearing at the pose of the moment — as
-    /// against one voted by a stand's frames (`record_drops`). In the
-    /// GUARDED journey on a frozen map with its ground book the refusal
-    /// books nothing: the rim is on the books already, and the refusal's
-    /// point is the rim as a pose 10–17 cm off has it — house2's book
-    /// crept from 39 to 66 in an afternoon of guarded runs at the
-    /// stairwell's mouth (172 refusals in one run), the rim walking into
-    /// the passage until no lane was left (rimG3, 2026-09-20). The blind
-    /// journey keeps booking it, as the eleven tours that never fell did:
-    /// with it off, the refused rim was never on the books, the route
-    /// stayed, and the passage leg walked into the hole (house22tour,
-    /// 2026-09-21; house20tour the same with every booking off).
-    pub(super) fn remember_refused_drop(&mut self, point: (f64, f64)) {
-        if self.frozen && self.ground_drops > 0 && self.policy.mode == Mode::JourneyGuarded {
-            if !self.frozen_drops_noted {
-                self.frozen_drops_noted = true;
-                tracing::info!(at = ?point, "map explore: a drop refused on a frozen map with its ground book; the refusal books none");
-            }
-            return;
-        }
-        self.remember_local(point, DROP_RADIUS_M);
     }
 
 }

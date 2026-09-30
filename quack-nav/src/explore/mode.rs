@@ -10,6 +10,8 @@
 //! into the blind one through shared knobs and cost it 200 s a tour
 //! (house6tour 693 s against the baseline's 472–499). Mapping and the
 //! blind journey keep the baseline's behaviour (`baseline-twin.md`).
+//! The wall as the guide, the held leg and the seal went with the
+//! explorer's old legs (2026-09-30).
 
 use super::*;
 
@@ -26,17 +28,10 @@ pub(super) enum Mode {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(super) struct Policy {
     pub mode: Mode,
-    /// The wall as the guide in a passage: the axis the wall's line, the
-    /// line held a body's half-width from it.
-    pub hug: bool,
     /// The alignment by a guarded kick then yaw (else the walking pulse).
     pub align_kick: bool,
-    /// The passage leg one held 3 s walk (else short steered legs).
-    pub held_leg: bool,
     /// What a rim point is worth to the planner, without the inflation.
     pub drop_plan_radius_m: f64,
-    /// A rim refused three times running is sealed for the planner.
-    pub seal: bool,
     /// The walking kick before a spin in tight quarters: the guarded
     /// journey's 0.5 s (6 cm, judged by the guard), else the second the
     /// gait needs to be stepping before the yaw — at 0.5 s the yaw turns
@@ -53,15 +48,6 @@ pub(super) struct Policy {
     /// 29/30 blind, 13/30 against 15/30 guarded, 2026-09-20) — so the
     /// common tolerance unless the knob says otherwise.
     pub align_tol_left_rad: f64,
-    /// Point 2's try D, the mouth of a passage beside a drop (measured on
-    /// the paper twin's known world, guards on, seal off — reference 24/30
-    /// in 396 s): the hug's wall line fitted to the wall's cells, and the
-    /// heading held bent toward the line (30/30, 106 s, no refusal; on
-    /// MuJoCo the axis stopped flapping ±50° between stands — 3–4
-    /// alignments an outbound leg against 8–10). The guarded journey's
-    /// default (the user's, 2026-09-20). (A), an approach stand 0.5 m
-    /// before the mouth, made it worse (20/30) and was removed.
-    pub wall_fit: bool,
 }
 
 impl Policy {
@@ -69,21 +55,17 @@ impl Policy {
         let guarded = mode == Mode::JourneyGuarded;
         Policy {
             mode,
-            hug: env_switch("PASSAGE_HUG").unwrap_or(guarded),
             align_kick: env_switch("ALIGN_KICK").unwrap_or(guarded),
-            held_leg: env_switch("PASSAGE_HELD").unwrap_or(guarded),
             drop_plan_radius_m: std::env::var("QK_DROP_PLAN_RADIUS_M")
                 .ok()
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(if guarded { DROP_PLAN_RADIUS_GUARDED_M } else { DROP_PLAN_RADIUS_M }),
-            seal: env_switch("SEAL").unwrap_or(guarded),
             tight_kick_s: if guarded { TIGHT_KICK_S } else { PANO_KICK_S },
             trusted_floor: env_switch("TRUSTED_FLOOR").unwrap_or(mode != Mode::JourneyBlind),
             align_tol_left_rad: std::env::var("QK_ALIGN_TOL_LEFT_RAD")
                 .ok()
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(ALIGN_TOL_RAD),
-            wall_fit: env_switch("WALL_FIT").unwrap_or(guarded),
         }
     }
 }

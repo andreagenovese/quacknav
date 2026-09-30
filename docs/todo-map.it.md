@@ -24,9 +24,19 @@ Manopole citate nelle voci qui sotto che non esistono più: `QK_COMMIT`,
 (tolte in b6c32fa), `QK_FAST`, `QK_FAST_GOAL`, `QK_FAST_STAND_S`,
 `QK_KEEP_ROUTE` (1fffbac, il vecchio percorso dei viaggi), `QK_ARC_FULL`,
 `QK_SPIN_TIGHT`, `QK_TURN_AIM` (di quacksat, prima della separazione),
-`MAPLOC_SWEEP`, `MAPLOC_ODOM_SCALE` (del fork di robotd di allora); le
-manopole che esistono sono tutte in [`knobs.it.md`](knobs.it.md), generato dal
-codice.
+`QK_ARC_RESERVE_M`, `QK_CENTRE`, `QK_DEADBAND_RAD`, `QK_DROP_LEG_S`,
+`QK_EXPLORE_NAV`, `QK_GAP_LEG_RESERVE_M`, `QK_GAP_LEG_S`,
+`QK_LEG_RESERVE_M`, `QK_LOOKAHEAD_M`, `QK_LOW_BOOK_PUSH_M`, `QK_MOUTH_M`,
+`QK_PASSAGE_BOOK`, `QK_PASSAGE_CLIFF_MARGIN_M`, `QK_PASSAGE_HELD`,
+`QK_PASSAGE_HUG`, `QK_PASSAGE_LAW`, `QK_PASSAGE_MIN_W`,
+`QK_PASSAGE_SENSOR`, `QK_PROP_TURN`, `QK_REFUSED_REARM`, `QK_RIM_OFF`,
+`QK_ROUTE_CHECK_M`, `QK_SEAL`, `QK_SMOOTH_PATH`, `QK_SPIN_RAD`,
+`QK_STRAIGHT_LOOK_M`, `QK_STRING_PULL_M`, `QK_TRAIL_LEG`, `QK_WALL_FIT`
+(2026-09-30, con le vecchie gambe dell'esploratore), `MAPLOC_SWEEP`,
+`MAPLOC_ODOM_SCALE` (del fork di robotd di allora); le manopole che
+esistono sono tutte in [`knobs.it.md`](knobs.it.md), generato dal codice.
+L'impostazione `[map] explore_turn` si carica ancora ma dal 2026-09-30 non
+guida più nulla.
 
 ## Cosa fornisce (o fornirà) upstream
 
@@ -4088,6 +4098,17 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       leggono più (`quack_duck::env::qk`), e `places_path` è per default
       `/var/lib/quack-nav/places.json`. quacksat è solo il front end
       vocale.
+- [x] 2026-09-30: tolto il vecchio percorso delle gambe dell'esploratore —
+      `walk_leg`, la legge del passaggio accanto a un drop (`passage`),
+      `leg`, `refusal`, `route_contradicted`, il filo teso, la mira al
+      centro accanto a un drop, il sigillo e l'allargamento — con le sue
+      29 manopole (elencate in cima). Girava solo con `QK_EXPLORE_NAV=0`:
+      l'esplorazione va alle sue frontiere sul loop dei viaggi da 67cde18
+      (2026-09-29, `navigate.rs`), e ogni viaggio da 1fffbac. 2.030 righe
+      di Rust in meno, `explore/mod.rs` 2.942 → 2.052; il gate del gemello
+      di carta identico al byte (explore 40 run, 0 cadute, 53,2 %; go_to
+      30/30). La mano di `[map] explore_turn` guidava solo quelle gambe:
+      si carica ancora, e non fa nulla.
 - [ ] Perché alcune chiusure di loop misurano male l'angolo (x13: 5° di
       errore, la posa dal vivo 35 cm fuori, σ 0.08 m); si misura con la
       verità fitta (`LOOP_LOG`, `POSEERR_DT=0.5`). Sigma d'angolo del loop

@@ -2,8 +2,6 @@
 
 use super::*;
 
-/// The look-ahead point on the path that sets the heading.
-pub(super) const LOOKAHEAD_M: f64 = 0.4;
 /// A journey's route is kept between plans (the user, 2026-09-16: too
 /// many re-plans make a walking duck erratic; a re-plan only for an
 /// obstacle) unless the books changed, a leg was refused, the body is
@@ -18,34 +16,6 @@ pub(super) fn switch(name: &str) -> Option<bool> {
         Ok("0") => Some(false),
         _ => None,
     }
-}
-pub(super) fn lookahead_m() -> f64 {
-    static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
-    *V.get_or_init(|| knob("QK_LOOKAHEAD_M", LOOKAHEAD_M))
-}
-/// The turn in place when there is no room for a leg and no aim to turn
-/// to: an eighth of a circle, then the next plan says where. A quarter
-/// turn was the old way's, when every turn cost a kick and a stand; the
-/// turn in place costs a second, and a quarter turn often overshot the
-/// way on and came back (the user's eye on the twin, 2026-09-23).
-pub(super) const NO_ROOM_TURN_RAD: f64 = std::f64::consts::FRAC_PI_4;
-/// How far along the path the string may be pulled (see
-/// [`smooth_path`]): 0.6 m. At two (the straight look) the aim cut the
-/// grid path's corners by up to a body's width and was held there for
-/// metres; the planned route is the one with the margins in it (the
-/// user's, 2026-09-23: "the duck should stay truer to the green line" —
-/// a metre, then 0.6 on 2026-09-24).
-pub(super) const STRING_PULL_M: f64 = 0.6;
-pub(super) fn string_pull_m() -> f64 {
-    static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
-    *V.get_or_init(|| knob("QK_STRING_PULL_M", STRING_PULL_M))
-}
-/// Within this of a drop, booked or seen, no string is pulled and no aim
-/// held: the aim is a step along the route.
-pub(super) const STRING_NEAR_DROP_M: f64 = 0.6;
-pub(super) fn straight_look_m() -> f64 {
-    static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
-    *V.get_or_init(|| knob("QK_STRAIGHT_LOOK_M", STRAIGHT_LOOK_M))
 }
 /// Go back, every so often, to somewhere already mapped.
 ///
@@ -91,18 +61,6 @@ pub(super) const ANCHOR_ARRIVE_M: f64 = 0.35;
 pub(super) fn reanchor() -> bool {
     std::env::var("QK_REANCHOR").map(|v| v != "0").unwrap_or(true)
 }
-/// Aim at the farthest point of the path the body can walk to in a
-/// straight line, instead of the one a fixed number of cells ahead.
-///
-/// A grid path is a staircase, so a point eight cells along it sits up to
-/// half a quadrant off the direction of travel, and alternates: measured
-/// on the twin, three metres of journey cost thirteen turns in place, each
-/// asking for 64° to 101° of heading change. Pulling the string straight
-/// is the classic answer and it costs one lane test per candidate.
-/// `QK_SMOOTH_PATH=0` turns it off.
-pub(super) fn smooth_path() -> bool {
-    std::env::var("QK_SMOOTH_PATH").map(|v| v != "0").unwrap_or(true)
-}
 /// A journey's stands for the pose (see `navigate.rs`): one of
 /// [`FAST_POSE_STAND_S`] every [`FAST_POSE_EVERY_S`] or
 /// [`FAST_POSE_EVERY_M`], one when the sensor sees something in the lane
@@ -115,13 +73,6 @@ pub(super) const FAST_POSE_EVERY_M: f64 = 1.5;
 pub(super) const FAST_STOP_AHEAD_M: f64 = 0.5;
 /// A stand for something ahead no more often than this.
 pub(super) const FAST_AHEAD_EVERY_S: f64 = 10.0;
-/// A held passage leg beside a drop lasts at most this long
-/// (`QK_DROP_LEG_S` to measure).
-pub(super) const DROP_LEG_S: f64 = 2.0;
-pub(super) fn drop_leg_s() -> f64 {
-    static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
-    *V.get_or_init(|| knob("QK_DROP_LEG_S", DROP_LEG_S))
-}
 /// A `go_to` is done this close to where it was sent.
 pub(super) const GOAL_ARRIVE_M: f64 = 0.25;
 
@@ -129,8 +80,8 @@ impl Job {
     /// A job that walks to one point on the map it already has, instead of
     /// mapping: `go_to`. The guards, the books and the recoveries are the
     /// mapping job's own.
-    pub fn to_goal(goal: (f64, f64), max_s: f64, turn: f64, started: Instant) -> Self {
-        let mut job = Self::new(Vec::new(), max_s, false, turn, started);
+    pub fn to_goal(goal: (f64, f64), max_s: f64, started: Instant) -> Self {
+        let mut job = Self::new(Vec::new(), max_s, false, started);
         job.goal = Some(goal);
         job
     }
@@ -166,14 +117,6 @@ impl Job {
     /// home. Never while mapping.
     pub(super) fn blind(&self) -> bool {
         switch("QK_NO_GUARDS").unwrap_or_else(|| self.frozen_journey())
-    }
-
-    /// How long to stand after a leg: the stand is how a stop-and-scan
-    /// mapper sees at all, three seconds by default — but in `continuous`
-    /// the mapper inks while walking and the stand buys only the head
-    /// sweep and a fresh frame (`QK_MAP_STAND_S=0` to measure it).
-    pub(super) fn stop_s(&self) -> f64 {
-        map_stand_s()
     }
 
 }

@@ -130,6 +130,10 @@ def collect():
                     stmt = src[src.find("(", m.start()) : stop][:400]
                     semi = stmt.find(";")
                     stmt = stmt if semi < 0 else stmt[:semi]
+                    # Nor past the end of the item it sits in: a read that
+                    # ends a struct literal ran on into the next function.
+                    item_end = stmt.find("\n}")
+                    stmt = stmt if item_end < 0 else stmt[:item_end]
                     before = src[max(0, m.start() - 40) : m.start()]
                     e = found.setdefault(name, {"where": [], "how": set(), "doc": ""})
                     if rel not in e["where"]:

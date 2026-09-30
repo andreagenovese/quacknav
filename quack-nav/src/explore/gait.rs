@@ -2,26 +2,6 @@
 
 use super::*;
 
-/// How far the straight line to the standing point is checked for walls
-/// before the grid path is followed instead.
-pub(super) const STRAIGHT_LOOK_M: f64 = 2.0;
-/// `QK_REFUSED_REARM`: `0` one-shot per job, `1` after every walked
-/// leg, else (default) once the body has moved [`REARM_DIST_M`].
-pub(super) fn refused_rearm() -> u8 {
-    match quack_duck::env::qk("REFUSED_REARM").as_deref() {
-        Some("0") => 0,
-        Some("1") => 1,
-        _ => 2,
-    }
-}
-/// How far the body must move from the spot of the last clearing before
-/// the refused list may be cleared again: the same spot gives the same
-/// answer, and re-electing a refused frontier after every leg kept the
-/// duck at a doorway re-trying it (MuJoCo runs 69–71: room stays of
-/// 15–32 minutes, against 5–11 before the re-arm).
-pub(super) const REARM_DIST_M: f64 = 1.0;
-/// See [`Job::boxed_in`].
-pub(super) const BOXED_M: f64 = 0.30;
 /// Less room than this ahead of the nose: a turn in place is yaw only,
 /// no kick (see [`Job::spin`]).
 pub(super) const KICKLESS_ROOM_M: f64 = 0.35;
@@ -37,10 +17,6 @@ pub(super) const TIGHT_KICK_S: f64 = 0.5;
 /// The step back that makes room for a refused kick: 1.5 s ≈ 7 cm.
 pub(super) const MAKE_ROOM_S: f64 = 1.5;
 pub(super) const TIGHT_TURN_BACK_ROOM_M: f64 = 0.20;
-pub(super) fn arc_reserve_m() -> f64 {
-    static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
-    *V.get_or_init(|| knob("QK_ARC_RESERVE_M", ARC_RESERVE_M))
-}
 pub(super) fn straight_rad() -> f64 {
     static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
     *V.get_or_init(|| knob("QK_STRAIGHT_RAD", STRAIGHT_RAD))
@@ -49,16 +25,6 @@ pub(super) fn curve_rad() -> f64 {
     static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
     *V.get_or_init(|| knob("QK_CURVE_RAD", CURVE_RAD))
 }
-pub(super) fn deadband_rad() -> f64 {
-    static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
-    *V.get_or_init(|| knob("QK_DEADBAND_RAD", DEADBAND_RAD))
-}
-pub(super) fn prop_turn() -> bool {
-    std::env::var("QK_PROP_TURN").map(|v| v != "0").unwrap_or(true)
-}
-pub(super) const ARC_RESERVE_M: f64 = 0.30;
-/// Heading error below which no correction is applied at all.
-pub(super) const DEADBAND_RAD: f64 = 0.25;
 /// Heading error up to which a leg is "straight" with a gentle correction.
 pub(super) const STRAIGHT_RAD: f64 = 0.35;
 /// Heading error up to which a leg is a gentle curve; beyond, a tight arc.
@@ -74,18 +40,11 @@ pub(super) fn back_s() -> f64 {
     *V.get_or_init(|| knob("QK_BACK_S", 1.5))
 }
 /// `QK_BACK_REORIENT=0`: after the step back, head for the most open floor
-/// and walk a leg there, as before. On by default: turn in place back
-/// toward the leg's aim and let the planner speak — a step back is a
-/// correction of the line, not a change of plan.
+/// and walk a leg there, as before. On by default: the planner speaks
+/// from the stand — a step back is a correction of the line, not a change
+/// of plan.
 pub(super) fn back_reorient() -> bool {
     std::env::var("QK_BACK_REORIENT").map(|v| v != "0").unwrap_or(true)
-}
-/// `QK_SPIN_RAD`: a leg whose aim is more than this off the nose turns in
-/// place first (closed on the yaw, [`Job::align`]) instead of walking a
-/// curve — a curve from a standstill drifts sideways for its first second,
-/// into a wall or a hole when the aim is beside one. 0 restores the curve.
-pub(super) fn spin_rad() -> f64 {
-    knob("QK_SPIN_RAD", 0.6)
 }
 /// The +yaw stretch that gets the gait stepping before a mirrored or
 /// straight step back.
@@ -127,11 +86,6 @@ pub(super) const BACK_ON_S: f64 = 2.0;
 pub(super) const BACK_EVERY: Duration = Duration::from_secs(10);
 /// A turn in place gives up after this long (a half turn at 30°/s is 6 s).
 pub(super) const SPIN_MAX_S: f64 = 8.0;
-/// An accepted leg that left the duck within this much of where it stood
-/// (and turned less than [`STALLED_RAD`]) walked into something the
-/// sensor cannot see — under its minimum range, or beside the body.
-/// A leg walks 0.15–0.35 m; the map's pose is good to a few centimetres.
-pub(super) const STALLED_M: f64 = 0.08;
 /// Backing speed at vx -0.3 (measured on the twin).
 pub(super) const BACK_M_PER_S: f64 = 0.08;
 /// The retreat along the trail before a turn beside a drop: about 0.3 m.
@@ -162,7 +116,6 @@ pub(crate) fn turn_in_place_on() -> bool {
     static V: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
     *V.get_or_init(|| std::env::var("QK_TURN_IN_PLACE").map(|v| v != "0").unwrap_or(true))
 }
-pub(super) const STALLED_RAD: f64 = 0.15;
 
 impl Job {
     /// Has the guard a fresh frame along the nose? Wait for one up to
@@ -899,41 +852,6 @@ impl Job {
         (room_m, l.by == Blocked::Wall && r.by == Blocked::Wall && l.free_m + r.free_m < gap_max_m())
     }
 
-    /// No way out but back: less than [`BOXED_M`] of floor ahead AND to
-    /// either side, by the map's walls and the sensor's obstacles. Only
-    /// then is a step back the move; otherwise a turn in place toward the
-    /// free side and a leg forward (the user's rule, 2026-09-16: the step
-    /// back only when there is no way out ahead or sideways).
-    pub(super) fn boxed_in(&self, robot: &dyn Body, grid: &Grid, (x, y, yaw): (f64, f64, f64)) -> bool {
-        let map_free = |bearing: f64| {
-            let c = grid.clearance(x, y, yaw + bearing, 1.0);
-            if c.by == Blocked::Wall { c.free_m } else { f64::INFINITY }
-        };
-        let sensor_free = |bearing: f64| {
-            robot
-                .cliff()
-                .and_then(|c| c.obstacle_within(robot.now(), bearing, 0.5))
-                .map(|o| o.range_m)
-                .unwrap_or(f64::INFINITY)
-        };
-        [0.0, std::f64::consts::FRAC_PI_2, -std::f64::consts::FRAC_PI_2]
-            .iter()
-            .all(|b| map_free(*b).min(sensor_free(*b)) < BOXED_M)
-    }
-
-    /// The way to turn when the way on is blocked: the configured hand —
-    /// the same side every time gets around an obstacle and along a wall
-    /// to the next doorway — unless the body has no room to swing there.
-    pub(super) fn turn_toward(&self, grid: &Grid, (x, y, yaw): (f64, f64, f64)) -> f64 {
-        let hand = grid.clearance(x, y, yaw + self.turn * std::f64::consts::FRAC_PI_2, 1.0);
-        let sign = if hand.by == Blocked::Wall && hand.free_m < TURN_ROOM_M {
-            -self.turn
-        } else {
-            self.turn
-        };
-        0.7 * sign
-    }
-
     pub(super) fn back_off(&mut self, robot: &mut dyn Body, grid: &Grid) -> bool {
         let now = robot.now();
         if self.last_back.is_some_and(|t| now - t < BACK_EVERY) {
@@ -966,18 +884,12 @@ impl Job {
         for (vx, vyaw, dur) in Self::back_phases(side, secs) {
             let _ = robot.blind_move(&json!({"vx": vx, "vyaw": vyaw, "duration_s": dur}));
         }
-        // ...then back onto the line: turn in place to the aim the leg
-        // had, and let the planner speak from the stand. The step back's
-        // own yaw is a 40° swing; walking on from there toward "the most
-        // open floor" was the lurch past the obstacle the user saw on
-        // house1 (2026-09-15) — a step back corrects the line, it does
-        // not choose a new one.
+        // ...then let the planner speak from the stand. Walking on from
+        // there toward "the most open floor" was the lurch past the
+        // obstacle the user saw on house1 (2026-09-15) — a step back
+        // corrects the line, it does not choose a new one. (The turn back
+        // to the leg's aim went with the explorer's old legs, 2026-09-30.)
         if back_reorient() {
-            if let (Some(aim), Some(f)) = (self.last_aim, robot.frame()) {
-                let (x, y, _) = f.pose();
-                let ok = self.align(robot, (aim.1 - y).atan2(aim.0 - x));
-                tracing::info!(ok, aim = ?aim, "map explore: stepped back, re-aimed");
-            }
             return true;
         }
         // ...then toward the most open floor the map shows, not simply

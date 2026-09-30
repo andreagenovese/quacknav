@@ -170,7 +170,7 @@ ritorno con questo: goround3 3/3 (28, 246, 266 s), nessuna caduta.
 
 L'asse della legge del passaggio è la linea del muro stimata sulle sue
 celle, la direzione tenuta piegata verso la linea (`QK_WALL_FIT`, il
-default guardato); le gambe si accorciano prima di un bordo visto dal
+default guardato; tolto il 2026-09-30); le gambe si accorciano prima di un bordo visto dal
 sensore; un bordo si sigilla dopo dodici giri rifiutati o tre rifiuti
 con moto in mezzo; la partenza del planner esce da un'inflazione fino a
 1,5 m; "no room" incolpa il limite più vicino; i viaggi su mappa

@@ -176,13 +176,13 @@ prototype, not a navigation stack to the standards of the field.
 
 - **The explorer is an accumulation of rules.** Each one — the passage law
   beside a drop, off the rim first, the no-go spots, blind and guarded legs,
-  seals, widenings, lanes, trusted floor — came from a fall or a stall
+  lanes, trusted floor — came from a fall or a stall
   measured on the twin, and the reasons are in the code and the ADRs. Together
   they are hard to reason about, and their thresholds were tuned on three
   simulated houses (two of them generated): they may be fitted to the twin.
-- **The code shows it.** `explore/mod.rs` is some 3,000 lines; 72
+- **The code shows it.** `explore/mod.rs` is some 2,000 lines; 43
   `QK_*` environment knobs (and 26 `MAPLOC_*`, all listed in [`docs/knobs.md`](docs/knobs.md), generated from the code); legs are `serde_json::Value`s; recovery decides on
-  error *messages* (`e.contains("no room")`), which a reworded sentence breaks.
+  error *messages* (the homecoming's `why.contains("° right")`), which a reworded sentence breaks.
 - **Localization is thresholds, not confidence.** The standard (AMCL, SLAM
   Toolbox, Cartographer) carries a covariance; here a pose is trusted or not.
   maploc's valley test is an empirical stand-in for a scan matcher's

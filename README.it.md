@@ -185,14 +185,14 @@ del settore.
 
 - **L'esploratore è un accumulo di regole.** Ognuna — la legge dei passaggi
   accanto a un drop, prima via dal bordo, i punti da evitare, gambe cieche e
-  guardate, sigilli, allargamenti, corsie, pavimento fidato — viene da una
+  guardate, corsie, pavimento fidato — viene da una
   caduta o da uno stallo misurati sul gemello, e i perché sono nel codice e
   negli ADR. Insieme sono difficili da ragionare, e le loro soglie sono state
   tarate su tre case simulate (due generate): possono essere adattate al gemello.
-- **Il codice lo mostra.** `explore/mod.rs` è di circa 3.000
-  righe; 72 interruttori `QK_*` nell'ambiente (e 26 `MAPLOC_*`, tutti elencati in [`docs/knobs.it.md`](docs/knobs.it.md), generato dal codice); le gambe sono
+- **Il codice lo mostra.** `explore/mod.rs` è di circa 2.000
+  righe; 43 interruttori `QK_*` nell'ambiente (e 26 `MAPLOC_*`, tutti elencati in [`docs/knobs.it.md`](docs/knobs.it.md), generato dal codice); le gambe sono
   `serde_json::Value`; i recuperi decidono sui *messaggi* di errore
-  (`e.contains("no room")`), che una frase riformulata rompe.
+  (`why.contains("° right")` nella ricerca del ritorno a casa), che una frase riformulata rompe.
 - **La localizzazione è fatta di soglie, non di confidenza.** Lo standard
   (AMCL, SLAM Toolbox, Cartographer) porta una covarianza; qui una posa è
   fidata o no. Il test della valle di maploc è un sostituto empirico

@@ -32,7 +32,7 @@ dalla lane del robot (`quack-duck`) e da serde, nient'altro, e
 | `explore` | i lavori che guidano: mappare una casa, camminare verso una meta su una mappa già fatta, e le regole che tengono una gamba lontana dalle scale |
 | `homecoming` | svegliarsi in una casa già mappata: caricare l'ultima mappa salvata, confermare la posa, oppure esplorare e richiedere |
 | `mapd` | il mapper stesso, quando robotd non lo ospita: `maploc` alimentato da `robot.state` e dallo stream di tofd, la testa che scandisce a ogni sosta, la mappa e la sua libreria servite nel dialetto `robot.map*` di robotd su un socket suo (`[maploc]`) |
-| `config` | la sezione `[map]` (`enabled`, `places_path`, `cliff_guard`, `tof_socket`, `explore_max_s`, `ask_phrase`, `explore_turn`), `[homecoming]`, e il file del demone (`NavdConfig`) |
+| `config` | la sezione `[map]` (`enabled`, `places_path`, `cliff_guard`, `tof_socket`, `explore_max_s`, `ask_phrase`, `explore_turn` — senza effetto dal 2026-09-30), `[homecoming]`, e il file del demone (`NavdConfig`) |
 
 Forma del filo fissata all'API upstream v17 (`MAP_API_VERSION`); i tipi
 sono una copia locale finché non esce la release di `duck-ipc-proto` che

@@ -10,16 +10,15 @@
 //!    frontier and the path there — known floor cheap, unknown dear, so
 //!    in mapped space the duck takes the shortest known way and crosses
 //!    unknown only to reach a frontier.
-//! 2. **The duck follows the path.** A look-ahead point on the path sets
-//!    the heading; small errors are corrected gently, large ones with a
-//!    tight arc (this gait cannot turn in place). The frontier it is
-//!    heading for is kept until it is reached or gone.
-//! 3. **The sensor only answers for what the map does not know.** Every
-//!    leg is a `robot.map_step` with all its guards. When the depth sensor
-//!    refuses a leg — something in the way the map has not inked, a drop —
-//!    that spot becomes a wall in a **local obstacle list** the planner
-//!    treats as impassable, and the route is replanned around it. No
-//!    turning heuristics, no wandering.
+//! 2. **The duck follows the path** on the journey's loop (`navigate.rs`):
+//!    the stick's legs (`stick.rs`), a point of the route a little ahead,
+//!    a turn in place to it when it is well off the nose. The frontier it
+//!    is heading for is kept until it is reached or gone. (The explorer's
+//!    own guarded legs, `QK_EXPLORE_NAV=0`, were removed on 2026-09-30.)
+//! 3. **The sensor only answers for what the map does not know.** What
+//!    the depth sensor sees that the map has not inked — a thing in the
+//!    way, a drop — goes into a **local obstacle list** the planner
+//!    treats as impassable, and the route is replanned around it.
 //!
 //! A background behaviour, not a tool call: `robot.map_explore` starts it
 //! and returns; `robot.map_status` narrates; while it runs the
@@ -34,7 +33,7 @@ use std::time::{Duration, Instant};
 use crate::frontier::{
     path_to,
     ExtraWall, Frontier, MIN_FRONTIER_CELLS, SQUEEZE_INFLATE_M, frontier_cells, inflate_m, path_to_both, route_passable,
-    frontiers_with, largest_frontier, waypoint,
+    frontiers_with, largest_frontier,
 };
 use crate::cliff::CliffStatus;
 use crate::map::{Blocked, Cell, Grid, MapFrame, MapSupport};
@@ -60,24 +59,11 @@ const DONE_PIECE_M2: f64 = 4.5;
 const DONE_SHARE: f64 = 0.95;
 /// How often a session looks at the battery.
 const BATTERY_EVERY_S: f64 = 30.0;
-/// Beside a drop, a way narrower than this is a passage and its aim goes
-/// to the middle (see `Job::centred`), by this much at most.
-const CENTRE_WIDTH_M: f64 = 0.9;
-const CENTRE_MAX_M: f64 = 0.15;
 /// Unseals on one spot (within this) before it is a no-go for the job,
 /// and how wide a no-go is for the planner.
 const NO_GO_AFTER: u32 = 3;
 const NO_GO_SAME_M: f64 = 0.30;
 const NO_GO_RADIUS_M: f64 = 0.20;
-
-/// What ends the floor on one side of a way (see `Job::side_free`).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum Side {
-    Wall,
-    Drop,
-    Unknown,
-    Open,
-}
 
 /// What the explorer needs of a body: a guarded mapping step, a blind
 /// move, the newest map frame, the cliff guard's view, and a clock. The
@@ -164,24 +150,8 @@ const ARRIVE_M: f64 = 0.30;
 const LEG_STOP_S: f64 = 3.0;
 /// What the gait covers per second at vx 0.3 (measured on the twin).
 const GAIT_M_PER_S: f64 = 0.12;
-/// A forward leg must leave this much floor beyond its end (the step's own
-/// wall margin plus the beak); a tight arc, which advances a few
-/// centimetres and gets a smaller margin from the step, needs less.
-const LEG_RESERVE_M: f64 = 0.35;
-/// The body is 0.19 m wide (twin's collision hull); with 0.06 m to spare
-/// on each side a corridor must be this wide to walk through.
-const CORRIDOR_MIN_M: f64 = 0.31;
-/// The corridor width is also checked this far along the heading.
-const WIDTH_AHEAD_M: f64 = 0.3;
-/// A passage narrower than this (and wider than the body) is a doorway:
-/// steer onto its axis with this gain, in legs no longer than this.
+/// A passage narrower than this (and wider than the body) is a doorway.
 const GAP_MAX_M: f64 = 0.6;
-const GAP_GAIN: f64 = 2.0;
-const GAP_LEG_S: f64 = 1.5;
-/// Room a doorway leg needs ahead of it: the doorway margin and slack.
-const GAP_LEG_RESERVE_M: f64 = 0.20;
-/// How far ahead the sensor's obstacles count as doorposts.
-const GAP_LOOK_M: f64 = 0.8;
 /// The sensor lane in a doorway: the body's half-width plus two centimetres
 /// (map_step uses the same when asked with `gap`).
 const GAP_LANE_HALF_M: f64 = 0.115;
@@ -221,14 +191,6 @@ fn lane_half_m() -> f64 {
     static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
     *V.get_or_init(|| knob("QK_LANE_HALF_M", LANE_HALF_M))
 }
-fn leg_reserve_m() -> f64 {
-    static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
-    *V.get_or_init(|| knob("QK_LEG_RESERVE_M", LEG_RESERVE_M))
-}
-fn gap_leg_reserve_m() -> f64 {
-    static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
-    *V.get_or_init(|| knob("QK_GAP_LEG_RESERVE_M", GAP_LEG_RESERVE_M))
-}
 fn gap_lane_half_m() -> f64 {
     static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
     *V.get_or_init(|| knob("QK_GAP_LANE_HALF_M", GAP_LANE_HALF_M))
@@ -236,10 +198,6 @@ fn gap_lane_half_m() -> f64 {
 fn gap_max_m() -> f64 {
     static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
     *V.get_or_init(|| knob("QK_GAP_MAX_M", GAP_MAX_M))
-}
-fn gap_leg_s() -> f64 {
-    static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
-    *V.get_or_init(|| knob("QK_GAP_LEG_S", GAP_LEG_S))
 }
 
 
@@ -255,20 +213,11 @@ fn gap_leg_s() -> f64 {
 
 
 const SLIVER_PENALTY: f64 = 1.5;
-/// Room a turn needs on the side it swings to: half the body and the
-/// few centimetres a tight arc advances.
-const TURN_ROOM_M: f64 = 0.30;
 /// Obstacles the sensor reports within this much of the line the duck
 /// would walk are in the way: half the body plus a little (the mapping
 /// step uses the same lane). A ±23° cone blocked doorways from half a
 /// metre away, their posts being inside it.
 const LANE_HALF_M: f64 = 0.16;
-/// An obstacle closer than this dead ahead is "nose against it": the one
-/// case where a blind step back is the lesser evil.
-const NOSE_STUCK_M: f64 = 0.30;
-/// A heading planned anew (`route_heading_anew`) points at the route's
-/// point this far along.
-const HEADING_STEP_M: f64 = 0.3;
 
 
 
@@ -280,11 +229,6 @@ const STUCK_MAX: u32 = 3;
 /// the previous one, or once the body has moved this far since.
 const STUCK_GAP_S: f64 = 30.0;
 const STUCK_MOVE_M: f64 = 0.20;
-/// Refusals in a row, no leg between, before backing out of the spot.
-const REFUSAL_STREAK_MAX: u32 = 6;
-/// Turns in place without a leg between them before the spot is treated
-/// as a refusal: a turn is cheap, but not the answer forever.
-const SPINS_MAX: u32 = 3;
 /// How many times a run may forget every local obstacle at once because
 /// they, and not the map, seal the rest of the flat away (a doorpost and
 /// a cabinet corner sealed a 0.42 m door from 2.4 m away in run 59;
@@ -303,11 +247,6 @@ const LOOK_WAIT_S: f64 = 2.0;
 /// A frontier that survives a full stand at it (a window, a hole) is not
 /// worth a second visit — that one, not everything near it.
 const BLOCK_VISITED_M: f64 = 0.25;
-/// Refusals on the way to the same frontier before it is left alone.
-const REFUSALS_PER_TARGET: u32 = 4;
-/// A refusal for what is beside the body counts against the frontier only
-/// this near it (see `refusal`).
-const TARGET_NEAR_M: f64 = 1.0;
 /// Ask for a name only this far from every known place and earlier ask.
 const ASK_MIN_M: f64 = 2.0;
 /// A pose that moved more than this plus what the gait could have walked
@@ -341,13 +280,8 @@ const STABLE_UNTRUSTED_FIT_M: f64 = 0.10;
 const AGREE_RANGE_M: f64 = 1.5;
 const AGREE_TOL_M: f64 = 0.35;
 const DISAGREE_MIN: usize = 10;
-/// Where the route met what the sensor sees: the route point, what it
-/// was, and where that is on the map.
-type RouteConflict = ((f64, f64), &'static str, (f64, f64));
 const DISTRUST_PANORAMA: u32 = 2;
 const DISTRUST_FAIL: u32 = 6;
-/// Pause after a refusal: the map has not changed yet.
-const AFTER_REFUSAL: Duration = Duration::from_millis(500);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum State {
@@ -659,8 +593,9 @@ impl ExploreHandle {
             })
             .unwrap_or_default();
         // A drop's radius is DROP_RADIUS_M; wider ones are obstacles an old
-        // rule booked a centimetre too wide and so saved as drops (see
-        // `LOW_BOOK_RADIUS_MAX_M`). They are not drops: left out.
+        // rule booked a centimetre too wide and so saved as drops (the low
+        // thing pushed ahead by the explorer's old legs, 2026-09-23). They
+        // are not drops: left out.
         let before = drops.len();
         let drops: Vec<((f64, f64), f64)> = drops.into_iter().filter(|(_, r)| *r <= DROP_RADIUS_M + 0.005).collect();
         if drops.len() < before {
@@ -815,11 +750,10 @@ impl ExploreHandle {
         places: &Places,
         goal: (f64, f64),
         max_s: f64,
-        turn: f64,
         gait: GaitConfig,
     ) -> Result<(), String> {
         self.start_job(robotd_socket, places, max_s, gait, move |drops, trail| {
-            let mut job = Job::to_goal(goal, max_s, turn, Instant::now());
+            let mut job = Job::to_goal(goal, max_s, Instant::now());
             job.ground_drops = drops.iter().filter(|(_, r)| *r >= DROP_RADIUS_M).count();
             job.local = drops;
             job.trail = trail;
@@ -847,13 +781,12 @@ impl ExploreHandle {
         known: Vec<(f64, f64)>,
         max_s: f64,
         ask: bool,
-        turn: f64,
         gait: GaitConfig,
         session: Option<Session>,
     ) -> Result<(), String> {
         *self.session.lock().expect("session poisoned") = session.clone();
         self.start_job(robotd_socket, places, max_s, gait, move |drops, trail| {
-            let mut job = Job::new(known, max_s, ask, turn, Instant::now());
+            let mut job = Job::new(known, max_s, ask, Instant::now());
             job.battery_min_pct = session.as_ref().map(|s| s.battery_min_pct);
             job.ground_drops = drops.iter().filter(|(_, r)| *r >= DROP_RADIUS_M).count();
             job.local = drops;
@@ -1122,26 +1055,13 @@ pub struct Job {
     known: Vec<(f64, f64)>,
     max_s: f64,
     ask: bool,
-    /// The hand to turn to when blocked: -1 right, +1 left ([`MapConfig::turn_sign`]).
-    turn: f64,
     started: Instant,
     /// Visited frontier spots: never chosen again.
     visited: Vec<((f64, f64), f64)>,
     /// Frontier spots refused too often: left alone until nothing else
     /// is left, then forgotten once.
     refused: Vec<((f64, f64), f64)>,
-    /// Drops whose leg the books refused: the planner keeps wider of them
-    /// from then on (see [`Job::refusal`], "on the books").
-    widened: Vec<(f64, f64)>,
-    /// Drops the guard refused for over and over: sealed for the planner
-    /// (see `DROP_SEAL_M`), the route goes round.
-    sealed: Vec<(f64, f64)>,
-    /// The drop that last refused a leg from the books (`guarded_step`).
-    books_refusal: std::cell::Cell<Option<(f64, f64)>>,
     refused_cleared: bool,
-    /// Where the refused list was last cleared: it is cleared again only
-    /// once the body has moved [`REARM_DIST_M`] from there.
-    refused_cleared_at: Option<(f64, f64)>,
     /// What the sensor met that the map has not inked: walls for the planner.
     local: Vec<ExtraWall>,
     /// Where the body has been, a point every [`TRAIL_STEP_M`]: lanes the
@@ -1158,8 +1078,6 @@ pub struct Job {
     goal: Option<(f64, f64)>,
     /// When the last nose-stuck step back happened: one per [`BACK_EVERY`].
     last_back: Option<Instant>,
-    /// The aim of the last leg planned: what a step back re-orients to.
-    last_aim: Option<(f64, f64)>,
     /// Fast mode: when and where the body last stood for its pose.
     last_pose_stand: Option<(Instant, (f64, f64))>,
     /// The live map is frozen (`Body::frozen_map`), read each turn.
@@ -1172,8 +1090,6 @@ pub struct Job {
     last_fit: Option<f64>,
     /// The ground book's lanes (see `ExploreStatus::lanes`).
     lanes: Vec<(f64, f64)>,
-    /// Legs in a row that did not move the duck (see `STALLED_M`).
-    stalls_in_row: u32,
     /// A watch: the job commands nothing — somebody else drives (a human
     /// at `teleop.py`) — and books what the stands see, as the legs'
     /// stands do; the ground book is written when it ends. The guided
@@ -1181,19 +1097,8 @@ pub struct Job {
     /// guided drive round the stairwell, and we refresh the drops").
     watch: bool,
     watch_booked: bool,
-    /// How many drops the ground book brought (see `remember_local`),
-    /// and whether the "journeys book none" note was logged.
+    /// How many drops the ground book brought (see `remember_local`).
     ground_drops: usize,
-    frozen_drops_noted: bool,
-    /// Legs in a row the guard refused for a drop (see `DROP_REFUSALS_SEAL`),
-    /// and when and where the last one counted.
-    drop_refusals_in_row: u32,
-    last_drop_refusal: Option<(Instant, (f64, f64))>,
-    /// "A passage too narrow" refusals in a row without a leg between.
-    passage_refusals: u32,
-    /// The last `passage()` found the way beside a drop narrower than the
-    /// body, its drift and the pose's margin: the leg is not to be walked.
-    passage_narrow: bool,
     /// Steps of the stick (see `stick.rs`), for its stands.
     stick_steps: u32,
     /// The stick's last pose, and its steps in a row that did not move it.
@@ -1220,8 +1125,6 @@ pub struct Job {
     rim_sides: Vec<((f64, f64), u8)>,
     rim_looks: u32,
     last_rim_look: Option<Instant>,
-    /// Narrow-passage refusals in a row, and where the body stood.
-    narrow_refusals: (u32, (f64, f64)),
     /// A fall was seen and the pose has not been trusted for
     /// [`BOOKS_AFTER_FALL_S`] since (the instant it was trusted again, if
     /// it is): no drop goes on the books meanwhile (see `drops_bookable`).
@@ -1250,30 +1153,18 @@ pub struct Job {
     /// The journey's route as kept between plans (raw, pulled), when it
     /// was planned, and the books' size then (see `KEEP_ROUTE_S`).
     kept_route: Option<(Vec<(f64, f64)>, Vec<(f64, f64)>, Instant, usize)>,
-    /// A refusal since the route was planned: plan again.
-    refused_since_plan: bool,
     lost_since: Option<Instant>,
-    /// Consecutive "sealed in" recoveries without a leg in between.
+    /// "Sealed in" recoveries in this job (see `unseal`).
     stuck: u32,
     /// When and where the last one was counted: another counts only
     /// after [`STUCK_GAP_S`] or [`STUCK_MOVE_M`] of the body's own motion.
     last_unseal: Option<(Instant, (f64, f64))>,
-    /// Refusals since the last leg that walked.
-    since_leg: u32,
-    /// Turns in place since the last leg that walked.
-    spins_since_leg: u32,
     /// Times every local obstacle was forgotten to reach a sealed-off frontier.
     global_forgets: u32,
     /// Sliver phase bookkeeping: free cells when the phase began (or the
     /// last growth), and slivers served since without growth.
     sliver_free_cells: Option<usize>,
     sliver_served: u32,
-    /// The axis of the passage being walked, kept while drops stay near:
-    /// the planned path runs out before the passage does.
-    passage_axis: Option<f64>,
-    /// How far the axis has been turned away from the drops (radians,
-    /// signed), see [`PASSAGE_BIAS_STEP_RAD`].
-    passage_bias: f64,
     /// The pose seen last, to notice the map moving under the duck.
     last_pose: Option<((f64, f64), Instant)>,
     /// Stands still owed before the pose is trusted again.
@@ -1287,19 +1178,10 @@ pub struct Job {
     anchor: Option<(f64, f64)>,
     /// Stands in a row at which the sensor and the map disagreed.
     distrust: u32,
-    /// Stands in a row at which the route contradicted the sensor.
-    route_conflicts: u32,
-    /// The last conflict's stand and point, and how often it repeated.
-    route_repeat: Option<((f64, f64), (f64, f64), u32)>,
 }
 
 
 
-
-/// The pose after a leg, from the newest frame (else the one before it).
-fn pose_after(robot: &dyn Body, before: (f64, f64, f64)) -> (f64, f64, f64) {
-    robot.frame().map(|f| f.pose()).unwrap_or(before)
-}
 
 fn stand(robot: &mut dyn Body, stop_s: f64) -> Result<Value, String> {
     robot.step(&json!({"walk_s": 0, "stop_s": stop_s}))
@@ -1345,41 +1227,29 @@ use stick::*;
 use trusted::*;
 
 impl Job {
-    pub fn new(known: Vec<(f64, f64)>, max_s: f64, ask: bool, turn: f64, now: Instant) -> Self {
+    pub fn new(known: Vec<(f64, f64)>, max_s: f64, ask: bool, now: Instant) -> Self {
         Self {
             known,
             max_s,
             ask,
-            turn: if turn < 0.0 { -1.0 } else { 1.0 },
             started: now,
             visited: Vec::new(),
             refused: Vec::new(),
-            widened: Vec::new(),
-            sealed: Vec::new(),
-            books_refusal: std::cell::Cell::new(None),
             goal: None,
             refused_cleared: false,
-            refused_cleared_at: None,
             local: Vec::new(),
             target: None,
             last_back: None,
-            last_aim: None,
             last_pose_stand: None,
             frozen: false,
             policy: Policy::for_mode(Mode::Mapping),
             trusted: TrustedFloor::default(),
             last_fit: None,
             lanes: Vec::new(),
-            stalls_in_row: 0,
             watch: false,
             watch_booked: false,
             ground_drops: 0,
-            frozen_drops_noted: false,
-            drop_refusals_in_row: 0,
-            last_drop_refusal: None,
-            passage_refusals: 0,
             turns_refused_at_drop: 0,
-            passage_narrow: false,
             stick_steps: 0,
             stick_last: None,
             stick_stalls: 0,
@@ -1395,7 +1265,6 @@ impl Job {
             rim_sides: Vec::new(),
             rim_looks: 0,
             last_rim_look: None,
-            narrow_refusals: (0, (f64::NAN, f64::NAN)),
             fell: None,
             relocate_steps: 0,
             rim_offs: 0,
@@ -1406,31 +1275,24 @@ impl Job {
             drops_bookable: true,
             goal_confirmed: false,
             kept_route: None,
-            refused_since_plan: false,
             lost_since: None,
             stuck: 0,
             last_unseal: None,
-            since_leg: 0,
-            spins_since_leg: 0,
             global_forgets: 0,
-            passage_axis: None,
             trail: Vec::new(),
             sliver_free_cells: None,
             sliver_served: 0,
-            passage_bias: 0.0,
             last_pose: None,
             unsettled: 0,
             panoramas: Vec::new(),
             distrust: 0,
             anchored_at: None,
             anchor: None,
-            route_conflicts: 0,
-            route_repeat: None,
         }
     }
     /// A watch job (see the `watch` field).
     pub fn watch(max_s: f64, now: Instant) -> Self {
-        let mut job = Job::new(Vec::new(), max_s, false, 1.0, now);
+        let mut job = Job::new(Vec::new(), max_s, false, now);
         job.watch = true;
         job
     }
@@ -1711,31 +1573,15 @@ impl Job {
                 let lanes = self.lanes();
                 match path_to(&grid, x, y, anchor, &walls, inflate_m(), &lanes) {
                     Some(path) => {
-                        let f = Frontier {
-                            cells: 0,
-                            centroid: anchor,
-                            target: anchor,
-                            stand: anchor,
-                            distance_m: path.len() as f64 * grid.cell_m,
-                            cost: 0,
-                            score: 0.0,
-                            path,
-                        };
-                        if explore_nav() {
-                            let deadline = robot.now() + travel_budget(f.distance_m);
-                            match self.travel(handle, robot, anchor, deadline, false) {
-                                (State::Stopped, why) => return (State::Stopped, why),
-                                (State::Done, _) => {}
-                                (_, why) => {
-                                    tracing::info!(why, "map explore: the way back to the old place failed; carrying on");
-                                    self.anchor = None;
-                                    self.anchored_at = Some(robot.now());
-                                }
+                        let deadline = robot.now() + travel_budget(path.len() as f64 * grid.cell_m);
+                        match self.travel(handle, robot, anchor, deadline, false) {
+                            (State::Stopped, why) => return (State::Stopped, why),
+                            (State::Done, _) => {}
+                            (_, why) => {
+                                tracing::info!(why, "map explore: the way back to the old place failed; carrying on");
+                                self.anchor = None;
+                                self.anchored_at = Some(robot.now());
                             }
-                            continue;
-                        }
-                        if let Some(verdict) = self.walk_leg(handle, robot, &grid, pose, &f) {
-                            return verdict;
                         }
                         continue;
                     }
@@ -1811,7 +1657,6 @@ impl Job {
                     // Frontiers refused earlier may be reachable from here.
                     self.refused.clear();
                     self.refused_cleared = true;
-                    self.refused_cleared_at = Some((x, y));
                     continue;
                 }
                 // Nothing reachable *from here* is not the same as nothing
@@ -1941,415 +1786,11 @@ impl Job {
                     None => {}
                 }
             }
-            // The way to the frontier: the navigation's (see `navigate.rs`),
-            // the explorer's own guarded legs with `QK_EXPLORE_NAV=0`.
-            if explore_nav() {
-                if let Some(verdict) = self.travel_to_frontier(handle, robot, f.stand, f.distance_m) {
-                    return verdict;
-                }
-                continue;
-            }
-            if let Some(verdict) = self.walk_leg(handle, robot, &grid, pose, &f) {
+            // The way to the frontier: the navigation's (see `navigate.rs`).
+            if let Some(verdict) = self.travel_to_frontier(handle, robot, f.stand, f.distance_m) {
                 return verdict;
             }
-            continue;
         }
-    }
-    fn walk_leg(
-        &mut self,
-        handle: &ExploreHandle,
-        robot: &mut dyn Body,
-        grid: &Grid,
-        pose: (f64, f64, f64),
-        f: &Frontier,
-    ) -> Option<(State, String)> {
-        let iteration_began = robot.now();
-        let (x, y, yaw) = pose;
-        let to_target = dist2((x, y), f.stand);
-        if switch("QK_RIM_OFF").unwrap_or(true) && self.off_the_rim(robot, pose) {
-            let _ = stand(robot, self.turn_stand_s());
-            return None;
-        }
-        // The middle level: the route against the sensor, before a leg.
-        if self.route_contradicted(&*robot, pose, &f.path) {
-            let _ = stand(robot, self.turn_stand_s());
-            return None;
-        }
-            // 2. Go straight for the standing point when the straight line
-            // to it is clear for the body; follow the grid path — which
-            // zigzags by nature — only when something is in the way.
-            // Steering is for getting around obstacles, not for tracing
-            // cells.
-            let straight = (f.stand.1 - y).atan2(f.stand.0 - x);
-            let look = to_target.min(straight_look_m());
-            // How far along the path to aim when the straight line is not
-            // clear: a stride.
-            let ahead_m = lookahead_m();
-            // Beside a drop, booked or seen, the route itself: the aim a
-            // step along it, neither the string pulled nor an old aim
-            // held. The grid path keeps the planner's margin from the
-            // books; a straight line to a point two metres on did not —
-            // the aim of the fall of 2026-09-23 was held 2 m ahead from
-            // before the stairwell to its rim, the green line bending
-            // round it unwalked (the user's eye).
-            let near_drop = self.drop_within_any(&*robot, STRING_NEAR_DROP_M).is_some();
-            let aim = if !near_drop
-                && grid.lane_clear(x, y, straight, look, lane_half_m())
-                && self.clear_of_local(x, y, straight, look, lane_half_m())
-            {
-                f.stand
-            } else if smooth_path() && !near_drop {
-                self.farthest_clear(grid, (x, y), &f.path)
-                    .or_else(|| waypoint(&f.path, ahead_m, grid.cell_m))
-                    .unwrap_or(f.stand)
-            } else {
-                waypoint(&f.path, ahead_m, grid.cell_m).unwrap_or(f.stand)
-            };
-            // Beside a drop, the middle of the way: the aim slid across
-            // the heading to where the wall (or the thing) on one side and
-            // the rim on the other are as far. The planner keeps the rim
-            // wider than a wall (the drop's radius and the widening), so
-            // its route between them runs along the wall: at house2's
-            // living-room door, between the jamb and the stairwell's west
-            // rim (0.54 m), the body walked 7 cm off the jamb, the sensor
-            // saw it in the lane, and "no room" 75 times on the spot
-            // (2026-09-24).
-            let aim = if near_drop && switch("QK_CENTRE").unwrap_or(true) { self.centred(grid, (x, y), aim) } else { aim };
-            // Never an aim behind the beak: the waypoint counts cells from
-            // the route's start, and a body beside or past that start got
-            // an aim behind it, and walked round it (the user's eye,
-            // 2026-09-16). The first route point ahead, 0.2 m out, instead.
-            let aim = if wrap((aim.1 - y).atan2(aim.0 - x) - yaw).abs() > std::f64::consts::FRAC_PI_2 {
-                f.path
-                    .iter()
-                    .copied()
-                    .find(|p| dist2(*p, (x, y)) >= 0.2 && wrap((p.1 - y).atan2(p.0 - x) - yaw).abs() <= std::f64::consts::FRAC_PI_2)
-                    .unwrap_or(aim)
-            } else {
-                aim
-            };
-            let err = wrap((aim.1 - y).atan2(aim.0 - x) - yaw);
-            // Stuck beside a drop: no turn in place this near the rim, the
-            // kick refused, no way back — and the duck stood there, while
-            // the standing gait crept it toward the hole, until it fell in
-            // (casa_arredata, 2026-09-23: 49 refusals in three minutes
-            // 0.12 m from the stairwell, 6 cm crept, a fall standing
-            // still). Never wait at a rim: the way on ahead, guarded, out
-            // of its reach to turn there; else the aim is given up.
-            if self.turns_refused_at_drop >= TURNS_REFUSED_ESCAPE {
-                self.turns_refused_at_drop = 0;
-                let leg = json!({"vx": 0.3, "vyaw": 0.0, "walk_s": 1.5, "stop_s": self.turn_stand_s(), "gap": true, "steer": false,
-                                 "passage": false, "cliff_margin_m": passage_cliff_margin_m()});
-                let walked = self.guarded_step(robot, pose, &leg);
-                tracing::info!(at = ?(x, y, yaw), walked = walked.is_ok(), why = walked.as_ref().err().map(String::as_str).unwrap_or(""),
-                               "map explore: stuck beside a drop, no turn and no way back; the way on ahead, to turn out of the rim's reach");
-                if walked.is_err() {
-                    if let Some((t, _)) = self.target.take() {
-                        self.refused.push((t, BLOCK_REFUSED_M));
-                    }
-                }
-                return None;
-            }
-            // Which aim, and how far off the nose it is. The journey that
-            // goes wrong without any detour walks three to five times its
-            // own route in loops (2026-09-12: 16.9 m for a 5.2 m route, the
-            // plan sane throughout), and an aim that flips between the
-            // stand and a waypoint is the only thing that can draw a loop.
-            // `by` says which branch chose it, so a flip shows as that word
-            // changing back and forth while the duck goes nowhere.
-            handle.update(|s| s.aim = Some(aim));
-            self.last_aim = Some(aim);
-            // How long every leg below stands afterwards: three seconds
-            // while mapping, none while hurrying to a goal over floor
-            // already mapped (bar every fifth).
-            let stop_s = self.stop_s();
-
-            // 2b. A passage beside a drop: onto its axis, then straight.
-            let mut passage_leg: Option<Value> = None;
-            let passage_read = self.passage(&*robot, grid, pose, &f.path, Some(f.stand));
-            if let Some((axis0, offset, drop_side)) = passage_read {
-                // Try D: with the wall's line exact, the heading held is
-                // the line's direction bent toward the line itself — a
-                // pursuit point PASSAGE_PURSUIT_M ahead on it — so the
-                // yaw carries the body onto the line. Without it the
-                // 15° the nearest-ray axis was skewed by did that by
-                // accident on the paper twin, and the exact axis alone
-                // walked 8 cm from the rim and was refused (kmouth-D
-                // 3/30 against 24/30, 2026-09-20).
-                let pursuit = if self.policy.wall_fit { (offset / PASSAGE_PURSUIT_M).atan().clamp(-PASSAGE_PURSUIT_MAX_RAD, PASSAGE_PURSUIT_MAX_RAD) } else { 0.0 };
-                let axis = wrap(axis0 + self.passage_bias + pursuit);
-                let e = wrap(axis - yaw);
-                if e.abs() > PASSAGE_ALIGN_RAD && self.spins_since_leg < SPINS_MAX {
-                    self.spins_since_leg += 1;
-                    tracing::info!(at = ?(x, y, yaw), axis, offset, "map explore: passage beside a drop: aligning to its axis");
-                    let ok = self.align(robot, axis);
-                    tracing::info!(ok, "map explore: passage beside a drop: alignment");
-                    let _ = stand(robot, self.turn_stand_s());
-                    return None;
-                }
-                // Centring steers gently; if even that bends the path onto a
-                // drop, hold the axis and let the next stand re-measure.
-                let mut vyaw = (0.6 * e + PASSAGE_GAIN * offset).clamp(-0.15, 0.15);
-                // The held leg (the user's, 2026-09-18): aligned to the
-                // wall, one long straight leg with the heading held by
-                // taps — the heading it means to have is the axis, bent
-                // a little toward the line it should be on — instead of
-                // short steered legs. `QK_PASSAGE_HELD=0` for the latter.
-                let (walk_s, held) = if self.policy.held_leg { (PASSAGE_HELD_LEG_S.min(drop_leg_s()), true) } else { (PASSAGE_LEG_S, false) };
-                let bias = if held { (e + (PASSAGE_GAIN * offset).clamp(-0.3, 0.3)).clamp(-0.4, 0.4) } else { 0.0 };
-                if held {
-                    vyaw = 0.0;
-                }
-                let mut leg = json!({"vx": 0.3, "vyaw": vyaw, "walk_s": walk_s, "stop_s": stop_s, "gap": true, "steer": false, "passage": false, "cliff_margin_m": passage_cliff_margin_m(), "hold": held, "hold_bias": bias});
-                if self.drop_on_path(pose, &leg).is_some() {
-                    vyaw = if held { 0.0 } else { (0.6 * e).clamp(-0.1, 0.1) };
-                    leg = json!({"vx": 0.3, "vyaw": vyaw, "walk_s": walk_s, "stop_s": stop_s, "gap": true, "steer": false, "passage": false, "cliff_margin_m": passage_cliff_margin_m(), "hold": held, "hold_bias": if held { e.clamp(-0.2, 0.2) } else { 0.0 }});
-                }
-                if self.drop_on_path(pose, &leg).is_some() && drop_side != 0.0 {
-                    // Still onto a drop: turn the axis away from it and
-                    // plan again from the top (a spin if the turn is big).
-                    let bias = (self.passage_bias - drop_side * PASSAGE_BIAS_STEP_RAD)
-                        .clamp(-PASSAGE_BIAS_MAX_RAD, PASSAGE_BIAS_MAX_RAD);
-                    if bias != self.passage_bias {
-                        self.passage_bias = bias;
-                        tracing::info!(at = ?(x, y, yaw), bias, "map explore: passage beside a drop: axis turned away from the drop");
-                        return None;
-                    }
-                }
-                tracing::info!(at = ?(x, y, yaw), axis, offset, vyaw, "map explore: passage beside a drop: straight leg");
-                passage_leg = Some(leg);
-            }
-            // 2b'. Beside a drop and too narrow for the pose's margin: not
-            // walked. The drops beside it are widened for the planner (the
-            // guard's refusal does the same) and the route is planned again;
-            // with no way round the journey fails rather than brushing the
-            // rim (the twin, 2026-09-23: three falls in that passage).
-            if self.passage_narrow {
-                let near: Vec<(f64, f64)> = self
-                    .local
-                    .iter()
-                    .filter(|(p, r)| *r >= DROP_RADIUS_M && dist2(*p, (x, y)) < 0.6)
-                    .map(|(p, _)| *p)
-                    .collect();
-                self.widened.extend(near.iter().copied());
-                let (n, at) = self.narrow_refusals;
-                let n = if dist2(at, (x, y)) < 0.10 { n + 1 } else { 1 };
-                self.narrow_refusals = (n, (x, y));
-                tracing::info!(at = ?(x, y, yaw), widened = near.len(), in_a_row = n, "map explore: planning around the narrow passage");
-                if n >= NARROW_REFUSALS_MAX {
-                    self.narrow_refusals = (0, (f64::NAN, f64::NAN));
-                    if let Some((t, _)) = self.target.take() {
-                        // Exploring: this frontier is not reachable safely today.
-                        self.refused.push((t, BLOCK_REFUSED_M));
-                        tracing::info!("map explore: the narrow passage is no way; the frontier is dropped");
-                    } else {
-                        return Some((State::Failed, "no safe way past the drop: the passage beside it is narrower than the body and the pose's margin".into()));
-                    }
-                }
-                let _ = stand(robot, self.turn_stand_s());
-                return None;
-            }
-            // 2c. The aim well off the nose: turn in place to it first,
-            // closed on the yaw, then plan again — the human driver aligns
-            // before entering, then goes straight (house1, 2026-09-15).
-            if passage_leg.is_none() && spin_rad() > 0.0 && err.abs() > spin_rad() && self.spins_since_leg < SPINS_MAX {
-                self.spins_since_leg += 1;
-                let heading = (aim.1 - y).atan2(aim.0 - x);
-                let ok = self.align(robot, heading);
-                tracing::info!(at = ?(x, y, yaw), err_deg = format!("{:.0}", err.to_degrees()), ok, "map explore: aim off the nose, turning in place to it");
-                let _ = stand(robot, self.turn_stand_s());
-                return None;
-            }
-            let leg = passage_leg.or_else(|| self.leg(robot, grid, pose, aim, err));
-            if let Some(sign) = leg.as_ref().and_then(|l| l.get("spin")).and_then(Value::as_f64)
-                && self.spins_since_leg < SPINS_MAX
-            {
-                // No room ahead for a leg, the way on is elsewhere: what is
-                // in the way goes on the books, then turn in place toward
-                // it — an arc needs the room a wall under the beak denies.
-                self.spins_since_leg += 1;
-                let want = leg
-                    .as_ref()
-                    .and_then(|l| l.get("want"))
-                    .and_then(Value::as_f64)
-                    .unwrap_or(NO_ROOM_TURN_RAD);
-                self.note_obstacle_ahead(robot, grid, pose);
-                // By the route, not by a fixed quarter turn toward the
-                // job's hand: the obstacle is ahead, the route says which
-                // way round and how far (the user's question, 2026-09-15).
-                // The quarter turn stays for an aim already on the nose —
-                // the route itself runs into what was just booked, and
-                // the next plan will say where.
-                if spin_rad() > 0.0 && err.abs() > deadband_rad() {
-                    let ok = self.align(robot, (aim.1 - y).atan2(aim.0 - x));
-                    tracing::info!(at = ?(x, y, yaw), err_deg = format!("{:.0}", err.to_degrees()), ok, "map explore: no room ahead, turning in place to the aim");
-                    let _ = stand(robot, self.turn_stand_s());
-                } else if let Some(h) = self.route_heading_anew(grid, (x, y), f.stand)
-                    && wrap(h - yaw).abs() > deadband_rad()
-                {
-                    // The aim on the nose runs into what was just booked:
-                    // the route planned again with it says which way and
-                    // how far — no fixed quarter or eighth turn (the
-                    // user's, 2026-09-23: "the angle from the Dijkstra
-                    // route, that is all").
-                    self.kept_route = None;
-                    let ok = self.align(robot, h);
-                    tracing::info!(at = ?(x, y, yaw), err_deg = format!("{:.0}", wrap(h - yaw).to_degrees()), ok, "map explore: no room ahead, turning in place to the route planned anew");
-                    let _ = stand(robot, self.turn_stand_s());
-                } else {
-                    tracing::info!(at = ?(x, y, yaw), sign, want, "map explore: no room ahead, turning in place");
-                    self.spin(robot, sign, want);
-                }
-                return None;
-            }
-            let leg = leg.filter(|l| l.get("spin").is_none());
-            let Some(leg) = leg else {
-                // No room for any leg: whatever is there is an obstacle the
-                // map does not know — record it and replan, as a refusal.
-                handle.update(|s| s.refusals += 1);
-                // What leaves no room: a drop's edge ahead is a drop's
-                // refusal — booked and widened for the planner, so the
-                // route stops asking for that lane (paper twin seed 4,
-                // 2026-09-17: "no room" 43 times on the same spot, the
-                // route through the passage the sensor kept refusing).
-                // ... and only when the drop is what bounds the room: a
-                // wall's end 0.13 m ahead with a rim 0.56 m beyond was
-                // blamed on the rim six times on the spot, widened,
-                // sealed and sent round the house (rimD3, 2026-09-20).
-                let wall_m = {
-                    let c = grid.clearance(x, y, yaw, 3.0);
-                    if c.by == Blocked::Wall { c.free_m } else { f64::INFINITY }
-                };
-                let thing_m = robot
-                    .cliff()
-                    .and_then(|c| c.obstacle_in_lane(robot.now(), 0.0, gap_lane_half_m()))
-                    .map_or(f64::INFINITY, |o| o.range_m);
-                let drop_ahead = robot
-                    .cliff()
-                    .and_then(|c| c.drop_in_lane(robot.now(), 0.0, lane_half_m()))
-                    .filter(|d| d.edge_min_m < 0.6 && d.edge_min_m - 0.12 <= wall_m.min(thing_m));
-                let e = match drop_ahead {
-                    Some(d) => format!(
-                        "a drop — stairs or a hole — begins {:.2}–{:.2} m ahead, {:.0}° {}: no room for a leg",
-                        d.edge_min_m, d.range_m, d.bearing.to_degrees().abs(), if d.bearing >= 0.0 { "left" } else { "right" }
-                    ),
-                    None if wall_m <= thing_m => format!("a wall on the map {wall_m:.2} m ahead: no room for a leg"),
-                    None => format!("the depth sensor sees something {thing_m:.2} m ahead (no room for a leg)"),
-                };
-                let room = self.room_ahead(robot, grid, pose);
-                tracing::info!(at = ?(x, y, yaw), target = ?f.target, room_m = room.0, gap = room.1, error = %e, "map explore: no room");
-                if let Some(verdict) = self.refusal(robot, grid, pose, &e) {
-                    return Some(verdict);
-                }
-                robot.sleep(AFTER_REFUSAL);
-                return None;
-            };
-            tracing::debug!(at = ?(x, y, yaw), aim = ?aim, err, target = ?f.target, cells = f.cells, path = ?&f.path[..f.path.len().min(8)], leg = %leg, "map explore: leg");
-            // A hurrying leg (no stand after it) walks on the frames the
-            // guard has, and the guard judges frames only while the body
-            // stands: a leg toward floor it has not looked at within its
-            // memory is a leg it cannot refuse. The map cannot show a
-            // hole and the books can be empty — full8 (2026-09-15) fell
-            // into the stairwell on two such legs in a row, the pose 11°
-            // off. Wait for a frame along the nose; none, then stand
-            // properly and plan again.
-            if leg.get("stop_s").and_then(Value::as_f64).unwrap_or(LEG_STOP_S) < 1.0
-                && leg.get("vx").and_then(Value::as_f64).unwrap_or(0.0) > 0.0
-                && !self.looked_ahead(robot)
-            {
-                tracing::info!(at = ?(x, y, yaw), "map explore: not looked ahead for this hurrying leg; standing first");
-                let _ = stand(robot, self.turn_stand_s());
-                return None;
-            }
-            let leg_began = robot.now();
-            let plan_s = (leg_began - iteration_began).as_secs_f64();
-            let stepped = self.guarded_step(robot, pose, &leg);
-            tracing::info!(
-                plan_s = format!("{plan_s:.1}"),
-                step_s = format!("{:.1}", (robot.now() - leg_began).as_secs_f64()),
-                walk_s = leg.get("walk_s").and_then(serde_json::Value::as_f64).unwrap_or(0.0),
-                stop_s = leg.get("stop_s").and_then(serde_json::Value::as_f64).unwrap_or(0.0),
-                ok = stepped.is_ok(),
-                phase = leg.get("phase").and_then(serde_json::Value::as_str).unwrap_or("-"),
-                "map explore: leg timing"
-            );
-            match stepped {
-                Ok(_) => {
-                    self.passage_bias *= 0.5;
-                    self.measure_fit(robot, handle, grid, pose_after(robot, pose));
-                    self.record_drops(robot);
-                    self.trust_seen(robot);
-                    let cells = self.trusted.cells();
-                    handle.update(|s| s.trusted = cells);
-                    // A leg that walked is progress: frontiers refused from
-                    // an older spot may be reachable from the next one, so
-                    // the one-shot clearing of the refused list is re-armed.
-                    // Left armed once for good, a run that refused every
-                    // frontier once ended "stuck" in the passage beside the
-                    // stairwell with eight of them reachable (paper twin,
-                    // 16 of 30 seeds).
-                    // (`QK_REFUSED_REARM=0` keeps the clearing one-shot
-                    // per job, for measuring: on MuJoCo the room stays grew
-                    // from 5–11 to 15–32 minutes with the re-arm on the books.)
-                    match refused_rearm() {
-                        0 => {}
-                        1 => self.refused_cleared = false,
-                        _ => {
-                            if self.refused_cleared_at.is_none_or(|p| dist2(p, (x, y)) >= REARM_DIST_M) {
-                                self.refused_cleared = false;
-                            }
-                        }
-                    }
-                    // A leg that did not move the duck is a bump, not a leg.
-                    let after = robot.frame().map(|f| f.pose());
-                    let stalled = after.is_some_and(|(ax, ay, ayaw)| {
-                        dist2((ax, ay), (x, y)) < STALLED_M && wrap(ayaw - yaw).abs() < STALLED_RAD
-                    });
-                    if stalled {
-                        // Once is the gait, not a bump: the first leg after
-                        // a turn in place or a stand walks a few centimetres
-                        // in its 1.5 s (tour1, 2026-09-16: four "stalls" in
-                        // the doorways, each right after a turn to the aim,
-                        // each booking a phantom at the nose that bent the
-                        // route in the last centimetres and left a mark on
-                        // the books). A bump is a stall that repeats.
-                        self.stalls_in_row += 1;
-                        if self.stalls_in_row < 2 {
-                            tracing::info!(at = ?(x, y, yaw), "map explore: a leg that barely moved: the gait warming up, or a bump — once more to tell");
-                            return None;
-                        }
-                        handle.update(|s| s.refusals += 1);
-                        let e = "the leg did not move the duck: nose or flank against something the sensor cannot see";
-                        tracing::info!(at = ?(x, y, yaw), leg = %leg, "map explore: stalled");
-                        if let Some(verdict) = self.refusal(robot, grid, pose, e) {
-                            return Some(verdict);
-                        }
-                        return None;
-                    }
-                    self.stuck = 0;
-                    self.since_leg = 0;
-                    self.spins_since_leg = 0;
-                    self.stalls_in_row = 0;
-                    self.drop_refusals_in_row = 0;
-                    self.passage_refusals = 0;
-                    self.turns_refused_at_drop = 0;
-                    if let Some((ax, ay, _)) = after {
-                        self.walked((x, y), (ax, ay));
-                    }
-                    handle.update(|s| s.legs += 1);
-                }
-                // 3. The sensor answers for what the map does not know.
-                Err(e) => {
-                    handle.update(|s| s.refusals += 1);
-                    self.refused_since_plan = true;
-                    tracing::info!(at = ?(x, y, yaw), target = ?f.target, error = %e, "map explore: step refused");
-                    if let Some(verdict) = self.refusal(robot, grid, pose, &e) {
-                        return Some(verdict);
-                    }
-                    robot.sleep(AFTER_REFUSAL);
-                }
-            }
-        None
     }
     /// Arrived: face it if it is off to the side (the sweep covers what is
     /// roughly ahead), a full stand maps it, then it is never chosen again.
@@ -2383,14 +1824,6 @@ impl Job {
             self.known.push((x, y));
         }
     }
-    /// The farthest point on `path` the body can reach in a straight line
-    /// from `from`, within the straight-line horizon.
-    ///
-    /// Searched from the far end back, so the first clear one is the
-    /// farthest, and both walls and the drops on the books have to be
-    /// clear of the lane the body would sweep. `None` when not even the
-    /// first step is clear — then the caller falls back to the old fixed
-    /// waypoint, which is what the guards will refuse or shorten anyway.
     /// One step of the search for the pose after a fall: a stand, so the
     /// head sweeps and the mapper has its still window; then a turn in
     /// place of an eighth, so the next stand sees elsewhere; after a
@@ -2420,260 +1853,6 @@ impl Job {
         }
     }
 
-    /// How far the floor goes from `p` along `heading`, up to `max_m`, and
-    /// what ends it: a wall on the map, a booked drop's radius, unknown
-    /// map, or nothing within reach.
-    fn side_free(&self, grid: &Grid, p: (f64, f64), heading: f64, max_m: f64) -> (f64, Side) {
-        let (c, s) = (heading.cos(), heading.sin());
-        let mut d = 0.0;
-        while d < max_m {
-            let q = (p.0 + d * c, p.1 + d * s);
-            if self.local.iter().any(|(b, r)| *r >= DROP_RADIUS_M && dist2(*b, q) < *r) {
-                return (d, Side::Drop);
-            }
-            match grid.at(q.0, q.1) {
-                Some(Cell::Free) => {}
-                Some(Cell::Wall) => return (d, Side::Wall),
-                _ => return (d, Side::Unknown),
-            }
-            d += 0.025;
-        }
-        (max_m, Side::Open)
-    }
-
-    /// `aim` slid across the way from `from` to it, into the middle of a
-    /// passage beside a drop (see the use in `walk_leg`): only where a
-    /// booked drop ends one side and a wall on the map the other, less
-    /// than [`CENTRE_WIDTH_M`] apart — half the difference, at most
-    /// [`CENTRE_MAX_M`]. An unknown side is no side: sliding toward it
-    /// cost the paper twin two journeys in thirty (2026-09-24).
-    fn centred(&self, grid: &Grid, from: (f64, f64), aim: (f64, f64)) -> (f64, f64) {
-        let h = (aim.1 - from.1).atan2(aim.0 - from.0);
-        let (l, lk) = self.side_free(grid, aim, h + std::f64::consts::FRAC_PI_2, CENTRE_WIDTH_M);
-        let (r, rk) = self.side_free(grid, aim, h - std::f64::consts::FRAC_PI_2, CENTRE_WIDTH_M);
-        let beside_drop = matches!((lk, rk), (Side::Drop, Side::Wall) | (Side::Wall, Side::Drop));
-        if !beside_drop || l + r >= CENTRE_WIDTH_M {
-            return aim;
-        }
-        let shift = ((l - r) / 2.0).clamp(-CENTRE_MAX_M, CENTRE_MAX_M);
-        if shift.abs() < 0.03 {
-            return aim;
-        }
-        let a = (aim.0 - shift * h.sin(), aim.1 + shift * h.cos());
-        tracing::info!(left_m = format!("{l:.2}"), right_m = format!("{r:.2}"), shift_m = format!("{shift:.2}"), "map explore: beside a drop, the aim to the middle of the way");
-        a
-    }
-
-    /// The heading of a route to `to` planned now, with the books as they
-    /// stand: toward its point a step along. `None` when there is none.
-    fn route_heading_anew(&self, grid: &Grid, from: (f64, f64), to: (f64, f64)) -> Option<f64> {
-        let path = path_to(grid, from.0, from.1, to, &self.planner_walls(), inflate_m(), &self.lanes())?;
-        let p = waypoint(&path, HEADING_STEP_M, grid.cell_m)?;
-        (dist2(p, from) >= grid.cell_m).then(|| (p.1 - from.1).atan2(p.0 - from.0))
-    }
-    fn farthest_clear(
-        &self,
-        grid: &Grid,
-        from: (f64, f64),
-        path: &[(f64, f64)],
-    ) -> Option<(f64, f64)> {
-        let horizon = straight_look_m().min(string_pull_m());
-        for p in path.iter().rev() {
-            let d = dist2(from, *p);
-            if d > horizon || d < grid.cell_m {
-                continue;
-            }
-            let heading = (p.1 - from.1).atan2(p.0 - from.0);
-            if grid.lane_clear(from.0, from.1, heading, d, lane_half_m())
-                && self.clear_of_local(from.0, from.1, heading, d, lane_half_m())
-            {
-                return Some(*p);
-            }
-        }
-        None
-    }
-    /// One leg toward `aim`: straight with a gentle correction, a curve,
-    /// or a tight arc by heading error; sized to the floor the map and the
-    /// sensor say is ahead. `None` when there is no room for any leg.
-    fn leg(
-        &self,
-        robot: &dyn Body,
-        grid: &Grid,
-        pose: (f64, f64, f64),
-        aim: (f64, f64),
-        err: f64,
-    ) -> Option<Value> {
-        let stop_s = self.stop_s();
-        let (x, y, yaw) = pose;
-        let straight = err.abs() <= straight_rad();
-        let leg_cap = 3.0;
-        let (vyaw, wanted_s, arc) = if straight {
-            let walk_s = (dist2((x, y), aim) / GAIT_M_PER_S).clamp(1.0, leg_cap);
-            let correction = if err.abs() < deadband_rad() {
-                0.0
-            } else {
-                (0.6 * err).clamp(-0.2, 0.2)
-            };
-            (correction, walk_s, false)
-        } else if err.abs() <= curve_rad() {
-            // Turn by the error you have, not by a fixed amount. A flat
-            // 0.5 rad/s for 1.5 s is 43°, which overshoots a 20° error and
-            // undershoots a 55° one; either way the next leg corrects back
-            // and the duck weaves across its own aim line. Measured in the
-            // empty flat (2026-09-13): a leg begins 33° off its aim at the
-            // median, 40 % of them more than 45° off, and the error changes
-            // sign on a third of legs — with nothing in the house to blame,
-            // the duck walks 2.13 m for every metre it makes good.
-            // `QK_PROP_TURN=0` restores the flat rate.
-            let walk_s = 1.5;
-            let vyaw = if prop_turn() {
-                (err / walk_s).clamp(-0.7, 0.7)
-            } else {
-                0.5_f64.copysign(err)
-            };
-            (vyaw, walk_s, false)
-        } else {
-            (
-                0.7_f64.copysign(err),
-                (err.abs() / 0.5).clamp(1.5, 3.0),
-                true,
-            )
-        };
-        // Width first: the corridor ahead must take the body. Mapped walls
-        // on both sides, measured at the body and a little way along the
-        // heading; one wall, or unknown floor, is not a corridor. A passage
-        // narrower than gap_max_m() is a doorway, and a doorway is judged
-        // with the body's own lane and margins — with the corridor's, the
-        // posts of a 0.42 m door were always "in the way".
-        let mut width_m = f64::INFINITY;
-        for along in [0.0, WIDTH_AHEAD_M] {
-            let (px, py) = (x + along * yaw.cos(), y + along * yaw.sin());
-            let l = grid.clearance(px, py, yaw + std::f64::consts::FRAC_PI_2, 1.0);
-            let r = grid.clearance(px, py, yaw - std::f64::consts::FRAC_PI_2, 1.0);
-            if l.by == Blocked::Wall && r.by == Blocked::Wall {
-                width_m = width_m.min(l.free_m + r.free_m);
-            }
-        }
-        // The sensor's own word on a doorway: something on both sides
-        // within gap_max_m() of each other, ahead and near — the map may not
-        // have inked a low cabinet the sensor sees as a doorpost.
-        let mut sensor_gap: Option<(f64, f64)> = None;
-        if let Some(cliff) = robot.cliff() {
-            let (mut left, mut right) = (f64::INFINITY, f64::INFINITY);
-            for o in cliff.recent.iter().filter(|f| !f.moving).flat_map(|f| f.obstacles.iter()) {
-                if o.range_m > GAP_LOOK_M || o.bearing.abs() > 1.05 {
-                    continue;
-                }
-                let lateral = o.range_m * o.bearing.sin();
-                if lateral > 0.0 { left = left.min(lateral) } else { right = right.min(-lateral) }
-            }
-            if left + right < gap_max_m() {
-                sensor_gap = Some((left, right));
-            }
-        }
-        let gap = width_m < gap_max_m() || sensor_gap.is_some();
-        let (lane, leg_reserve, arc_reserve) = if gap {
-            (gap_lane_half_m(), gap_leg_reserve_m(), gap_leg_reserve_m())
-        } else {
-            (lane_half_m(), leg_reserve_m(), arc_reserve_m())
-        };
-        // Room ahead: the nearer of a mapped wall and what the sensor sees.
-        let mut room_m = f64::INFINITY;
-        let ahead = grid.clearance(x, y, yaw, 3.0);
-        if ahead.by == Blocked::Wall {
-            room_m = room_m.min(ahead.free_m);
-        }
-        if let Some(cliff) = robot.cliff()
-            && let Some(o) = cliff.obstacle_in_lane(robot.now(), 0.0, lane)
-            && o.range_m < room_m
-        {
-            room_m = o.range_m;
-        }
-        // A tight arc advances almost as much as a straight leg: 0.110
-        // m/s against 0.121 at vyaw 0.7, measured on the human drive
-        // (2026-09-07) — not the quarter the model had, which granted arcs
-        // with 0.33 m of room that carried the body into the wall (the
-        // user's observation). With the room an arc really needs, the
-        // turn in place (kick, then spin) is what is left near a wall.
-        let arc_advance = GAIT_M_PER_S / 4.0;
-        let arc_room_s = ((room_m - arc_reserve) / arc_advance).max(0.0);
-        let straight_room_s = ((room_m - leg_reserve) / GAIT_M_PER_S).max(0.0);
-        if arc {
-            if arc_room_s < 1.0 {
-                return Some(json!({"spin": err.signum(), "want": err.abs()}));
-            }
-            let walk_s = wanted_s.min(arc_room_s);
-            return Some(json!({"vx": 0.3, "vyaw": vyaw, "walk_s": walk_s, "stop_s": stop_s, "centre": true, "phase": "turn"}));
-        }
-        // In a doorway: steer onto its axis, take short steps, and let
-        // the mapping step know (`gap`) so its margins shrink too.
-        let mut vyaw = vyaw;
-        if gap {
-            let (l, r) = match sensor_gap {
-                Some(lr) => lr,
-                None => {
-                    let (px, py) = (x + WIDTH_AHEAD_M * yaw.cos(), y + WIDTH_AHEAD_M * yaw.sin());
-                    (
-                        grid.clearance(px, py, yaw + std::f64::consts::FRAC_PI_2, 1.0).free_m,
-                        grid.clearance(px, py, yaw - std::f64::consts::FRAC_PI_2, 1.0).free_m,
-                    )
-                }
-            };
-            // More room on the left: the axis is to the left, steer left.
-            vyaw = (vyaw + (GAP_GAIN * (l - r) / 2.0).clamp(-0.3, 0.3)).clamp(-0.5, 0.5);
-        }
-        // The way to turn when there is no room to go on: the configured
-        // hand.
-        let no_room_turn = |this: &Self| this.turn_toward(grid, pose);
-        if width_m < CORRIDOR_MIN_M {
-            // Too narrow to go on: turn — an arc with room, in place without.
-            let away = no_room_turn(self);
-            if arc_room_s < 1.0 {
-                return Some(json!({"spin": away.signum(), "want": NO_ROOM_TURN_RAD}));
-            }
-            return Some(json!({"vx": 0.3, "vyaw": away, "walk_s": 1.5, "stop_s": stop_s}));
-        }
-        if straight_room_s >= 1.0 {
-            let walk_s = wanted_s.min(straight_room_s).min(if gap { gap_leg_s() } else { 3.0 });
-            return Some(json!({"vx": 0.3, "vyaw": vyaw, "walk_s": walk_s, "stop_s": stop_s, "centre": !gap, "gap": gap, "phase": "turn"}));
-        }
-        // On the trail: the body has already been where this leg goes,
-        // at the body's width, so the leg is judged with the doorway's
-        // reserve, not the corridor's — a duck that walked into a room
-        // walks out of it the same way. The cliff guard and the sensor's
-        // obstacle in the narrow lane still have their say (a chair moved
-        // since is a chair). Without it, a bedroom on MuJoCo cost a
-        // quarter of an hour of left-right spins at its door (run 71):
-        // straight legs want 0.47 m of room, furniture leaves less.
-        if trail_leg_enabled() && self.on_trail(pose, TRAIL_LEG_M) {
-            let trail_room_s = ((room_m - gap_leg_reserve_m()) / GAIT_M_PER_S).max(0.0);
-            if trail_room_s >= TRAIL_LEG_MIN_S {
-                let walk_s = wanted_s.min(trail_room_s).min(gap_leg_s());
-                return Some(json!({"vx": 0.3, "vyaw": vyaw, "walk_s": walk_s, "stop_s": stop_s, "centre": false, "gap": true, "steer": false, "phase": "turn"}));
-            }
-        }
-        // No room to go on, room to turn: the bumper move — a tight arc
-        // (toward the aim, or the configured hand), then replan from the
-        // new heading.
-        let away = no_room_turn(self);
-        if arc_room_s >= 1.0 {
-            return Some(json!({"vx": 0.3, "vyaw": away, "walk_s": 1.5, "stop_s": stop_s}));
-        }
-        // No room even for a tight arc: turn in place.
-        Some(json!({"spin": away.signum(), "want": NO_ROOM_TURN_RAD}))
-    }
-    /// Whether the straight lane from `(x, y)` along `heading` for `len_m`
-    /// passes clear of every obstacle and drop the sensor put on the
-    /// books. The map's walls are [`Grid::lane_clear`]'s business; a hole
-    /// is not on the map, and "straight when clear" aimed across the
-    /// stairwell for exactly that.
-    fn clear_of_local(&self, x: f64, y: f64, heading: f64, len_m: f64, half_w: f64) -> bool {
-        let (dx, dy) = (heading.cos(), heading.sin());
-        self.local.iter().all(|((px, py), r)| {
-            let along = ((px - x) * dx + (py - y) * dy).clamp(0.0, len_m);
-            dist2((x + along * dx, y + along * dy), (*px, *py)) > half_w + r
-        })
-    }
 }
 
 #[cfg(test)]
@@ -2739,14 +1918,6 @@ mod tests {
         assert!(largest_unknown_piece_m2(&g) > DONE_PIECE_M2);
     }
 
-    /// A low thing booked ahead, however far it is pushed, stays an
-    /// obstacle: the books tell the two apart by the radius alone.
-    #[test]
-    fn a_low_thing_booked_ahead_is_never_a_drop() {
-        let widest = (OBSTACLE_RADIUS_M + guarded::LOW_BOOK_PUSH_M / 2.0).min(guarded::LOW_BOOK_RADIUS_MAX_M);
-        assert!(widest < DROP_RADIUS_M, "{widest}");
-    }
-
     /// One frame's "Missing" is not a hole; two frames' is. Edges of
     /// obstacles go on the books from one frame as before.
     #[test]
@@ -2758,69 +1929,6 @@ mod tests {
         let edge = vec![(0usize, ((2.0, 2.0), OBSTACLE_RADIUS_M))];
         assert_eq!(Job::vote_drops(&edge).len(), 1, "an obstacle edge is cheap to keep");
     }
-
-    /// Standing on a booked drop strikes it, and the reach booked behind
-    /// it; an obstacle edge and a far drop stay.
-    /// A body that only has a cliff guard's view: what the middle level needs.
-struct Seeing(crate::cliff::CliffStatus, Instant);
-impl Body for Seeing {
-    fn step(&mut self, _: &Value) -> Result<Value, String> {
-        Ok(json!({}))
-    }
-    fn blind_move(&mut self, _: &Value) -> Result<Value, String> {
-        Ok(json!({}))
-    }
-    fn frame(&self) -> Option<crate::map::MapFrame> {
-        None
-    }
-    fn pose_trusted(&self) -> bool {
-        true
-    }
-    fn cliff(&self) -> Option<crate::cliff::CliffStatus> {
-        Some(self.0.clone())
-    }
-    fn now(&self) -> Instant {
-        self.1
-    }
-    fn sleep(&mut self, _: Duration) {}
-}
-
-#[test]
-fn the_route_is_judged_against_the_sensor_before_a_leg() {
-    use crate::cliff::{CliffFrame, Drop, DropKind, Obstacle};
-    let now = Instant::now();
-    // The sensor, head straight ahead: a wall 0.4 m ahead, 0.3 rad left,
-    // and a drop whose edge begins 0.5 m ahead to the right (bearing −0.3).
-    let frame = CliffFrame {
-        moving: false,
-        seq: 1,
-        at: now,
-        head_yaw: 0.0,
-        drops: vec![Drop { bearing: -0.3, range_m: 0.6, edge_min_m: 0.5, floor_beyond_m: 0.0, kind: DropKind::Missing }],
-        floors: vec![],
-        obstacles: vec![Obstacle { bearing: 0.3, range_m: 0.4 }],
-        floor_beams: 40,
-        judged: 60,
-    };
-    let status = crate::cliff::CliffStatus { recent: vec![frame], ..Default::default() };
-    let body = Seeing(status, now);
-    let job = Job::new(vec![], 60.0, false, 0.7, now);
-    let pose = (1.0, 1.0, 0.0);
-    // Straight ahead: into the wall at 0.4 m.
-    let ahead: Vec<(f64, f64)> = (1..=12).map(|i| (1.0 + i as f64 * 0.05, 1.0)).collect();
-    let hit = job.route_vs_sensor(&body, pose, &ahead).expect("the wall ahead");
-    assert!(hit.1.starts_with("an obstacle"), "{}", hit.1);
-    // Bearing −0.3 (to the right), out to 0.6 m: past the drop's edge.
-    let right: Vec<(f64, f64)> = (1..=12).map(|i| (1.0 + i as f64 * 0.05 * 0.955, 1.0 - i as f64 * 0.05 * 0.296)).collect();
-    let hit = job.route_vs_sensor(&body, pose, &right).expect("the drop's edge");
-    assert!(hit.1.starts_with("a drop"), "{}", hit.1);
-    // Bearing +0.6 (well to the left): outside the wedge the head looked at — no word.
-    let left: Vec<(f64, f64)> = (1..=12).map(|i| (1.0 + i as f64 * 0.05 * 0.825, 1.0 + i as f64 * 0.05 * 0.565)).collect();
-    assert!(job.route_vs_sensor(&body, pose, &left).is_none());
-    // Going backwards: nothing ahead of the body on the route — no word.
-    let back: Vec<(f64, f64)> = (1..=6).map(|i| (1.0 - i as f64 * 0.05, 1.0)).collect();
-    assert!(job.route_vs_sensor(&body, pose, &back).is_none());
-}
 
 /// The step back at house2's stairwell that fell (2026-09-26): the body at
 /// the hole's north-east corner, nose to the rim, the rim ahead. The
@@ -2841,7 +1949,7 @@ fn no_blind_step_back_with_a_drop_at_hand() {
         rim.push((-0.4, y));
         rim.push((0.0, y));
     }
-    let job = Job::to_goal((-3.44, -2.6), 300.0, -1.0, std::time::Instant::now()).with_books(rim);
+    let job = Job::to_goal((-3.44, -2.6), 300.0, std::time::Instant::now()).with_books(rim);
     assert!(job.drop_on_back((-0.01, -0.46, -1.30), 1.0, 1.5, DROP_PATH_MARGIN_M).is_none(), "the model's path is clear");
     assert!(job.drop_at_hand((-0.06, -0.56, -1.11)), "the truth");
     assert!(job.drop_at_hand((-0.01, -0.46, -1.30)), "the map");
@@ -2917,9 +2025,11 @@ fn a_new_job_inherits_the_drops_and_the_trail() {
     assert_eq!(s.trail, trail);
 }
 
+/// Standing on a booked drop strikes it, and the reach booked behind
+/// it; an obstacle edge and a far drop stay.
 #[test]
     fn standing_on_a_booked_drop_strikes_it() {
-        let mut job = Job::new(vec![], 60.0, false, 0.7, Instant::now());
+        let mut job = Job::new(vec![], 60.0, false, Instant::now());
         job.local = vec![
             ((0.0, 0.0), DROP_RADIUS_M),
             ((0.1, 0.0), DROP_RADIUS_M),   // the reach behind the rim

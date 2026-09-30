@@ -164,7 +164,7 @@ seal). Round trip with it: goround3 3/3 (28, 246, 266 s), no fall.
 ### 2026-09-20/21, point 2 closed (tag baseline-twin-2026-09-21)
 
 The passage law's axis is the wall's line fitted to its cells, the
-heading held bent toward the line (`QK_WALL_FIT`, the guarded default);
+heading held bent toward the line (`QK_WALL_FIT`, the guarded default; removed 2026-09-30);
 legs are cut short of a drop the sensor sees; a rim seals after twelve
 refused turns or three refusals with motion between; the planner's
 start reaches 1.5 m out of an inflation; "no room" blames the nearer

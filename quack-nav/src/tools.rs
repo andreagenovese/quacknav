@@ -1232,7 +1232,6 @@ fn map_explore(robot: &mut Robot, args: &Value) -> Result<Value, String> {
         known,
         max_s,
         !robot.places.map_config.ask_phrase.is_empty(),
-        robot.places.map_config.turn_sign(),
         robot.places.gait.clone(),
         session,
     )?;
@@ -1443,7 +1442,6 @@ fn go_to(robot: &mut Robot, args: &Value) -> Result<Value, String> {
         &robot.places,
         goal,
         max_s,
-        robot.places.map_config.turn_sign(),
         robot.places.gait.clone(),
     )?;
     let away = ((goal.0 - pose.0).powi(2) + (goal.1 - pose.1).powi(2)).sqrt();

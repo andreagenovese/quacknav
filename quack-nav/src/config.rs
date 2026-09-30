@@ -22,18 +22,10 @@ pub struct MapConfig {
     /// What the duck asks out loud when it reaches a nameless area while
     /// mapping everything; empty disables the asking.
     pub ask_phrase: String,
-    /// Which way the explorer turns when the way on is blocked: `"right"`
-    /// or `"left"`. The same hand every time is the right-hand rule — it
-    /// gets around an obstacle and along a wall to the next doorway,
-    /// where "the wider side" changed its mind at every leg.
+    /// No effect since 2026-09-30: the explorer's old legs, which turned
+    /// this hand (`"right"` or `"left"`) when the way on was blocked, are
+    /// removed. Kept so a config file that sets it still loads.
     pub explore_turn: String,
-}
-
-impl MapConfig {
-    /// The turning hand as a yaw sign: -1 for right, +1 for left.
-    pub fn turn_sign(&self) -> f64 {
-        if self.explore_turn.eq_ignore_ascii_case("left") { 1.0 } else { -1.0 }
-    }
 }
 
 impl Default for MapConfig {

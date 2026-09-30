@@ -822,12 +822,12 @@ fn main() -> anyhow::Result<()> {
         // guarded walk, so the journeys do not all begin on one spot).
         let known = args.iter().any(|a| a == "--known");
         let (state, reason, mut status) = if known && goto.is_some() {
-            let mut job = Job::new(Vec::new(), budget.min(60.0), false, -1.0, twin.clock);
+            let mut job = Job::new(Vec::new(), budget.min(60.0), false, twin.clock);
             let (state, reason) = job.run(&handle, &mut twin);
             twin.know_the_world();
             (state, reason, handle.status())
         } else {
-            let mut job = Job::new(Vec::new(), budget, false, -1.0, twin.clock);
+            let mut job = Job::new(Vec::new(), budget, false, twin.clock);
             let (state, reason) = job.run(&handle, &mut twin);
             (state, reason, handle.status())
         };
@@ -877,7 +877,7 @@ fn main() -> anyhow::Result<()> {
             } else {
                 Vec::new()
             };
-            let mut goto_job = Job::to_goal(goal, 900.0, -1.0, twin.clock).with_books(books);
+            let mut goto_job = Job::to_goal(goal, 900.0, twin.clock).with_books(books);
             let before = twin.path_m;
             let t0 = twin.elapsed().as_secs_f64();
             (twin.min_hole_m, twin.min_box_m) = (f64::INFINITY, f64::INFINITY);
