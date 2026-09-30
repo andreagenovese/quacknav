@@ -3,14 +3,6 @@
 use super::*;
 
 pub(super) const FRONTIER_STOP_S: f64 = 6.0;
-/// How long a mapping leg stands (the stick's stand while exploring, see
-/// `navigate.rs`): the stand is how a stop-and-scan mapper sees at all —
-/// but in `continuous` the mapper inks while walking and the stand buys
-/// only the head sweep and a fresh frame (`QK_MAP_STAND_S=0` to measure it).
-pub(super) fn map_stand_s() -> f64 {
-    static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
-    *V.get_or_init(|| knob("QK_MAP_STAND_S", LEG_STOP_S))
-}
 /// Give up when the pose stays untrusted this long.
 pub(super) const LOST_PATIENCE: Duration = Duration::from_secs(180);
 /// The panorama: the sensor sees the front hemisphere at a stand, so on

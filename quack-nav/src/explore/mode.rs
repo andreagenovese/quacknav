@@ -40,14 +40,6 @@ pub(super) struct Policy {
     pub tight_kick_s: f64,
     /// Legs over trusted floor walk blind (see `trusted.rs`).
     pub trusted_floor: bool,
-    /// The alignment tolerance for a turn to the left. On the MuJoCo
-    /// twin a left turn lands short more often than a right one (point
-    /// 8, 2026-09-19: 5 of 9 left alignments 8–11° short); a tighter
-    /// tolerance there buys one more yaw. The paper twin has no such
-    /// bias and a tighter tolerance cost it arrivals (27/30 against
-    /// 29/30 blind, 13/30 against 15/30 guarded, 2026-09-20) — so the
-    /// common tolerance unless the knob says otherwise.
-    pub align_tol_left_rad: f64,
 }
 
 impl Policy {
@@ -62,10 +54,6 @@ impl Policy {
                 .unwrap_or(if guarded { DROP_PLAN_RADIUS_GUARDED_M } else { DROP_PLAN_RADIUS_M }),
             tight_kick_s: if guarded { TIGHT_KICK_S } else { PANO_KICK_S },
             trusted_floor: env_switch("TRUSTED_FLOOR").unwrap_or(mode != Mode::JourneyBlind),
-            align_tol_left_rad: std::env::var("QK_ALIGN_TOL_LEFT_RAD")
-                .ok()
-                .and_then(|v| v.parse().ok())
-                .unwrap_or(ALIGN_TOL_RAD),
         }
     }
 }

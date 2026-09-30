@@ -109,37 +109,21 @@ pub const MIN_FRONTIER_CELLS: usize = 8;
 /// full of those. Measured on the twin (2026-09-13): the route the duck is
 /// handed at the start of a journey is 1.46x the straight line, where the
 /// same endpoints on a settled map cost 1.16-1.26x and the walls
-/// themselves allow 1.19x. `QK_COST_UNKNOWN` to measure the price.
+/// themselves allow 1.19x. Left at 30 (`QK_COST_UNKNOWN`, removed
+/// 2026-09-30).
 const COST_FREE: u32 = 10;
 /// A lane cell — floor the body has stood on, or a saved drive's trail —
-/// may cost less than a free cell (`QK_COST_LANE`, e.g. 5): where the
-/// house has been walked, the planner follows the walk instead of
+/// could cost less than a free cell (`QK_COST_LANE`, e.g. 5, removed
+/// 2026-09-30): where the house has been walked, the planner follows the
+/// walk instead of
 /// cutting the corner of a stairwell the guard then refuses (loc9,
 /// 2026-09-16: 400 s at the north mouth, the human had never taken that
-/// corner). Off by default (a free cell's price): with it on, the route
+/// corner). It costs a free cell's price: at 5 the route
 /// followed the human into the 0.44 m passage east of the stairwell,
 /// which the passage law forbids the body (lane2) — the human's walk is
 /// evidence of floor, not of a passage the duck's guards accept.
-const COST_LANE_DEFAULT: u32 = COST_FREE;
-fn cost_lane() -> u32 {
-    static V: std::sync::OnceLock<u32> = std::sync::OnceLock::new();
-    *V.get_or_init(|| {
-        std::env::var("QK_COST_LANE")
-            .ok()
-            .and_then(|v| v.parse().ok())
-            .unwrap_or(COST_LANE_DEFAULT)
-    })
-}
-const COST_UNKNOWN_DEFAULT: u32 = 30;
-fn cost_unknown() -> u32 {
-    static V: std::sync::OnceLock<u32> = std::sync::OnceLock::new();
-    *V.get_or_init(|| {
-        std::env::var("QK_COST_UNKNOWN")
-            .ok()
-            .and_then(|v| v.parse().ok())
-            .unwrap_or(COST_UNKNOWN_DEFAULT)
-    })
-}
+const COST_LANE: u32 = COST_FREE;
+const COST_UNKNOWN: u32 = 30;
 /// Room costs less than a wall's side. A free cell within [`COMFORT_M`] of
 /// the nearest wall or booked obstacle pays extra, from [`COST_HUG`] at the
 /// inflation's edge down to nothing at [`COMFORT_M`]: with every free cell
@@ -213,12 +197,11 @@ impl Costmap {
     /// run 70). A cell the map inks as wall is not a lane: the map may be
     /// right and the pose wrong.
     fn build(grid: &Grid, extra_walls: &[ExtraWall], inflate_m: f64, lanes: &[(f64, f64)]) -> Self {
-        Self::build_priced(grid, extra_walls, inflate_m, lanes, cost_lane())
+        Self::build_priced(grid, extra_walls, inflate_m, lanes, COST_LANE)
     }
 
-    /// [`Costmap::build`] with a lane cell's price handed in rather than
-    /// read from `QK_COST_LANE`: the knob is read once per process, so a
-    /// test that set it raced every other test's first plan.
+    /// [`Costmap::build`] with a lane cell's price handed in, for the
+    /// tests that price a lane below a free cell.
     fn build_priced(
         grid: &Grid,
         extra_walls: &[ExtraWall],
@@ -243,7 +226,7 @@ impl Costmap {
                 let base = match grid.cell(row, col) {
                     Some(Cell::Wall) => continue,
                     Some(Cell::Free) => COST_FREE,
-                    _ => cost_unknown(),
+                    _ => COST_UNKNOWN,
                 };
                 if lane[row * grid.cols + col] {
                     let (wx, wy) = to_world(grid, (row, col));
@@ -661,7 +644,7 @@ pub fn path_to(
     inflate_m: f64,
     lanes: &[(f64, f64)],
 ) -> Option<Vec<(f64, f64)>> {
-    path_to_priced(grid, x, y, goal, extra_walls, inflate_m, lanes, cost_lane())
+    path_to_priced(grid, x, y, goal, extra_walls, inflate_m, lanes, COST_LANE)
 }
 
 /// [`path_to`] with a lane cell's price handed in (see
@@ -1110,7 +1093,7 @@ mod tests {
             "{far_m:?}"
         );
         assert!(
-            far_m.cost <= far_m.path.len() as u32 * COST_UNKNOWN_DEFAULT,
+            far_m.cost <= far_m.path.len() as u32 * COST_UNKNOWN,
             "{far_m:?}"
         );
     }

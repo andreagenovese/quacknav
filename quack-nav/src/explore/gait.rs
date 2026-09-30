@@ -772,9 +772,12 @@ impl Job {
             let _ = robot.blind_move(&json!({"vx": 0.0, "vyaw": 0.0, "duration_s": ALIGN_SETTLE_S}));
             let Some(yaw) = yaw_now(robot) else { return false };
             let e = wrap(target - yaw);
-            // A left turn (e > 0) may get its own tolerance (`Policy`).
-            let tol = if e > 0.0 { self.policy.align_tol_left_rad } else { ALIGN_TOL_RAD };
-            if e.abs() <= tol {
+            // One tolerance both ways: a tighter one for a left turn
+            // (`QK_ALIGN_TOL_LEFT_RAD`, removed 2026-09-30) bought the
+            // MuJoCo twin one more yaw and cost the paper twin arrivals
+            // (27/30 against 29/30 blind, 13/30 against 15/30 guarded,
+            // 2026-09-20).
+            if e.abs() <= ALIGN_TOL_RAD {
                 return true;
             }
             if e.abs() > 0.6 {

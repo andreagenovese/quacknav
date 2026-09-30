@@ -279,7 +279,7 @@ unchanged.
   on 8 replayed sessions, worse on 4 more; back to 0.24
   (`MAPLOC_LOOP_SIGMA_YAW`). maploc's parameters are judged on 12
   sessions or more from now on. A strike of booked holes where the floor
-  was later seen (`QK_FLOOR_STRIKE=1`): under an unseen 11–15 cm pose
+  was later seen (`QK_FLOOR_STRIKE=1`, removed 2026-09-30): under an unseen 11–15 cm pose
   error it also struck true rim points.
 - **daemon-v0.15.0** (API 37) is validated on the twin only on the branch
   `microduck-015`: four sessions per house, no regression. There a

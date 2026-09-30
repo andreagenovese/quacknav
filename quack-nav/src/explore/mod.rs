@@ -146,7 +146,9 @@ use quack_duck::gait::GaitConfig;
 const ARRIVE_M: f64 = 0.30;
 
 /// Stand this long between legs (a window flushes after 3 s) and this
-/// long at a frontier (a full head sweep).
+/// long at a frontier (a full head sweep). Also the stick's stand while
+/// exploring: without it (`QK_MAP_STAND_S=0`, removed 2026-09-30) the
+/// position was lost after two minutes.
 const LEG_STOP_S: f64 = 3.0;
 /// What the gait covers per second at vx 0.3 (measured on the twin).
 const GAIT_M_PER_S: f64 = 0.12;
@@ -711,20 +713,6 @@ impl ExploreHandle {
 
     pub fn request_stop(&self) {
         self.stop.store(true, Ordering::Relaxed);
-    }
-
-    /// Forget the drops on the books and the walked trail.
-    ///
-    /// Both are coordinates, and after the map underneath them is traded
-    /// for another one (`robot.map_adopt`) they name places the duck is no
-    /// longer anywhere near. Carrying them over would put a remembered
-    /// stairwell in the middle of a room.
-    pub fn forget_ground(&self) {
-        let mut s = self.status.lock().expect("explore status poisoned");
-        s.local.clear();
-        s.trail.clear();
-        s.lanes.clear();
-        s.blind = false;
     }
 
     /// The pending question, cleared — whoever takes it asks it.

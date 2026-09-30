@@ -199,18 +199,6 @@ pub struct Grid {
     pub cells: Vec<Cell>,
 }
 
-/// How many rails [`Grid::lane_clear`] samples across the lane: 3 is the
-/// old behaviour, anything more means every half cell. Read once.
-fn lane_rails() -> usize {
-    static V: std::sync::OnceLock<usize> = std::sync::OnceLock::new();
-    *V.get_or_init(|| {
-        std::env::var("QK_LANE_RAILS")
-            .ok()
-            .and_then(|v| v.parse().ok())
-            .unwrap_or(usize::MAX)
-    })
-}
-
 impl Grid {
     pub fn cell(&self, row: usize, col: usize) -> Option<Cell> {
         (row < self.rows && col < self.cols).then(|| self.cells[row * self.cols + col])
@@ -277,14 +265,14 @@ impl Grid {
     /// as clear. Measured on the twin (2026-09-13): three quarters of the
     /// stalls in a journey were within 35 cm of a piece of furniture and
     /// half of them on a leg going nearly straight — the duck walking into
-    /// things the map had. `QK_LANE_RAILS=3` restores the three rails, for
-    /// measuring what the full width is worth.
+    /// things the map had. (`QK_LANE_RAILS=3`, which restored the three
+    /// rails, was removed 2026-09-30.)
     pub fn lane_clear(&self, x: f64, y: f64, heading: f64, len_m: f64, half_w: f64) -> bool {
-        self.lane_clear_with(lane_rails(), x, y, heading, len_m, half_w)
+        self.lane_clear_with(usize::MAX, x, y, heading, len_m, half_w)
     }
 
     /// [`Grid::lane_clear`] with the rail count given, so a test can pin
-    /// both samplings whatever `QK_LANE_RAILS` says in the shell.
+    /// both samplings: 3 or fewer is the three rails, more every half cell.
     fn lane_clear_with(&self, rails: usize, x: f64, y: f64, heading: f64, len_m: f64, half_w: f64) -> bool {
         let (dx, dy) = (heading.cos(), heading.sin());
         let (nx, ny) = (-dy, dx);
@@ -309,13 +297,8 @@ impl Grid {
         true
     }
 
-    /// The share of cells within `radius_m` of `(x, y)` that are unknown;
-    /// cells off the grid count as unknown.
-    pub fn unknown_around(&self, x: f64, y: f64, radius_m: f64) -> f64 {
-        self.unknown_share(x, y, radius_m, None)
-    }
-
-    /// As [`Grid::unknown_around`], but only the half-disc ahead of `yaw`.
+    /// The share of cells within `radius_m` of `(x, y)` in the half-disc
+    /// ahead of `yaw` that are unknown; cells off the grid count as unknown.
     pub fn unknown_ahead(&self, x: f64, y: f64, yaw: f64, radius_m: f64) -> f64 {
         self.unknown_share(x, y, radius_m, Some(yaw))
     }
@@ -991,8 +974,7 @@ mod tests {
     /// spans y ∈ [1.05, 1.10), the rails of a lane at y = 1.00 sit at rows
     /// 16, 20 and 23. A table leg is that wide. The full width has to see
     /// it, and the three rails are shown missing it, which is the whole
-    /// point. Both samplings are called by name, so the shell's
-    /// `QK_LANE_RAILS` cannot turn this test red.
+    /// point. Both samplings are called by name.
     #[test]
     fn a_table_leg_between_the_rails_blocks_the_lane() {
         let (rows, cols, cell_m) = (40, 40, 0.05);

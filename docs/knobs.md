@@ -9,7 +9,6 @@ The knobs once named `QUACKSAT_*` are `QK_*` since 2026-09-30.
 | Variable | Read as | Where | What the code says |
 |---|---|---|---|
 | `QK_ALIGN_KICK` | 1 on, 0 off, else the mode's own | `quack-nav/src/explore/mode.rs` |  |
-| `QK_ALIGN_TOL_LEFT_RAD` | number (default ALIGN_TOL_RAD) | `quack-nav/src/explore/mode.rs` |  |
 | `QK_ANCHOR_DROP_M` | number (default ANCHOR_NOT_NEAR_DROP_DEFAULT_M) | `quack-nav/src/explore/mod.rs` | Not beside a drop: a revisit there turns the duck round in the mouth of the passage it is entering. |
 | `QK_BACK_NO_STEP_M` | number (default 0.30) | `quack-nav/src/explore/gait.rs` | No blind step back at all with a booked drop this close to the body, whatever its bearing, on the trail or not (`QK_BACK_NO_STEP_M`). |
 | `QK_BACK_REORIENT` | on unless 0 | `quack-nav/src/explore/gait.rs` | `QK_BACK_REORIENT=0`: after the step back, head for the most open floor and walk a leg there, as before. |
@@ -18,22 +17,16 @@ The knobs once named `QUACKSAT_*` are `QK_*` since 2026-09-30.
 | `QK_CLIFF_MARGIN_M` | number (default 0.25) | `quack-nav/src/tools.rs` |  |
 | `QK_CLOSE_LOOK` | 1 on, 0 off, else the caller's default | `quack-nav/src/explore/close_look.rs` | `QK_CLOSE_LOOK=0`: no close looks. |
 | `QK_COST_HUG` | number (default COST_HUG_DEFAULT) | `quack-nav/src/frontier.rs` |  |
-| `QK_COST_LANE` | number (default COST_LANE_DEFAULT) | `quack-nav/src/frontier.rs` |  |
-| `QK_COST_UNKNOWN` | number (default COST_UNKNOWN_DEFAULT) | `quack-nav/src/frontier.rs` |  |
 | `QK_CURVE_RAD` | number (default CURVE_RAD) | `quack-nav/src/explore/gait.rs` |  |
 | `QK_DROP_INFLATE` | number (default DROP_INFLATE_DEFAULT) | `quack-nav/src/frontier.rs` |  |
 | `QK_DROP_PLAN_RADIUS_M` | number (default if guarded { DROP_PLAN_RADIUS_GUARDED_M } else { DROP_PLAN_RADIUS_M }) | `quack-nav/src/explore/mode.rs` |  |
 | `QK_DROP_REACH_M` | number (default DROP_REACH_M) | `quack-nav/src/explore/books.rs` |  |
 | `QK_EDGE_DISCRIMINATE` | on unless 0 | `quack-nav/src/explore/books.rs` | `QK_EDGE_DISCRIMINATE=0`: every sensed drop goes on the books as a hole, as before. |
-| `QK_FLOOR_STRIKE` | on only if 1 | `quack-nav/src/explore/books.rs` |  |
 | `QK_GAP_LANE_HALF_M` | number (default GAP_LANE_HALF_M) | `quack-nav/src/explore/mod.rs` |  |
 | `QK_GAP_MAX_M` | number (default GAP_MAX_M) | `quack-nav/src/explore/mod.rs` |  |
 | `QK_GUARD_ARC_FULL` | on only if 1 | `quack-duck/src/body.rs` | Turning costs little forward speed: 0.110 m/s at vyaw 0.7 against 0.121 straight, measured on the human drive (2026-09-07). |
-| `QK_HOLD_HEADING` | on only if 1 | `quack-nav/examples/paper_twin.rs`, `quack-duck/src/body.rs` | The heading hold (`tools::timed_move_held`, 2026-09-18): on a walking leg that is not an arc the taps cancel the veer — measured 1–3 cm of lateral drift per metre in place of 1–14, the heading within ±4°. |
 | `QK_INFLATE_M` | number (default 0.12) | `quack-nav/src/frontier.rs` | The inflation the planner runs with: 0.12, a little over the body's half-width, 0.10 (`QK_INFLATE_M`). |
 | `QK_LANE_HALF_M` | number (default LANE_HALF_M) | `quack-nav/src/explore/mod.rs` |  |
-| `QK_LANE_RAILS` | number (default usize::MAX) | `quack-nav/src/map.rs` | How many rails [`Grid::lane_clear`] samples across the lane: 3 is the old behaviour, anything more means every half cell. |
-| `QK_MAP_STAND_S` | number (default LEG_STOP_S) | `quack-nav/src/explore/mapping.rs` | How long a mapping leg stands (the stick's stand while exploring, see `navigate.rs`): the stand is how a stop-and-scan mapper sees at all — but in `continuous` the mapper inks while walking and the stand buys only the he… |
 | `QK_NO_GUARDS` | 1 on, 0 off, else the caller's default | `quack-nav/src/explore/journey.rs` | `QK_NO_GUARDS`: every leg, kick and pulse goes through `robot.move`, blind, and the route check is off — the planner alone (the frozen map, the books, the margins) brings the duck home. |
 | `QK_ORACLE_HOLES` | a value | `quack-nav/src/oracle.rs` |  |
 | `QK_ORACLE_POSE` | a value | `quack-nav/src/oracle.rs` |  |
@@ -47,7 +40,6 @@ The knobs once named `QUACKSAT_*` are `QK_*` since 2026-09-30.
 | `QK_STICK_CAREFUL` | 1 on, 0 off, else the caller's default | `quack-nav/src/explore/navigate.rs` |  |
 | `QK_STRAIGHT_RAD` | number (default STRAIGHT_RAD) | `quack-nav/src/explore/gait.rs` |  |
 | `QK_TRAIL` | on unless 0 | `quack-nav/src/explore/books.rs` |  |
-| `QK_TRAVEL_OFF_UNKNOWN` | 1 on, 0 off, else the caller's default | `quack-nav/src/explore/navigate.rs` | `QK_TRAVEL_OFF_UNKNOWN=1`: the exploration plans off the unknown (see `unknown_walled`). |
 | `QK_TRUSTED_FLOOR` | 1 on, 0 off, else the mode's own | `quack-nav/src/explore/mode.rs` |  |
 | `QK_TURN_IN_PLACE` | on unless 0 | `quack-nav/src/explore/gait.rs` | `QK_TURN_IN_PLACE=0` turns the old way (kick, then yaw) everywhere. |
 | `QK_WALL_MARGIN_M` | number (default 0.18) | `quack-nav/src/tools.rs` |  |
@@ -120,8 +112,6 @@ The knobs once named `QUACKSAT_*` are `QK_*` since 2026-09-30.
 | `POSEERR_DT` | a value (script) | `scripts/twin/houses/poseerr.py` |  |
 | `PROPTEST_CASES` | number (default 256) | `quack-nav/tests/route_properties.rs` |  |
 | `QN_REPO` | a value (script) | `scripts/twin/houses/run_house.py` |  |
-| `QUACK_NAV_MCP` | a value (script) | `scripts/twin/viewer/body_with_map.py` |  |
-| `QUACK_NAV_MCP_TOKEN` | a value (script) | `scripts/twin/viewer/body_with_map.py` |  |
 | `QUACK_NAV_SOCKET` | a value (script) | `scripts/twin/viewer/body_with_map.py` |  |
 | `REJECT` | number (default slam_cfg.optimizer.reject_sigmas) | `maploc/examples/evaluate.rs` |  |
 | `REJECT_MAX` | number (default slam_cfg.optimizer.reject_max as f32) | `maploc/examples/evaluate.rs` |  |

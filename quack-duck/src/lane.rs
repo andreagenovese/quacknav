@@ -66,31 +66,6 @@ impl Control {
         self.answer(id)
     }
 
-    /// Send a request by method name, for a call the released proto crate
-    /// does not know yet.
-    ///
-    /// The map library — `robot.map_save`, `robot.map_list`,
-    /// `robot.map_load` — is prototyped on a local robotd branch and asked
-    /// of upstream in docs/study/upstream-asks.md. Until it lands in a
-    /// tagged `duck-ipc-proto`, quacksat spells those three on the wire
-    /// rather than pinning itself to a fork of the protocol crate. A robotd
-    /// that does not know them answers METHOD_NOT_FOUND, which is exactly
-    /// the "this robot cannot do that yet" the caller needs.
-    pub fn request_method(
-        &mut self,
-        method: &str,
-        params: Option<serde_json::Value>,
-    ) -> anyhow::Result<proto::Response> {
-        let n = self.next_id;
-        self.next_id += 1;
-        let mut request = serde_json::json!({"jsonrpc": "2.0", "id": n, "method": method});
-        if let Some(params) = params {
-            request["params"] = params;
-        }
-        write_line(&mut self.writer, &request)?;
-        self.answer(proto::Id::Number(n))
-    }
-
     /// Read until the answer to `id` arrives.
     fn answer(&mut self, id: proto::Id) -> anyhow::Result<proto::Response> {
         loop {

@@ -169,12 +169,10 @@ class PlanSource:
     """`robot.map_status`, polled in the background: the planned route, the
     leg's aim, the goal and the drops on the books — all in the map frame,
     drawn through the same origin as the walls. Asked of quack-navd's own
-    socket when `nav_socket` is given (the navigation's daemon, 2026-09-22),
-    else of quacksat's MCP, which proxies the same tool."""
+    socket (the navigation's daemon, 2026-09-22); without one, no plan."""
 
-    def __init__(self, url: str, token: str, period_s: float = 0.5, nav_socket: str | None = None):
-        self.url, self.token, self.period = url, token, period_s
-        self.nav_socket = nav_socket
+    def __init__(self, nav_socket: str | None, period_s: float = 0.5):
+        self.nav_socket, self.period = nav_socket, period_s
         self._lock = threading.Lock()
         self._plan = None
 
@@ -188,20 +186,10 @@ class PlanSource:
 
     def _run(self) -> None:
         import time
-        import urllib.request
-        body = json.dumps({"jsonrpc": "2.0", "id": 1, "method": "tools/call",
-                           "params": {"name": "robot_map_status", "arguments": {}}}).encode()
-        while True:
+        while self.nav_socket:
             plan = None
             try:
-                if self.nav_socket:
-                    d = self._ask_navd()
-                else:
-                    req = urllib.request.Request(self.url, data=body, headers={
-                        "Content-Type": "application/json", "Authorization": f"Bearer {self.token}"})
-                    with urllib.request.urlopen(req, timeout=2) as r:
-                        text = json.load(r)["result"]["content"][0]["text"]
-                    d = json.loads(text).get("data") or {}
+                d = self._ask_navd()
                 e = d.get("explore") or {}
                 c = d.get("cliff") or {}
                 pose = d.get("pose") or {}

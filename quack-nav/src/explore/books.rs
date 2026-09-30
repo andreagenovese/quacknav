@@ -95,30 +95,6 @@ pub(super) const LANE_KEEP_M: f64 = 0.6;
 /// over, 17 and 26 cm into the floor. The trail strike in
 /// [`ExploreHandle::keep_ground`] is what clears a passage's books.
 pub(super) const STRIKE_M: f64 = 0.06;
-/// A booked hole the floor has come back on is struck (see
-/// `strike_drops_on_floor`): standing frames met the floor within
-/// `FLOOR_AT_M` of it in at least `FLOOR_STRIKE_FRAMES` frames, and all
-/// round it at `FLOOR_RING_M` — a rim point booked short of the true rim
-/// (5–12 cm, conservative on purpose) has the hole within the ring on one
-/// side and stays — and the fresh frames see the rim itself, a hole
-/// proposed within `FLOOR_RIM_SEEN_M`, but none within `FLOOR_NO_DROP_M`:
-/// the rim is where they see it now, not on the point. Without the rim in
-/// sight the replay of the same sessions also struck true rim points 3–14
-/// cm from the holes, seen only from where the rim was out of view. casa_arredata's first session booked nine
-/// holes 23–40 cm into the corridor north of the stairwell while the
-/// pose was 35 cm off, and they closed the way to the bathroom for the
-/// three sessions after, the pose good again (MuJoCo, 2026-09-29).
-/// Off unless `QK_FLOOR_STRIKE=1`: the floor and the rim are seen with
-/// the pose of the moment, and the replays of x13 (2026-09-29) struck,
-/// besides every phantom, true rim points 0–3 cm from the apartment's
-/// stairwell while the pose was 11–15 cm off — which maploc's covariance
-/// did not show (σ 0.08 m at 35 cm off in casa_arredata's first session,
-/// as at 5 cm). Not before the pose knows when it is wrong.
-pub(super) const FLOOR_AT_M: f64 = 0.07;
-pub(super) const FLOOR_RING_M: f64 = 0.15;
-pub(super) const FLOOR_STRIKE_FRAMES: usize = 2;
-pub(super) const FLOOR_NO_DROP_M: f64 = 0.20;
-pub(super) const FLOOR_RIM_SEEN_M: f64 = 0.45;
 /// A sensor obstacle within this distance of one already recorded is the
 /// same obstacle.
 pub(super) const LOCAL_DEDUP_M: f64 = 0.10;
@@ -289,51 +265,13 @@ impl Job {
         if on_walked > 0 {
             tracing::info!(on_walked, "map explore: drop points on floor the body walked; not booked");
         }
-        if self.drops_bookable && !self.blind() && std::env::var("QK_FLOOR_STRIKE").is_ok_and(|v| v == "1") {
-            let floors: Vec<(usize, (f64, f64))> = cliff
-                .recent
-                .iter()
-                .filter(|f| now.duration_since(f.at).as_secs_f64() <= RECORD_FRESH_S && !f.moving)
-                .enumerate()
-                .flat_map(|(k, f)| f.floors.iter().map(move |(b, r)| (k, (x + r * (yaw + b).cos(), y + r * (yaw + b).sin()))))
-                .collect();
-            let holes: Vec<(f64, f64)> = proposals.iter().filter(|(_, (_, r))| *r >= DROP_RADIUS_M).map(|(_, (p, _))| *p).collect();
-            self.strike_drops_on_floor(&floors, &holes, (x, y));
-        }
-    }
-
-    /// Strike the booked holes the fresh standing frames saw floor on and
-    /// all round (see [`FLOOR_AT_M`]): `floors` are the frames' floor
-    /// points in the map, tagged with their frame, `holes` the holes the
-    /// same frames propose.
-    pub(super) fn strike_drops_on_floor(&mut self, floors: &[(usize, (f64, f64))], holes: &[(f64, f64)], here: (f64, f64)) {
-        if floors.is_empty() {
-            return;
-        }
-        let floor_near = |p: (f64, f64)| floors.iter().any(|(_, q)| dist2(*q, p) < FLOOR_AT_M);
-        let before = self.local.len();
-        let mut struck = Vec::new();
-        self.local.retain(|(p, r)| {
-            let rim = holes.iter().map(|h| dist2(*h, *p)).fold(f64::INFINITY, f64::min);
-            if *r < DROP_RADIUS_M || !(FLOOR_NO_DROP_M..FLOOR_RIM_SEEN_M).contains(&rim) {
-                return true;
-            }
-            let frames: std::collections::HashSet<usize> = floors.iter().filter(|(_, q)| dist2(*q, *p) < FLOOR_AT_M).map(|(k, _)| *k).collect();
-            if frames.len() < FLOOR_STRIKE_FRAMES {
-                return true;
-            }
-            let ring = (0..8).all(|i| {
-                let a = i as f64 * std::f64::consts::FRAC_PI_4;
-                floor_near((p.0 + FLOOR_RING_M * a.cos(), p.1 + FLOOR_RING_M * a.sin()))
-            });
-            if ring {
-                struck.push(*p);
-            }
-            !ring
-        });
-        if self.local.len() < before {
-            tracing::info!(struck = before - self.local.len(), points = ?struck, at = ?here, "map explore: booked holes struck off — the floor is there and all round");
-        }
+        // A booked hole is not struck where fresh standing frames see floor
+        // on it and all round (`QK_FLOOR_STRIKE=1`, tried and removed
+        // 2026-09-30): the floor and the rim are seen with the pose of the
+        // moment, and the replays of x13 (2026-09-29) struck true rim points
+        // 0–3 cm from the stairwell while the pose was 11–15 cm off, which
+        // maploc's covariance did not show. Not before the pose knows when
+        // it is wrong.
     }
 
     /// The points that go on the books out of what the fresh frames

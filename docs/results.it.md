@@ -288,7 +288,7 @@ cambiano.
   0.5 rad: meglio su 8 sessioni rigiocate, peggio su altre 4; tornata a
   0.24 (`MAPLOC_LOOP_SIGMA_YAW`). D'ora in poi i parametri di maploc si
   giudicano su almeno 12 sessioni. Cancellare i buchi registrati dove poi
-  si è visto il pavimento (`QK_FLOOR_STRIKE=1`): con un errore di posa non
+  si è visto il pavimento (`QK_FLOOR_STRIKE=1`, tolta il 2026-09-30): con un errore di posa non
   visto di 11–15 cm cancellava anche punti veri del bordo.
 - **daemon-v0.15.0** (API 37) è validato sul gemello solo sul branch
   `microduck-015`: quattro sessioni per casa, nessuna regressione. Lì si è

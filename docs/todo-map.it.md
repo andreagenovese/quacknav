@@ -32,7 +32,10 @@ Manopole citate nelle voci qui sotto che non esistono più: `QK_COMMIT`,
 `QK_PASSAGE_SENSOR`, `QK_PROP_TURN`, `QK_REFUSED_REARM`, `QK_RIM_OFF`,
 `QK_ROUTE_CHECK_M`, `QK_SEAL`, `QK_SMOOTH_PATH`, `QK_SPIN_RAD`,
 `QK_STRAIGHT_LOOK_M`, `QK_STRING_PULL_M`, `QK_TRAIL_LEG`, `QK_WALL_FIT`
-(2026-09-30, con le vecchie gambe dell'esploratore), `MAPLOC_SWEEP`,
+(2026-09-30, con le vecchie gambe dell'esploratore), `QK_ALIGN_TOL_LEFT_RAD`,
+`QK_COST_LANE`, `QK_COST_UNKNOWN`, `QK_FLOOR_STRIKE`, `QK_HOLD_HEADING`,
+`QK_LANE_RAILS`, `QK_MAP_STAND_S`, `QK_TRAVEL_OFF_UNKNOWN` (2026-09-30,
+esperimenti conclusi: resta il default misurato), `MAPLOC_SWEEP`,
 `MAPLOC_ODOM_SCALE` (del fork di robotd di allora); le manopole che
 esistono sono tutte in [`knobs.it.md`](knobs.it.md), generato dal codice.
 L'impostazione `[map] explore_turn` si carica ancora ma dal 2026-09-30 non
@@ -995,7 +998,7 @@ riportare zero cadute prima di chiamare qualcosa un miglioramento.
       libreria. mediad porta le tre chiamate, btd le rifiuta, l'updater le
       dichiara sconosciute; `robotctl robot map-save|map-list|map-load` le
       guida a mano. quacksat espone gli stessi tre strumenti, scritti per
-      nome di metodo con `Control::request_method`, perché il
+      nome di metodo con `Control::request_method` (tolto il 2026-09-30), perché il
       `duck-ipc-proto` pubblicato non ne ha nessuno: un robotd più vecchio
       risponde METHOD_NOT_FOUND e l'anatra dice "questo robot non ha
       ancora una libreria di mappe" invece di fallire in modo oscuro.
@@ -1672,7 +1675,7 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       contro 84, 1,88 m camminati per metro contro 2,14) e gli
       accoppiamenti dicono che è il campione piccolo a parlare. Anche la
       rotta consegnata alla partenza si è mossa appena: 1,43× contro 1,46×.
-      Lasciato a 30; `QK_COST_UNKNOWN` lo tiene misurabile.
+      Lasciato a 30; `QK_COST_UNKNOWN` lo teneva misurabile (tolta il 2026-09-30).
 
 - [ ] **Cosa offre maploc che non abbiamo mai usato** (scansione
       2026-09-13). La superficie del daemon è piccola — `enabled`, `mode`,
@@ -1711,7 +1714,7 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       | continuous, casa vuota | n | mediana | m/s medio | camminato/m | vince | mappe, % muro oltre 10 cm |
       |---|---|---|---|---|---|---|
       | com'è, con le soste | 25 | 71 s | 0,0430 | 2,09 | 59/100 | 1,1 · 1,3 · 2,5 · 16,6 · 6,9 · 5,7 |
-      | senza soste (`QK_MAP_STAND_S=0`) | — | — | — | — | — | **posizione persa dopo due minuti** |
+      | senza soste (`QK_MAP_STAND_S=0`, tolta il 2026-09-30) | — | — | — | — | — | **posizione persa dopo due minuti** |
       | corretta in cammino (`continuous_correct_s`) | 4 | 64 s | 0,0485 | 1,92 | 57/100 | **12,0 · 23,2** |
 
       **Cosa fa bene.** I viaggi aggiungono mappa: +2.335 e +4.494 celle
@@ -1787,7 +1790,7 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       meta rifiutata con "già in cammino" — perché la sonda di
       raggiungibilità del banco lasciava acceso il proprio go_to; ora
       aspetta.)
-      `QK_LANE_RAILS=3` tiene i binari misurabili. Non misurato: la stessa
+      `QK_LANE_RAILS=3` teneva i binari misurabili (tolta il 2026-09-30). Non misurato: la stessa
       modifica nella casa vuota, dove c'è poco contro cui urtare.
 
 - [x] Impegnarsi sulla mira — gira-poi-vai con isteresi, adattato dal
@@ -2613,7 +2616,7 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       quell'angolo non l'ha mai preso (corsia ovest dal sud, corsia est
       dal nord). Le corsie del giro umano ora stanno nel libro di terra e
       sono percorribili, ma il pianificatore non le *preferisce* — e
-      quando gliele si è fatte preferire (`QK_COST_LANE=5`, lane2) ha
+      quando gliele si è fatte preferire (`QK_COST_LANE=5`, lane2; tolta il 2026-09-30) ha
       seguito l'umano nella corsia da 0,44 m a est della tromba, che la
       legge del passaggio vieta al corpo (0,50). Quindi dal corridoio la
       tromba oggi è impassabile per il duck da ogni lato: l'angolo NW
@@ -2917,7 +2920,7 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       colpetti 0,2 s: 1–3 cm/m, rotta −2 … −7°, 6–9 colpetti in 4 s; 5° /
       0,15 s: 1–3 cm/m, ±4° (un −13), 0–3 colpetti; 4° / 0,1 s: 3–13
       cm/m. Quindi: soglia 4°, colpetto 0,2 s. Nell'esecutore delle gambe
-      (`timed_move_held`, `QK_HOLD_HEADING=1`) e nel modello del gemello
+      (`timed_move_held`, `QK_HOLD_HEADING=1`, tolta il 2026-09-30) e nel modello del gemello
       di carta. Sul banco nessun cambio al passaggio della tromba (8/30
       contro 10/30, rumore). Su MuJoCo il giro cieco a sei goal: 634 s con
       la tenuta su ogni gamba non ad arco, 682 s sulle sole gambe dritte,
@@ -3194,7 +3197,7 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       375 → 344/332 s; (8) l'allineamento a sinistra — una tolleranza
       sinistra più stretta (0,12 rad) costava arrivi alla carta (27/30
       cieco, 13/30 guardato contro 29 e 15), quindi è un knob
-      (`QK_ALIGN_TOL_LEFT_RAD`, di default lo 0,2 comune) per il gemello,
+      (`QK_ALIGN_TOL_LEFT_RAD`, di default lo 0,2 comune; tolta il 2026-09-30) per il gemello,
       non un default; (10) il mondo `--known` del gemello di carta: la
       mappa è quella del mondo, congelata, niente esplorazione — le
       bench dei viaggi, finalmente (`KNOWN=1 paper30.sh`): cieco 20/30
@@ -4109,6 +4112,19 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       di carta identico al byte (explore 40 run, 0 cadute, 53,2 %; go_to
       30/30). La mano di `[map] explore_turn` guidava solo quelle gambe:
       si carica ancora, e non fa nulla.
+- [x] 2026-09-30: tolte otto manopole di esperimenti conclusi, ognuna al
+      default misurato migliore (elencate in cima): niente cancellazione
+      dei buchi registrati sul pavimento visto, una corsia al prezzo di
+      una cella libera, l'ignoto a 30, la corsia campionata su tutta la
+      larghezza, l'angolo tenuto solo sulle gambe che lo chiedono, la
+      sosta di 3 s del bastone in esplorazione, l'esplorazione che pianifica
+      attraverso l'ignoto, una sola tolleranza di allineamento nei due
+      versi. Con loro: il piano del visore via l'MCP di quacksat
+      (`QUACK_NAV_MCP`, `QUACK_NAV_MCP_TOKEN`; il visore chiede a
+      `QUACK_NAV_SOCKET`), e voci pub che nessuno chiamava
+      (`ExploreHandle::forget_ground`, `Grid::unknown_around`,
+      `Control::request_method`, i limiti della testa in
+      `quack_duck::body`). Il gate del gemello di carta identico al byte.
 - [ ] Perché alcune chiusure di loop misurano male l'angolo (x13: 5° di
       errore, la posa dal vivo 35 cm fuori, σ 0.08 m); si misura con la
       verità fitta (`LOOP_LOG`, `POSEERR_DT=0.5`). Sigma d'angolo del loop

@@ -32,7 +32,10 @@ Knobs named in the entries below that no longer exist: `QK_COMMIT`,
 `QK_PASSAGE_SENSOR`, `QK_PROP_TURN`, `QK_REFUSED_REARM`, `QK_RIM_OFF`,
 `QK_ROUTE_CHECK_M`, `QK_SEAL`, `QK_SMOOTH_PATH`, `QK_SPIN_RAD`,
 `QK_STRAIGHT_LOOK_M`, `QK_STRING_PULL_M`, `QK_TRAIL_LEG`, `QK_WALL_FIT`
-(2026-09-30, with the explorer's old legs), `MAPLOC_SWEEP`,
+(2026-09-30, with the explorer's old legs), `QK_ALIGN_TOL_LEFT_RAD`,
+`QK_COST_LANE`, `QK_COST_UNKNOWN`, `QK_FLOOR_STRIKE`, `QK_HOLD_HEADING`,
+`QK_LANE_RAILS`, `QK_MAP_STAND_S`, `QK_TRAVEL_OFF_UNKNOWN` (2026-09-30,
+concluded experiments: the measured default stays), `MAPLOC_SWEEP`,
 `MAPLOC_ODOM_SCALE` (the robotd fork's of the time); the knobs that exist
 are all in [`knobs.md`](knobs.md), generated from the code. The
 `[map] explore_turn` setting still loads but steers nothing since
@@ -912,7 +915,7 @@ report zero falls before anything is called an improvement.
       the library standing. mediad carries the three, btd refuses them,
       the updater calls them unknown; `robotctl robot map-save|map-list|
       map-load` drives them by hand. quacksat exposes the same three as
-      tools, spelled by method name through `Control::request_method`,
+      tools, spelled by method name through `Control::request_method` (removed 2026-09-30),
       because the released `duck-ipc-proto` has none of them — an older
       robotd answers METHOD_NOT_FOUND and the duck says "this robot's
       software has no map library yet" instead of failing obscurely.
@@ -1547,7 +1550,7 @@ nothing: it explores and asks.
       against 84, 1.88 m walked per metre against 2.14) and the pairings
       say that is the small sample talking. The route handed to the duck at
       the start barely moved either: 1.43x against 1.46x.
-      Left at 30; `QK_COST_UNKNOWN` keeps it measurable.
+      Left at 30; `QK_COST_UNKNOWN` kept it measurable (removed 2026-09-30).
 
 - [ ] **What maploc ships that we have never used** (scanned 2026-09-13).
       The daemon's own surface is small — `enabled`, `mode`, `map_path`,
@@ -1583,7 +1586,7 @@ nothing: it explores and asks.
       | continuous, in the empty flat | n | median | m/s mean | walked/m | beats plain | maps, % wall beyond 10 cm |
       |---|---|---|---|---|---|---|
       | as shipped, stands kept | 25 | 71 s | 0.0430 | 2.09 | 59/100 | 1.1 · 1.3 · 2.5 · 16.6 · 6.9 · 5.7 |
-      | stands removed (`QK_MAP_STAND_S=0`) | — | — | — | — | — | **position lost after two minutes** |
+      | stands removed (`QK_MAP_STAND_S=0`, removed 2026-09-30) | — | — | — | — | — | **position lost after two minutes** |
       | corrected while walking (`continuous_correct_s`) | 4 | 64 s | 0.0485 | 1.92 | 57/100 | **12.0 · 23.2** |
 
       **What it does well.** Journeys add map: +2335 and +4494 known cells
@@ -1653,7 +1656,7 @@ nothing: it explores and asks.
       never happen. (Two earlier full-width series were void — every goal
       refused with "already on its way" — because the bench's own
       reachability probe left its go_to running; it waits now.)
-      `QK_LANE_RAILS=3` keeps the rails measurable. Unmeasured: the same
+      `QK_LANE_RAILS=3` kept the rails measurable (removed 2026-09-30). Unmeasured: the same
       change in the empty flat, where there is little to bump.
 
 - [x] Commit to the aim — turn-then-go with hysteresis, adapted from
@@ -2426,7 +2429,7 @@ nothing: it explores and asks.
       took that corner (west lane from the south, east lane from the
       north). Lanes from the human drive are now kept in the ground book
       and passable, but the planner does not *prefer* them — and when it
-      was made to (`QK_COST_LANE=5`, lane2) it followed the human into the
+      was made to (`QK_COST_LANE=5`, lane2; removed 2026-09-30) it followed the human into the
       0.44 m passage east of the stairwell, which the passage law forbids
       the body (0.50). So from the corridor the stairwell is, today,
       impassable for the duck from every side: the NW corner too tight
@@ -2719,7 +2722,7 @@ nothing: it explores and asks.
       threshold 3°, taps 0.2 s: 1–3 cm/m, heading −2 … −7°, 6–9 taps in
       4 s; 5° / 0.15 s: 1–3 cm/m, ±4° (one −13), 0–3 taps; 4° / 0.1 s:
       3–13 cm/m. So: threshold 4°, tap 0.2 s. Built into the leg
-      executor (`timed_move_held`, `QK_HOLD_HEADING=1`) and modelled in
+      executor (`timed_move_held`, `QK_HOLD_HEADING=1`, removed 2026-09-30) and modelled in
       the paper twin. On the paper bench no change to the stairwell
       passage (8/30 against 10/30, noise). On MuJoCo the blind six-goal
       tour: 634 s held on every non-arc leg, 682 s on straight legs
@@ -2985,7 +2988,7 @@ nothing: it explores and asks.
       the long way round; the kitchen 375 → 344/332 s; (8) the left
       alignment — a tighter left tolerance (0.12 rad) cost the paper
       twin arrivals (27/30 blind, 13/30 guarded against 29 and 15), so
-      it is a knob (`QK_ALIGN_TOL_LEFT_RAD`, default the common 0.2)
+      it is a knob (`QK_ALIGN_TOL_LEFT_RAD`, default the common 0.2; removed 2026-09-30)
       for the twin, not a default; (10) the paper twin's `--known`
       world: the map is the world's own, frozen, no exploration — the
       journey benches at last (`KNOWN=1 paper30.sh`): blind 20/30 from
@@ -3849,6 +3852,18 @@ nothing: it explores and asks.
       to the byte (explore 40 runs, 0 falls, 53.2 %; go_to 30/30). The
       `[map] explore_turn` hand steered only those legs: it still loads,
       and does nothing.
+- [x] 2026-09-30: eight knobs of concluded experiments removed, each at
+      the default that was measured the better (listed at the top): the
+      floor strike of booked holes off, a lane at a free cell's price,
+      unknown at 30, the lane sampled across its full width, the heading
+      held only on legs that ask for it, the exploring stick's 3 s stand,
+      the exploration planning across the unknown, one alignment
+      tolerance both ways. Gone with them: the viewer's plan through
+      quacksat's MCP (`QUACK_NAV_MCP`, `QUACK_NAV_MCP_TOKEN`; the viewer
+      asks `QUACK_NAV_SOCKET`), and pub items nothing called
+      (`ExploreHandle::forget_ground`, `Grid::unknown_around`,
+      `Control::request_method`, the head limits in `quack_duck::body`).
+      The paper twin's gate the same to the byte.
 - [ ] Why some loop closures mis-measure the heading (x13: 5° wrong, the
       live pose 35 cm off, σ 0.08 m); being measured with dense truth
       (`LOOP_LOG`, `POSEERR_DT=0.5`). Loop heading sigma 0.5 tried and

@@ -29,12 +29,6 @@ pub const MAX_YAW_RAD_S: f64 = 1.0;
 pub const MAX_TURN_IN_PLACE_RAD_S: f64 = 1.6;
 /// What a turn in place asks for: past both sides' thresholds.
 pub const TURN_IN_PLACE_RAD_S: f64 = 1.5;
-pub const MAX_LOOK_XY_M: f64 = 3.0;
-pub const MIN_LOOK_Z_M: f64 = -0.2;
-pub const MAX_LOOK_Z_M: f64 = 2.0;
-pub const MAX_HEAD_PITCH_RAD: f64 = 0.6;
-pub const MAX_HEAD_YAW_RAD: f64 = 1.2;
-pub const MAX_HEAD_ROLL_RAD: f64 = 0.5;
 /// Intent cadence while a timed move runs (well inside the 500 ms deadman).
 pub const MOVE_TICK: Duration = Duration::from_millis(40);
 /// A mapping step's stand: robotd's still window needs 0.5 s, a window
@@ -96,8 +90,15 @@ pub fn trimmed(gait: &crate::gait::GaitConfig, mut params: proto::MoveParams) ->
 /// and 0.2 s taps the lateral drift is 1–3 cm/m and the heading ends
 /// within ±4°. The user's formula: "if it pulls right, brief taps to the
 /// left, and it straightens and goes on". Not for arcs (|vyaw| ≥ 0.5
-/// before the trim): those turn on purpose. `QK_HOLD_HEADING=0` is the
-/// open loop.
+/// before the trim): those turn on purpose.
+/// Only a leg that asks for it is held, not every straight leg
+/// (`QK_HOLD_HEADING=1`, removed 2026-09-30): measured on the twin (2026-09-18) it pays on a 4 s
+/// straight walk (1–3 cm/m) and costs on the explorer's legs of 1–1.5 s —
+/// a 4° threshold met once a leg by the +3.5°/s drift, and a 10° tap in
+/// answer, is a zigzag: the blind six-goal tour went 472–499 s → 634 s
+/// held on every non-arc leg, 682 s held on straight legs alone. For long
+/// straight legs (a corridor, a human drive) it is the formula to use; the
+/// explorer's legs are too short for it as it stands.
 /// A timed `robot.move`, optionally holding its heading by taps: the
 /// yaw source is a closure — the cliff guard's odometry heading where
 /// there is one — so the body's lane knows nothing of the navigation
@@ -145,21 +146,8 @@ pub fn timed_move_held(
 }
 /// The heading hold's threshold, tap length and tap size on the wire.
 pub const HOLD_THRESHOLD_RAD: f64 = 0.07;
-/// A leg steered less than this is straight, and held.
-pub const HOLD_STRAIGHT_MAX: f64 = 0.05;
 pub const HOLD_TAP_S: f64 = 0.2;
 pub const HOLD_TAP_WIRE: f64 = 1.0;
-/// `QK_HOLD_HEADING=1` turns the hold on. OFF by default: measured on the
-/// twin (2026-09-18) it pays on a 4 s straight walk (1–3 cm/m) and costs
-/// on the explorer's legs of 1–1.5 s — a 4° threshold met once a leg by
-/// the +3.5°/s drift, and a 10° tap in answer, is a zigzag: the blind
-/// six-goal tour went 472–499 s → 634 s held on every non-arc leg, 682 s
-/// held on straight legs alone. For long straight legs (a corridor, a
-/// human drive) it is the formula to use; the explorer's legs are too
-/// short for it as it stands.
-pub fn hold_heading() -> bool {
-    std::env::var("QK_HOLD_HEADING").is_ok_and(|v| v == "1")
-}
 pub fn wrap(a: f64) -> f64 {
     a.sin().atan2(a.cos())
 }

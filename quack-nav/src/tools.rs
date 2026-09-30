@@ -1037,17 +1037,7 @@ pub fn execute(name: &str, args: &Value, robot: &mut Robot) -> Result<Value, Str
             let params = quack_duck::body::move_params(args);
             let duration = quack_duck::body::number(args, "duration_s").clamp(0.0, quack_duck::body::MAX_MOVE_DURATION_S);
             let params = quack_duck::body::trimmed(&robot.places.gait, params);
-            let vyaw_cmd = params.vyaw;
-            let hold_yaw = robot.places.cliff.as_ref().map(|c| {
-                let c = c.clone();
-                move || c.snapshot().odom_yaw
-            });
-            let hold: Option<(&dyn Fn() -> Option<f64>, f64, f64)> =
-                match (quack_duck::body::hold_heading() && vyaw_cmd.abs() < quack_duck::body::HOLD_STRAIGHT_MAX, &hold_yaw) {
-                    (true, Some(f)) => Some((f, 0.0, 0.0)),
-                    _ => None,
-                };
-            quack_duck::body::timed_move_held(&mut robot.control, params, duration, hold)?;
+            quack_duck::body::timed_move_held(&mut robot.control, params, duration, None)?;
             Ok(json!({"done": true, "walked_s": duration}))
         }
         other => Err(format!("this is not a navigation tool: `{other}`")),
@@ -1971,8 +1961,7 @@ fn map_step(robot: &mut Robot, args: &Value) -> Result<Value, String> {
         // steering (house4tour, 2026-09-18: 634 s for a 472–499 s tour).
         // A leg that asks for it (`hold`, with `hold_bias` radians to
         // aim off the starting heading — the passage law rejoining its
-        // line), or every straight leg when QK_HOLD_HEADING=1.
-        let vyaw_cmd = quack_duck::body::number(args, "vyaw");
+        // line).
         let asked = args.get("hold").and_then(Value::as_bool).unwrap_or(false);
         let bias = quack_duck::body::number(args, "hold_bias");
         // The yaw the hold closes on is the cliff guard's odometry
@@ -1980,7 +1969,7 @@ fn map_step(robot: &mut Robot, args: &Value) -> Result<Value, String> {
         // nothing of the guard (the split of 2026-09-22).
         let yaw_now = robot.places.cliff.clone().map(|c| move || c.snapshot().odom_yaw);
         let hold: Option<(&dyn Fn() -> Option<f64>, f64, f64)> =
-            match (asked || (quack_duck::body::hold_heading() && vyaw_cmd.abs() < quack_duck::body::HOLD_STRAIGHT_MAX), &yaw_now) {
+            match (asked, &yaw_now) {
                 (true, Some(f)) => Some((f, 0.0, bias)),
                 _ => None,
             };

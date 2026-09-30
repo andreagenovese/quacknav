@@ -464,7 +464,7 @@ impl PaperTwin {
             // on a walking leg that is not an arc the taps cancel the
             // veer — measured 1–3 cm of lateral drift per metre in
             // place of 1–14, the heading within ±4°.
-            let held = vx > 0.05 && vyaw.abs() < 0.05 && (self.hold_leg || std::env::var("QK_HOLD_HEADING").is_ok_and(|v| v == "1"));
+            let held = vx > 0.05 && vyaw.abs() < 0.05 && self.hold_leg;
             let (v, w) = if vx > 0.05 {
                 (
                     SPEED_AT_03 * vx / 0.3,
