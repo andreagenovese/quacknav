@@ -9,6 +9,8 @@ gemello. Le manopole che si chiamavano `QUACKSAT_*` sono `QK_*` dal
 
 | Variabile | Letta come | Dove | Cosa dice il codice |
 |---|---|---|---|
+| `QK_ALIGN_KICK` | 1 accesa, 0 spenta, altrimenti quella del modo | `quack-nav/src/explore/mode.rs` |  |
+| `QK_ALIGN_TOL_LEFT_RAD` | numero (default ALIGN_TOL_RAD) | `quack-nav/src/explore/mode.rs` |  |
 | `QK_ANCHOR_DROP_M` | numero (default ANCHOR_NOT_NEAR_DROP_DEFAULT_M) | `quack-nav/src/explore/mod.rs` | Not beside a drop: a revisit there turns the duck round in the mouth of the passage it is entering. |
 | `QK_ARC_RESERVE_M` | numero (default ARC_RESERVE_M) | `quack-nav/src/explore/gait.rs` |  |
 | `QK_BACK_NO_STEP_M` | numero (default 0.30) | `quack-nav/src/explore/gait.rs` | No blind step back at all with a booked drop this close to the body, whatever its bearing, on the trail or not (`QK_BACK_NO_STEP_M`). |
@@ -25,7 +27,7 @@ gemello. Le manopole che si chiamavano `QUACKSAT_*` sono `QK_*` dal
 | `QK_DEADBAND_RAD` | numero (default DEADBAND_RAD) | `quack-nav/src/explore/gait.rs` |  |
 | `QK_DROP_INFLATE` | numero (default DROP_INFLATE_DEFAULT) | `quack-nav/src/frontier.rs` |  |
 | `QK_DROP_LEG_S` | numero (default DROP_LEG_S) | `quack-nav/src/explore/journey.rs` |  |
-| `QK_DROP_PLAN_RADIUS_M` | numero (assente: spenta) | `quack-nav/src/explore/mode.rs` |  |
+| `QK_DROP_PLAN_RADIUS_M` | numero (default if guarded { DROP_PLAN_RADIUS_GUARDED_M } else { DROP_PLAN_RADIUS_M }) | `quack-nav/src/explore/mode.rs` |  |
 | `QK_DROP_REACH_M` | numero (default DROP_REACH_M) | `quack-nav/src/explore/books.rs` |  |
 | `QK_EDGE_DISCRIMINATE` | accesa salvo 0 | `quack-nav/src/explore/books.rs` | `QK_EDGE_DISCRIMINATE=0`: every sensed drop goes on the books as a hole, as before. |
 | `QK_EXPLORE_NAV` | 1 accesa, 0 spenta, altrimenti il default del chiamante | `quack-nav/src/explore/navigate.rs` | `QK_EXPLORE_NAV=0`: the exploration walks to its frontiers on its own guarded legs (`walk_leg`), as before 2026-09-29. |
@@ -36,7 +38,7 @@ gemello. Le manopole che si chiamavano `QUACKSAT_*` sono `QK_*` dal
 | `QK_GAP_MAX_M` | numero (default GAP_MAX_M) | `quack-nav/src/explore/mod.rs` |  |
 | `QK_GUARD_ARC_FULL` | accesa solo con 1 | `quack-duck/src/body.rs` | Turning costs little forward speed: 0.110 m/s at vyaw 0.7 against 0.121 straight, measured on the human drive (2026-09-07). |
 | `QK_HOLD_HEADING` | accesa solo con 1 | `quack-nav/examples/paper_twin.rs`, `quack-duck/src/body.rs` | The heading hold (`tools::timed_move_held`, 2026-09-18): on a walking leg that is not an arc the taps cancel the veer — measured 1–3 cm of lateral drift per metre in place of 1–14, the heading within ±4°. |
-| `QK_INFLATE_M` | numero (assente: spenta) | `quack-nav/src/frontier.rs` | The inflation the planner runs with: the body's half-width, 0.10 (`QK_INFLATE_M`). |
+| `QK_INFLATE_M` | numero (default 0.12) | `quack-nav/src/frontier.rs` | The inflation the planner runs with: the body's half-width, 0.10 (`QK_INFLATE_M`). |
 | `QK_LANE_HALF_M` | numero (default LANE_HALF_M) | `quack-nav/src/explore/mod.rs` |  |
 | `QK_LANE_RAILS` | numero (default usize::MAX) | `quack-nav/src/map.rs` | How many rails [`Grid::lane_clear`] samples across the lane: 3 is the old behaviour, anything more means every half cell. |
 | `QK_LEG_RESERVE_M` | numero (default LEG_RESERVE_M) | `quack-nav/src/explore/mod.rs` |  |
@@ -45,11 +47,12 @@ gemello. Le manopole che si chiamavano `QUACKSAT_*` sono `QK_*` dal
 | `QK_MAP_STAND_S` | numero (default LEG_STOP_S) | `quack-nav/src/explore/mapping.rs` | How long a mapping leg stands. See [`Job::stop_s`]. |
 | `QK_MOUTH_M` | numero (default PASSAGE_MOUTH_M) | `quack-nav/src/explore/guarded.rs` |  |
 | `QK_NO_GUARDS` | 1 accesa, 0 spenta, altrimenti il default del chiamante | `quack-nav/src/explore/journey.rs` | `QK_NO_GUARDS`: every leg, kick and pulse goes through `robot.move`, blind, and the route check is off — the planner alone (the frozen map, the books, the margins) brings the duck home. |
-| `QK_ORACLE_HOLES` | un valore | `quack-nav/src/oracle.rs` | The process's oracle, from the knobs (none set: `None`). |
-| `QK_ORACLE_POSE` | un valore | `quack-nav/src/oracle.rs` | The process's oracle, from the knobs (none set: `None`). |
-| `QK_ORACLE_WALLS` | un valore | `quack-nav/src/oracle.rs` | The process's oracle, from the knobs (none set: `None`). |
+| `QK_ORACLE_HOLES` | un valore | `quack-nav/src/oracle.rs` |  |
+| `QK_ORACLE_POSE` | un valore | `quack-nav/src/oracle.rs` |  |
+| `QK_ORACLE_WALLS` | un valore | `quack-nav/src/oracle.rs` |  |
 | `QK_PASSAGE_BOOK` | 1 accesa, 0 spenta, altrimenti il default del chiamante | `quack-nav/src/explore/guarded.rs` | `QK_PASSAGE_BOOK=0`: the sensor's rim beside the body is not put on the books by the passage law (measuring). |
 | `QK_PASSAGE_CLIFF_MARGIN_M` | numero (default 0.25) | `quack-nav/src/explore/guarded.rs` | The margin from an edge a passage leg asks of the guard. |
+| `QK_PASSAGE_HELD` | 1 accesa, 0 spenta, altrimenti quella del modo | `quack-nav/src/explore/mode.rs` |  |
 | `QK_PASSAGE_HUG` | 1 accesa, 0 spenta, altrimenti quella del modo | `quack-nav/src/explore/mode.rs` |  |
 | `QK_PASSAGE_LAW` | 1 accesa, 0 spenta, altrimenti il default del chiamante | `quack-nav/src/explore/guarded.rs` |  |
 | `QK_PASSAGE_MIN_W` | numero (default PASSAGE_MIN_W_M) | `quack-nav/src/explore/guarded.rs` | `QK_PASSAGE_MIN_W`: 0.30 since 2026-09-16 (was 0.50, then 0.42): the width is measured wall-to-(rim point − its 0.10 radius), so the 0.44 m strip east of the twin's stairwell reads 0.30–0.34 and the 0.55 m west passage r… |
@@ -59,7 +62,7 @@ gemello. Le manopole che si chiamavano `QUACKSAT_*` sono `QK_*` dal
 | `QK_PULL_ROUTE` | accesa salvo 0 | `quack-nav/src/frontier.rs` | `QK_PULL_ROUTE=0` leaves Dijkstra's staircase as it is. |
 | `QK_REACH_TO_FLOOR` | accesa salvo 0 | `quack-nav/src/explore/books.rs` | `QK_REACH_TO_FLOOR=0`: the reach behind a rim ignores where the floor comes back (see `record_drops`). |
 | `QK_REANCHOR` | accesa salvo 0 | `quack-nav/src/explore/journey.rs` | Aim at the farthest point of the path the body can walk to in a straight line, instead of the one a fixed number of cells ahead. |
-| `QK_REFUSED_REARM` | accesa solo con 1 | `quack-nav/src/explore/gait.rs` | `QK_REFUSED_REARM`: `0` one-shot per job, `1` after every walked leg, else (default) once the body has moved [`REARM_DIST_M`]. |
+| `QK_REFUSED_REARM` | one of 0, 1, else the default | `quack-nav/src/explore/gait.rs` | `QK_REFUSED_REARM`: `0` one-shot per job, `1` after every walked leg, else (default) once the body has moved [`REARM_DIST_M`]. |
 | `QK_RIM_OFF` | 1 accesa, 0 spenta, altrimenti il default del chiamante | `quack-nav/src/explore/mod.rs` |  |
 | `QK_RIM_TOUR` | 1 accesa, 0 spenta, altrimenti il default del chiamante | `quack-nav/src/explore/rim_tour.rs` | `QK_RIM_TOUR=0`: no rounds of the holes. |
 | `QK_ROUTE_CHECK_M` | numero (default ROUTE_CHECK_M) | `quack-nav/src/explore/guarded.rs` |  |
@@ -67,7 +70,7 @@ gemello. Le manopole che si chiamavano `QUACKSAT_*` sono `QK_*` dal
 | `QK_SMOOTH_PATH` | accesa salvo 0 | `quack-nav/src/explore/journey.rs` |  |
 | `QK_SPIN_RAD` | numero (default 0.6) | `quack-nav/src/explore/gait.rs` | `QK_SPIN_RAD`: a leg whose aim is more than this off the nose turns in place first (closed on the yaw, [`Job::align`]) instead of walking a curve — a curve from a standstill drifts sideways for its first second, into a w… |
 | `QK_SPIN_WATCH` | accesa salvo 0 | `quack-nav/src/explore/gait.rs` | `QK_SPIN_WATCH=0`: turn in place without watching the sensor, as before. |
-| `QK_STICK_CAREFUL` | 1 accesa, 0 spenta, altrimenti il default del chiamante | `quack-nav/src/explore/navigate.rs` | Walk to `goal` by `deadline` (see the module): `Done` "arrived at", `Failed` with why, `Stopped`. |
+| `QK_STICK_CAREFUL` | 1 accesa, 0 spenta, altrimenti il default del chiamante | `quack-nav/src/explore/navigate.rs` |  |
 | `QK_STRAIGHT_LOOK_M` | numero (default STRAIGHT_LOOK_M) | `quack-nav/src/explore/journey.rs` |  |
 | `QK_STRAIGHT_RAD` | numero (default STRAIGHT_RAD) | `quack-nav/src/explore/gait.rs` |  |
 | `QK_STRING_PULL_M` | numero (default STRING_PULL_M) | `quack-nav/src/explore/journey.rs` |  |
@@ -81,7 +84,7 @@ gemello. Le manopole che si chiamavano `QUACKSAT_*` sono `QK_*` dal
 | `MAPLOC_CONFIRM_TRAVEL` | numero (default 0.5) | `maploc/src/mapper.rs` | At boot, how far the body must have moved between the window that nominated a candidate and the one that confirms it. |
 | `MAPLOC_CONTINUOUS` | presente = accesa (qualsiasi valore) | `maploc/examples/replay.rs` |  |
 | `MAPLOC_GRAPH_DEBUG` | presente = accesa (qualsiasi valore) | `maploc/src/pipeline.rs` |  |
-| `MAPLOC_HEAD_LEAD_MS` | numero (default 5_000_000) | `quack-nav/src/mapd/mod.rs`, `maploc/src/bench.rs` | `MAPLOC_HEAD_LEAD_MS`, as robotd read it: 5 ms by default — with 0 the standing drift was +0.17/+0.22°/min, with 20 and 40 it turned negative (twin, 2026-09-16). |
+| `MAPLOC_HEAD_LEAD_MS` | numero (default 5_000_000, after conversion) | `quack-nav/src/mapd/mod.rs`, `maploc/src/bench.rs` | `MAPLOC_HEAD_LEAD_MS`, as robotd read it: 5 ms by default — with 0 the standing drift was +0.17/+0.22°/min, with 20 and 40 it turned negative (twin, 2026-09-16). |
 | `MAPLOC_HYP_LEAD` | numero (default 3) | `maploc/src/mapper.rs` | How many hits the leading hypothesis must have over the runner-up before it is nominated. |
 | `MAPLOC_HYP_TRAVEL` | numero (default 1.0) | `maploc/src/mapper.rs` | How far the body must have got from where it first saw a hypothesis before the hypothesis can be believed — the chord, not the path. |
 | `MAPLOC_LOCAL_AFTER_BOOT` | accesa salvo 0 | `maploc/src/mapper.rs` | `MAPLOC_LOCAL_AFTER_BOOT=0`: every loss on a resumed map searches the whole map with every hypothesis, as before 2026-09-28. |
@@ -106,9 +109,10 @@ gemello. Le manopole che si chiamavano `QUACKSAT_*` sono `QK_*` dal
 | `MAPLOC_WATCHDOG_RESCUE` | accesa salvo 0 | `maploc/src/mapper.rs` | `MAPLOC_WATCHDOG_RESCUE=0`: the watchdog judges a window at the carried pose alone, as before 2026-09-28. |
 | `AB_REPO` | un valore (script) | `scripts/twin/houses/final_house.py` |  |
 | `ACC_RANGE` | numero (default mapper_cfg.accumulator.max_range_m) | `maploc/examples/evaluate.rs` | `ACC_RANGE`: how far a beam may be and still reach the map. |
-| `ALIGN_BEAMS` | numero (assente: spenta) | `maploc/examples/align_maps.rs` |  |
-| `ALIGN_RESID` | numero (assente: spenta) | `maploc/examples/align_maps.rs` |  |
+| `ALIGN_BEAMS` | number (unset: none) | `maploc/examples/align_maps.rs` |  |
+| `ALIGN_RESID` | number (unset: none) | `maploc/examples/align_maps.rs` |  |
 | `ASK_EVERY_S` | numero (default 60.0) | `maploc/examples/wake_match.rs` |  |
+| `ASK_FOR_S` | numero (default 900.0) | `maploc/examples/wake_match.rs` |  |
 | `BOOK` | un valore | `quack-nav/examples/drop_replay.rs` | `BOOK=<ground.json>:<map>`: the book's holes too, each checked against the floor strike (explore::books' rule, replayed): which phantoms it would take off, and whether it ever takes a true rim. |
 | `CORR_LOG` | un percorso, o un valore | `maploc/examples/trajectory.rs` | `CORR_LOG=<file>`: every tracking correction a window made, against the truth — which of them moved the pose toward it and which away (casa_arredata, 2026-09-29: the windows pulled the pose 3.5-7 cm north one after the o… |
 | `CUT_ON_CORR` | numero (default mapper_cfg.tracking.cut_on_correction_m) | `maploc/examples/evaluate.rs` |  |
@@ -128,7 +132,7 @@ gemello. Le manopole che si chiamavano `QUACKSAT_*` sono `QK_*` dal
 | `LOOP_SPREAD` | numero (default slam_cfg.loops.verify_max_spread_m) | `maploc/examples/evaluate.rs` |  |
 | `LOOP_VERBOSE` | presente = accesa (qualsiasi valore) | `maploc/examples/evaluate.rs` |  |
 | `MAP_FALLBACK` | un valore (script) | `scripts/twin/viewer/body_with_map.py` |  |
-| `MAP_LOAD_AT_S` | numero (assente: spenta) | `quack-nav/examples/drop_replay.rs`, `maploc/examples/trajectory.rs` | `MAP_LOAD_AT_S=<t>`: a fresh map until `t` seconds into the recording, the saved one from then on, as the daemon boots live (see `bench::replay_loading`); unset, the saved one from the start. |
+| `MAP_LOAD_AT_S` | number (unset: none) | `quack-nav/examples/drop_replay.rs`, `maploc/examples/trajectory.rs` | `MAP_LOAD_AT_S=<t>`: a fresh map until `t` seconds into the recording, the saved one from then on, as the daemon boots live (see `bench::replay_loading`); unset, the saved one from the start. |
 | `MAP_LOAD_CARRY` | accesa salvo 0 | `maploc/examples/trajectory.rs` |  |
 | `MAP_SESSION` | un percorso, o un valore | `quack-nav/examples/drop_replay.rs`, `maploc/examples/evaluate.rs`, `maploc/examples/trajectory.rs` | `MAP_SESSION=<file>` replays into a map saved by an earlier run, starting lost: the boot-relocalization question, on the bench. |
 | `MAX_T` | numero (default f32::INFINITY) | `maploc/examples/evaluate.rs` |  |
@@ -152,11 +156,11 @@ gemello. Le manopole che si chiamavano `QUACKSAT_*` sono `QK_*` dal
 | `REJECT` | numero (default slam_cfg.optimizer.reject_sigmas) | `maploc/examples/evaluate.rs` |  |
 | `REJECT_MAX` | numero (default slam_cfg.optimizer.reject_max as f32) | `maploc/examples/evaluate.rs` |  |
 | `RELOC_AGREE` | numero (default mapper_cfg.relocalize_agree_windows as f32) | `maploc/examples/evaluate.rs` |  |
-| `RELOC_DEBUG` | presente = accesa (qualsiasi valore) | `maploc/src/mapper.rs`, `maploc/src/relocalize.rs` | A wake-up believes nothing it has not walked for. |
-| `REPLAY_HEAD_DT_MS` | numero (assente: spenta) | `maploc/src/bench.rs` | `REPLAY_HEAD_DT_MS=<ms>`: each depth frame takes the head's pose from the robot-state sample nearest its own time plus this, instead of the last sample before it — to measure what the pairing of the head with the frames … |
+| `RELOC_DEBUG` | presente = accesa (qualsiasi valore) | `maploc/src/mapper.rs`, `maploc/src/relocalize.rs` |  |
+| `REPLAY_HEAD_DT_MS` | number (unset: none) | `maploc/src/bench.rs` | `REPLAY_HEAD_DT_MS=<ms>`: each depth frame takes the head's pose from the robot-state sample nearest its own time plus this, instead of the last sample before it — to measure what the pairing of the head with the frames … |
 | `ROUNDS_ONLY` | un valore (script) | `scripts/twin/houses/final_house.py` |  |
 | `SAVE_SESSION` | un percorso, o un valore | `maploc/examples/trajectory.rs` | `SAVE_SESSION=<file>`: the map the replay built, saved as the live daemon saves it — for `dump_frame` and `map_vs_truth.py`. |
-| `SLANT` | numero (assente: spenta) | `maploc/examples/submap_fit.rs` | `SLANT=x0,x1,y0,y1`: how many of this submap's wall cells fall in that box. |
+| `SLANT` | number (unset: none) | `maploc/examples/submap_fit.rs` | `SLANT=x0,x1,y0,y1`: how many of this submap's wall cells fall in that box. |
 | `TRACK` | accesa solo con 1 | `maploc/examples/evaluate.rs` |  |
 | `TRACK_COND` | numero (default mapper_cfg.tracking.min_conditioning) | `maploc/examples/evaluate.rs` |  |
 | `TRACK_IMPROVE` | numero (default mapper_cfg.tracking.min_improvement) | `maploc/examples/evaluate.rs` |  |
@@ -169,8 +173,8 @@ gemello. Le manopole che si chiamavano `QUACKSAT_*` sono `QK_*` dal
 | `UNC_BEAMS` | numero (default u.independent_beams) | `maploc/examples/trajectory.rs` |  |
 | `UNC_FLOOR` | numero (default u.match_floor_m) | `maploc/examples/trajectory.rs` |  |
 | `UNC_SKIP` | numero (default u.skip_recent_submaps as f64) | `maploc/examples/trajectory.rs` |  |
-| `UNC_XY` | numero (default u.xy_var_per_m.sqrt() | `maploc/examples/trajectory.rs` |  |
-| `UNC_YAW_M` | numero (default u.yaw_var_per_m.sqrt() | `maploc/examples/trajectory.rs` |  |
-| `UNC_YAW_RAD` | numero (default u.yaw_var_per_rad.sqrt() | `maploc/examples/trajectory.rs` |  |
+| `UNC_XY` | numero (default u.xy_var_per_m.sqrt()) | `maploc/examples/trajectory.rs` |  |
+| `UNC_YAW_M` | numero (default u.yaw_var_per_m.sqrt()) | `maploc/examples/trajectory.rs` |  |
+| `UNC_YAW_RAD` | numero (default u.yaw_var_per_rad.sqrt()) | `maploc/examples/trajectory.rs` |  |
 | `WAKE_SPAWNS` | un valore (script) | `scripts/twin/houses/wake_bench.py` |  |
 | `WAKE_TURN` | un valore (script) | `scripts/twin/houses/wake_bench.py` |  |

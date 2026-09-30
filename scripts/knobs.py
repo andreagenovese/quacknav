@@ -11,7 +11,11 @@ helpers that take a name — `quack_duck::env::qk("X")` and `env_switch("X")`
 (both read `QK_X`), `switch("NAME")`, `knob("NAME", default)`, `envf`,
 `envf32` — in quack-nav, quack-duck and maploc; `os.environ` in the twin's
 Python. Variables of the build and the shell (`RUST_LOG`, `HOME`...) are
-left out.
+left out. A second, cruder reading — every "QK_…"/"MAPLOC_…" literal in the
+Rust sources outside comments — must be covered by the list, or the run
+fails: the parser once swallowed a read standing close after another and
+lost four knobs, and a check of the generator against itself cannot see
+that.
 """
 import os
 import re
@@ -20,28 +24,50 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SKIP = {"RUST_LOG", "HOME", "PATH", "USER", "TMPDIR", "CARGO_MANIFEST_DIR", "PYTHONPATH", "UPDATE_GOLDEN"}
 CALL = re.compile(
-    r'(?P<fn>env::var_os|env::var|env::qk|env_switch|\bswitch|\bknob|\benvf32|\benvf)\(\s*"(?P<name>[A-Z][A-Z0-9_]+)"(?P<rest>[^;{]{0,160})'
+    r'(?P<fn>env::var_os|env::var|env::qk|env_switch|\bswitch|\bknob|\benvf32|\benvf)\(\s*"(?P<name>[A-Z][A-Z0-9_]+)"'
 )
 
 
-def semantics(fn, rest, tail):
-    if fn in ("env::qk",) or fn == "env_switch":
-        if fn == "env_switch":
-            return "1 on, 0 off, else the mode's own"
+def balanced(text, open_at):
+    """The text inside the parenthesis opened at `open_at`."""
+    depth = 0
+    for k in range(open_at, len(text)):
+        if text[k] == "(":
+            depth += 1
+        elif text[k] == ")":
+            depth -= 1
+            if depth == 0:
+                return text[open_at + 1 : k]
+    return text[open_at + 1 :]
+
+
+def semantics(fn, stmt, before):
+    if fn == "env_switch":
+        return "1 on, 0 off, else the mode's own"
     if fn == "switch":
         return "1 on, 0 off, else the caller's default"
     if fn in ("knob", "envf", "envf32"):
-        d = re.match(r"\s*,\s*([^)]+)\)", rest)
-        return f"number (default {d.group(1).strip()})" if d else "number"
-    t = tail[:160]
-    d = re.search(r"unwrap_or\(\s*([^)]+?)\s*\)", t)
-    if ".parse" in t[:90]:
-        return f"number (default {d.group(1)})" if d else "number (unset: off)"
-    if re.search(r'!=\s*"0"', t[:110]):
+        d = re.match(r'\(\s*"[A-Z0-9_]+"\s*,\s*', stmt)
+        if d:
+            open_at = stmt.find("(")
+            arg = balanced(stmt, open_at).split(",", 1)[1].strip()
+            return f"number (default {arg})"
+        return "number"
+    arms = re.findall(r'(?:Some|Ok)\("([^"]+)"\)', stmt)
+    if re.search(r"\bmatch\s*$", before) or len(arms) >= 2:
+        return "one of " + ", ".join(dict.fromkeys(arms)) + ", else the default"
+    if ".parse" in stmt:
+        u = stmt.find("unwrap_or(")
+        if u >= 0:
+            d = " ".join(balanced(stmt, u + len("unwrap_or")).split())
+            converted = ".map(" in stmt[stmt.find(".parse") : u]
+            return f"number (default {d}{', after conversion' if converted else ''})"
+        return "number (unset: none)"
+    if re.search(r'!=\s*"0"', stmt):
         return "on unless 0"
-    if re.search(r'==\s*"1"|Some\("1"\)|Ok\("1"\)', t[:110]):
-        return "on only if 1" + (" (2: more)" if '"2"' in t[:110] else "")
-    if re.match(r"\s*\)\s*\.(is_some|is_ok)\(\)", t):
+    if re.search(r'==\s*"1"', stmt):
+        return "on only if 1" + (" (2: more)" if '"2"' in stmt else "")
+    if re.match(r'\(\s*"[A-Z0-9_]+"\s*\)\s*\.(is_some|is_ok)\(\)', stmt):
         return "set = on (any value)"
     if fn == "env::var_os":
         return "a path, or a value"
@@ -49,21 +75,27 @@ def semantics(fn, rest, tail):
 
 
 def comment_above(lines, i):
-    """The comment block right above line i, or above the fn that holds it."""
-    j = i - 1
-    block = []
-    while j >= 0 and re.match(r"\s*//", lines[j]):
-        block.insert(0, re.sub(r"^\s*//[/!]?\s?", "", lines[j]))
-        j -= 1
-    if not block:
-        k = i
-        while k >= 0 and not re.match(r"\s*(pub(\([a-z]+\))?\s+)?fn\s", lines[k]):
-            k -= 1
-        j = k - 1
+    """The comment right above line i; else, when the read sits within the
+    first lines of a short function, that function's doc."""
+    def block_above(j):
+        out = []
         while j >= 0 and re.match(r"\s*(//|#\[)", lines[j]):
             if lines[j].strip().startswith("//"):
-                block.insert(0, re.sub(r"^\s*//[/!]?\s?", "", lines[j]))
+                out.insert(0, re.sub(r"^\s*//[/!]?\s?", "", lines[j]))
             j -= 1
+        return out
+
+    block = block_above(i - 1)
+    if not block:
+        k = i
+        fn_line = r"\s*(pub(\([a-z]+\))?\s+)?fn\s"
+        while k >= 0 and i - k <= 6 and not re.match(fn_line, lines[k]):
+            k -= 1
+        if k >= 0 and i - k <= 6 and re.match(fn_line, lines[k]):
+            indent = lines[k][: len(lines[k]) - len(lines[k].lstrip())]
+            ends_soon = any(lines[j] == indent + "}" for j in range(i, min(len(lines), i + 9)))
+            if ends_soon:
+                block = block_above(k - 1)
     text = " ".join(x.strip() for x in block if x.strip())
     parts = re.split(r"(?<=\.)\s", text) if text else []
     first = ""
@@ -86,18 +118,23 @@ def collect():
                 rel = os.path.relpath(p, ROOT)
                 src = open(p, encoding="utf-8").read()
                 lines = src.split("\n")
-                for m in CALL.finditer(src):
+                reads = list(CALL.finditer(src))
+                for n_, m in enumerate(reads):
                     fnn, name = m.group("fn"), m.group("name")
                     if fnn in ("env::qk", "env_switch"):
                         name = "QK_" + name
                     if name in SKIP:
                         continue
                     line = src[: m.start()].count("\n")
-                    tail = src[m.start("rest") :]
+                    stop = reads[n_ + 1].start() if n_ + 1 < len(reads) else len(src)
+                    stmt = src[src.find("(", m.start()) : stop][:400]
+                    semi = stmt.find(";")
+                    stmt = stmt if semi < 0 else stmt[:semi]
+                    before = src[max(0, m.start() - 40) : m.start()]
                     e = found.setdefault(name, {"where": [], "how": set(), "doc": ""})
                     if rel not in e["where"]:
                         e["where"].append(rel)
-                    e["how"].add(semantics(fnn, m.group("rest"), tail))
+                    e["how"].add(semantics(fnn, stmt, before))
                     if not e["doc"]:
                         e["doc"] = comment_above(lines, line)
     for dp, dn, fn in os.walk(os.path.join(ROOT, "scripts")):
@@ -174,8 +211,35 @@ def render(found, lang):
     return "".join(out)
 
 
+def raw_names():
+    """Every "QK_…" / "MAPLOC_…" string literal in the Rust sources outside
+    comments, and every name given to `qk`/`env_switch`: a second reading of
+    the code, not by the parser above, that the list must cover."""
+    names = {}
+    for top in ("quack-nav", "quack-duck", "maploc"):
+        for dp, dn, fn in os.walk(os.path.join(ROOT, top)):
+            dn[:] = [d for d in dn if d != "target"]
+            for f in fn:
+                if not f.endswith(".rs"):
+                    continue
+                rel = os.path.relpath(os.path.join(dp, f), ROOT)
+                for n, line in enumerate(open(os.path.join(dp, f), encoding="utf-8"), 1):
+                    code = line.split("//", 1)[0]
+                    for m in re.finditer(r'"((?:QK|MAPLOC)_[A-Z0-9_]+)"', code):
+                        names.setdefault(m.group(1), f"{rel}:{n}")
+                    for m in re.finditer(r'(?:env::qk|env_switch)\(\s*"([A-Z0-9_]+)"', code):
+                        names.setdefault("QK_" + m.group(1), f"{rel}:{n}")
+    return names
+
+
 def main():
     found = collect()
+    missed = {n: w for n, w in raw_names().items() if n not in found and not n.startswith("QK_ENV_TEST")}
+    if missed:
+        print("read by the code but not in the list (the parser missed them):")
+        for n, w in sorted(missed.items()):
+            print(f"  {n}  {w}")
+        sys.exit(1)
     targets = {"en": os.path.join(ROOT, "docs", "knobs.md"), "it": os.path.join(ROOT, "docs", "knobs.it.md")}
     stale = []
     for lang, path in targets.items():
