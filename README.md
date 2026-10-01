@@ -25,6 +25,9 @@ commands to quack-nav's tools and does no navigation.
 > [docs/results.md](docs/results.md) are what the twin measured, not a
 > promise of what a real house will do.
 
+Current release: **v0.2.0-rc1**, a release candidate validated on the twins —
+[release notes](docs/release-notes-v0.2.0-rc1.md), [changelog](CHANGELOG.md).
+
 ## What it is for
 
 A duck that knows where it is can be told where to go. `quack-navd`
@@ -135,7 +138,11 @@ does to a passage).
 
 ## Running it
 
+Rust 1.89 or newer; the first build fetches Pollen's `duck-ipc-proto` and
+`kinematics` crates from GitHub (tag daemon-v0.14.4).
+
 ```sh
+git clone https://github.com/andreagenovese/quacknav.git && cd quacknav
 cargo build --release
 target/release/quack-navd /etc/robot/quack-nav.toml
 ```
@@ -167,7 +174,27 @@ robotd changes — daemon-v0.14.4 publishes everything the mapper needs.
 With it off, the map comes from a robotd that hosts maploc itself.
 
 `quack-nav/systemd/quack-navd.service` and `quack-nav/systemd/sysusers.d/`
-install it as an unprivileged service beside robotd.
+install it as an unprivileged service beside robotd; the unit runs
+`/usr/local/bin/quack-navd /etc/robot/quack-nav.toml` and creates
+`/run/quack-nav/` for the sockets. Run by hand outside that unit,
+`/run/quack-nav/` must exist and be writable — `[maploc] socket` defaults to
+`/run/quack-nav/map.sock` even when `socket` is set elsewhere — or the daemon
+stops at once with `No such file or directory`. It starts without robotd
+and tofd and waits for them (tools answer "no map yet" meanwhile); without
+the duck, the MuJoCo twin stands in for both
+([scripts/twin/README.md](scripts/twin/README.md)).
+
+The tests and the paper twin gate, as CI runs them
+(`.github/workflows/ci.yml`):
+
+```sh
+cargo test --workspace --release --features maploc/kinematics
+python3 scripts/knobs.py --check
+cargo build --release -p quack-nav --example paper_twin
+mkdir -p /tmp/paper-twin
+python3 scripts/ci/paper_twin_gate.py target/release/examples/paper_twin \
+    quack-nav/examples/apartment.world.json /tmp/paper-twin
+```
 
 ## Technical debt, and where it goes
 
@@ -181,7 +208,7 @@ prototype, not a navigation stack to the standards of the field.
   they are hard to reason about, and their thresholds were tuned on three
   simulated houses (two of them generated): they may be fitted to the twin.
 - **The code shows it.** `explore/mod.rs` is some 2,000 lines; 35
-  `QK_*` environment knobs (and 17 `MAPLOC_*`, all listed in [`docs/knobs.md`](docs/knobs.md), generated from the code); legs are `serde_json::Value`s; recovery decides on
+  `QK_*` environment knobs (and 18 `MAPLOC_*`, all listed in [`docs/knobs.md`](docs/knobs.md), generated from the code); legs are `serde_json::Value`s; recovery decides on
   error *messages* (the homecoming's `why.contains("° right")`), which a reworded sentence breaks.
 - **Localization is thresholds, not confidence.** The standard (AMCL, SLAM
   Toolbox, Cartographer) carries a covariance; here a pose is trusted or not.
@@ -192,7 +219,7 @@ prototype, not a navigation stack to the standards of the field.
   behaviour tree. Here: Dijkstra, a string pulled taut, stop-and-go legs, and
   recoveries spread through the explorer. The drop book is a costmap layer in
   all but name.
-- **Tests.** 152 tests (`#[test]`, 2026-09-30). The paper twin runs in CI as a
+- **Tests.** 151 tests passing and 1 ignored (2026-10-01). The paper twin runs in CI as a
   gate on fixed seeds (explore 40 × 1200 s, `go_to` 30;
   `.github/workflows/ci.yml`, `scripts/ci/paper_twin_gate.py`); beyond it,
   behaviour is verified by hours-long, non-deterministic runs on the MuJoCo

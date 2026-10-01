@@ -28,6 +28,9 @@ dell'utente agli strumenti di quack-nav e non fa navigazione.
 > sono quello che ha misurato il gemello, non una promessa di cosa farà
 > una casa vera.
 
+Release attuale: **v0.2.0-rc1**, una release candidate validata sui gemelli —
+[note di rilascio](docs/release-notes-v0.2.0-rc1.it.md), [changelog](CHANGELOG.it.md).
+
 ## A cosa serve
 
 Una papera che sa dov'è la si può mandare da qualche parte.
@@ -143,7 +146,11 @@ vero fa a un passaggio).
 
 ## Farlo girare
 
+Rust 1.89 o più recente; la prima compilazione scarica da GitHub i crate
+`duck-ipc-proto` e `kinematics` di Pollen (tag daemon-v0.14.4).
+
 ```sh
+git clone https://github.com/andreagenovese/quacknav.git && cd quacknav
 cargo build --release
 target/release/quack-navd /etc/robot/quack-nav.toml
 ```
@@ -175,7 +182,26 @@ non cambia niente — la daemon-v0.14.4 pubblica tutto ciò che serve al
 mapper. Spento, la mappa arriva da un robotd che ospita maploc da sé.
 
 `quack-nav/systemd/quack-navd.service` e `quack-nav/systemd/sysusers.d/`
-lo installano come servizio non privilegiato accanto a robotd.
+lo installano come servizio non privilegiato accanto a robotd; l'unità
+esegue `/usr/local/bin/quack-navd /etc/robot/quack-nav.toml` e crea
+`/run/quack-nav/` per i socket. Lanciato a mano fuori da quell'unità,
+`/run/quack-nav/` deve esistere ed essere scrivibile — `[maploc] socket` ha
+come predefinito `/run/quack-nav/map.sock` anche quando `socket` è altrove —
+altrimenti il demone si ferma subito con `No such file or directory`. Parte
+anche senza robotd e tofd e li aspetta (intanto gli strumenti rispondono "no
+map yet"); senza la papera, il gemello MuJoCo fa le veci di entrambi ([scripts/twin/README.it.md](scripts/twin/README.it.md)).
+
+I test e la soglia del gemello di carta, come li fa girare la CI
+(`.github/workflows/ci.yml`):
+
+```sh
+cargo test --workspace --release --features maploc/kinematics
+python3 scripts/knobs.py --check
+cargo build --release -p quack-nav --example paper_twin
+mkdir -p /tmp/paper-twin
+python3 scripts/ci/paper_twin_gate.py target/release/examples/paper_twin \
+    quack-nav/examples/apartment.world.json /tmp/paper-twin
+```
 
 ## Debito tecnico, e dove va
 
@@ -190,7 +216,7 @@ del settore.
   negli ADR. Insieme sono difficili da ragionare, e le loro soglie sono state
   tarate su tre case simulate (due generate): possono essere adattate al gemello.
 - **Il codice lo mostra.** `explore/mod.rs` è di circa 2.000
-  righe; 35 interruttori `QK_*` nell'ambiente (e 17 `MAPLOC_*`, tutti elencati in [`docs/knobs.it.md`](docs/knobs.it.md), generato dal codice); le gambe sono
+  righe; 35 interruttori `QK_*` nell'ambiente (e 18 `MAPLOC_*`, tutti elencati in [`docs/knobs.it.md`](docs/knobs.it.md), generato dal codice); le gambe sono
   `serde_json::Value`; i recuperi decidono sui *messaggi* di errore
   (`why.contains("° right")` nella ricerca del ritorno a casa), che una frase riformulata rompe.
 - **La localizzazione è fatta di soglie, non di confidenza.** Lo standard
@@ -202,7 +228,7 @@ del settore.
   e i recuperi in un behavior tree. Qui: Dijkstra, un filo teso, gambe a
   stop-and-go, e recuperi sparsi nell'esploratore. Il libro dei drop è uno
   strato di costmap in tutto tranne che nel nome.
-- **Test.** 152 test (`#[test]`, 2026-09-30). Il gemello di carta gira in CI
+- **Test.** 151 test che passano e 1 ignorato (2026-10-01). Il gemello di carta gira in CI
   come soglia su semi fissi (esplorazione 40 × 1200 s, `go_to` 30;
   `.github/workflows/ci.yml`, `scripts/ci/paper_twin_gate.py`); oltre a
   quello, il comportamento si verifica con giri di ore, non deterministici,
