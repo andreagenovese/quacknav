@@ -73,6 +73,11 @@ rilascio: [docs/release-notes-v0.2.0-rc1.it.md](docs/release-notes-v0.2.0-rc1.it
   ogni push; da a5c83e8 anche `scripts/knobs.py --check`.
 - **`docs/knobs.it.md`**: ogni variabile d'ambiente che il codice legge,
   generata dal codice.
+- **Compilazione cross per la scheda** (`scripts/cross-build.sh`):
+  `cargo zigbuild` per `aarch64-unknown-linux-gnu` con la glibc minima
+  fissata a 2.31, senza Docker; il binario richiede glibc 2.30 ed è stato
+  fatto girare in un container Debian 13 arm64. README, "Compilare per la
+  papera".
 
 ### Modificato
 

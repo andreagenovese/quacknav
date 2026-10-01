@@ -48,7 +48,10 @@ On the MuJoCo twin unless said otherwise; sources in
 ## Build, install, run
 
 Follow the [README](../README.md#running-it): build, the configuration,
-the systemd unit, and the paper twin. The MuJoCo twin is in
+the systemd unit, and the paper twin. For the board (Radxa Zero 3,
+aarch64, Debian 13), `scripts/cross-build.sh` cross-builds `quack-navd`
+from a Mac or a Linux machine without Docker
+([Building for the duck](../README.md#building-for-the-duck)). The MuJoCo twin is in
 [scripts/twin/README.md](../scripts/twin/README.md).
 
 ## Upgrading from 0.1.0

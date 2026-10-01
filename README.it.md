@@ -210,6 +210,48 @@ python3 scripts/ci/paper_twin_gate.py target/release/examples/paper_twin \
     quack-nav/examples/apartment.world.json /tmp/paper-twin
 ```
 
+### Compilare per la papera
+
+La scheda della papera è una Radxa Zero 3 (RK3566, aarch64) con Armbian
+26.2.x e l'userland di Debian 13 (Trixie), glibc 2.41. Un Mac con Apple
+silicon ha la stessa CPU ma non lo stesso sistema operativo, quindi
+`quack-navd` si compila in cross per `aarch64-unknown-linux-gnu` con
+[cargo-zigbuild](https://github.com/rust-cross/cargo-zigbuild): `zig cc` fa
+da linker e porta con sé gli stub della glibc, senza Docker. La glibc minima
+è fissata a 2.31 — la stessa del `cargo board` di microduck — così il
+binario si carica sulla scheda qualunque glibc abbia la macchina che
+compila.
+
+```sh
+# una volta, su un Mac (il rustup di Homebrew è keg-only e non tocca il suo `rust`)
+brew install rustup zig cargo-zigbuild
+/opt/homebrew/opt/rustup/bin/rustup toolchain install stable --profile minimal \
+    --target aarch64-unknown-linux-gnu
+# a ogni compilazione
+scripts/cross-build.sh
+```
+
+Lo script trova la toolchain di rustup, esegue
+`cargo zigbuild --release -p quack-nav --bin quack-navd --target aarch64-unknown-linux-gnu.2.31`
+e controlla il risultato:
+
+```text
+target/aarch64-unknown-linux-gnu/release/quack-navd: ELF 64-bit LSB pie executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /lib/ld-linux-aarch64.so.1, for GNU/Linux 2.0.0, stripped
+glibc required: GLIBC_2.30
+```
+
+Il linker di zig stampa un avviso innocuo (`ignoring deprecated linker
+optimization setting '1'`). Il binario è stato fatto girare in un container
+`debian:trixie` arm64 (glibc 2.41): parte, crea i due socket e aspetta
+robotd e tofd. Su Linux lo stesso script funziona (`rustup target add
+aarch64-unknown-linux-gnu`, zig dalla distribuzione o `pip install
+ziglang`, `cargo install cargo-zigbuild`); in alternativa
+[`cross`](https://github.com/cross-rs/cross) con Docker o Podman
+(`cross build --release -p quack-nav --bin quack-navd --target
+aarch64-unknown-linux-gnu`), oppure un semplice `cargo build --release -p
+quack-nav --bin quack-navd` su una qualunque macchina Linux aarch64, scheda
+compresa (lento lì: quattro core Cortex-A55).
+
 ## Debito tecnico, e dove va
 
 Detto chiaramente, così nessuno deve scoprirlo da sé: questo è un prototipo

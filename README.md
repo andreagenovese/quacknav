@@ -203,6 +203,47 @@ python3 scripts/ci/paper_twin_gate.py target/release/examples/paper_twin \
     quack-nav/examples/apartment.world.json /tmp/paper-twin
 ```
 
+### Building for the duck
+
+The duck's board is a Radxa Zero 3 (RK3566, aarch64) running Armbian
+26.2.x with the Debian 13 (Trixie) userland, glibc 2.41. An Apple-silicon
+Mac shares the CPU but not the OS, so `quack-navd` is cross-built for
+`aarch64-unknown-linux-gnu` with
+[cargo-zigbuild](https://github.com/rust-cross/cargo-zigbuild): `zig cc`
+is the cross linker and brings the glibc stubs, no Docker needed. The glibc
+floor is pinned at 2.31 — what microduck's own `cargo board` pins — so the
+binary loads on the board whatever glibc the build host has.
+
+```sh
+# once, on a Mac (Homebrew's rustup is keg-only and leaves its `rust` alone)
+brew install rustup zig cargo-zigbuild
+/opt/homebrew/opt/rustup/bin/rustup toolchain install stable --profile minimal \
+    --target aarch64-unknown-linux-gnu
+# every build
+scripts/cross-build.sh
+```
+
+The script finds rustup's toolchain, runs
+`cargo zigbuild --release -p quack-nav --bin quack-navd --target aarch64-unknown-linux-gnu.2.31`,
+and checks the result:
+
+```text
+target/aarch64-unknown-linux-gnu/release/quack-navd: ELF 64-bit LSB pie executable, ARM aarch64, version 1 (SYSV), dynamically linked, interpreter /lib/ld-linux-aarch64.so.1, for GNU/Linux 2.0.0, stripped
+glibc required: GLIBC_2.30
+```
+
+Zig's linker prints one harmless warning (`ignoring deprecated linker
+optimization setting '1'`). The binary was run in a `debian:trixie`
+arm64 container (glibc 2.41): it starts, binds both sockets and waits for
+robotd and tofd. On Linux the same script works (`rustup target add
+aarch64-unknown-linux-gnu`, zig from the distribution or `pip install
+ziglang`, `cargo install cargo-zigbuild`); alternatives are
+[`cross`](https://github.com/cross-rs/cross) with Docker or Podman
+(`cross build --release -p quack-nav --bin quack-navd --target
+aarch64-unknown-linux-gnu`), or a plain `cargo build --release -p quack-nav
+--bin quack-navd` on any aarch64 Linux machine, the board included (slow
+there: four Cortex-A55 cores).
+
 ## Technical debt, and where it goes
 
 Said plainly, so nobody has to find it out: this is a rigorously measured

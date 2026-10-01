@@ -50,7 +50,10 @@ e [todo-map.it.md](todo-map.it.md) §2d.
 ## Compilare, installare, far girare
 
 Segui il [README](../README.it.md#farlo-girare): compilazione,
-configurazione, unità systemd e gemello di carta. Il gemello MuJoCo è in
+configurazione, unità systemd e gemello di carta. Per la scheda (Radxa
+Zero 3, aarch64, Debian 13), `scripts/cross-build.sh` compila
+`quack-navd` in cross da un Mac o da Linux senza Docker
+([Compilare per la papera](../README.it.md#compilare-per-la-papera)). Il gemello MuJoCo è in
 [scripts/twin/README.it.md](../scripts/twin/README.it.md).
 
 ## Aggiornare dalla 0.1.0
