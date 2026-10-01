@@ -79,6 +79,11 @@ fn main() {
     slam_cfg.odom_sigma_yaw = envf32("ODOM_SIGMA_YAW", slam_cfg.odom_sigma_yaw);
     slam_cfg.loops.edge_sigma_xy = envf32("LOOP_SIGMA_XY", slam_cfg.loops.edge_sigma_xy);
     slam_cfg.loops.edge_sigma_yaw = envf32("LOOP_SIGMA_YAW", slam_cfg.loops.edge_sigma_yaw);
+    // `FROZEN=1`: the map frozen, as quack-navd's rounds run on a house
+    // already mapped — nothing inks while the pose tracks. In the config,
+    // as the daemon's `mapper_config` sets it, so the mapper a
+    // `MAP_LOAD_AT_S` load builds is frozen too.
+    cfg.frozen = std::env::var("FROZEN").is_ok_and(|v| v == "1");
     // `MAP_LOAD_AT_S=<t>`: a fresh map until `t` seconds into the
     // recording, the saved one from then on, as the daemon boots live
     // (see `bench::replay_loading`); unset, the saved one from the start.
@@ -105,11 +110,6 @@ fn main() {
         (Some(saved), None) => (Mapper::resumed_lost(cfg, Slam::from_session(slam_cfg, saved)), None),
         (None, _) => (Mapper::new(cfg, Slam::new(slam_cfg)), None),
     };
-    // `FROZEN=1`: the map frozen, as quack-navd's rounds run on a house
-    // already mapped — nothing inks while the pose tracks.
-    if std::env::var("FROZEN").is_ok_and(|v| v == "1") {
-        mapper.set_frozen(true);
-    }
     let mut out = std::io::BufWriter::new(std::fs::File::create(&out_path).expect("create out.tsv"));
     let (mut next, mut written, mut untracked) = (0usize, 0u32, 0u32);
     // `DEGEN_LOG=<file>`: every relocalization the search confirmed or the
@@ -123,6 +123,11 @@ fn main() {
     // the truth — which of them moved the pose toward it and which away
     // (casa_arredata, 2026-09-29: the windows pulled the pose 3.5-7 cm north
     // one after the other across the living room, 0.49 m off in the end).
+    // Each row ends with the scene's conditioning at the window's pose
+    // (`conditioning_at`: l_min/l_max, l_max, l_min, the weak eigenvector)
+    // and the correction split along that eigenvector and across it, then
+    // the yaw entry over l_max (casa_grande, 2026-10-01: a standing duck's
+    // corrections, 11.6 mm along a wall each, 4.0 mm across).
     let mut corr = std::env::var_os("CORR_LOG")
         .map(|p| std::io::BufWriter::new(std::fs::File::create(p).expect("CORR_LOG")));
     // `ODOM_LOG=<file>`: the raw odometry the mapper was fed, on the Unix
@@ -191,9 +196,22 @@ fn main() {
                     let after = step.mapper.slam().tracked();
                     let (ax, ay) = (f64::from(after.0), f64::from(after.1));
                     let (bx, by) = (ax - f64::from(*dx), ay - f64::from(*dy));
+                    // The scene's conditioning at the window's pose: the
+                    // normal matrix's translational eigenvalues, and the
+                    // correction split along the weak eigenvector and
+                    // across it.
+                    let cond = match (step.mapper.last_window(), step.mapper.slam().render()) {
+                        (Some((pose, composite)), Some(mut grid)) => {
+                            let c = maploc::scan_matcher::conditioning_at(&mut grid, &composite.decimated(512), *pose);
+                            let along = dx * c.weak.0 + dy * c.weak.1;
+                            let across = -dx * c.weak.1 + dy * c.weak.0;
+                            format!("\t{:.4}\t{:.1}\t{:.1}\t{:.3}\t{:.3}\t{along:.4}\t{across:.4}\t{:.3}", c.ratio(), c.l_max, c.l_min, c.weak.0, c.weak.1, c.yaw / c.l_max.max(1e-9))
+                        }
+                        _ => String::new(),
+                    };
                     writeln!(
                         w,
-                        "{:.1}\t{ax:.3}\t{ay:.3}\t{tx:.3}\t{ty:.3}\t{dx:.3}\t{dy:.3}\t{:.2}\t{residual_before_m:.3}\t{residual_after_m:.3}\t{n_beams_used}\t{:.3}\t{:.3}",
+                        "{:.1}\t{ax:.3}\t{ay:.3}\t{tx:.3}\t{ty:.3}\t{dx:.3}\t{dy:.3}\t{:.2}\t{residual_before_m:.3}\t{residual_after_m:.3}\t{n_beams_used}\t{:.3}\t{:.3}{cond}",
                         step.t_s,
                         dyaw.to_degrees(),
                         (bx - tx).hypot(by - ty),

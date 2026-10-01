@@ -49,6 +49,23 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Corretto
 
+- **La posa di una papera ferma non scivola più lungo un muro.** A una
+  sosta, la correzione del tracciamento di ogni finestra ferma prendeva
+  come prior la risposta della finestra prima, e correzioni di un
+  centimetro si sommavano lungo una direzione che la scena fissa appena:
+  su casa_grande (modo localize, dopo un `go_to`) la papera del gemello è
+  rimasta quattordici minuti davanti a un solo muro lungo e la sua posa sulla
+  mappa ci ha camminato lungo 1,56 m in 132 correzioni, ognuna a
+  migliorare il residuo della sua finestra, finché ogni `go_to` falliva
+  "no way to … on the map". Ora la sosta di maploc tiene il prior delle
+  sue finestre, in posizione, dove la sosta è cominciata (quello
+  dell'angolo resta della posa, e corregge la deriva d'angolo
+  dell'odometria): rigiocata, la stessa registrazione resta entro 9 cm da
+  dove si è fermata (prima 1,62 m). Quaranta sessioni rigiocate di dieci
+  corse: ATE RMS medio 0,0913 -> 0,0920 m, 14 meglio e 14 peggio di oltre
+  5 mm — rumore. Il `FROZEN=1` di `trajectory` ora congela anche la mappa
+  che costruisce un caricamento `MAP_LOAD_AT_S`, e il suo `CORR_LOG` porta
+  il condizionamento di ogni correzione.
 - **I luoghi con nome sopravvivono a un'accensione.** Il registro rendeva
   stantio ogni luogo ogni volta che la mappa riportava meno submap di
   quante mai viste, e ogni avvio col ritorno a casa parte su una mappa

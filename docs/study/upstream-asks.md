@@ -101,6 +101,17 @@ still window, with a residual improvement threshold and a cap, so it can
 only ever tighten a pose. Ours is `TrackingConfig` in
 `maploc/src/mapper.rs` (274 lines of the diff, defaults on).
 
+**One thing to do differently from ours (2026-10-01).** A stand's windows
+are the same scene seen again, not new evidence: matched each with its
+prior on the last window's answer, their corrections add up along a
+direction the scene barely pins. Our twin's duck, standing fourteen
+minutes before one long wall, had its pose walked 1.56 m along it by 132
+corrections of about a centimetre, each improving its window's residual;
+the normal matrix, on the ink's roughness, called the direction
+conditioned (0.34 against our 0.10 bar). We now keep the prior's position
+where the stand began (odometry's carry since); the same recording stays
+within 9 cm, and forty replayed sessions are unchanged within noise.
+
 ## 3. Relocalize can be confidently wrong
 
 **What we see.** After a LOST, the global search returns a pose metres away

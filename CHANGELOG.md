@@ -45,6 +45,21 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Fixed
 
+- **A standing duck's pose no longer creeps along a wall.** At a stand,
+  every still window's tracking correction took the last window's answer
+  as its prior, so corrections of a centimetre added up along a direction
+  the scene barely pins: on casa_grande (localize mode, after a `go_to`)
+  the twin's duck stood fourteen minutes before one long wall and its map
+  pose walked 1.56 m along it in 132 corrections, each improving its
+  window's residual, until every `go_to` failed "no way to … on the map".
+  maploc's stand now keeps its windows' prior, in position, where the stand
+  began (the heading's stays the pose's own, which corrects odometry's yaw
+  drift): replayed, the same recording stays within 9 cm of where it
+  stopped (1.62 m before). Forty replayed sessions of ten runs: ATE RMS
+  mean 0.0913 -> 0.0920 m, 14 better and 14 worse by more than 5 mm —
+  noise. `trajectory`'s `FROZEN=1` now also freezes the map a
+  `MAP_LOAD_AT_S` load builds, and its `CORR_LOG` carries each correction's
+  conditioning.
 - **Named places survive a power-on.** The registry made every place
   stale whenever the map reported fewer submaps than ever seen, and every
   boot with the homecoming starts on a fresh map before it loads the saved

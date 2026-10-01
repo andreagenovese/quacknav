@@ -4212,6 +4212,49 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       12 sessioni.~~ Risposto in parte (2026-10-01): perché una chiusura
       misuri male non si sa — nulla di ciò che porta lo dice — ma la sua
       correzione d'angolo ha un tetto di 4°, vedi la voce qui sopra.
+- [x] 2026-10-01: una sosta lunga non fa più camminare la posa lungo un
+      muro. Su casa_grande (localize, quack-navd su `control-contract`) un
+      `go_to` è arrivato a (1,00, 2,20) e la papera è rimasta ferma ~14
+      minuti: 132 "tracked pose corrected against the map", ognuna sotto i
+      3 cm e ognuna a migliorare il residuo della sua finestra (~0,013 ->
+      0,010 m), sommate dx +1,56 m, dy -0,13 m; la posa sulla mappa è finita
+      a (2,54, 1,94), la verità a (1,19, 1,93), e ogni `go_to` falliva "no
+      way to … on the map". La registrazione (`1790876371.mdlg`, la
+      `casa_grande` salvata caricata a 10 s, congelata) la rigioca con
+      `trajectory`: 132 correzioni, dx +1,586, dy -0,123, la posa a (2,56,
+      1,96). Causa: la papera guardava un solo muro lungo (quello a nord
+      della casa, angolo 61° -> 140°: girava sul posto, odometria +80° in
+      14 min, traslazione sotto i 4 cm), e il match di ogni finestra
+      prendeva come prior la risposta della finestra prima, così ogni
+      correzione diventava la partenza della successiva. Lungo il muro la
+      scena non dice quasi nulla — un match libero dalla verità e dalla
+      posa finiscono entrambi a residui di 0,0002-0,006 m ovunque fra x
+      1,1 e 2,6 — ma la matrice normale, sulla ruvidità dell'inchiostro,
+      dava un condizionamento mediano di 0,34 (la soglia della proiezione è
+      0,10), e nulla veniva proiettato via: |correzione| media 11,6 mm
+      lungo l'autovettore debole, 4,0 mm di traverso. Non l'odometria (6 mm
+      / 38 mm in x/y nella sosta), non la testa, non l'inchiostro
+      (congelata: 628 submap per tutto il tempo). Corretto: le finestre di
+      una sosta tengono il prior, in posizione, dove la sosta è cominciata
+      (col trasporto dell'odometria da allora, senza le loro correzioni);
+      quello dell'angolo resta della posa, perché le finestre correggono la
+      deriva d'angolo dell'odometria. Lo stesso replay: 85 correzioni, la
+      posa sempre entro 9,4 cm da dove si era fermata, 2,7 cm alla fine.
+      Quaranta sessioni di dieci corse (x17-x24, apartment, casa_arredata,
+      casa_grande; s1 da zero, s2-s4 sulla sessione prima), ATE RMS medio
+      0,0913 -> 0,0920 m, mediana 0,0918 -> 0,0932, 14 meglio e 14 peggio
+      di oltre 5 mm, il peggiore +5,3 cm (x24-grande s2, 82 -> 81 loop):
+      rumore. Ancorando anche l'angolo 0,0920 (8 meglio, 13 peggio);
+      facendo anche partire il match dall'ancora 0,0935. Test:
+      `a_long_stand_does_not_walk_the_pose_along_a_wall` (0,24 m prima,
+      0,04 dopo). Il cancello del gemello di carta identico al byte. Da
+      verificare dal vivo: `go_to`, poi 15 minuti ferma col campionatore
+      della verità.
+- [ ] 2026-10-01: la papera del gemello gira sul posto mentre sta ferma:
+      +80° in 14 minuti dopo quel `go_to` (odometria e verità d'accordo:
+      61° -> 140°), circa 0,1°/s, sotto la soglia del test di fermo. Perché
+      — un `vyaw` rimasto (l'ultimo passo dello stick chiedeva 0,024 rad/s),
+      o il controllore in piedi — non si sa.
 - [ ] 2026-10-01: durante una giravolta veloce sul posto la posa della
       mappa può restare ferma fino a ~1.5 s, poi recuperare (x22
       casa_arredata: angolo sbagliato di 93° per 1.5 s con la posizione

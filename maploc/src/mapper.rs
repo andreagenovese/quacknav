@@ -55,7 +55,8 @@ pub struct TrackingConfig {
     /// drift correction but a disagreement, left to the watchdog.
     pub max_correction_m: f32,
     pub max_correction_rad: f32,
-    /// Gaussian prior on the tracked pose during the match.
+    /// Gaussian prior during the match: on the tracked pose, its position
+    /// at a stand on where the stand began (see `Mapper::absorb_window`).
     pub prior_sigma_xy: f32,
     pub prior_sigma_yaw: f32,
     /// The map must judge at least this many beams, and this fraction of
@@ -651,6 +652,11 @@ pub struct Mapper {
     /// The valleys refused while lost: (candidate, tracked pose then, the
     /// valley's direction), see [`Mapper::valley_blocks`].
     valleys: Vec<(Pose2, Pose2, (f32, f32))>,
+    /// How far the tracking corrections of the current stand have moved
+    /// the pose, map frame: the stand's windows are matched with their
+    /// prior where the stand began, not on the last window's answer (see
+    /// `absorb_window`).
+    stand_moved: (f32, f32),
 }
 
 /// `MAPLOC_WATCHDOG_RESCUE=0`: the watchdog judges a window at the carried
@@ -804,6 +810,7 @@ impl Mapper {
             slam,
             odom_window: Vec::new(),
             was_still: false,
+            stand_moved: (0.0, 0.0),
             after_boot: None,
             window_opened: None,
             windows: 0,
@@ -1013,6 +1020,7 @@ impl Mapper {
             // A stand begins: freeze the map the watchdog will judge this
             // stand's windows against.
             self.stand_grid = self.slam.render();
+            self.stand_moved = (0.0, 0.0);
         }
         self.was_still = still;
 
@@ -1519,6 +1527,20 @@ impl Mapper {
             }
             self.suspect = 0;
         }
+        // The match's prior is where the stand began (odometry's carry
+        // since, the windows' corrections not), in position; the heading's
+        // stays the pose's own, for odometry's yaw drifts at a stand and the
+        // windows are what correct it. A stand's windows are the same scene
+        // seen again, not new evidence: with the prior on the last window's
+        // answer, each correction became the next one's starting point, and
+        // along a direction the scene barely pins they added up. The twin's
+        // duck, standing fourteen minutes before one long wall, had its pose
+        // walked 1.56 m along it by 132 corrections of about a centimetre,
+        // each improving its window's residual (casa_grande, 2026-10-01; the
+        // normal matrix there said 0.3-0.5 of conditioning, the ink's
+        // roughness, so the projection below did not catch it). Anchored,
+        // the same recording's pose stays within 9 cm of where it stopped.
+        let prior = (pose.0 - self.stand_moved.0, pose.1 - self.stand_moved.1, pose.2);
         let mut pose = pose;
         let mut correction: Option<Pose2> = None;
         // A rescued window is not corrected by the rescue's match: applied,
@@ -1528,13 +1550,15 @@ impl Mapper {
         if self.cfg.tracking.enabled
             && let Some(grid) = self.stand_grid.as_mut()
             && let Some((delta, before, after, n_used)) =
-                tracking_correction(grid, composite, pose, &self.cfg.tracking)
+                tracking_correction(grid, composite, pose, prior, &self.cfg.tracking)
         {
             pose = compose(pose, delta);
             correction = Some(delta);
             let tracked = self.slam.tracked();
             self.slam.set_tracked(compose(tracked, delta));
             let moved = compose(tracked, delta);
+            self.stand_moved.0 += moved.0 - tracked.0;
+            self.stand_moved.1 += moved.1 - tracked.1;
             if self.cfg.tracking.cut_on_correction_m > 0.0
                 && (moved.0 - tracked.0).hypot(moved.1 - tracked.1)
                     >= self.cfg.tracking.cut_on_correction_m
@@ -1633,7 +1657,7 @@ impl Mapper {
             return;
         };
         let Some((delta, before, after, n_used)) =
-            tracking_correction(grid, &composite, pose, &self.cfg.tracking)
+            tracking_correction(grid, &composite, pose, pose, &self.cfg.tracking)
         else {
             return;
         };
@@ -1661,6 +1685,7 @@ impl Mapper {
         };
         let settle = self.cfg.settle.enabled && (self.resumed_from_session || self.after_fall);
         self.slam.set_tracked(pose);
+        self.stand_moved = (0.0, 0.0);
         // Let the submap manager see the jump BEFORE inking: after a
         // cross-room carry the current submap's grid is still anchored at
         // the pre-carry pose, and a composite integrated there is silently
@@ -1833,10 +1858,10 @@ impl Mapper {
     }
 }
 
-/// Match `composite` (body frame, taken at `pose`) against `grid` around
-/// `pose`; return the BODY-FRAME delta to apply, the residual before and
-/// after, and the beams used — or `None` when the match is not to be
-/// trusted. See [`TrackingConfig`].
+/// Match `composite` (body frame, taken at `pose`) against `grid` from
+/// `pose`, its Gaussian prior on `prior`; return the BODY-FRAME delta to
+/// apply, the residual before and after, and the beams used — or `None`
+/// when the match is not to be trusted. See [`TrackingConfig`].
 /// The watchdog's rescue match (see `watchdog_rescue`): a scan match from
 /// the carried pose with a prior wide enough for the drift the tracking's
 /// own could not take (0.30 m, 0.20 rad, 0.02 m residual after — built for
@@ -1861,6 +1886,7 @@ fn tracking_correction(
     grid: &mut OccupancyGrid,
     composite: &Scan,
     pose: Pose2,
+    prior: Pose2,
     cfg: &TrackingConfig,
 ) -> Option<(Pose2, f32, f32, u32)> {
     let probe = composite.decimated(512);
@@ -1880,7 +1906,7 @@ fn tracking_correction(
         Some(pose),
         &ScanMatchConfig { max_iters: 0, ..sm },
     );
-    let r = match_scan(grid, &probe, pose, Some(pose), &sm);
+    let r = match_scan(grid, &probe, pose, Some(prior), &sm);
     if !r.residual_m.is_finite()
         || r.n_beams_observed < cfg.min_observed_beams
         || (r.n_beams_observed as f32) < cfg.min_observed_fraction * r.n_beams_valid as f32
@@ -2044,6 +2070,80 @@ mod tests {
             }
         }
         Scan::from_polar(&angles, &ranges, (0.0, 0.0), 1e-3)
+    }
+
+    /// A head's fan of beams from `pose` onto one long wall (y = 1.2, x in
+    /// [-6, 6]) with a jamb against it (x = 0.5, y in [0.6, 1.2]), and nothing
+    /// else within range. Along the wall the jamb alone says where the
+    /// robot is: a few beams of the fan.
+    fn long_wall_scan(pose: Pose2) -> Scan {
+        let (mut angles, mut ranges) = (Vec::new(), Vec::new());
+        for k in 0..96 {
+            let a = -0.6 + k as f32 * (1.2 / 95.0);
+            let (dx, dy) = ((pose.2 + a).cos(), (pose.2 + a).sin());
+            let mut r = f32::INFINITY;
+            if dy > 1e-3 {
+                let t = (1.2 - pose.1) / dy;
+                if (-6.0..=6.0).contains(&(pose.0 + t * dx)) {
+                    r = t;
+                }
+            }
+            if dx.abs() > 1e-3 {
+                let t = (0.5 - pose.0) / dx;
+                if t > 0.0 && (0.6..=1.2).contains(&(pose.1 + t * dy)) {
+                    r = r.min(t);
+                }
+            }
+            if r < 3.5 {
+                angles.push(a);
+                ranges.push(r);
+            }
+        }
+        Scan::from_polar(&angles, &ranges, (0.0, 0.0), 1e-3)
+    }
+
+    /// A long stand in front of a long wall must not walk the pose along
+    /// it. The windows of one stand are the same scene seen again, not new
+    /// evidence: here each, matched alone, fits a little further along the
+    /// wall than the last (the scan's view drifts 1 mm a second while
+    /// odometry stands), the way the twin's duck, standing fourteen minutes
+    /// before a single wall, had its pose walked 1.56 m along it by 132
+    /// corrections of a centimetre each (casa_grande, 2026-10-01). Matched
+    /// against the stand's own start, they cannot add up.
+    #[test]
+    fn a_long_stand_does_not_walk_the_pose_along_a_wall() {
+        let mut mapper = Mapper::new(MapperConfig::default(), Slam::new(SlamConfig::default()));
+        let mut notes = Vec::new();
+        let up = std::f32::consts::FRAC_PI_2;
+        // Map the wall from five stands, half a metre apart.
+        let mut t = 0.0;
+        for (i, x) in [-1.0_f32, -0.5, 0.0, 0.5, 1.0].into_iter().enumerate() {
+            if i > 0 {
+                t = walk_in(&mut mapper, t, (x - 0.5, 0.0, up), (x, 0.0, up), 2.0, &mut notes, long_wall_scan);
+            }
+            t = drive_in(&mut mapper, t, (x, 0.0, up), 8.0, &mut notes, long_wall_scan);
+        }
+        t = walk_in(&mut mapper, t, (1.0, 0.0, up), (0.0, 0.0, up), 2.0, &mut notes, long_wall_scan);
+        mapper.set_frozen(true);
+        // Stand five minutes at the origin.
+        let at = mapper.slam().tracked();
+        let (t0, mut next) = (t, t);
+        let (mut corrections, mut worst) = (0, 0.0_f32);
+        while t < t0 + 300.0 {
+            notes.clear();
+            mapper.observe(t, MapperSample { odom: (0.0, 0.0, up), moving: false, sitting: false, fallen: false }, &mut notes);
+            if t >= next {
+                mapper.frame(t, long_wall_scan((0.001 * (t - t0), 0.0, up)));
+                next += 1.0 / 15.0;
+            }
+            corrections += notes.iter().filter(|n| matches!(n, Note::TrackingCorrected { .. })).count();
+            let p = mapper.slam().tracked();
+            worst = worst.max((p.0 - at.0).hypot(p.1 - at.1));
+            t += 0.02;
+        }
+        assert!(mapper.tracking());
+        assert!(corrections > 0, "the windows must have asked for something");
+        assert!(worst < 0.10, "the stand walked the pose {worst:.3} m");
     }
 
     /// The room with a half-divider at x = 0.3, y ∈ [-1.1, 0], which

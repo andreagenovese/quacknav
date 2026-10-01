@@ -106,6 +106,19 @@ così può solo stringere una posa e mai spostarla di molto. La nostra è
 `TrackingConfig` in `maploc/src/mapper.rs` (274 righe del diff, attiva di
 default).
 
+**Una cosa da fare diversamente dalla nostra (2026-10-01).** Le finestre
+di una sosta sono la stessa scena vista di nuovo, non prove nuove: con il
+prior di ciascuna sulla risposta della finestra prima, le loro correzioni
+si sommano lungo una direzione che la scena fissa appena. La papera del
+nostro gemello, ferma quattordici minuti davanti a un solo muro lungo, ha
+visto la sua posa camminarci lungo 1,56 m in 132 correzioni di circa un
+centimetro, ognuna a migliorare il residuo della sua finestra; la matrice
+normale, sulla ruvidità dell'inchiostro, dava la direzione per condizionata
+(0,34 contro la nostra soglia di 0,10). Ora teniamo la posizione del prior
+dove la sosta è cominciata (col trasporto dell'odometria da allora); la
+stessa registrazione resta entro 9 cm, e quaranta sessioni rigiocate non
+cambiano oltre il rumore.
+
 ## 3. La rilocalizzazione può sbagliare con sicurezza
 
 **Cosa vediamo.** Dopo un LOST la ricerca globale restituisce una posa a

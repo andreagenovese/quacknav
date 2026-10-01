@@ -3944,6 +3944,46 @@ nothing: it explores and asks.
       Answered in part (2026-10-01): why a closure measures wrong is not
       known — nothing it carries tells it — but its heading correction is
       capped at 4°, see the entry above.
+- [x] 2026-10-01: a long stand no longer walks the pose along a wall.
+      On casa_grande (localize, quack-navd on `control-contract`) a
+      `go_to` arrived at (1.00, 2.20) and the duck stood ~14 minutes: 132
+      "tracked pose corrected against the map", each under 3 cm and each
+      improving its window's residual (~0.013 -> 0.010 m), summed to
+      dx +1.56 m, dy -0.13 m; the map pose ended at (2.54, 1.94), the
+      truth at (1.19, 1.93), and every `go_to` failed "no way to … on the
+      map". The recording (`1790876371.mdlg`, the saved `casa_grande`
+      loaded at 10 s, frozen) replays it with `trajectory`: 132
+      corrections, dx +1.586, dy -0.123, the pose at (2.56, 1.96). Cause:
+      the duck faced one long wall (the house's north wall, yaw 61° ->
+      140°: it was turning in place, odometry +80° in 14 min, its
+      translation under 4 cm), and every window's match took the last
+      window's answer as its prior, so each correction became the next
+      one's start. Along the wall the scene says almost nothing — a free
+      match from the truth and from the pose both land at residuals of
+      0.0002-0.006 m anywhere over x 1.1-2.6 — but the normal matrix,
+      on the ink's roughness, gave a conditioning of 0.34 at the median
+      (0.10 is the projection's bar), so nothing was projected away: mean
+      |correction| 11.6 mm along the weak eigenvector, 4.0 mm across it.
+      Not odometry (6 mm/38 mm in x/y over the stand), not the head, not
+      ink (frozen: 628 submaps throughout). Fixed: a stand's windows keep
+      their prior, in position, where the stand began (odometry's carry
+      since, their own corrections not); the heading's stays the pose's,
+      since the windows correct odometry's yaw drift. The same replay: 85
+      corrections, the pose within 9.4 cm of where it stopped all along,
+      2.7 cm at the end. Forty sessions of ten runs (x17-x24, apartment,
+      casa_arredata, casa_grande; s1 fresh, s2-s4 on the session before),
+      ATE RMS mean 0.0913 -> 0.0920 m, median 0.0918 -> 0.0932, 14 better
+      and 14 worse by more than 5 mm, the worst +5.3 cm (x24-grande s2, 82
+      -> 81 loops): noise. Anchoring the heading too gave 0.0920 (8 better,
+      13 worse); also starting the match at the anchor 0.0935. Test:
+      `a_long_stand_does_not_walk_the_pose_along_a_wall` (0.24 m before,
+      0.04 after). The paper twin's gate the same to the byte. To check
+      live: `go_to`, then stand 15 minutes with the truth sampler.
+- [ ] 2026-10-01: the twin's duck turns in place while it stands: +80°
+      in 14 minutes after that `go_to` (odometry and truth agree: 61° ->
+      140°), about 0.1°/s, below the still test's bar. Why — a leftover
+      `vyaw` (the stick's last step asked 0.024 rad/s), or the standing
+      controller — is not known.
 - [ ] 2026-10-01: during a fast spin in place the map pose can stay still
       for up to ~1.5 s, then catch up (x22 casa_arredata: heading 93° off
       for 1.5 s with the position within 5 cm). Seen in every
