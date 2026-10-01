@@ -36,6 +36,17 @@ with the fork's additions and `QUACK_NAV_SOCKET`); `VIEWER=off` runs the
 plain body server and shows the duck alone, `VIEWER_DIR` points at
 another copy.
 
+The viewer is also the duck's camera (`viewer/eye.py`): there is no
+`mediad` on the twin, so it answers mediad's `media.frame` on
+`$STATE/media.sock` — the same JSON-RPC line, header (640x360, `UYVY`,
+`rotate` 90 like the real mount) and raw frame as `/run/mediad/media.sock`
+on the duck (daemon-v0.15.0) — rendered from the head camera of the model.
+quack-control's camera window reads it with the same adapter as on the
+duck. Nothing is rendered while nobody asks; a request costs the
+simulation one `mj_copyData` between two steps (~15 µs) and the render
+(~15 ms at 640x360, with the UYVY conversion ~17 ms) runs on the camera's
+own thread with its own `mujoco.Renderer`. `VIEWER=off`: no camera.
+
 ## Running
 
 ```sh

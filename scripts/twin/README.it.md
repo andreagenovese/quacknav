@@ -37,6 +37,18 @@ di Peter Schade, con le aggiunte del fork e `QUACK_NAV_SOCKET`);
 `VIEWER=off` fa girare il body server semplice e mostra solo l'anatra,
 `VIEWER_DIR` punta a un'altra copia.
 
+Il viewer è anche la telecamera dell'anatra (`viewer/eye.py`): sul
+gemello non c'è `mediad`, quindi risponde al `media.frame` di mediad su
+`$STATE/media.sock` — la stessa riga JSON-RPC, intestazione (640x360,
+`UYVY`, `rotate` 90 come il montaggio vero) e fotogramma grezzo di
+`/run/mediad/media.sock` sull'anatra (daemon-v0.15.0) — renderizzato dalla
+telecamera sulla testa del modello. La finestra della telecamera di
+quack-control lo legge con lo stesso adattatore che usa sull'anatra.
+Nessun render finché nessuno chiede; una richiesta costa alla simulazione
+un `mj_copyData` fra due passi (~15 µs), e il render (~15 ms a 640x360,
+~17 ms con la conversione UYVY) gira sul thread della telecamera con il
+suo `mujoco.Renderer`. `VIEWER=off`: niente telecamera.
+
 ## Farlo girare
 
 ```sh

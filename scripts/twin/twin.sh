@@ -128,7 +128,7 @@ TOML
     # quack-navd's robot.map_status; both come up later, and both retry.
     ( cd $MICRODUCK_RL && PYTHONPATH=src MAP_FALLBACK= QUACK_NAV_SOCKET=$STATE/nav.sock \
         detach $STATE/body.log $MICRODUCK_RL/.venv/bin/mjpython $VIEWER_DIR/body_with_map.py \
-        --port $PORT --ducks 1 --keyframe SIT --scene $scene --robot-socket $STATE/map.sock ) > $STATE/body.pid
+        --port $PORT --ducks 1 --keyframe SIT --scene $scene --robot-socket $STATE/map.sock --media-socket $STATE/media.sock ) > $STATE/body.pid
   else
     ( cd $MICRODUCK_RL && PYTHONPATH=src \
         detach $STATE/body.log $MICRODUCK_RL/.venv/bin/mjpython -m mjlab_microduck.sim.body_server \
@@ -146,7 +146,7 @@ TOML
   for i in $(seq 1 150); do [ -S $SOCK ] && break; sleep 0.2; done
   navd
   echo "up: body $(cat $STATE/body.pid) tofd $(cat $STATE/tofd.pid) robotd $(cat $STATE/robotd.pid) quack-navd $(cat $STATE/navd.pid)"
-  echo "sockets: robotd $SOCK · navigation $STATE/nav.sock · map $STATE/map.sock"
+  echo "sockets: robotd $SOCK · navigation $STATE/nav.sock · map $STATE/map.sock$([ "${VIEWER:-on}" = on ] && echo " · camera $STATE/media.sock")"
   echo "next: $0 enable"
   ;;
 enable)

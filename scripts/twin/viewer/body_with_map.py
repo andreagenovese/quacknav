@@ -11,7 +11,10 @@ body_server and replaces its `run` with the same loop plus three additions —
   2. a background thread subscribing to robotd's `robot.map` stream,
   3. rebuild `viewer.user_scn` from the newest MapFrame just before `sync()`,
      on the main thread, because `sync()` copies that scene and a socket
-     thread writing it would race the copy.
+     thread writing it would race the copy,
+  4. with `--media-socket PATH`, the head camera answered as mediad's
+     `media.frame` on that socket (eye.py): rendered only when asked, on
+     its own thread, from a copy of the data the loop makes between steps.
 
     mjpython body_with_map.py --port 7871 --ducks 1 --keyframe SIT \
         --scene .../scene_apartment.xml --robot-socket /tmp/dsm/a.sock
@@ -34,6 +37,12 @@ ROBOT_SOCKET = "/tmp/dsm/a.sock"
 for i, a in enumerate(sys.argv):
     if a == "--robot-socket":
         ROBOT_SOCKET = sys.argv[i + 1]
+        del sys.argv[i:i + 2]
+        break
+MEDIA_SOCKET = None
+for i, a in enumerate(sys.argv):
+    if a == "--media-socket":
+        MEDIA_SOCKET = sys.argv[i + 1]
         del sys.argv[i:i + 2]
         break
 
@@ -61,6 +70,14 @@ def run(world, headless: bool) -> None:
         viewer = mujoco.viewer.launch_passive(
             world.model, world.data, show_left_ui=False, show_right_ui=False
         )
+
+    eye = None
+    if MEDIA_SOCKET and world.bodies:
+        import eye as eye_mod
+        try:
+            eye = eye_mod.Eye(world.model, f"{world.bodies[0].prefix}head_camera", MEDIA_SOCKET).start()
+        except (ValueError, OSError) as e:
+            print(f"== camera: none on the twin ({e})", flush=True)
 
     source = mo.MapSource(ROBOT_SOCKET).start()
     # quack-nav's plan (route, aim, goal, booked drops), asked of quack-navd's
@@ -93,6 +110,8 @@ def run(world, headless: bool) -> None:
     try:
         while True:
             world.step(batch)
+            if eye is not None:
+                eye.tick(world.data)
             if viewer is not None and not viewer.is_running():
                 break
             next_step += period
