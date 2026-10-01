@@ -46,6 +46,13 @@ python3 scripts/twin/call.py /tmp/quack-twin/nav.sock robot.where_am_i
 scripts/twin/twin.sh down
 ```
 
+The knobs (docs/knobs.md) as on the duck: `$STATE/knobs.env`, which
+`nav.knobs` writes (quack-control's page, or by hand `NAME=value` lines),
+is in quack-navd's environment when the file exists, and
+`scripts/twin/twin.sh restart-navd` stops quack-navd (it saves the map),
+starts it again with the file, and leaves the rest running — what
+`nav.restart` asks of systemd on the duck, and answers here that it cannot.
+
 `STATE` (default `/tmp/quack-twin`) holds the sockets, the logs, the
 session, the saved maps and a `.mdlg` recording of every run; keep it
 short, a unix socket's path is at most 104 bytes on macOS. `MAPLOC_MODE`

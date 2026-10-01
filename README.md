@@ -268,6 +268,7 @@ and the `robot` group their sockets belong to. Everything quack-nav adds:
 | `/etc/robot/quack-nav.toml` | `quack-nav/quack-nav.example.toml` (the config above) |
 | `/run/quack-nav/{nav,map}.sock` | created by the unit (`RuntimeDirectory=`), mode 0660, group `robot` |
 | `/var/lib/quack-nav/` (places, sessions, `maps/`) | created by the unit (`StateDirectory=`), owned by `quacknav` |
+| `/var/lib/quack-nav/knobs.env` (optional) | the knobs, written by `nav.knobs` ([docs/control-contract.md](docs/control-contract.md)), read by the unit at every start |
 
 The unit runs the daemon as `quacknav` with `robot` as a supplementary
 group (it reaches robotd's and tofd's 0660 sockets, and hands its own two
@@ -337,6 +338,20 @@ container booted with systemd, with sshd, a `radxa` sudoer and a `robot`
 group (`systemd-analyze verify` passes; the sockets come up 0660
 `quacknav:robot`; `nc -U` gets an answer from a user in `robot`). Not yet on
 a real board.
+
+## Control from a browser
+
+A page on the home network that shows the live map and drives the duck —
+tap to go, stop, places, explore, the knobs — is
+**quack-control**, a repository of its own (decided 2026-10-01; see
+[docs/study/map-app.md](docs/study/map-app.md), "Decision 2026-10-01"). It
+runs on the duck beside quack-navd and talks to its two sockets; this
+repository only keeps the contract it consumes, open to any other client:
+[docs/control-contract.md](docs/control-contract.md) — the sockets,
+`nav.catalog` and `nav.call`, the map stream, `nav.knobs` (the knobs'
+env file, `/var/lib/quack-nav/knobs.env`, which the unit reads at every
+start) and `nav.restart` (save the session and exit, for systemd to start
+the daemon again with them).
 
 ## Technical debt, and where it goes
 

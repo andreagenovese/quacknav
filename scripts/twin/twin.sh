@@ -5,6 +5,13 @@
 #   scripts/twin/twin.sh up      simulator + tofd + robotd + quack-navd
 #   scripts/twin/twin.sh enable  stand the duck up (it boots seated)
 #   scripts/twin/twin.sh down    stop what `up` started, and only that
+#   scripts/twin/twin.sh restart-navd
+#                                quack-navd alone, stopped (it saves the map)
+#                                and started again — what `nav.restart` asks
+#                                of systemd on the duck, to apply the knobs
+#
+# $STATE/knobs.env (`nav.knobs` writes it), when it exists, is in
+# quack-navd's environment, as the unit's EnvironmentFile= is on the duck.
 #
 # Needs (see README.md):
 #   MICRODUCK     pollen-robotics/microduck at daemon-v0.15.0, with
@@ -40,6 +47,14 @@ PORT=${PORT:-7872}
 SOCK=$STATE/robotd.sock
 TOFSOCK=$STATE/tof.sock
 detach() { /usr/bin/python3 $HERE/detach.py "$@"; }
+# quack-navd, with the knobs' env file when there is one.
+navd() {
+  (
+    if [ -f $STATE/knobs.env ]; then set -a; . $STATE/knobs.env; set +a; fi
+    detach $STATE/navd.log $REPO/target/release/quack-navd $STATE/quack-nav.toml
+  ) > $STATE/navd.pid
+  for i in $(seq 1 40); do [ -S $STATE/nav.sock ] && break; sleep 0.25; done
+}
 need() { [ -n "${(P)1:-}" ] || { echo "set $1 (see scripts/twin/README.md)" >&2; exit 2; }; }
 
 case ${1:-up} in
@@ -75,6 +90,7 @@ TOML
   cat > $STATE/quack-nav.toml <<TOML
 socket = "$STATE/nav.sock"
 robotd_socket = "$SOCK"
+knobs_env = "$STATE/knobs.env"
 
 [map]
 enabled = true
@@ -128,14 +144,24 @@ TOML
     detach $STATE/robotd.log $MICRODUCK/target/debug/robotd --sim 127.0.0.1:$PORT \
     --params $STATE/robotd.toml --socket $SOCK > $STATE/robotd.pid
   for i in $(seq 1 150); do [ -S $SOCK ] && break; sleep 0.2; done
-  detach $STATE/navd.log $REPO/target/release/quack-navd $STATE/quack-nav.toml > $STATE/navd.pid
-  for i in $(seq 1 40); do [ -S $STATE/nav.sock ] && break; sleep 0.25; done
+  navd
   echo "up: body $(cat $STATE/body.pid) tofd $(cat $STATE/tofd.pid) robotd $(cat $STATE/robotd.pid) quack-navd $(cat $STATE/navd.pid)"
   echo "sockets: robotd $SOCK · navigation $STATE/nav.sock · map $STATE/map.sock"
   echo "next: $0 enable"
   ;;
 enable)
   /usr/bin/python3 $HERE/call.py --robotd $SOCK robot.enable '{"on": true}'
+  ;;
+restart-navd)
+  [ -f $STATE/navd.pid ] || { echo "no quack-navd started by '$0 up' in $STATE" >&2; exit 1; }
+  p=$(cat $STATE/navd.pid)
+  if ps -p $p >/dev/null 2>&1; then
+    echo "stop quack-navd ($p)"; kill $p
+    # SIGTERM saves the session first; give it the time it takes.
+    for i in $(seq 1 120); do ps -p $p >/dev/null 2>&1 || break; sleep 0.25; done
+  fi
+  navd
+  echo "quack-navd $(cat $STATE/navd.pid)$([ -f $STATE/knobs.env ] && echo " with $STATE/knobs.env")"
   ;;
 down)
   for n in navd robotd tofd body; do
@@ -145,5 +171,5 @@ down)
     rm -f $STATE/$n.pid
   done
   ;;
-*) echo "usage: $0 {up|enable|down}"; exit 2 ;;
+*) echo "usage: $0 {up|enable|restart-navd|down}"; exit 2 ;;
 esac

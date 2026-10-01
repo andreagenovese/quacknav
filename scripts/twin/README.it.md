@@ -47,6 +47,13 @@ python3 scripts/twin/call.py /tmp/quack-twin/nav.sock robot.where_am_i
 scripts/twin/twin.sh down
 ```
 
+Le manopole (docs/knobs.it.md) come sull'anatra: `$STATE/knobs.env`, che
+`nav.knobs` scrive (la pagina di quack-control, o a mano righe
+`NOME=valore`), è nell'ambiente di quack-navd quando il file esiste, e
+`scripts/twin/twin.sh restart-navd` ferma quack-navd (salva la mappa), lo
+riavvia con il file, e lascia girare il resto — ciò che sull'anatra
+`nav.restart` chiede a systemd, e qui risponde che non può.
+
 `STATE` (default `/tmp/quack-twin`) contiene i socket, i log, la
 sessione, le mappe salvate e una registrazione `.mdlg` di ogni giro;
 tenerlo corto, su macOS il percorso di un socket unix è al massimo di 104

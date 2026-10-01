@@ -21,6 +21,18 @@ carta, mai su una papera fisica; i dettagli sono in
   mappato invece che a dove sta l'anatra. Ciò che serve alla pagina di
   quack-control per segnare i luoghi e nominare un punto toccato; nient'altro
   cambia.
+- **Il contratto di controllo** ([docs/control-contract.it.md](docs/control-contract.it.md)):
+  che cosa offre quack-navd a un client che lo gestisce — per prima la
+  pagina web locale di quack-control. `nav.knobs` elenca le manopole che
+  quack-navd legge e scrive il loro file d'ambiente,
+  `/var/lib/quack-nav/knobs.env` (config `knobs_env`), che ora l'unit legge
+  a ogni avvio (`EnvironmentFile=-`); `nav.restart` salva la sessione ed
+  esce perché systemd riavvii il demone (`Restart=always`), e fuori da
+  systemd lo dice. Sono metodi, non strumenti: un agente non li vede mai.
+  `scripts/knobs.py` scrive anche `quack-nav/src/knobs.json`, la lista
+  leggibile da una macchina (controllata da `--check`). Il gemello legge
+  anche `$STATE/knobs.env`, e `scripts/twin/twin.sh restart-navd` riavvia
+  solo quack-navd.
 
 ### Modificato
 

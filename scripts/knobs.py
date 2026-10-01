@@ -3,7 +3,10 @@
 Writes docs/knobs.md and docs/knobs.it.md: per variable, where it is read,
 how its value is taken (a number with its default, on unless 0, on only if
 1, 1 on else off with the default when unset, set = on, a path...), and the
-comment the code gives it. `--check`
+comment the code gives it. Also quack-nav/src/knobs.json: the knobs
+quack-navd itself reads (`QK_*` and `MAPLOC_*` outside the examples and the
+tests), machine-readable — name, type, default, where, doc — which the
+daemon serves as `nav.knobs` to a client that edits them. `--check`
 writes nothing and fails when the files are not what the code says — CI
 runs it, so a knob added, renamed or dropped updates the list with it.
 
@@ -19,12 +22,13 @@ covered by the list, or the run fails: the parser once swallowed a read standing
 lost four knobs, and a check of the generator against itself cannot see
 that.
 """
+import json
 import os
 import re
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SKIP = {"RUST_LOG", "HOME", "PATH", "USER", "TMPDIR", "CARGO_MANIFEST_DIR", "PYTHONPATH", "UPDATE_GOLDEN"}
+SKIP = {"SYSTEMD_EXEC_PID", "RUST_LOG", "HOME", "PATH", "USER", "TMPDIR", "CARGO_MANIFEST_DIR", "PYTHONPATH", "UPDATE_GOLDEN"}
 CALL = re.compile(
     r'(?P<fn>env::var_os|env::var|env::qk|env_switch|\bswitch|\bknob|\benvf32|\benvf)\(\s*"(?P<name>[A-Z][A-Z0-9_]+)"'
 )
@@ -182,6 +186,12 @@ HEAD = {
         "The `QK_*` knobs are quack-nav's, `MAPLOC_*` maploc's; the rest are the\n"
         "benches' (`maploc/examples`, `quack-nav/examples`) and the twin's scripts.\n"
         "The knobs once named `QUACKSAT_*` are `QK_*` since 2026-09-30.\n\n"
+        "On the duck they live in `/var/lib/quack-nav/knobs.env`, read by the unit\n"
+        "(`EnvironmentFile=-`) at every start. A client edits them without a shell:\n"
+        "`nav.knobs` on the nav socket lists quack-navd's own (machine-readable,\n"
+        "`quack-nav/src/knobs.json`, generated with this page) and writes the file,\n"
+        "`nav.restart` applies them — quack-control's page has an editor for both.\n"
+        "Every knob needs that restart: the environment is read at the process's start.\n\n"
         "| Variable | Read as | Where | What the code says |\n|---|---|---|---|\n"
     ),
     "it": (
@@ -192,6 +202,13 @@ HEAD = {
         "banchi (`maploc/examples`, `quack-nav/examples`) e degli script del\n"
         "gemello. Le manopole che si chiamavano `QUACKSAT_*` sono `QK_*` dal\n"
         "2026-09-30. La descrizione è il commento del codice (in inglese).\n\n"
+        "Sull'anatra stanno in `/var/lib/quack-nav/knobs.env`, letto dall'unit\n"
+        "(`EnvironmentFile=-`) a ogni avvio. Un client le modifica senza una shell:\n"
+        "`nav.knobs` sul socket nav elenca quelle di quack-navd (leggibili da una\n"
+        "macchina, `quack-nav/src/knobs.json`, generato con questa pagina) e scrive il\n"
+        "file, `nav.restart` le applica — la pagina di quack-control ha un editor per\n"
+        "entrambe. Ogni manopola richiede quel riavvio: l'ambiente si legge all'avvio\n"
+        "del processo.\n\n"
         "| Variabile | Letta come | Dove | Cosa dice il codice |\n|---|---|---|---|\n"
     ),
 }
@@ -231,6 +248,71 @@ def render(found, lang):
     return "".join(out)
 
 
+def daemon_file(rel):
+    """A source quack-navd is built from: not a bench, not a test."""
+    parts = rel.split(os.sep)
+    return parts[-1].endswith(".rs") and "examples" not in parts and "tests" not in parts
+
+
+def constant(name):
+    """A numeric `const NAME: T = value;` in the daemon's sources, or None."""
+    pat = re.compile(r"\bconst\s+" + re.escape(name) + r"\s*:\s*\w+\s*=\s*([-0-9_.eE+]+)\s*;")
+    for top in ("quack-nav", "quack-duck", "maploc"):
+        for dp, dn, fn in os.walk(os.path.join(ROOT, top)):
+            dn[:] = [d for d in dn if d != "target"]
+            for f in sorted(fn):
+                if f.endswith(".rs"):
+                    m = pat.search(open(os.path.join(dp, f), encoding="utf-8").read())
+                    if m:
+                        return m.group(1).replace("_", "")
+    return None
+
+
+def typed(hows):
+    """How a client edits a knob: its type — number, switch ("0"/"1"),
+    choice (one of `options`), flag (set to "1" is on, unset off) or text —
+    the default it would show, and what a switch means unset."""
+    for h in sorted(hows):
+        m = re.match(r"number \(default (.+)\)$", h)
+        if m:
+            d = m.group(1).replace(", after conversion", "")
+            if not re.fullmatch(r"[-0-9_.eE+]+", d):
+                d = constant(d) or d
+            return {"type": "number", "default": d}
+        if h == "number" or h.startswith("number (unset"):
+            return {"type": "number", "default": None}
+        if h.startswith("1 on, 0 off"):
+            return {"type": "switch", "default": None, "unset": h.split(", else ", 1)[1]}
+        if h == "on unless 0":
+            return {"type": "switch", "default": "1"}
+        if h == "on only if 1 (2: more)":
+            return {"type": "choice", "default": "0", "options": ["0", "1", "2"]}
+        if h.startswith("on only if 1"):
+            return {"type": "switch", "default": "0"}
+        if h.startswith("1 on, else off; unset: "):
+            return {"type": "switch", "default": "1" if h.endswith("true") else "0" if h.endswith("false") else None}
+        if h == "set = on (any value)":
+            # Any value is on, "0" too: on is "1", off is unset.
+            return {"type": "flag", "default": None, "unset": "off"}
+    return {"type": "text", "default": None}
+
+
+def machine(found):
+    """The knobs quack-navd reads, as quack-nav/src/knobs.json holds them."""
+    out = []
+    for n in sorted(found):
+        e = found[n]
+        where = [w for w in e["where"] if daemon_file(w)]
+        if not (n.startswith("QK_") or n.startswith("MAPLOC_")) or not where:
+            continue
+        k = {"name": n, "group": n.split("_", 1)[0], "read_as": "; ".join(sorted(e["how"]))}
+        k.update(typed(e["how"]))
+        k["where"] = where
+        k["doc"] = e["doc"]
+        out.append(k)
+    return json.dumps({"generated_by": "scripts/knobs.py", "knobs": out}, indent=1, ensure_ascii=False) + "\n"
+
+
 def raw_names():
     """Every "QK_…" / "MAPLOC_…" string literal in the Rust sources outside
     comments, every name given to `qk`/`env_switch`, and every name read
@@ -265,10 +347,14 @@ def main():
         for n, w in sorted(missed.items()):
             print(f"  {n}  {w}")
         sys.exit(1)
-    targets = {"en": os.path.join(ROOT, "docs", "knobs.md"), "it": os.path.join(ROOT, "docs", "knobs.it.md")}
+    targets = {
+        "en": os.path.join(ROOT, "docs", "knobs.md"),
+        "it": os.path.join(ROOT, "docs", "knobs.it.md"),
+        "json": os.path.join(ROOT, "quack-nav", "src", "knobs.json"),
+    }
     stale = []
     for lang, path in targets.items():
-        text = render(found, lang)
+        text = machine(found) if lang == "json" else render(found, lang)
         if "--check" in sys.argv:
             if not os.path.exists(path) or open(path, encoding="utf-8").read() != text:
                 stale.append(path)

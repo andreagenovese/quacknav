@@ -6,6 +6,13 @@ The `QK_*` knobs are quack-nav's, `MAPLOC_*` maploc's; the rest are the
 benches' (`maploc/examples`, `quack-nav/examples`) and the twin's scripts.
 The knobs once named `QUACKSAT_*` are `QK_*` since 2026-09-30.
 
+On the duck they live in `/var/lib/quack-nav/knobs.env`, read by the unit
+(`EnvironmentFile=-`) at every start. A client edits them without a shell:
+`nav.knobs` on the nav socket lists quack-navd's own (machine-readable,
+`quack-nav/src/knobs.json`, generated with this page) and writes the file,
+`nav.restart` applies them — quack-control's page has an editor for both.
+Every knob needs that restart: the environment is read at the process's start.
+
 | Variable | Read as | Where | What the code says |
 |---|---|---|---|
 | `QK_ALIGN_KICK` | 1 on, 0 off, else the mode's own | `quack-nav/src/explore/mode.rs` |  |

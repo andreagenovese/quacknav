@@ -7,6 +7,14 @@ banchi (`maploc/examples`, `quack-nav/examples`) e degli script del
 gemello. Le manopole che si chiamavano `QUACKSAT_*` sono `QK_*` dal
 2026-09-30. La descrizione è il commento del codice (in inglese).
 
+Sull'anatra stanno in `/var/lib/quack-nav/knobs.env`, letto dall'unit
+(`EnvironmentFile=-`) a ogni avvio. Un client le modifica senza una shell:
+`nav.knobs` sul socket nav elenca quelle di quack-navd (leggibili da una
+macchina, `quack-nav/src/knobs.json`, generato con questa pagina) e scrive il
+file, `nav.restart` le applica — la pagina di quack-control ha un editor per
+entrambe. Ogni manopola richiede quel riavvio: l'ambiente si legge all'avvio
+del processo.
+
 | Variabile | Letta come | Dove | Cosa dice il codice |
 |---|---|---|---|
 | `QK_ALIGN_KICK` | 1 accesa, 0 spenta, altrimenti quella del modo | `quack-nav/src/explore/mode.rs` |  |

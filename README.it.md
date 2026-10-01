@@ -276,6 +276,7 @@ tutto ciò che quack-nav aggiunge:
 | `/etc/robot/quack-nav.toml` | `quack-nav/quack-nav.example.toml` (la configurazione qui sopra) |
 | `/run/quack-nav/{nav,map}.sock` | creati dall'unità (`RuntimeDirectory=`), modo 0660, gruppo `robot` |
 | `/var/lib/quack-nav/` (luoghi, sessioni, `maps/`) | creata dall'unità (`StateDirectory=`), di `quacknav` |
+| `/var/lib/quack-nav/knobs.env` (facoltativo) | le manopole, scritte da `nav.knobs` ([docs/control-contract.it.md](docs/control-contract.it.md)), lette dall'unità a ogni avvio |
 
 L'unità esegue il demone come `quacknav` con `robot` come gruppo
 supplementare (raggiunge i socket 0660 di robotd e di tofd, e dà i suoi
@@ -347,6 +348,20 @@ Debian 13 arm64 avviato con systemd, con sshd, un utente `radxa` con sudo e
 un gruppo `robot` (`systemd-analyze verify` passa; i socket nascono 0660
 `quacknav:robot`; `nc -U` riceve una risposta da un utente di `robot`).
 Non ancora su una scheda vera.
+
+## Il controllo da un browser
+
+Una pagina sulla rete di casa che mostra la mappa dal vivo e guida
+l'anatra — tocca e vai, stop, luoghi, esplorazione, le manopole — è
+**quack-control**, un repository a sé (deciso il 2026-10-01; vedi
+[docs/study/map-app.it.md](docs/study/map-app.it.md), "Decisione
+2026-10-01"). Gira sull'anatra accanto a quack-navd e parla con i suoi due
+socket; questo repository tiene solo il contratto che usa, aperto a
+qualsiasi altro client: [docs/control-contract.it.md](docs/control-contract.it.md)
+— i socket, `nav.catalog` e `nav.call`, il flusso della mappa, `nav.knobs`
+(il file d'ambiente delle manopole, `/var/lib/quack-nav/knobs.env`, che
+l'unit legge a ogni avvio) e `nav.restart` (salva la sessione ed esce,
+perché systemd riavvii il demone con quelle).
 
 ## Debito tecnico, e dove va
 

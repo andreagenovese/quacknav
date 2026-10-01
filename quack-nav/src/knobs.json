@@ -1,0 +1,552 @@
+{
+ "generated_by": "scripts/knobs.py",
+ "knobs": [
+  {
+   "name": "MAPLOC_CONFIRM_TRAVEL",
+   "group": "MAPLOC",
+   "read_as": "number (default 0.5)",
+   "type": "number",
+   "default": "0.5",
+   "where": [
+    "maploc/src/mapper.rs"
+   ],
+   "doc": "At boot, how far the body must have moved between the window that nominated a candidate and the one that confirms it."
+  },
+  {
+   "name": "MAPLOC_GRAPH_DEBUG",
+   "group": "MAPLOC",
+   "read_as": "set = on (any value)",
+   "type": "flag",
+   "default": null,
+   "unset": "off",
+   "where": [
+    "maploc/src/pipeline.rs"
+   ],
+   "doc": ""
+  },
+  {
+   "name": "MAPLOC_HEAD_LEAD_MS",
+   "group": "MAPLOC",
+   "read_as": "number (default 5)",
+   "type": "number",
+   "default": "5",
+   "where": [
+    "quack-nav/src/mapd/mod.rs",
+    "maploc/src/bench.rs"
+   ],
+   "doc": "`MAPLOC_HEAD_LEAD_MS`, as robotd read it: 5 ms by default — with 0 the standing drift was +0.17/+0.22°/min, with 20 and 40 it turned negative (twin, 2026-09-16)."
+  },
+  {
+   "name": "MAPLOC_HYP_LEAD",
+   "group": "MAPLOC",
+   "read_as": "number (default 3)",
+   "type": "number",
+   "default": "3",
+   "where": [
+    "maploc/src/mapper.rs"
+   ],
+   "doc": "How many hits the leading hypothesis must have over the runner-up before it is nominated."
+  },
+  {
+   "name": "MAPLOC_HYP_TRAVEL",
+   "group": "MAPLOC",
+   "read_as": "number (default 1.0)",
+   "type": "number",
+   "default": "1.0",
+   "where": [
+    "maploc/src/mapper.rs"
+   ],
+   "doc": "How far the body must have got from where it first saw a hypothesis before the hypothesis can be believed — the chord, not the path."
+  },
+  {
+   "name": "MAPLOC_LOCAL_AFTER_BOOT",
+   "group": "MAPLOC",
+   "read_as": "on unless 0",
+   "type": "switch",
+   "default": "1",
+   "where": [
+    "maploc/src/mapper.rs"
+   ],
+   "doc": "`MAPLOC_LOCAL_AFTER_BOOT=0`: every loss on a resumed map searches the whole map with every hypothesis, as before 2026-09-28."
+  },
+  {
+   "name": "MAPLOC_LOOP_CAP_YAW",
+   "group": "MAPLOC",
+   "read_as": "number (default 0.07)",
+   "type": "number",
+   "default": "0.07",
+   "where": [
+    "maploc/src/loop_closer.rs"
+   ],
+   "doc": "`MAPLOC_LOOP_CAP_YAW` overrides it, for measuring on the twin."
+  },
+  {
+   "name": "MAPLOC_LOOP_DEBUG",
+   "group": "MAPLOC",
+   "read_as": "on only if 1",
+   "type": "switch",
+   "default": "0",
+   "where": [
+    "maploc/src/loop_closer.rs"
+   ],
+   "doc": "`MAPLOC_LOOP_DEBUG=1`: one line per accepted closure on stderr — the submaps, the correction it asks for, the match's residual and beams, the witnesses' spread — to tell the closures that turn a map wrong."
+  },
+  {
+   "name": "MAPLOC_MULTI_HYP",
+   "group": "MAPLOC",
+   "read_as": "on unless 0",
+   "type": "switch",
+   "default": "1",
+   "where": [
+    "maploc/src/mapper.rs"
+   ],
+   "doc": "`MAPLOC_MULTI_HYP=0` turns the multi-hypothesis boot search off, for measuring against the single-best agreement it replaces."
+  },
+  {
+   "name": "MAPLOC_SHADOW",
+   "group": "MAPLOC",
+   "read_as": "on unless 0",
+   "type": "switch",
+   "default": "1",
+   "where": [
+    "maploc/src/mapper.rs"
+   ],
+   "doc": "`MAPLOC_SHADOW=0`: no shadow map at boot."
+  },
+  {
+   "name": "MAPLOC_SHADOW_ASKS",
+   "group": "MAPLOC",
+   "read_as": "number (default 2)",
+   "type": "number",
+   "default": "2",
+   "where": [
+    "maploc/src/mapper.rs"
+   ],
+   "doc": ""
+  },
+  {
+   "name": "MAPLOC_SHADOW_EVERY_S",
+   "group": "MAPLOC",
+   "read_as": "number (default 30.0)",
+   "type": "number",
+   "default": "30.0",
+   "where": [
+    "maploc/src/mapper.rs"
+   ],
+   "doc": "How often the shadow asks, how many answers in a row must agree, and what an answer must be (the homecoming's adoption rule, see quack-nav's `HomecomingConfig`, measured on 27 replayed wakes: 626 of 655 right answers pas…"
+  },
+  {
+   "name": "MAPLOC_VALLEY_CROSS",
+   "group": "MAPLOC",
+   "read_as": "on unless 0",
+   "type": "switch",
+   "default": "1",
+   "where": [
+    "maploc/src/mapper.rs"
+   ],
+   "doc": "Two valleys that cross resolve each other (see `Mapper::valley_blocks`); `MAPLOC_VALLEY_CROSS=0` for the valley test alone."
+  },
+  {
+   "name": "MAPLOC_WATCHDOG_RESCUE",
+   "group": "MAPLOC",
+   "read_as": "on unless 0",
+   "type": "switch",
+   "default": "1",
+   "where": [
+    "maploc/src/mapper.rs"
+   ],
+   "doc": "`MAPLOC_WATCHDOG_RESCUE=0`: the watchdog judges a window at the carried pose alone, as before 2026-09-28."
+  },
+  {
+   "name": "QK_ALIGN_KICK",
+   "group": "QK",
+   "read_as": "1 on, 0 off, else the mode's own",
+   "type": "switch",
+   "default": null,
+   "unset": "the mode's own",
+   "where": [
+    "quack-nav/src/explore/mode.rs"
+   ],
+   "doc": ""
+  },
+  {
+   "name": "QK_ANCHOR_DROP_M",
+   "group": "QK",
+   "read_as": "number (default ANCHOR_NOT_NEAR_DROP_DEFAULT_M)",
+   "type": "number",
+   "default": "1.0",
+   "where": [
+    "quack-nav/src/explore/mod.rs"
+   ],
+   "doc": "Not beside a drop: a revisit there turns the duck round in the mouth of the passage it is entering."
+  },
+  {
+   "name": "QK_BACK_NO_STEP_M",
+   "group": "QK",
+   "read_as": "number (default 0.30)",
+   "type": "number",
+   "default": "0.30",
+   "where": [
+    "quack-nav/src/explore/gait.rs"
+   ],
+   "doc": "No blind step back at all with a booked drop this close to the body, whatever its bearing, on the trail or not (`QK_BACK_NO_STEP_M`)."
+  },
+  {
+   "name": "QK_BACK_REORIENT",
+   "group": "QK",
+   "read_as": "on unless 0",
+   "type": "switch",
+   "default": "1",
+   "where": [
+    "quack-nav/src/explore/gait.rs"
+   ],
+   "doc": "`QK_BACK_REORIENT=0`: after the step back, head for the most open floor and walk a leg there, as before."
+  },
+  {
+   "name": "QK_BACK_S",
+   "group": "QK",
+   "read_as": "number (default 1.5)",
+   "type": "number",
+   "default": "1.5",
+   "where": [
+    "quack-nav/src/explore/gait.rs"
+   ],
+   "doc": "The step back: this gait needs about a second to start moving at all, so a shorter one moves nothing (measured); and no more often than this."
+  },
+  {
+   "name": "QK_BLIND_CONE_LANE",
+   "group": "QK",
+   "read_as": "on unless 0",
+   "type": "switch",
+   "default": "1",
+   "where": [
+    "quack-nav/src/explore/guarded.rs"
+   ],
+   "doc": "The cone widens at short range to the lane's own angle — at 0.25 m a 12 cm lane is 26°, and a cube 0.25 m ahead at 18° inside the lane was outside the 15° cone, walked over and dragged 1.9 m (sideA016r, 2026-09-22)."
+  },
+  {
+   "name": "QK_CLIFF_MARGIN_M",
+   "group": "QK",
+   "read_as": "number (default 0.25)",
+   "type": "number",
+   "default": "0.25",
+   "where": [
+    "quack-nav/src/tools.rs"
+   ],
+   "doc": "Stop this far short of a drop's edge — farther than a wall's margin, because an edge is not a bump."
+  },
+  {
+   "name": "QK_CLOSE_LOOK",
+   "group": "QK",
+   "read_as": "1 on, 0 off, else the caller's default",
+   "type": "switch",
+   "default": null,
+   "unset": "the caller's default",
+   "where": [
+    "quack-nav/src/explore/close_look.rs"
+   ],
+   "doc": "`QK_CLOSE_LOOK=0`: no close looks."
+  },
+  {
+   "name": "QK_COST_HUG",
+   "group": "QK",
+   "read_as": "number (default COST_HUG_DEFAULT)",
+   "type": "number",
+   "default": "30",
+   "where": [
+    "quack-nav/src/frontier.rs"
+   ],
+   "doc": ""
+  },
+  {
+   "name": "QK_CURVE_RAD",
+   "group": "QK",
+   "read_as": "number (default CURVE_RAD)",
+   "type": "number",
+   "default": "1.0",
+   "where": [
+    "quack-nav/src/explore/gait.rs"
+   ],
+   "doc": ""
+  },
+  {
+   "name": "QK_DROP_INFLATE",
+   "group": "QK",
+   "read_as": "number (default DROP_INFLATE_DEFAULT)",
+   "type": "number",
+   "default": "0.05",
+   "where": [
+    "quack-nav/src/frontier.rs"
+   ],
+   "doc": ""
+  },
+  {
+   "name": "QK_DROP_PLAN_RADIUS_M",
+   "group": "QK",
+   "read_as": "number (default if guarded { DROP_PLAN_RADIUS_GUARDED_M } else { DROP_PLAN_RADIUS_M })",
+   "type": "number",
+   "default": "if guarded { DROP_PLAN_RADIUS_GUARDED_M } else { DROP_PLAN_RADIUS_M }",
+   "where": [
+    "quack-nav/src/explore/mode.rs"
+   ],
+   "doc": ""
+  },
+  {
+   "name": "QK_DROP_REACH_M",
+   "group": "QK",
+   "read_as": "number (default DROP_REACH_M)",
+   "type": "number",
+   "default": "0.30",
+   "where": [
+    "quack-nav/src/explore/books.rs"
+   ],
+   "doc": ""
+  },
+  {
+   "name": "QK_EDGE_DISCRIMINATE",
+   "group": "QK",
+   "read_as": "on unless 0",
+   "type": "switch",
+   "default": "1",
+   "where": [
+    "quack-nav/src/explore/books.rs"
+   ],
+   "doc": "`QK_EDGE_DISCRIMINATE=0`: every sensed drop goes on the books as a hole, as before."
+  },
+  {
+   "name": "QK_GAP_LANE_HALF_M",
+   "group": "QK",
+   "read_as": "number (default GAP_LANE_HALF_M)",
+   "type": "number",
+   "default": "0.115",
+   "where": [
+    "quack-nav/src/explore/mod.rs"
+   ],
+   "doc": ""
+  },
+  {
+   "name": "QK_GAP_MAX_M",
+   "group": "QK",
+   "read_as": "number (default GAP_MAX_M)",
+   "type": "number",
+   "default": "0.6",
+   "where": [
+    "quack-nav/src/explore/mod.rs"
+   ],
+   "doc": ""
+  },
+  {
+   "name": "QK_GUARD_ARC_FULL",
+   "group": "QK",
+   "read_as": "on only if 1",
+   "type": "switch",
+   "default": "0",
+   "where": [
+    "quack-duck/src/body.rs"
+   ],
+   "doc": "Turning costs little forward speed: 0.110 m/s at vyaw 0.7 against 0.121 straight, measured on the human drive (2026-09-07)."
+  },
+  {
+   "name": "QK_INFLATE_M",
+   "group": "QK",
+   "read_as": "number (default 0.12)",
+   "type": "number",
+   "default": "0.12",
+   "where": [
+    "quack-nav/src/frontier.rs"
+   ],
+   "doc": "The inflation the planner runs with: 0.12, a little over the body's half-width, 0.10 (`QK_INFLATE_M`)."
+  },
+  {
+   "name": "QK_LANE_HALF_M",
+   "group": "QK",
+   "read_as": "number (default LANE_HALF_M)",
+   "type": "number",
+   "default": "0.16",
+   "where": [
+    "quack-nav/src/explore/mod.rs"
+   ],
+   "doc": ""
+  },
+  {
+   "name": "QK_NO_GUARDS",
+   "group": "QK",
+   "read_as": "1 on, 0 off, else the caller's default",
+   "type": "switch",
+   "default": null,
+   "unset": "the caller's default",
+   "where": [
+    "quack-nav/src/explore/journey.rs"
+   ],
+   "doc": "`QK_NO_GUARDS`: every leg, kick and pulse goes through `robot.move`, blind, and the route check is off — the planner alone (the frozen map, the books, the margins) brings the duck home."
+  },
+  {
+   "name": "QK_ORACLE_HOLES",
+   "group": "QK",
+   "read_as": "a value",
+   "type": "text",
+   "default": null,
+   "where": [
+    "quack-nav/src/oracle.rs"
+   ],
+   "doc": ""
+  },
+  {
+   "name": "QK_ORACLE_POSE",
+   "group": "QK",
+   "read_as": "a value",
+   "type": "text",
+   "default": null,
+   "where": [
+    "quack-nav/src/oracle.rs"
+   ],
+   "doc": ""
+  },
+  {
+   "name": "QK_ORACLE_WALLS",
+   "group": "QK",
+   "read_as": "a value",
+   "type": "text",
+   "default": null,
+   "where": [
+    "quack-nav/src/oracle.rs"
+   ],
+   "doc": ""
+  },
+  {
+   "name": "QK_PULL_DEVIATION_M",
+   "group": "QK",
+   "read_as": "number (default 0.20)",
+   "type": "number",
+   "default": "0.20",
+   "where": [
+    "quack-nav/src/frontier.rs"
+   ],
+   "doc": "A straight run may stray this far from the Dijkstra route it replaces: the staircase is smoothed, the route is not redrawn — a diagonal across the room cut corners and brushed walls Dijkstra had kept away from (the user'…"
+  },
+  {
+   "name": "QK_PULL_ROUTE",
+   "group": "QK",
+   "read_as": "on unless 0",
+   "type": "switch",
+   "default": "1",
+   "where": [
+    "quack-nav/src/frontier.rs"
+   ],
+   "doc": "`QK_PULL_ROUTE=0` leaves Dijkstra's staircase as it is."
+  },
+  {
+   "name": "QK_REACH_TO_FLOOR",
+   "group": "QK",
+   "read_as": "on unless 0",
+   "type": "switch",
+   "default": "1",
+   "where": [
+    "quack-nav/src/explore/books.rs"
+   ],
+   "doc": "`QK_REACH_TO_FLOOR=0`: the reach behind a rim ignores where the floor comes back (see `record_drops`)."
+  },
+  {
+   "name": "QK_REANCHOR",
+   "group": "QK",
+   "read_as": "on unless 0",
+   "type": "switch",
+   "default": "1",
+   "where": [
+    "quack-nav/src/explore/journey.rs"
+   ],
+   "doc": "`QK_REANCHOR=0`: no trip back to mapped floor now and then to close a loop while the exploration walks new floor (see the explorer's run)."
+  },
+  {
+   "name": "QK_RIM_TOUR",
+   "group": "QK",
+   "read_as": "1 on, 0 off, else the caller's default",
+   "type": "switch",
+   "default": null,
+   "unset": "the caller's default",
+   "where": [
+    "quack-nav/src/explore/rim_tour.rs"
+   ],
+   "doc": "`QK_RIM_TOUR=0`: no rounds of the holes."
+  },
+  {
+   "name": "QK_SPIN_WATCH",
+   "group": "QK",
+   "read_as": "on unless 0",
+   "type": "switch",
+   "default": "1",
+   "where": [
+    "quack-nav/src/explore/gait.rs"
+   ],
+   "doc": "`QK_SPIN_WATCH=0`: turn in place without watching the sensor, as before."
+  },
+  {
+   "name": "QK_STICK_CAREFUL",
+   "group": "QK",
+   "read_as": "1 on, 0 off, else the caller's default",
+   "type": "switch",
+   "default": null,
+   "unset": "the caller's default",
+   "where": [
+    "quack-nav/src/explore/navigate.rs"
+   ],
+   "doc": ""
+  },
+  {
+   "name": "QK_STRAIGHT_RAD",
+   "group": "QK",
+   "read_as": "number (default STRAIGHT_RAD)",
+   "type": "number",
+   "default": "0.35",
+   "where": [
+    "quack-nav/src/explore/gait.rs"
+   ],
+   "doc": ""
+  },
+  {
+   "name": "QK_TRAIL",
+   "group": "QK",
+   "read_as": "on unless 0",
+   "type": "switch",
+   "default": "1",
+   "where": [
+    "quack-nav/src/explore/books.rs"
+   ],
+   "doc": ""
+  },
+  {
+   "name": "QK_TRUSTED_FLOOR",
+   "group": "QK",
+   "read_as": "1 on, 0 off, else the mode's own",
+   "type": "switch",
+   "default": null,
+   "unset": "the mode's own",
+   "where": [
+    "quack-nav/src/explore/mode.rs"
+   ],
+   "doc": ""
+  },
+  {
+   "name": "QK_TURN_IN_PLACE",
+   "group": "QK",
+   "read_as": "on unless 0",
+   "type": "switch",
+   "default": "1",
+   "where": [
+    "quack-nav/src/explore/gait.rs"
+   ],
+   "doc": "`QK_TURN_IN_PLACE=0` turns the old way (kick, then yaw) everywhere."
+  },
+  {
+   "name": "QK_WALL_MARGIN_M",
+   "group": "QK",
+   "read_as": "number (default 0.18)",
+   "type": "number",
+   "default": "0.18",
+   "where": [
+    "quack-nav/src/tools.rs"
+   ],
+   "doc": ""
+  }
+ ]
+}

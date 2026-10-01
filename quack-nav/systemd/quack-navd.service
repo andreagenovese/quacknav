@@ -9,9 +9,16 @@ Wants=robotd.service
 [Service]
 Type=exec
 ExecStart=/usr/local/bin/quack-navd /etc/robot/quack-nav.toml
+# Always, not on-failure: `nav.restart` (a control plane applying the
+# knobs) exits cleanly and counts on being started again.
 Restart=always
 RestartSec=5s
 Environment=RUST_LOG=info
+# The knobs (docs/knobs.md) a control plane sets with `nav.knobs`: written
+# to the state directory by the daemon itself, read here at every start.
+# The leading - : no file, no knobs, no error. Keep it equal to the
+# config's `knobs_env`.
+EnvironmentFile=-/var/lib/quack-nav/knobs.env
 StandardOutput=journal
 StandardError=journal
 

@@ -18,6 +18,17 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   `x` and `y` names a point of mapped floor instead of where the duck
   stands. What quack-control's page needs to pin places and name a tapped
   point; nothing else changes.
+- **The control contract** ([docs/control-contract.md](docs/control-contract.md)):
+  what quack-navd offers a client that manages it — quack-control's local
+  web page first. `nav.knobs` lists the knobs quack-navd reads and writes
+  their env file, `/var/lib/quack-nav/knobs.env` (config `knobs_env`),
+  which the unit now reads at every start (`EnvironmentFile=-`);
+  `nav.restart` saves the session and exits for systemd to start the
+  daemon again (`Restart=always`), and outside systemd says so. Both are
+  methods, not tools: an agent never sees them. `scripts/knobs.py` also
+  writes `quack-nav/src/knobs.json`, the machine-readable list (checked by
+  `--check`). The twin reads `$STATE/knobs.env` too, and
+  `scripts/twin/twin.sh restart-navd` restarts quack-navd alone.
 
 ### Changed
 

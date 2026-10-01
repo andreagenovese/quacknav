@@ -1,6 +1,6 @@
 //! quack-nav: where the Microduck is, and how it gets somewhere else.
 //!
-//! Nine pieces (and their [`config`]), none of them about voice:
+//! Ten pieces (and their [`config`]), none of them about voice:
 //!
 //! - [`map`] — the `robot.map` client: robotd's on-board `maploc` publishes
 //!   a pose and an occupancy grid once a second; this keeps the newest one
@@ -21,6 +21,8 @@
 //! - [`explore`] — the jobs that drive: map a house, walk to a goal on a
 //!   map already made, and the rules that keep a leg off the stairs.
 //! - [`homecoming`] — waking up in a house the duck has mapped before.
+//! - [`knobs`] — the knobs a control plane may set: `nav.knobs` lists
+//!   them (`knobs.json`, generated) and writes their env file.
 //! - [`mapd`] — the mapper itself (`maploc`), hosted in `quack-navd` when
 //!   robotd does not host it, served in robotd's `robot.map*` dialect.
 //!
@@ -34,6 +36,7 @@ pub mod config;
 pub mod explore;
 pub mod frontier;
 pub mod homecoming;
+pub mod knobs;
 pub mod map;
 pub mod oracle;
 pub mod mapd;

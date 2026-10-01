@@ -9,6 +9,11 @@
 //!     {"jsonrpc":"2.0","id":1,"method":"nav.catalog","params":{}}
 //!     {"jsonrpc":"2.0","id":2,"method":"nav.call","params":{"name":"robot.where_am_i","args":{}}}
 //!
+//! Two methods more are for a control plane (quack-control), not for an
+//! agent, and are not in the catalog: `nav.knobs` lists the knobs and
+//! writes their env file, `nav.restart` saves the session and exits for
+//! systemd to start the daemon again with them.
+//!
 //! Split from quacksat on 2026-09-22 (the user's: the satellite is a
 //! voice assistant, the navigation is its own thing).
 
@@ -36,7 +41,6 @@ fn main() -> anyhow::Result<()> {
     });
     if let Some(host) = &mapper {
         quack_nav::mapd::server::serve(host.clone(), &config.maploc.socket)?;
-        save_on_signal(host.clone(), config.maploc.socket.clone(), config.socket.clone())?;
     }
     let robot = Arc::new(Mutex::new(Robot::connect(
         &config.map,
@@ -44,11 +48,17 @@ fn main() -> anyhow::Result<()> {
         config.map_socket(),
         config.gait.clone(),
     )));
+    let explore = robot.lock().expect("robot poisoned").places.explore.clone();
     // The head sweep is the navigation's only while the navigation drives.
     if let Some(host) = &mapper {
-        let explore = robot.lock().expect("robot poisoned").places.explore.clone();
+        let explore = explore.clone();
         host.set_driving(move || explore.running());
     }
+    let shutdown = Shutdown { mapper: mapper.clone(), explore, sockets: vec![config.maploc.socket.clone(), config.socket.clone()] };
+    if mapper.is_some() {
+        save_on_signal(shutdown.clone())?;
+    }
+    let daemon = Arc::new(Daemon { robot: robot.clone(), knobs_env: config.knobs_env.clone(), shutdown });
 
     // Waking up in a house the duck has mapped before: the daemon's own
     // business now, not the satellite's.
@@ -61,8 +71,8 @@ fn main() -> anyhow::Result<()> {
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
-                let robot = robot.clone();
-                std::thread::spawn(move || serve(stream, robot));
+                let daemon = daemon.clone();
+                std::thread::spawn(move || serve(stream, daemon));
             }
             Err(e) => tracing::warn!(error = %e, "a caller could not be accepted"),
         }
@@ -70,26 +80,81 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// What the daemon's callers reach beyond the tools.
+struct Daemon {
+    robot: Arc<Mutex<Robot>>,
+    knobs_env: String,
+    shutdown: Shutdown,
+}
+
+/// How the daemon goes: the running job stopped, the mapping session
+/// saved, the sockets removed. A signal and `nav.restart` both end here.
+#[derive(Clone)]
+struct Shutdown {
+    mapper: Option<quack_nav::mapd::Host>,
+    explore: quack_nav::explore::ExploreHandle,
+    sockets: Vec<String>,
+}
+
+impl Shutdown {
+    fn now(&self) -> ! {
+        self.explore.request_stop();
+        if let Some(host) = &self.mapper {
+            host.shutdown();
+        }
+        for socket in &self.sockets {
+            let _ = std::fs::remove_file(socket);
+        }
+        std::process::exit(0);
+    }
+}
+
 /// SIGTERM and SIGINT save the mapping session before the process goes:
 /// the autosave runs once a minute, and a `systemctl restart` should not
 /// cost up to a minute of walking (robotd's shutdown path did the same).
-fn save_on_signal(host: quack_nav::mapd::Host, map_socket: String, socket: String) -> anyhow::Result<()> {
+fn save_on_signal(shutdown: Shutdown) -> anyhow::Result<()> {
     use signal_hook::consts::{SIGINT, SIGTERM};
     let mut signals = signal_hook::iterator::Signals::new([SIGTERM, SIGINT])?;
     std::thread::Builder::new().name("signals".into()).spawn(move || {
         if let Some(signal) = signals.forever().next() {
             tracing::info!(signal, "shutting down; saving the map");
-            host.shutdown();
-            let _ = std::fs::remove_file(&map_socket);
-            let _ = std::fs::remove_file(&socket);
-            std::process::exit(0);
+            shutdown.now();
         }
     })?;
     Ok(())
 }
 
+/// `nav.restart`: under systemd, answer, then go the way a SIGTERM goes —
+/// the unit's `Restart=always` starts the daemon again, with the knobs'
+/// env file read anew, and the homecoming runs as at boot. Anywhere else
+/// nobody would start it again, so it stays and says so.
+fn restart(daemon: &Daemon) -> Value {
+    // systemd (248 and later; Debian 13 has 257) sets it to the pid it
+    // started. Inherited from a shell it names that shell, not this
+    // process: a twin started from a terminal must not exit for nobody.
+    let by_systemd = std::env::var("SYSTEMD_EXEC_PID").ok().and_then(|p| p.parse::<u32>().ok()) == Some(std::process::id());
+    if !by_systemd {
+        return json!({
+            "restarting": false,
+            "reason": "quack-navd is not running under systemd: restart it by hand to apply the knobs \
+                       (the twin: scripts/twin/twin.sh restart-navd)",
+        });
+    }
+    let shutdown = daemon.shutdown.clone();
+    std::thread::spawn(move || {
+        // The answer goes out first.
+        std::thread::sleep(std::time::Duration::from_millis(300));
+        tracing::info!("nav.restart: saving the map and exiting; systemd starts quack-navd again");
+        shutdown.now();
+    });
+    json!({
+        "restarting": true,
+        "hint": "systemd starts quack-navd again in about 5 s (RestartSec); the running job stops, the map is saved, and the homecoming runs as at boot",
+    })
+}
+
 /// One caller, one thread, NDJSON in and out — robotd's own shape.
-fn serve(stream: UnixStream, robot: Arc<Mutex<Robot>>) {
+fn serve(stream: UnixStream, daemon: Arc<Daemon>) {
     let mut out = match stream.try_clone() {
         Ok(out) => out,
         Err(e) => {
@@ -102,14 +167,15 @@ fn serve(stream: UnixStream, robot: Arc<Mutex<Robot>>) {
         if line.trim().is_empty() {
             continue;
         }
-        let reply = answer(&line, &robot);
+        let reply = answer(&line, &daemon);
         if writeln!(out, "{reply}").is_err() {
             break;
         }
     }
 }
 
-fn answer(line: &str, robot: &Arc<Mutex<Robot>>) -> Value {
+fn answer(line: &str, daemon: &Daemon) -> Value {
+    let robot = &daemon.robot;
     let request: Value = match serde_json::from_str(line) {
         Ok(value) => value,
         Err(e) => return error(Value::Null, -32700, &format!("not JSON: {e}")),
@@ -134,6 +200,11 @@ fn answer(line: &str, robot: &Arc<Mutex<Robot>>) -> Value {
                 Err(e) => error(id, -32000, &e),
             }
         }
+        "nav.knobs" => match quack_nav::knobs::answer(&params, std::path::Path::new(&daemon.knobs_env)) {
+            Ok(value) => json!({"jsonrpc": "2.0", "id": id, "result": value}),
+            Err(e) => error(id, -32000, &e),
+        },
+        "nav.restart" => json!({"jsonrpc": "2.0", "id": id, "result": restart(daemon)}),
         other => error(id, -32601, &format!("unknown method `{other}`")),
     }
 }
