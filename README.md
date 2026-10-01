@@ -147,6 +147,8 @@ cargo build --release
 target/release/quack-navd /etc/robot/quack-nav.toml
 ```
 
+`quack-nav/quack-nav.example.toml`:
+
 ```toml
 socket = "/run/quack-nav/nav.sock"
 robotd_socket = "/run/robotd.sock"
@@ -174,7 +176,8 @@ robotd changes — daemon-v0.14.4 publishes everything the mapper needs.
 With it off, the map comes from a robotd that hosts maploc itself.
 
 `quack-nav/systemd/quack-navd.service` and `quack-nav/systemd/sysusers.d/`
-install it as an unprivileged service beside robotd; the unit runs
+install it as an unprivileged service beside robotd
+([Installing on the duck](#installing-on-the-duck)); the unit runs
 `/usr/local/bin/quack-navd /etc/robot/quack-nav.toml` and creates
 `/run/quack-nav/` for the sockets. Run by hand outside that unit,
 `/run/quack-nav/` must exist and be writable — `[maploc] socket` defaults to
@@ -243,6 +246,86 @@ ziglang`, `cargo install cargo-zigbuild`); alternatives are
 aarch64-unknown-linux-gnu`), or a plain `cargo build --release -p quack-nav
 --bin quack-navd` on any aarch64 Linux machine, the board included (slow
 there: four Cortex-A55 cores).
+
+### Installing on the duck
+
+The board must be provisioned by microduck first: robotd and tofd running,
+and the `robot` group their sockets belong to. Everything quack-nav adds:
+
+| on the duck | from this repo |
+|---|---|
+| `/usr/local/bin/quack-navd` | the cross-built binary |
+| `/etc/systemd/system/quack-navd.service` | `quack-nav/systemd/quack-navd.service` |
+| `/etc/sysusers.d/quack-nav.conf` (user `quacknav`) | `quack-nav/systemd/sysusers.d/quack-nav.conf` |
+| `/etc/robot/quack-nav.toml` | `quack-nav/quack-nav.example.toml` (the config above) |
+| `/run/quack-nav/{nav,map}.sock` | created by the unit (`RuntimeDirectory=`), mode 0660, group `robot` |
+| `/var/lib/quack-nav/` (places, sessions, `maps/`) | created by the unit (`StateDirectory=`), owned by `quacknav` |
+
+The unit runs the daemon as `quacknav` with `robot` as a supplementary
+group (it reaches robotd's and tofd's 0660 sockets, and hands its own two
+to `robot`), at nice 5, under 320 MB, with the filesystem read-only but
+for its state directory.
+
+One command from the dev machine, after `scripts/cross-build.sh`:
+
+```sh
+scripts/install-on-duck.sh radxa@192.168.1.42
+```
+
+It copies the four files over `scp`, then with `sudo` on the duck
+installs the binary, the unit and the account, installs the config only if
+`/etc/robot/quack-nav.toml` is absent (an edited one is kept), copies an
+old `/var/lib/quacksat/places.json` when `/var/lib/quack-nav/` has none,
+and enables and restarts the service, printing every command it runs. Run
+again, it is the upgrade. `SSH_OPTS="-p 2222"` passes options to ssh and
+scp. By hand, the same:
+
+```sh
+# on the dev machine
+scp target/aarch64-unknown-linux-gnu/release/quack-navd \
+    quack-nav/systemd/quack-navd.service quack-nav/systemd/sysusers.d/quack-nav.conf \
+    quack-nav/quack-nav.example.toml radxa@192.168.1.42:/tmp/
+# on the duck
+sudo install -m 755 /tmp/quack-navd /usr/local/bin/quack-navd
+sudo install -m 644 /tmp/quack-navd.service /etc/systemd/system/quack-navd.service
+sudo install -m 644 /tmp/quack-nav.conf /etc/sysusers.d/quack-nav.conf
+sudo systemd-sysusers /etc/sysusers.d/quack-nav.conf
+sudo install -D -m 644 /tmp/quack-nav.example.toml /etc/robot/quack-nav.toml   # first time only
+sudo systemctl daemon-reload && sudo systemctl enable --now quack-navd
+```
+
+Checking it:
+
+```sh
+systemctl status quack-navd
+journalctl -u quack-navd -f
+# from a user in the `robot` group (or with sudo)
+printf '{"jsonrpc":"2.0","id":1,"method":"nav.call","params":{"name":"robot.where_am_i","args":{}}}\n' \
+    | nc -U -q1 /run/quack-nav/nav.sock
+```
+
+**Upgrading**: `scripts/install-on-duck.sh` again, or by hand
+`sudo systemctl stop quack-navd`, `sudo install -m 755 /tmp/quack-navd
+/usr/local/bin/quack-navd`, `sudo systemctl start quack-navd` (stopping
+saves the mapping session first). **An old places registry**: 0.1.0 kept
+it in `/var/lib/quacksat/places.json`, which is no longer read —
+`sudo install -D -o quacknav -g quacknav -m 644 /var/lib/quacksat/places.json
+/var/lib/quack-nav/places.json`, then restart. **Uninstalling**:
+
+```sh
+sudo systemctl disable --now quack-navd
+sudo rm /usr/local/bin/quack-navd /etc/systemd/system/quack-navd.service /etc/sysusers.d/quack-nav.conf
+sudo systemctl daemon-reload
+# kept on purpose: the config, /etc/robot/quack-nav.toml, and the maps and
+# places, /var/lib/quack-nav/ — remove them (and `sudo userdel quacknav`)
+# only to forget the house
+```
+
+The script, the unit and the uninstall were run in a Debian 13 arm64
+container booted with systemd, with sshd, a `radxa` sudoer and a `robot`
+group (`systemd-analyze verify` passes; the sockets come up 0660
+`quacknav:robot`; `nc -U` gets an answer from a user in `robot`). Not yet on
+a real board.
 
 ## Technical debt, and where it goes
 

@@ -51,7 +51,10 @@ Follow the [README](../README.md#running-it): build, the configuration,
 the systemd unit, and the paper twin. For the board (Radxa Zero 3,
 aarch64, Debian 13), `scripts/cross-build.sh` cross-builds `quack-navd`
 from a Mac or a Linux machine without Docker
-([Building for the duck](../README.md#building-for-the-duck)). The MuJoCo twin is in
+([Building for the duck](../README.md#building-for-the-duck)), and
+`scripts/install-on-duck.sh radxa@<duck>` installs or upgrades it with its
+systemd unit ([Installing on the duck](../README.md#installing-on-the-duck)) —
+tried in a systemd container, not yet on a board. The MuJoCo twin is in
 [scripts/twin/README.md](../scripts/twin/README.md).
 
 ## Upgrading from 0.1.0
@@ -65,7 +68,8 @@ from a Mac or a Linux machine without Docker
   `/run/quack-nav.sock`); with `[maploc] enabled` the map is on
   `/run/quack-nav/map.sock`. Callers (quacksat included) must follow.
 - **Places**: `places_path` defaults to `/var/lib/quack-nav/places.json`,
-  and the old `/var/lib/quacksat/places.json` is not read any more: move it.
+  and the old `/var/lib/quacksat/places.json` is not read any more: move it
+  (`scripts/install-on-duck.sh` copies it across; the README has the command).
 - **robotd**: pinned to daemon-v0.14.4 (API 34). daemon-v0.15.0 is validated
   on the twin only on the branch `microduck-015`.
 - **Config**: `[map] explore_turn` still loads and does nothing.

@@ -72,6 +72,13 @@ A release candidate: the whole stack validated on the twins. Release notes:
   `cargo zigbuild` for `aarch64-unknown-linux-gnu` with the glibc floor
   pinned at 2.31, no Docker; the binary needs glibc 2.30 and ran in a
   Debian 13 arm64 container. README, "Building for the duck".
+- **Installing on the duck** (`scripts/install-on-duck.sh <user@host>`):
+  binary, unit, service account and — only when absent — the config
+  (`quack-nav/quack-nav.example.toml`, new) over ssh, an old
+  `/var/lib/quacksat/places.json` copied across, the service enabled and
+  restarted; rerun, it upgrades. README, "Installing on the duck", with the
+  manual commands, checks, upgrade and uninstall; run in a systemd Debian 13
+  arm64 container, not yet on a board.
 
 ### Changed
 

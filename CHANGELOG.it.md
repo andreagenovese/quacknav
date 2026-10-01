@@ -78,6 +78,14 @@ rilascio: [docs/release-notes-v0.2.0-rc1.it.md](docs/release-notes-v0.2.0-rc1.it
   fissata a 2.31, senza Docker; il binario richiede glibc 2.30 ed è stato
   fatto girare in un container Debian 13 arm64. README, "Compilare per la
   papera".
+- **Installare sulla papera** (`scripts/install-on-duck.sh <utente@host>`):
+  binario, unità, utente di servizio e — solo se manca — la configurazione
+  (`quack-nav/quack-nav.example.toml`, nuovo) via ssh, un vecchio
+  `/var/lib/quacksat/places.json` copiato, il servizio abilitato e
+  riavviato; rilanciato, aggiorna. README, "Installare sulla papera", con i
+  comandi a mano, i controlli, l'aggiornamento e la disinstallazione;
+  provato in un container Debian 13 arm64 con systemd, non ancora su una
+  scheda.
 
 ### Modificato
 

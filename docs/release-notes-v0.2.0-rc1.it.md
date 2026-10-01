@@ -53,7 +53,10 @@ Segui il [README](../README.it.md#farlo-girare): compilazione,
 configurazione, unità systemd e gemello di carta. Per la scheda (Radxa
 Zero 3, aarch64, Debian 13), `scripts/cross-build.sh` compila
 `quack-navd` in cross da un Mac o da Linux senza Docker
-([Compilare per la papera](../README.it.md#compilare-per-la-papera)). Il gemello MuJoCo è in
+([Compilare per la papera](../README.it.md#compilare-per-la-papera)), e
+`scripts/install-on-duck.sh radxa@<papera>` lo installa o lo aggiorna con
+la sua unità systemd ([Installare sulla papera](../README.it.md#installare-sulla-papera)) —
+provato in un container con systemd, non ancora su una scheda. Il gemello MuJoCo è in
 [scripts/twin/README.it.md](../scripts/twin/README.it.md).
 
 ## Aggiornare dalla 0.1.0
@@ -68,7 +71,8 @@ Zero 3, aarch64, Debian 13), `scripts/cross-build.sh` compila
   `/run/quack-nav/map.sock`. Chi chiama (quacksat compreso) deve seguire.
 - **Posti**: `places_path` ha come predefinito
   `/var/lib/quack-nav/places.json`, e il vecchio
-  `/var/lib/quacksat/places.json` non si legge più: va spostato.
+  `/var/lib/quacksat/places.json` non si legge più: va spostato
+  (`scripts/install-on-duck.sh` lo copia; il README ha il comando).
 - **robotd**: fissato a daemon-v0.14.4 (API 34). daemon-v0.15.0 è validato
   sul gemello solo nel branch `microduck-015`.
 - **Configurazione**: `[map] explore_turn` si carica ancora e non fa nulla.

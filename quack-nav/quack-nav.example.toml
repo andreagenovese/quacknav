@@ -1,0 +1,21 @@
+# quack-navd's config, installed to /etc/robot/quack-nav.toml (the path the
+# unit, quack-nav/systemd/quack-navd.service, passes). The README's own
+# example; every key it leaves out takes its default (quack-nav/src/config.rs).
+# scripts/install-on-duck.sh installs this file only when none is there.
+
+socket = "/run/quack-nav/nav.sock"
+robotd_socket = "/run/robotd.sock"
+
+[map]
+enabled = true
+tof_socket = "/run/tofd/tof.sock"
+places_path = "/var/lib/quack-nav/places.json"
+
+[homecoming]
+enabled = true          # recognise the house at boot, and take its map back
+resume_explore = true   # explore on after each charge until the house is done
+
+[maploc]
+enabled = true          # host the mapper here, against the released robotd
+mode = "stop_and_scan"  # or "localize" once the house is mapped
+map_path = "/var/lib/quack-nav/maploc.session"
