@@ -12,6 +12,14 @@ homecoming that recognises the house at boot — and a *paper twin* that
 runs all of it against a kinematic model of the duck, thousands of
 times an hour, so a rule is measured before it is believed.
 
+![A go_to on the MuJoCo twin](docs/media/go_to.gif)
+
+*A `go_to` on the MuJoCo twin, casa_grande, on the map the duck explored
+itself: 5.2 m in a straight line from the far bedroom to the kitchen,
+walked in 123 s and shown 6× faster. The dotted line is the path walked,
+the line ahead of the duck the planned route, the red blobs the drops it
+booked (2026-10-01).*
+
 Independent project, not affiliated with Pollen Robotics. Apache-2.0.
 Split out of [quacksat](https://github.com/andreagenovese/quacksat) on
 2026-09-22 (ADR 0006), with the history of every measurement that made

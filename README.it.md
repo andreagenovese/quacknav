@@ -14,6 +14,15 @@ homecoming che riconosce la casa all'avvio — e un *gemello di carta*
 che fa girare tutto questo contro un modello cinematico della papera,
 migliaia di volte all'ora, così una regola si misura prima di crederci.
 
+![Un go_to sul gemello MuJoCo](docs/media/go_to.gif)
+
+*Un `go_to` sul gemello MuJoCo, casa_grande, sulla mappa che la papera ha
+esplorato da sola: 5,2 m in linea d'aria dalla camera in fondo alla
+cucina, percorsi in 123 s e mostrati 6 volte più veloci. La linea
+tratteggiata è il percorso fatto, la linea davanti alla papera la rotta
+pianificata, le macchie rosse i dislivelli che ha registrato
+(2026-10-01).*
+
 Progetto indipendente, non affiliato a Pollen Robotics. Apache-2.0.
 Separato da [quacksat](https://github.com/andreagenovese/quacksat) il
 2026-09-22 (ADR 0006), con la storia di ogni misura che l'ha fatto.
