@@ -1181,6 +1181,27 @@ riportare zero cadute prima di chiamare qualcosa un miglioramento.
       misurare: raggi per finestra con la spazzata accesa e spenta, e il
       `min_frames` del voto contro la velocità della spazzata.
 
+- [x] 2026-10-01: i luoghi con nome sopravvivono a un'accensione. Il
+      registro teneva una generazione e la incrementava quando robotd
+      riportava meno submap di quante mai viste; ogni avvio col ritorno a
+      casa parte su una mappa nuova (`wipe_on_boot`) e solo dopo carica
+      quella salvata ("loaded the newest map", poi "confirmed … on the
+      saved map map=casa_grande"), quindi qualunque chiamata nel frattempo
+      rendeva stantio ogni luogo: un "places: the map was reset" per
+      sessione dopo la prima nei log di navd di x24 su casa_grande, e sul
+      gemello vivo (/tmp/qc-twin) due riavvii di quack-navd hanno lasciato
+      `cucina` e `soggiorno` alla generazione 5 in un file alla 7 — su una
+      papera vera, ogni accensione perdeva i nomi e "vai in cucina"
+      falliva. Ora un luogo porta la discendenza della mappa su cui è
+      stato insegnato, tenuta dal registro col nome della mappa salvata
+      (coniata a un wipe, a un'esplorazione nuova o a un reset non
+      chiesto; ripresa a un caricamento o un'adozione): `pending` finché
+      la posa non è confermata su quella mappa, `other_map` mentre ne è
+      viva un'altra, `stale` solo quando la mappa non c'è più. La regola
+      delle meno submap non c'è più; l'epoca della lane resta, per un
+      reset che nessuno ha chiesto. I file di versione 1 migrano
+      ([README-places](../quack-nav/README-places.it.md#a-quale-mappa-appartiene-un-luogo)).
+
 ## 2b. Una mappa sola, tenuta giusta (2026-09-09, direzione dell'utente)
 
 La libreria va in soffitta. **Una mappa sola**: l'anatra la tiene, la

@@ -49,6 +49,22 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Corretto
 
+- **I luoghi con nome sopravvivono a un'accensione.** Il registro rendeva
+  stantio ogni luogo ogni volta che la mappa riportava meno submap di
+  quante mai viste, e ogni avvio col ritorno a casa parte su una mappa
+  nuova prima di caricare quella salvata: qualunque chiamata nel frattempo
+  ("vai in cucina") li perdeva tutti — un "places: the map was reset" per
+  sessione su casa_grande, `cucina` e `soggiorno` stantii dopo due riavvii
+  sul gemello. Ora un luogo appartiene alla mappa su cui è stato insegnato
+  (una discendenza che il registro tiene col nome della mappa salvata):
+  `pending` finché la papera non è confermata su quella mappa, `usable`
+  poi; `other_map` mentre è viva un'altra mappa salvata; `stale` solo se
+  la sua mappa non c'è più (salvata sopra da una nuova, o cancellata senza
+  salvarla). `robot.list_places` aggiunge `state`, `map` e `live_map`
+  (`stale` resta, e vuol dire "non su questa mappa"), `robot.where_am_i`
+  `pending_places`; `robot.go_to` dice perché un luogo con nome ora non si
+  raggiunge. Un `places.json` di versione 1 si legge e si migra
+  ([README-places](quack-nav/README-places.it.md#a-quale-mappa-appartiene-un-luogo)).
 - docs/knobs.md e `nav.knobs` danno un default che nel codice è una
   costante col suo valore (`QK_DROP_INFLATE` 0.05, non `DROP_INFLATE_DEFAULT`),
   una manopola senza commento sopra la lettura prende la frase del suo file

@@ -24,7 +24,7 @@ dalla lane del robot (`quack-duck`) e da serde, nient'altro, e
 | modulo | cosa fa |
 |---|---|
 | `map` | client `robot.map`: si sottoscrive, tiene l'ultimo `map.frame` (posa, flag di tracking, griglia ternaria), si riconnette in caso di perdita, si spegne da solo su un robotd precedente all'API della mappa, e incrementa un'*epoca* quando il frame della mappa è stato evidentemente azzerato |
-| `places` | il registro: file JSON, più ancore per nome, confronto senza distinzione di maiuscole, una *generazione* persistita che diventa stantia a un reset della mappa (l'epoca della lane, o meno submap di quante mai viste — un wipe mentre l'host era spento) |
+| `places` | il registro: file JSON, più ancore per nome, confronto senza distinzione di maiuscole; ogni luogo appartiene alla mappa su cui è stato insegnato (vedi sotto) |
 | `tools` | i dodici strumenti come catalogo (JSON Schema) più un esecutore su un `Robot` (lane robotd + lane mappa + registro + guardiano del vuoto): i luoghi, la mappa in numeri con lo spazio libero nelle quattro direzioni e un suggerimento per un giro di mappatura, i lavori dell'esploratore, le mappe salvate |
 | `cliff` | il guardiano del vuoto: i frame grezzi di tofd riproiettati con la geometria della testa di Pollen (`kinematics`); un raggio verso il basso che non torna, o torna 1,5× troppo lungo, dove dovrebbe esserci il pavimento è un dislivello — scale, una buca — che la mappa 2D non può mostrare. Giudicato sugli ultimi 3 s nel frame corpo e tenuto per 8, così uno sweep della testa accumula una vista |
 | `frontier` | dove il pavimento noto incontra l'ignoto: gruppi di frontiera, e un pianificatore a costi sulla griglia (pavimento noto economico, ignoto caro, muri gonfiati, corsie camminate sempre aperte) verso la più economica raggiungibile e verso qualsiasi meta — ciò su cui girano "mappa tutto" e `go_to` |
@@ -37,6 +37,42 @@ dalla lane del robot (`quack-duck`) e da serde, nient'altro, e
 Forma del filo fissata all'API upstream v17 (`MAP_API_VERSION`); i tipi
 sono una copia locale finché non esce la release di `duck-ipc-proto` che
 li porta.
+
+## A quale mappa appartiene un luogo
+
+Un luogo è coordinate, e le coordinate hanno senso solo sulla mappa su cui
+sono state insegnate. Così ogni luogo porta la *discendenza* di quella
+mappa: un id che il registro conia ogni volta che una mappa parte da zero
+(`robot.map_wipe`, un'esplorazione nuova, un reset visto dalla lane della
+mappa che nessuno ha chiesto), tiene col nome della mappa quando la mappa
+viva è salvata (`robot.map_save`, la fine di una sessione di esplorazione,
+"esplorazione completata"), e riprende quando una mappa salvata è caricata
+o adottata (`robot.map_load`, `robot.map_adopt`, il ritorno a casa). I file
+della libreria non portano id, quindi il registro tiene i conti da sé, in
+`places.json`. `robot.list_places` dà a ogni luogo uno `state`:
+
+| state | quando | `stale` |
+|---|---|---|
+| `usable` | la sua mappa è quella viva e la papera ci ha avuto una posa fidata da quando è diventata viva | false |
+| `pending` | non si sa ancora: all'avvio finché il ritorno a casa non ha caricato una mappa salvata e confermato la posa, o la mappa viva caricata ma non confermata. Mai riconosciuto, mai perso | false |
+| `other_map` | appartiene a una mappa salvata che non è quella viva — un'altra casa, o la mappa viva è stata cancellata. Torna quando quella mappa è caricata o adottata | true |
+| `stale` | la sua mappa non c'è più: una mappa partita da zero è stata salvata sopra col suo stesso nome, o è stato insegnato su una mappa viva cancellata o azzerata prima che qualcuno la salvasse | true |
+
+Così un'accensione non costa più i luoghi: la mappa nuova con cui parte il
+mapper, la ricerca del ritorno a casa e ogni chiamata nel frattempo li
+lasciano `pending`, e tornano `usable` appena la posa è confermata sulla
+mappa salvata. Fino al 2026-10-01 un'unica generazione diventava stantia
+ogni volta che la mappa riportava meno submap di quante mai viste — cosa
+che ogni avvio col ritorno a casa faceva, prima di caricare la mappa
+salvata. Insegnare è rifiutato finché la mappa viva non è nota, e durante
+la ricerca del ritorno a casa (una mappa che si butta quando la papera si
+ritrova). Un `places.json` di versione 1 si legge: i suoi luoghi correnti
+aspettano la prima mappa salvata, mai vista prima dal registro, su cui la
+papera è confermata (o, senza ritorno a casa, la mappa lasciata all'ultima
+esecuzione finché ci sono tutte le sue submap); quelli stantii restano
+stantii — la versione 1 non distingue un reset vero da uno falso, e
+reinsegnare costa meno di una camminata nella stanza sbagliata. Il file è
+riscritto come versione 2.
 
 ## Ospitarlo
 

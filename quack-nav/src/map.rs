@@ -530,9 +530,13 @@ pub struct MapStatus {
     /// (A wipe alone does not reset `seq`, and a frame never carries zero
     /// submaps, so neither is a signal by itself.) There is no session id
     /// on the wire; this is the evidence we have. Anything anchored to the
-    /// map (the places registry) records the epoch it was taught in and
-    /// double-checks with its own persisted submap high-water mark.
+    /// map (the places registry) watches the epoch, and tells a reset it
+    /// asked for (a load, a wipe) from one nobody asked it for by
+    /// [`MapStatus::epoch_frames`].
     pub epoch: u64,
+    /// `frames` when `epoch` last changed: whoever asked for a reset knows
+    /// how many frames it had seen then, and so whether this one was it.
+    pub epoch_frames: u64,
 }
 
 impl MapStatus {
@@ -545,12 +549,13 @@ impl MapStatus {
             }
             None => false,
         };
-        if reset {
-            self.epoch += 1;
-        }
         self.latest = Some(frame);
         self.received_at = Some(now);
         self.frames += 1;
+        if reset {
+            self.epoch += 1;
+            self.epoch_frames = self.frames;
+        }
         reset
     }
 

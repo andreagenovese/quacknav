@@ -15,7 +15,7 @@ use std::time::Instant;
 use crate::cliff::{CliffWatch, StreamState};
 use crate::config::MapConfig;
 use crate::map::{MapSupport, MapWatch};
-use crate::places::{MAX_RADIUS_M, MIN_RADIUS_M, Registry};
+use crate::places::{Look, MAX_RADIUS_M, MIN_RADIUS_M, PlaceState, Registry};
 
 /// Everything the place tools act on.
 pub struct Places {
@@ -35,6 +35,23 @@ pub struct Places {
     pub map_config: MapConfig,
     /// The `[gait]` section: yaw trim and per-side gains for every walk.
     pub gait: quack_duck::gait::GaitConfig,
+}
+
+/// The maps the explore job saved since the registry last heard.
+fn take_saves(explore: &crate::explore::ExploreHandle, registry: &mut Registry) {
+    for name in explore.take_saved() {
+        if let Err(e) = registry.saved_as(&name) {
+            tracing::warn!(error = %format!("{e:#}"), "places registry not saved");
+        }
+    }
+}
+
+/// The live map started from nothing when the lane had seen `frames`.
+fn started_afresh(explore: &crate::explore::ExploreHandle, registry: &mut Registry, frames: u64) {
+    take_saves(explore, registry);
+    if let Err(e) = registry.started_afresh(frames) {
+        tracing::warn!(error = %format!("{e:#}"), "places registry not saved");
+    }
 }
 
 /// Every lane the navigation acts on: robotd's request lane, and the
@@ -124,6 +141,47 @@ impl Places {
         Ok(())
     }
 
+    /// Bring the registry up to date before it is asked anything: the
+    /// maps the explore job saved since, and what the map lane says now.
+    pub fn fold(&mut self) {
+        take_saves(&self.explore, &mut self.registry);
+        if let Some(look) = self.map.as_ref().and_then(|m| Look::of(&m.snapshot()))
+            && let Err(e) = self.registry.observe(look)
+        {
+            tracing::warn!(error = %format!("{e:#}"), "places registry not saved");
+        }
+    }
+
+    /// The live map is now the saved map `name` (loaded or adopted). The
+    /// lane is not folded in first: the reset this caused may already be
+    /// in it, and it is this one's, not news.
+    pub fn map_loaded(&mut self, name: &str) {
+        take_saves(&self.explore, &mut self.registry);
+        let frames = self.lane_frames();
+        if let Err(e) = self.registry.loaded(name, frames) {
+            tracing::warn!(error = %format!("{e:#}"), "places registry not saved");
+        }
+    }
+
+    /// The live map starts from nothing (a wipe, a fresh exploration, the
+    /// boot's search).
+    pub fn map_started_afresh(&mut self) {
+        let frames = self.lane_frames();
+        started_afresh(&self.explore, &mut self.registry, frames);
+    }
+
+    /// The live map was saved to the library as `name`.
+    pub fn map_saved(&mut self, name: &str) {
+        take_saves(&self.explore, &mut self.registry);
+        if let Err(e) = self.registry.saved_as(name) {
+            tracing::warn!(error = %format!("{e:#}"), "places registry not saved");
+        }
+    }
+
+    fn lane_frames(&self) -> u64 {
+        self.map.as_ref().map_or(0, |m| m.snapshot().frames)
+    }
+
     pub fn detached() -> Self {
         Self {
             map: None,
@@ -194,8 +252,10 @@ fn catalog_places() -> Vec<Value> {
         json!({
             "name": "robot.list_places",
             "description": "The places the duck knows by name, each with its distance from \
-        where the duck is now when that is known. A stale place belongs to a map that was reset \
-        since it was taught: it needs teaching again before it can be recognized.",
+        where the duck is now when that is known, and the saved map it belongs to. `state`: \
+        usable; pending (the duck has not found itself on that map yet, e.g. just switched on — \
+        wait, do not teach it again); other_map (another map is loaded: it comes back with its own); \
+        stale (its map was wiped or replaced by a new one: it needs teaching again).",
             "parameters": {"type": "object", "properties": {}}
         }),
         json!({
@@ -245,28 +305,35 @@ fn execute_places(name: &str, args: &Value, places: &mut Places) -> Result<Value
             Ok(json!({"forgotten": forgotten, "name": name}))
         }
         "robot.list_places" => {
+            places.fold();
             let here = located(places).ok().map(|fix| fix.pose);
             let listed: Vec<Value> = places
                 .registry
                 .places()
                 .iter()
                 .map(|place| {
-                    let stale = places.registry.is_stale(place);
+                    let state = places.registry.state(place);
                     json!({
                         "name": place.name,
                         "anchors": place.anchors.len(),
                         "radius_m": place.radius_m,
-                        "stale": stale,
+                        // `state` says it all: usable, pending (the duck has
+                        // not found itself on the place's map yet), other_map
+                        // (another saved map is live), stale (its map is
+                        // gone). `stale` is the old flag: not on this map.
+                        "state": state.as_str(),
+                        "stale": state.is_stale(),
+                        "map": places.registry.map_of(place),
                         // Where `robot.go_to` takes the duck: the first
                         // anchor, in map metres (a map view pins it there).
                         "at": place.anchors.first().map(|a| json!({"x": round2(a.x), "y": round2(a.y)})),
                         "distance_m": here
-                            .filter(|_| !stale)
+                            .filter(|_| state == PlaceState::Usable)
                             .map(|(x, y, _)| round2(place.distance_to(x, y))),
                     })
                 })
                 .collect();
-            Ok(json!({"places": listed, "position_known": here.is_some()}))
+            Ok(json!({"places": listed, "position_known": here.is_some(), "live_map": places.registry.live_map()}))
         }
         "robot.map_status" => map_status(places),
         other => Err(format!("unknown tool `{other}`")),
@@ -282,6 +349,7 @@ fn remember_at_point(places: &mut Places, name: &str, args: &Value, radius: Opti
     let (Some(x), Some(y)) = (args.get("x").and_then(Value::as_f64), args.get("y").and_then(Value::as_f64)) else {
         return Err("x and y go together, in map metres".into());
     };
+    places.fold();
     let Some(map) = &places.map else {
         return Err("this satellite has no map lane ([map] enabled = false)".into());
     };
@@ -289,9 +357,6 @@ fn remember_at_point(places: &mut Places, name: &str, args: &Value, radius: Opti
     let Some(frame) = &status.latest else {
         return Err("no map yet: robotd is unreachable or has not sent a map frame".into());
     };
-    if let Err(e) = places.registry.observe(status.epoch, frame.n_submaps) {
-        tracing::warn!(error = %format!("{e:#}"), "places registry not saved");
-    }
     let grid = frame.grid().map_err(|e| e.to_string())?;
     match grid.at(x, y) {
         Some(crate::map::Cell::Free) => {}
@@ -316,6 +381,7 @@ fn remember_at_point(places: &mut Places, name: &str, args: &Value, radius: Opti
 /// The map's state in numbers and in one line of advice — what a tour
 /// narrates between steps.
 fn map_status(places: &mut Places) -> Result<Value, String> {
+    places.fold();
     let Some(map) = &places.map else {
         return Err("this satellite has no map lane ([map] enabled = false)".into());
     };
@@ -344,9 +410,6 @@ fn map_status(places: &mut Places) -> Result<Value, String> {
             "hint": "mapping is on but no map frame has arrived yet; wait a moment",
         }));
     };
-    if let Err(e) = places.registry.observe(status.epoch, frame.n_submaps) {
-        tracing::warn!(error = %format!("{e:#}"), "places registry not saved");
-    }
     let grid = frame.grid().ok();
     let (free, wall) = grid
         .as_ref()
@@ -515,8 +578,10 @@ enum NoFix {
 }
 
 /// Resolve the duck's position: the map lane's newest frame, folded into
-/// the registry so a reset is noticed before any name is matched.
+/// the registry first so a change of map is noticed before any name is
+/// matched.
 fn locate(places: &mut Places) -> Result<Fix, NoFix> {
+    places.fold();
     let Some(map) = &places.map else {
         return Err(NoFix::Unavailable(
             "this satellite has no map lane ([map] enabled = false)".into(),
@@ -541,9 +606,6 @@ fn locate(places: &mut Places) -> Result<Fix, NoFix> {
             "no map yet: robotd is unreachable or has not sent a map frame".into(),
         ));
     };
-    if let Err(e) = places.registry.observe(status.epoch, frame.n_submaps) {
-        tracing::warn!(error = %format!("{e:#}"), "places registry not saved");
-    }
     match status.trusted_pose() {
         Some(pose) => Ok(Fix {
             pose,
@@ -580,12 +642,11 @@ fn where_am_i(places: &mut Places) -> Result<Value, String> {
     };
     let (x, y, _) = fix.pose;
     let nearest = places.registry.nearest(x, y);
-    let stale = places
-        .registry
-        .places()
-        .iter()
-        .filter(|p| places.registry.is_stale(p))
-        .count();
+    let count = |wanted: fn(PlaceState) -> bool| {
+        places.registry.places().iter().filter(|p| wanted(places.registry.state(p))).count()
+    };
+    let stale = count(PlaceState::is_stale);
+    let pending = count(|s| s == PlaceState::Pending);
     Ok(json!({
         "known": true,
         "place": nearest.as_ref().map(|n| n.place.name.clone()),
@@ -594,6 +655,7 @@ fn where_am_i(places: &mut Places) -> Result<Value, String> {
         "pose": pose_json(fix.pose),
         "places_known": places.registry.current().count(),
         "stale_places": stale,
+        "pending_places": pending,
         "map": {"submaps": fix.n_submaps, "loops": fix.n_loops, "windows": fix.windows},
     }))
 }
@@ -863,7 +925,9 @@ mod tests {
             &mut places,
         )
         .unwrap();
-        // A wipe: the mapper starts over with a single submap.
+        // A wipe nobody asked quack-nav for: the mapper starts over with a
+        // single submap, the lane's epoch moves, and the live map is a new
+        // one. `studio` was taught on a map never saved, so it is gone.
         let mut wiped = frame(2, 0.0, 0.0, true, false);
         wiped.n_submaps = 1;
         wiped.windows = 0;
@@ -879,7 +943,41 @@ mod tests {
         assert_eq!(here["places_known"], 0);
         let listed = execute_places("robot.list_places", &json!({}), &mut places).unwrap();
         assert_eq!(listed["places"][0]["stale"], true);
+        assert_eq!(listed["places"][0]["state"], "stale", "taught on a map never saved, and that map is gone");
         assert!(listed["places"][0]["distance_m"].is_null());
+    }
+
+    #[test]
+    fn a_place_says_which_map_it_is_on_and_go_to_says_why_not() {
+        let mut robot = Robot { control: None, places: mapped(frame(1, 0.0, 0.0, true, false)) };
+        let places = &mut robot.places;
+        execute_places("robot.remember_place", &json!({"name": "studio"}), places).unwrap();
+        places.registry.saved_as("casa").unwrap();
+        let listed = execute_places("robot.list_places", &json!({}), places).unwrap();
+        assert_eq!(listed["places"][0]["state"], "usable");
+        assert_eq!(listed["places"][0]["stale"], false);
+        assert_eq!(listed["places"][0]["map"], "casa");
+        assert_eq!(listed["live_map"], "casa");
+
+        // Another map is live (a wipe): parked, not lost.
+        places.map_started_afresh();
+        let listed = execute_places("robot.list_places", &json!({}), places).unwrap();
+        assert_eq!(listed["places"][0]["state"], "other_map");
+        assert_eq!(listed["places"][0]["stale"], true);
+        assert!(listed["live_map"].is_null());
+        let e = go_to(&mut robot, &json!({"place": "studio"})).unwrap_err();
+        assert!(e.contains("`casa`") && e.contains("map_load"), "{e}");
+
+        // The homecoming is out: waiting, and go_to says so.
+        robot.places.registry.await_homecoming();
+        let listed = execute_places("robot.list_places", &json!({}), &mut robot.places).unwrap();
+        assert_eq!(listed["places"][0]["state"], "pending");
+        assert_eq!(listed["places"][0]["stale"], false);
+        let e = go_to(&mut robot, &json!({"place": "studio"})).unwrap_err();
+        assert!(e.starts_with("the duck is not sure of its position yet"), "{e}");
+        let here = execute_places("robot.where_am_i", &json!({}), &mut robot.places).unwrap();
+        assert_eq!(here["pending_places"], 1);
+        assert_eq!(here["stale_places"], 0);
     }
 }
 
@@ -1072,6 +1170,7 @@ pub fn execute(name: &str, args: &Value, robot: &mut Robot) -> Result<Value, Str
             if let Some(n) = name.get("name").and_then(Value::as_str) {
                 robot.places.explore.name_live_map(n);
                 robot.places.explore.keep_ground();
+                robot.places.map_saved(n);
             }
             Ok(saved)
         }
@@ -1081,6 +1180,7 @@ pub fn execute(name: &str, args: &Value, robot: &mut Robot) -> Result<Value, Str
             let loaded = map_library(&robot.places.map_socket, "robot.map_load", Some(name.clone()))?;
             if let Some(n) = name.get("name").and_then(Value::as_str) {
                 robot.places.explore.map_named(n);
+                robot.places.map_loaded(n);
             }
             Ok(loaded)
         }
@@ -1106,10 +1206,15 @@ pub fn execute(name: &str, args: &Value, robot: &mut Robot) -> Result<Value, Str
             let adopted = map_library(&robot.places.map_socket, "robot.map_adopt", Some(params))?;
             if let Some(n) = name.get("name").and_then(Value::as_str) {
                 robot.places.explore.map_named(n);
+                robot.places.map_loaded(n);
             }
             Ok(adopted)
         }
-        "robot.map_wipe" => map_library(&robot.places.map_socket, "robot.map_wipe", None),
+        "robot.map_wipe" => {
+            let wiped = map_library(&robot.places.map_socket, "robot.map_wipe", None)?;
+            robot.places.map_started_afresh();
+            Ok(wiped)
+        }
         "robot.move" => {
             robot.places.not_exploring()?;
             let params = quack_duck::body::move_params(args);
@@ -1279,6 +1384,7 @@ fn map_explore(robot: &mut Robot, args: &Value) -> Result<Value, String> {
         while map.snapshot().frames <= frames0 + 1 && Instant::now() < deadline {
             std::thread::sleep(std::time::Duration::from_millis(200));
         }
+        started_afresh(&robot.places.explore, &mut robot.places.registry, frames0);
         tracing::info!(map = name, "map explore: a new map from nothing; the saved one is replaced when this session saves");
     }
     // What the answer reports is the map as it is now — after `fresh`, the
@@ -1343,6 +1449,7 @@ fn map_explore_complete(robot: &mut Robot, args: &Value) -> Result<Value, String
         None => robot.places.explore.map_name().unwrap_or_else(|| "casa".to_string()),
     };
     map_library(&robot.places.map_socket, crate::mapd::wire::METHOD_ROBOT_MAP_SAVE, Some(json!({"name": name})))?;
+    robot.places.map_saved(&name);
     let percent = robot
         .places
         .map
@@ -1451,6 +1558,7 @@ fn go_to(robot: &mut Robot, args: &Value) -> Result<Value, String> {
     if robot.places.explore.running() {
         return Err("the duck is already on its way (or exploring): stop that first".into());
     }
+    robot.places.fold();
     let Some(map) = &robot.places.map else {
         return Err("this satellite has no map lane ([map] enabled = false)".into());
     };
@@ -1468,19 +1576,40 @@ fn go_to(robot: &mut Robot, args: &Value) -> Result<Value, String> {
     // A place by name, or a point.
     let (goal, what) = match args.get("place").and_then(Value::as_str) {
         Some(name) => {
-            let place = robot
-                .places
-                .registry
-                .current()
-                .find(|p| p.name.eq_ignore_ascii_case(name.trim()))
-                .ok_or_else(|| {
-                    let known: Vec<&str> = robot.places.registry.current().map(|p| p.name.as_str()).collect();
-                    if known.is_empty() {
-                        format!("the duck knows no place called `{name}`, and no places at all yet")
-                    } else {
-                        format!("the duck knows no place called `{name}`; it knows: {}", known.join(", "))
-                    }
-                })?;
+            let registry = &robot.places.registry;
+            let place = registry.named(name).ok_or_else(|| {
+                let known: Vec<&str> = registry.current().map(|p| p.name.as_str()).collect();
+                if known.is_empty() {
+                    format!("the duck knows no place called `{name}`, and no places at all yet")
+                } else {
+                    format!("the duck knows no place called `{name}`; it knows: {}", known.join(", "))
+                }
+            })?;
+            let on = registry.map_of(place).map_or_else(|| "a map never saved".to_owned(), |m| format!("the map `{m}`"));
+            match registry.state(place) {
+                PlaceState::Usable => {}
+                PlaceState::Pending => {
+                    return Err(format!(
+                        "the duck is not sure of its position yet: `{}` is on {on}, and the duck has not found itself \
+                         on it yet — let it stand still and look around first",
+                        place.name
+                    ));
+                }
+                PlaceState::OtherMap => {
+                    return Err(format!(
+                        "`{}` is on {on}, and the duck is on another map now ({}): load that map first (robot.map_load)",
+                        place.name,
+                        registry.live_map().map_or_else(|| "one not saved yet".to_owned(), |m| format!("`{m}`"))
+                    ));
+                }
+                PlaceState::Stale => {
+                    return Err(format!(
+                        "`{}` was taught on a map that is gone (wiped, or replaced by a new one under its name): \
+                         teach it again on this map with robot.remember_place",
+                        place.name
+                    ));
+                }
+            }
             let anchor = place
                 .anchors
                 .first()

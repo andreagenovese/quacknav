@@ -45,6 +45,20 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Fixed
 
+- **Named places survive a power-on.** The registry made every place
+  stale whenever the map reported fewer submaps than ever seen, and every
+  boot with the homecoming starts on a fresh map before it loads the saved
+  one: any tool call in between ("go to the kitchen") lost them all — one
+  "places: the map was reset" per session on casa_grande, `cucina` and
+  `soggiorno` stale after two restarts on the twin. A place now belongs to
+  the map it was taught on (a lineage the registry keeps with the saved
+  map's name): `pending` until the duck is confirmed on that map, `usable`
+  then; `other_map` while another saved map is live; `stale` only when its
+  map is gone (saved over by a new one, or wiped unsaved).
+  `robot.list_places` adds `state`, `map` and `live_map` (`stale` stays,
+  meaning "not on this map"), `robot.where_am_i` `pending_places`;
+  `robot.go_to` says why a named place cannot be reached now. A version-1
+  `places.json` is read and migrated ([README-places](quack-nav/README-places.md#which-map-a-place-belongs-to)).
 - docs/knobs.md and `nav.knobs` give a default named by a constant as its
   value (`QK_DROP_INFLATE` 0.05, not `DROP_INFLATE_DEFAULT`), a knob with no
   comment above its read takes the sentence of its file that names it, and

@@ -50,7 +50,7 @@ Che cosa usa una vista della mappa:
 | chiamata | che cosa dà o fa |
 |---|---|
 | `robot.map_status` | `pose` (x, y, yaw), `pose_uncertainty` (`xy_m`, `xy_minor_m`, `along_deg`, `yaw_deg`, una sigma; null quando è persa), `tracking`, `seated`, `mode`; `house` (`map`, `percent_mapped`, `sessions`, `done`); `explore` — il lavoro: `state` (`idle`, `running`, `done`, `stopped`, `failed`), `reason`, `route` e `route_raw` (`[[x, y], …]`), `aim`, `goal` (`[x, y]`), `local` (`[[x, y, r], …]`: r ≥ 0,10 m un dislivello nei registri, meno un ostacolo), `progress`, `question_pending` |
-| `robot.list_places` | di ogni luogo `name`, `radius_m`, `stale`, `distance_m`, e `at` — `{x, y}`, l'ancora a cui va `go_to` |
+| `robot.list_places` | di ogni luogo `name`, `radius_m`, `state` (`usable`, `pending` — la papera non si è ancora ritrovata sulla mappa del luogo, `other_map` — è viva un'altra mappa salvata, `stale` — la sua mappa non c'è più; vedi [README-places](../quack-nav/README-places.it.md#a-quale-mappa-appartiene-un-luogo)), `stale` (il vecchio flag: `other_map` o `stale`), `map` (la mappa salvata a cui appartiene, o null), `distance_m` (solo luoghi usabili), e `at` — `{x, y}`, l'ancora a cui va `go_to`; `live_map`, il nome salvato della mappa viva (null se ignota o mai salvata) |
 | `robot.go_to` | `{"x", "y"}` un punto, `{"place"}` un nome, `{"stop": true}` ferma qualunque lavoro sia in corso |
 | `robot.map_explore` | `{}` avvia una sessione, `{"stop": true}` la ferma, `{"complete": true}` chiude la mappa così com'è; `fresh` sostituisce la mappa e chiede `confirmed` |
 | `robot.remember_place` | `{"name"}` dove sta l'anatra; `{"name", "x", "y"}` un punto di pavimento mappato |

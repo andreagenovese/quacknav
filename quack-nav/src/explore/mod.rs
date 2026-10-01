@@ -445,6 +445,10 @@ pub struct ExploreHandle {
     /// The ground book: the drops on the books, kept on disk per saved
     /// map (see [`ExploreHandle::map_named`]).
     ground: Arc<Mutex<Ground>>,
+    /// The names a session saved the live map under, for the places
+    /// registry to hear: the job saves from its own thread, which cannot
+    /// reach the registry ([`ExploreHandle::take_saved`]).
+    saved: Arc<Mutex<Vec<String>>>,
 }
 
 /// Where the drops of each saved map are kept, and which map is live.
@@ -681,6 +685,11 @@ impl ExploreHandle {
             Ok(()) => tracing::info!(map, drops = n, lanes = n_lanes, path = %path.display(), "map explore: ground book kept"),
             Err(e) => tracing::warn!(error = %e, path = %path.display(), "map explore: the ground book could not be written"),
         }
+    }
+
+    /// The names sessions saved the live map under since the last call.
+    pub fn take_saved(&self) -> Vec<String> {
+        std::mem::take(&mut *self.saved.lock().expect("saved poisoned"))
     }
 
     pub fn status(&self) -> ExploreStatus {
@@ -980,6 +989,7 @@ impl ExploreHandle {
             return;
         }
         self.name_live_map(&name);
+        self.saved.lock().expect("saved poisoned").push(name.clone());
         let (share, free, open) = robot.frame().and_then(|f| f.grid().ok()).map_or((0.0, 0, 0), |g| explored_share(&g));
         // Done: nothing left, or only what cannot be reached and is small —
         // a strip behind a sofa, a hole's inside — else a house with one

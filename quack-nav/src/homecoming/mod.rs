@@ -70,11 +70,21 @@ pub fn spawn(robot: Arc<Mutex<Robot>>, cfg: HomecomingConfig) {
     if !cfg.enabled {
         return;
     }
+    // Until it has settled, which map is live is the homecoming's call:
+    // the places wait instead of being judged on the boot's fresh map.
+    robot.lock().expect("robot poisoned").places.registry.await_homecoming();
+    let ours = robot.clone();
     std::thread::Builder::new()
         .name("homecoming".into())
-        .spawn(move || run(&robot, &cfg))
+        .spawn(move || {
+            run(&ours, &cfg);
+            ours.lock().expect("robot poisoned").places.registry.homecoming_settled();
+        })
         .map(|_| ())
-        .unwrap_or_else(|e| tracing::warn!(error = %e, "homecoming: cannot start the thread"));
+        .unwrap_or_else(|e| {
+            tracing::warn!(error = %e, "homecoming: cannot start the thread");
+            robot.lock().expect("robot poisoned").places.registry.homecoming_settled();
+        });
 }
 
 fn run(robot: &Arc<Mutex<Robot>>, cfg: &HomecomingConfig) {
@@ -156,7 +166,11 @@ fn run(robot: &Arc<Mutex<Robot>>, cfg: &HomecomingConfig) {
         }
         // The fresh map is a search, not the house: nothing of it is saved
         // or declared under the house's name until the saved map is adopted.
-        robot.lock().expect("robot poisoned").places.explore.map_searching();
+        {
+            let mut robot = robot.lock().expect("robot poisoned");
+            robot.places.explore.map_searching();
+            robot.places.map_started_afresh();
+        }
         // The map lane learns of the wipe from the next map frame, a
         // second later. Asking to explore before then is refused for a
         // pose that no longer exists — the frame in hand is the one from

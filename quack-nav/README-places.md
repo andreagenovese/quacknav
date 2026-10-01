@@ -24,7 +24,7 @@ hosts it on a socket of its own.
 | module | what it does |
 |---|---|
 | `map` | `robot.map` client: subscribes, keeps the newest `map.frame` (pose, tracking flag, trinary grid), reconnects on loss, turns itself off on a robotd that predates the map API, and bumps an *epoch* when the map frame was evidently reset |
-| `places` | the registry: JSON file, several anchors per name, case-insensitive matching, a persisted *generation* that goes stale on a map reset (the lane's epoch, or fewer submaps than ever seen — a wipe while the host was down) |
+| `places` | the registry: JSON file, several anchors per name, case-insensitive matching; every place belongs to the map it was taught on (see below) |
 | `tools` | the twelve tools as a catalog (JSON Schema) plus an executor on a `Robot` (robotd lane + map lane + registry + cliff guard): the places, the map in numbers with the clearance in four directions and a hint for a mapping tour, the explorer's jobs, the saved maps |
 | `cliff` | the cliff guard: tofd's raw frames reprojected through Pollen's head geometry (`kinematics`); a downward beam that returns nothing, or 1.5× too long, where the floor should be is a drop — stairs, a hole — that the 2D map cannot show. Judged over 3 s in the body frame and kept for 8, so a head sweep accumulates a view |
 | `frontier` | where the known floor meets the unknown: frontier groups, and a costed planner on the grid (known floor cheap, unknown dear, walls inflated, walked lanes always open) to the cheapest reachable one and to any goal — what "map everything" and `go_to` loop over |
@@ -36,6 +36,41 @@ hosts it on a socket of its own.
 
 Wire shape pinned to upstream API v17 (`MAP_API_VERSION`); the types are
 a local mirror until the `duck-ipc-proto` release that carries them.
+
+## Which map a place belongs to
+
+A place is coordinates, and coordinates mean something only on the map
+they were taught on. So every place carries that map's *lineage*: an id
+the registry mints whenever a map starts from nothing (`robot.map_wipe`, a
+fresh exploration, a reset the map lane saw that nobody asked for), keeps
+with the map's name when the live map is saved (`robot.map_save`, the end
+of an exploring session, "exploration complete"), and takes back when a
+saved map is loaded or adopted (`robot.map_load`, `robot.map_adopt`, the
+homecoming). The library's files carry no id, so the registry keeps the
+books itself, in `places.json`. `robot.list_places` gives each place a
+`state`:
+
+| state | when | `stale` |
+|---|---|---|
+| `usable` | its map is the live one and the duck has had a trusted pose on it since it became live | false |
+| `pending` | not known yet: at boot until the homecoming has loaded a saved map and confirmed the pose on it, or the live map loaded but unconfirmed. Never matched, never lost | false |
+| `other_map` | it belongs to a saved map that is not the live one — another house, or the live map was wiped. It comes back when that map is loaded or adopted | true |
+| `stale` | its map is gone: a map started from nothing was saved over it under the same name, or it was taught on a live map that was wiped or reset before anyone saved it | true |
+
+So a power-on no longer costs the places: the fresh map the mapper boots
+on, the homecoming's search, and any tool call in between leave them
+`pending`, and they are `usable` again the moment the pose is confirmed on
+the saved map. Until 2026-10-01 a single generation went stale whenever
+the map reported fewer submaps than ever seen — which every boot with the
+homecoming did, before it loaded the saved map. Teaching is refused while
+the live map is not known, and during the homecoming's search (a map that
+is thrown away when the duck finds itself). A `places.json` of version 1
+is read: its current places wait for the first saved map the duck is
+confirmed on that the registry has not seen before (or, without a
+homecoming, the map left at the last run while all its submaps are
+there); its stale ones stay stale — version 1 cannot tell a real reset
+from a false one, and re-teaching is cheaper than a walk to the wrong
+room. The file is written back as version 2.
 
 ## Hosting it
 

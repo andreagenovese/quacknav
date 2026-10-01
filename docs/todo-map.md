@@ -1085,6 +1085,25 @@ report zero falls before anything is called an improvement.
       sweep on and off, and the vote's `min_frames` against the sweep
       rate.
 
+- [x] 2026-10-01: named places survive a power-on. The registry kept one
+      generation and bumped it when robotd reported fewer submaps than
+      ever seen; every boot with the homecoming starts on a fresh map
+      (`wipe_on_boot`) and only then loads the saved one ("loaded the
+      newest map", then "confirmed … on the saved map map=casa_grande"),
+      so any tool call in between made every place stale: one "places:
+      the map was reset" per session after the first in the x24
+      casa_grande navd logs, and on the live twin (/tmp/qc-twin) two
+      quack-navd restarts left `cucina` and `soggiorno` at generation 5
+      in a file at 7 — on a real duck, every power-on lost the names and
+      "go to the kitchen" failed. Now a place carries the lineage of the
+      map it was taught on, kept by the registry with the saved map's
+      name (minted at a wipe, a fresh exploration or an unasked reset;
+      taken back at a load or an adoption): `pending` until the pose is
+      confirmed on that map, `other_map` while another is live, `stale`
+      only when the map is gone. The fewer-submaps rule is gone; the
+      lane's epoch stays, for a reset nobody asked for. Version-1 files
+      migrate ([README-places](../quack-nav/README-places.md#which-map-a-place-belongs-to)).
+
 ## 2b. One map, kept true (2026-09-09, the user's direction)
 
 The library goes on the shelf. **One map**: the duck keeps it, improves it
