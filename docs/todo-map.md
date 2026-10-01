@@ -3964,6 +3964,40 @@ nothing: it explores and asks.
       upstream. Waits on the user's answers (§8 of the study) and on
       asking Pollen whether a third-party producer is welcome.
 
+Decided 2026-10-01: **local management first** — a page in a browser on
+the home network, served on the duck by `quack-control`, a control plane in
+a repository of its own; quack-nav keeps the contract it uses
+([control-contract.md](control-contract.md); study, "Decision 2026-10-01").
+The rest is deferred, unchanged as the plan:
+
+- [ ] 2026-10-01: remote access over Pollen's channel — `quack-linkd`, an
+      adapter of ours registered as its own producer on the rendezvous,
+      with its own allowlist (study §1.2, §4 A).
+- [ ] 2026-10-01: the extension-route ask upstream (`/etc/robot/ext.d/`,
+      mediad forwarding a registered prefix to our socket) — study §4 C.
+- [ ] 2026-10-01: the Hugging Face token for the adapter — its own
+      device-flow login, never `/etc/robot/hf-token`, narrower scopes if HF
+      allows (study §5 "Tokens").
+- [ ] 2026-10-01: the questions for Pollen — a third-party producer, the
+      extension route, CORS, the `POST /send` size limit, scopes (study §8).
+- [ ] 2026-10-01: the chat with quacksat in the app — `chat.sock`, the
+      turn lock shared with the voice, `chat.subscribe`, `text.utterance`
+      (study §3, §7 phase 2).
+- [ ] 2026-10-01: voice from the app — the platform's recogniser or
+      quacksat's STT over an Opus upload (study §3, §8 question 4).
+- [ ] 2026-10-01: the Tauri 2 app, desktop then iOS/Android, with
+      notifications (study §6, §7 phase 6).
+- [ ] 2026-10-01: rooms as areas — a polygon and a goal point,
+      `where_am_i` by containment (study §7 phase 3).
+- [ ] 2026-10-01: no-go zones and virtual walls — a cost layer in the
+      planner and the explorer, persisted per map (study §7 phase 4).
+- [ ] 2026-10-01: map management — rename, delete, switch, export
+      (`map_rename`, `map_delete`; study §7 phase 5). quack-control's page
+      offers no map library on purpose (its advanced view reaches every
+      catalog tool, `map_load` included, behind a confirmation).
+- [ ] 2026-10-01: `rename_place`, and reads that a running `map_step`
+      does not block (study §7 phase 1, quack-navd column).
+
 ## Risks and open questions
 - **Live maploc drifts where its own replay does not (2026-09-05).** On the
   twin, with a 94-submap map inherited from a human tour, the live

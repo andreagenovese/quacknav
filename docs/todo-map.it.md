@@ -4231,6 +4231,43 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       rotte di estensione. Aspetta le risposte dell'utente (§8 dello
       studio) e la domanda a Pollen se un producer di terzi è benvenuto.
 
+Deciso il 2026-10-01: **prima la gestione locale** — una pagina in un
+browser sulla rete di casa, servita sull'anatra da `quack-control`, un
+piano di controllo in un repository a sé; quack-nav tiene il contratto che
+usa ([control-contract.it.md](control-contract.it.md); studio, "Decisione
+2026-10-01"). Il resto è rimandato, invariato come piano:
+
+- [ ] 2026-10-01: l'accesso remoto sul canale di Pollen — `quack-linkd`,
+      un nostro adattatore registrato come producer a sé sul rendezvous,
+      con la sua lista ammessa (studio §1.2, §4 A).
+- [ ] 2026-10-01: la richiesta upstream di rotte di estensione
+      (`/etc/robot/ext.d/`, mediad che inoltra un prefisso registrato al
+      nostro socket) — studio §4 C.
+- [ ] 2026-10-01: il token Hugging Face dell'adattatore — un suo login
+      device-flow, mai `/etc/robot/hf-token`, scope più stretti se HF lo
+      consente (studio §5 "Token").
+- [ ] 2026-10-01: le domande per Pollen — un producer di terzi, la rotta
+      di estensione, CORS, il limite di dimensione di `POST /send`, gli
+      scope (studio §8).
+- [ ] 2026-10-01: la chat con quacksat nell'app — `chat.sock`, il lock di
+      turno condiviso con la voce, `chat.subscribe`, `text.utterance`
+      (studio §3, §7 fase 2).
+- [ ] 2026-10-01: la voce dall'app — il riconoscitore della piattaforma o
+      lo STT di quacksat con un upload Opus (studio §3, §8 domanda 4).
+- [ ] 2026-10-01: l'app Tauri 2, prima desktop poi iOS/Android, con le
+      notifiche (studio §6, §7 fase 6).
+- [ ] 2026-10-01: le stanze come aree — un poligono e un punto d'arrivo,
+      `where_am_i` per contenimento (studio §7 fase 3).
+- [ ] 2026-10-01: zone vietate e muri virtuali — uno strato di costo nel
+      pianificatore e nell'esploratore, salvato per mappa (studio §7 fase 4).
+- [ ] 2026-10-01: la gestione delle mappe — rinomina, cancella, cambia,
+      esporta (`map_rename`, `map_delete`; studio §7 fase 5). La pagina di
+      quack-control non offre la libreria delle mappe, di proposito (la sua
+      vista avanzata raggiunge ogni strumento del catalogo, `map_load`
+      compreso, dietro una conferma).
+- [ ] 2026-10-01: `rename_place`, e letture che un `map_step` in corso
+      non blocca (studio §7 fase 1, colonna quack-navd).
+
 ## Rischi e domande aperte
 - **Il maploc dal vivo scivola dove il suo stesso replay non scivola
   (2026-09-05).** Sul gemello, con una mappa da 94 sottomappe ereditata da

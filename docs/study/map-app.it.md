@@ -16,6 +16,35 @@ al tag `daemon-v0.15.0` (API 37); le sue issue e PR lette con `gh`;
 `quacksat` a ca9b782; questo repo a `main`. Progetto indipendente, nessuna
 affiliazione con Pollen.
 
+## Decisione 2026-10-01
+
+L'utente, letto questo studio: **per ora solo la gestione locale** — una
+pagina semplice e funzionale in un browser sulla rete di casa. È un
+**piano di controllo a sé, `quack-control`**, in un repository separato:
+un piccolo demone sull'anatra che gestisce quack-nav ora, quacksat e i
+demoni futuri poi (un adattatore per tipo), e fatto per incontrare più
+avanti il canale di Pollen. Mappa e posa dal vivo, tocca-e-vai, stop,
+luoghi, avvio, stop e completamento dell'esplorazione; una vista avanzata
+con tutti gli strumenti del catalogo e le manopole. HTTP in chiaro sulla
+LAN con un token facoltativo; niente esce di casa. quack-nav tiene solo la
+sua parte, il **contratto di controllo** che qualsiasi client può usare
+([../control-contract.it.md](../control-contract.it.md)): i socket,
+`nav.catalog`/`nav.call`, il flusso della mappa, `nav.knobs` e
+`nav.restart`, le coordinate dei luoghi e l'insegnamento in un punto.
+
+Tutto il resto di questo studio è **rimandato, invariato come piano**, ed
+elencato come voci datate in [`../todo-map.it.md`](../todo-map.it.md) §5:
+l'accesso remoto sul canale di Pollen (§1, §4 — `quack-linkd` come producer
+a sé sul rendezvous, la richiesta upstream di rotte di estensione, il token
+HF e i suoi scope §5, le domande per Pollen §8), la chat con quacksat (§3 —
+`chat.sock`, il lock di turno condiviso, la voce dall'app), l'app
+Tauri/mobile (§6, fasi 2 e 6 del §7), le stanze come aree (§7 fase 3), le
+zone vietate e i muri virtuali (§7 fase 4), e la gestione delle mappe —
+rinomina, cancella, esporta (§7 fase 5). Il piano di controllo locale non
+si allontana da quel piano: parla le stesse righe `nav.call` e tiene lo
+stesso tipo di lista ammessa (§5) che terrebbe un adattatore, e il
+`quack-linkd` dell'opzione A può diventarne una delle facce.
+
 ## In un paragrafo
 
 Pollen ha due strade remote — una sessione WebRTC (`mediad`, video più un

@@ -14,6 +14,34 @@ Sources: `pollen-robotics/microduck` at `origin/main` 9060e81
 with `gh`; `quacksat` at ca9b782; this repo at `main`. Independent project,
 no affiliation with Pollen.
 
+## Decision 2026-10-01
+
+The user, after reading this study: **for now, only local management** — a
+simple, functional page in a browser on the home network. It is a
+**control plane of its own, `quack-control`**, in a separate repository:
+one small daemon on the duck that manages quack-nav now, quacksat and
+future daemons later (an adapter per kind), and is shaped to meet Pollen's
+channel later. Live map and pose, tap-to-go, stop, places, explore start,
+stop and complete; an advanced view with every catalog tool and the
+knobs. Plain HTTP on the LAN with an optional token; nothing leaves the
+home. quack-nav keeps only its side, the **control contract** any client
+may use ([../control-contract.md](../control-contract.md)): the sockets,
+`nav.catalog`/`nav.call`, the map stream, `nav.knobs` and `nav.restart`,
+place coordinates and teaching at a point.
+
+Everything else in this study is **deferred, unchanged as the plan**, and
+listed as dated entries in [`../todo-map.md`](../todo-map.md) §5: remote
+access over Pollen's channel (§1, §4 — `quack-linkd` as a producer of its
+own on the rendezvous, the extension-route ask upstream, the HF token and
+its scopes §5, the questions for Pollen §8), the chat with quacksat (§3 —
+`chat.sock`, the shared turn lock, voice from the app), the Tauri/mobile
+app (§6, phases 2 and 6 of §7), rooms as areas (§7 phase 3), no-go zones
+and virtual walls (§7 phase 4), and map management — rename, delete,
+export (§7 phase 5). The local control plane is not a step away from that
+plan: it speaks the same `nav.call` lines and keeps the same kind of
+allowlist (§5) an adapter would, and option A's `quack-linkd` may become
+one of its faces.
+
 ## In one paragraph
 
 Pollen has two remote paths — a WebRTC session (`mediad`, video plus a
