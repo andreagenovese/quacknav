@@ -15,6 +15,34 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Aggiunto
 
+- **La sosta: le lunghe pause da ferma** (maploc). Un minuto ferma senza
+  un lavoro che guidi il corpo (né `go_to`, né esplorazione, né giro dei
+  bordi, né ritorno a casa), il mapper si riposa: nessuna finestra viene
+  integrata o corregge la posa, la porta solo l'odometria, e una
+  *guardia* — una finestra, la testa che spazza una volta (6 s) — viene
+  giudicata contro la mappa all'inizio della sosta e ogni due minuti,
+  senza applicare niente. L'accordo tiene la sosta; una posa che il
+  match del tracciamento sposterebbe la sveglia perché la correggano le
+  finestre; un residuo oltre 0,06 m, o 0,01 m oltre il migliore della
+  sosta, la prima volta le sveglia anch'esso, e dopo, due volte di fila,
+  rende la posa dubbia: persa, come la rende il watchdog, e cercata entro
+  un metro. Un lavoro, un movimento o una spinta che nessuno ha comandato
+  chiudono la sosta al primo tick (un `go_to` sul gemello: 0,12 s dalla
+  chiamata). `robot.map_status` e `map.frame` portano `resting` e
+  `rest_watch` (l'ultimo verdetto, il suo residuo e la sua età);
+  quack-navd scrive nel log ogni sosta, guardia e risveglio.
+  `MAPLOC_REST=0` tiene sveglia ogni sosta. La papera del gemello, in
+  piedi, gira e scivola da sola (la sua rete in piedi, non quack-nav): in
+  soste di trenta minuti ha girato fino a 139° ed è scivolata di
+  12-22 cm, e la posa è rimasta in media a 5,5-7,9 cm dalla verità;
+  quattro lunghe soste registrate, rigiocate a riposo e da sveglia, pari
+  (errore medio 0,057 contro 0,088 m in una, 0,046 contro 0,037 in
+  un'altra). quack-navd spende il 2,0-2,35 % di un core del Mac a riposo
+  contro il 2,72 % fermo da sveglio; il replay, il 46 % di CPU in meno.
+  Quaranta sessioni rigiocate, ATE come prima (media 0,0920 -> 0,0913 m).
+  Dettagli in
+  [docs/todo-map.it.md](docs/todo-map.it.md).
+
 - **Luoghi da una vista della mappa**: `robot.list_places` dà di ogni luogo
   il suo `at` (l'ancora a cui va `go_to`, in metri della mappa);
   `robot.remember_place` con `x` e `y` dà un nome a un punto di pavimento
@@ -35,6 +63,14 @@ carta, mai su una papera fisica; i dettagli sono in
   solo quack-navd.
 
 ### Modificato
+
+- **Una rilocalizzazione non inchiostra più la mappa congelata** (maploc,
+  localize). La finestra che confermava una posa veniva inchiostrata
+  mentre il mapper era ancora perso, così ogni avvio e ogni recupero
+  aggiungeva una submap alla casa salvata (627 -> 628 su casa_grande del
+  gemello), e una sosta cominciata dopo giudicava le sue finestre contro
+  il proprio inchiostro. Trenta sessioni rigiocate su mappa congelata: ATE
+  medio 0,1183 -> 0,1169 m, 4 meglio e 4 peggio di oltre 5 mm.
 
 - **Fissato a daemon-v0.15.0** (API 37; prima daemon-v0.14.4, API 34):
   `duck-ipc-proto` e `kinematics` di Pollen a quel tag. Le API 35–37 sono

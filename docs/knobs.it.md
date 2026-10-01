@@ -64,6 +64,7 @@ del processo.
 | `MAPLOC_MIRROR_COLS` | accesa solo con 1 | `maploc/examples/evaluate.rs` | MAPLOC_MIRROR_COLS=1 replays every frame with its columns reversed. |
 | `MAPLOC_MULTI_HYP` | accesa salvo 0 | `maploc/src/mapper.rs` | `MAPLOC_MULTI_HYP=0` turns the multi-hypothesis boot search off, for measuring against the single-best agreement it replaces. |
 | `MAPLOC_RAW` | presente = accesa (qualsiasi valore) | `maploc/examples/replay.rs` |  |
+| `MAPLOC_REST` | accesa salvo 0 | `maploc/src/mapper.rs` | `MAPLOC_REST=0`: no stand ever rests, as before the rest (2026-10-01). |
 | `MAPLOC_SHADOW` | accesa salvo 0 | `maploc/src/mapper.rs` | `MAPLOC_SHADOW=0`: no shadow map at boot. |
 | `MAPLOC_SHADOW_ASKS` | numero (default 2) | `maploc/src/mapper.rs` | `MAPLOC_SHADOW_EVERY_S` and `MAPLOC_SHADOW_ASKS` override them. |
 | `MAPLOC_SHADOW_EVERY_S` | numero (default 30.0) | `maploc/src/mapper.rs` | How often the shadow asks, how many answers in a row must agree, and what an answer must be (the homecoming's adoption rule, see quack-nav's `HomecomingConfig`, measured on 27 replayed wakes: 626 of 655 right answers pas… |
@@ -125,7 +126,7 @@ del processo.
 | `TRACK` | 1 accesa, altrimenti spenta; assente: mapper_cfg.tracking.enabled | `maploc/examples/evaluate.rs` |  |
 | `TRACK_COND` | numero (default mapper_cfg.tracking.min_conditioning) | `maploc/examples/evaluate.rs` |  |
 | `TRACK_IMPROVE` | numero (default mapper_cfg.tracking.min_improvement) | `maploc/examples/evaluate.rs` |  |
-| `TRACK_LOG` | un percorso, o un valore | `maploc/examples/trajectory.rs` | `TRACK_LOG=<file>`: the tracked pose every 0.2 s, and every note by name the moment it comes — to see what moves a pose no correction or closure accounts for. |
+| `TRACK_LOG` | un percorso, o un valore | `maploc/examples/trajectory.rs` | `TRACK_LOG=<file>`: the tracked pose every 0.2 s, and every note by name the moment it comes (a rest's watch and end in full) — to see what moves a pose no correction or closure accounts for. |
 | `TRACK_MAX` | numero (default mapper_cfg.tracking.max_correction_m) | `maploc/examples/evaluate.rs` |  |
 | `TRACK_MAX_AFTER` | numero (default mapper_cfg.tracking.max_residual_after_m) | `maploc/examples/evaluate.rs` |  |
 | `TRACK_MIN_BEFORE` | numero (default mapper_cfg.tracking.min_residual_before_m) | `maploc/examples/evaluate.rs` |  |

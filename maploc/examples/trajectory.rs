@@ -136,7 +136,7 @@ fn main() {
         .map(|p| std::io::BufWriter::new(std::fs::File::create(p).expect("ODOM_LOG")));
     let mut odom_last_logged = f64::NEG_INFINITY;
     // `TRACK_LOG=<file>`: the tracked pose every 0.2 s, and every note by
-    // name the moment it comes — to see what moves a pose no correction
+    // name the moment it comes (a rest's watch and end in full) — to see what moves a pose no correction
     // or closure accounts for.
     let mut track_log = std::env::var_os("TRACK_LOG")
         .map(|p| std::io::BufWriter::new(std::fs::File::create(p).expect("TRACK_LOG")));
@@ -158,7 +158,10 @@ fn main() {
             let p = step.mapper.slam().tracked();
             for note in step.notes {
                 let name = format!("{note:?}");
-                writeln!(w, "{:.2}\tnote\t{}", step.t_s, name.split(|c: char| c == ' ' || c == '{' || c == '(').next().unwrap_or("")).expect("write");
+                // A rest's notes whole: the watch's verdict and numbers.
+                let rest = matches!(note, maploc::mapper::Note::RestWatched(_) | maploc::mapper::Note::RestEnded { .. });
+                let short = name.split(|c: char| c == ' ' || c == '{' || c == '(').next().unwrap_or("");
+                writeln!(w, "{:.2}\tnote\t{}", step.t_s, if rest { name.as_str() } else { short }).expect("write");
             }
             if step.unix_s - track_last >= 0.2 {
                 track_last = step.unix_s;

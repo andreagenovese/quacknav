@@ -13,6 +13,30 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Added
 
+- **Rest: long idle stands** (maploc). A minute still with no job driving
+  the body (no `go_to`, exploration, rim tour, homecoming), the mapper
+  rests: no window is integrated or corrects the pose, odometry alone
+  carries it, and a *watch* — one window, the head swept once (6 s) —
+  is judged against the map as the rest begins and every two minutes,
+  nothing applied. Agreement keeps the rest; a pose the tracking's own
+  match would move wakes it for the windows to correct; a residual past
+  0.06 m, or 0.01 m past the rest's best, wakes them too the first time,
+  and after that, twice in a row, makes the pose doubtful: lost, as the
+  watchdog makes it, and searched for within a metre. A job, a move or a
+  push nobody commanded ends the rest on its first tick (a `go_to` on the
+  twin: 0.12 s from the call). `robot.map_status` and `map.frame` carry
+  `resting` and `rest_watch` (the last verdict, its residual and age);
+  quack-navd logs each rest, watch and wake. `MAPLOC_REST=0` keeps every
+  stand awake. The twin's standing duck turns and slides by itself (its
+  standing network, not quack-nav): over thirty-minute stands it turned
+  up to 139° and slid 12-22 cm, and the pose stayed 5.5-7.9 cm from the
+  truth on average; four recorded long stands replayed, rest against
+  awake, even (the mean error 0.057 against 0.088 m on one, 0.046 against
+  0.037 on another). quack-navd spends 2.0-2.35 % of a Mac core resting
+  against 2.72 % standing awake; the replay, 46 % less CPU. Forty
+  replayed sessions, ATE as before (mean 0.0920 -> 0.0913 m). Details in
+  [docs/todo-map.md](docs/todo-map.md).
+
 - **Places from a map view**: `robot.list_places` gives each place's `at`
   (the anchor `go_to` walks to, map metres); `robot.remember_place` with
   `x` and `y` names a point of mapped floor instead of where the duck
@@ -31,6 +55,14 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   `scripts/twin/twin.sh restart-navd` restarts quack-navd alone.
 
 ### Changed
+
+- **A relocalization no longer inks the frozen map** (maploc, localize).
+  The window that confirmed a pose was inked while the mapper was still
+  lost, so every boot and every recovery added a submap to the saved
+  house (627 -> 628 on the twin's casa_grande), and a stand that began
+  after it judged its windows against its own ink. Thirty replayed
+  sessions on a frozen map: ATE mean 0.1183 -> 0.1169 m, 4 better and 4
+  worse by more than 5 mm.
 
 - **Pinned to daemon-v0.15.0** (API 37; was daemon-v0.14.4, API 34):
   Pollen's `duck-ipc-proto` and `kinematics` at that tag. API 35–37 are

@@ -4250,11 +4250,131 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       0,04 dopo). Il cancello del gemello di carta identico al byte. Da
       verificare dal vivo: `go_to`, poi 15 minuti ferma col campionatore
       della verità.
-- [ ] 2026-10-01: la papera del gemello gira sul posto mentre sta ferma:
+- [x] ~~2026-10-01: la papera del gemello gira sul posto mentre sta ferma:
       +80° in 14 minuti dopo quel `go_to` (odometria e verità d'accordo:
       61° -> 140°), circa 0,1°/s, sotto la soglia del test di fermo. Perché
       — un `vyaw` rimasto (l'ultimo passo dello stick chiedeva 0,024 rad/s),
-      o il controllore in piedi — non si sa.
+      o il controllore in piedi — non si sa.~~ Risposto (2026-10-01): la
+      rete in piedi sul gemello, non quack-nav. Una papera che non ha mai
+      camminato — casa_grande, `HOMECOMING=off`, abilitata e lasciata in
+      piedi, nessun `robot.move`, nessun comando alla testa mai inviato
+      (`robot.state`: policy `stand`, `move.requested` e `move.applied`
+      [0, 0, 0] a ogni campione, `limited_by` `deadman`, testa a 0) — ha
+      girato di +49,5° in 522 s (0,095°/s, odometria e verità al decimo di
+      grado) ed è scivolata di 8,5 cm: lo stesso ritmo di dopo il `go_to`.
+      Il twist di robotd è una EMA (`control.cmd_alpha`) che si spegne
+      entro un secondo dall'ultimo intento, e il deadman azzera comunque
+      l'obiettivo; la rete in piedi si sceglie sotto 0,05 di modulo e
+      riceve quel che resta, qui zero. Quindi la policy in piedi di MuJoCo
+      deriva con comando nullo; se lo faccia la papera vera non è misurato.
+      Niente da correggere in quack-nav: la sosta (sotto) segue la
+      rotazione con l'odometria.
+- [x] 2026-10-01: **la sosta: lunghe pause da ferma** (`RestConfig`,
+      maploc). La papera sta spesso ferma dieci minuti, a volte trenta.
+      Ferma da un minuto senza un lavoro che guidi il corpo (la maniglia di
+      esplorazione di quack-navd: `go_to`, esplorazione, giro dei bordi,
+      l'esplorazione del ritorno a casa), il mapper si riposa: nessuna
+      finestra integra o corregge la posa, la porta solo l'odometria, e
+      mapd smette di riproiettare i frame di profondità che scarterebbe.
+      Una *guardia* giudica una finestra contro la mappa alla posa portata
+      all'inizio della sosta e ogni 120 s, senza applicare niente; la testa
+      spazza una volta per lei (6 s, la finestra lunga una spazzata), perché
+      una testa ferma ha visto la papera che girava guardare un angolo che
+      la mappa non sapeva giudicare (78 raggi su 895, poi 1 su 960).
+      Verdetti: `agrees`; `drifted` quando il match del tracciamento
+      sposterebbe la posa (5 cm, 0,05 rad) o spiega un residuo fuori — oltre
+      0,06 m, o 0,01 m oltre la migliore guardia della sosta — e, la prima
+      volta in una sosta, quando niente lo spiega (si chiede prima alle
+      finestre, sotto un residuo di 0,10): la sosta finisce e le finestre
+      correggono, con il loro prior riancorato dove la sosta ha lasciato la
+      posa; `contradicts` quando è fuori e inspiegato dopo di allora,
+      richiesto subito, e due di fila rendono la posa dubbia: persa, come la
+      rende il watchdog, cercata entro 1 m e 0,6 rad, ripresa non
+      verificata dopo 8 finestre come farebbe una sosta sveglia. Una sosta
+      che ha già dubitato non dubita di nuovo sullo stesso residuo (sul
+      gemello veniva richiesto ogni 72 s). Un lavoro, qualunque movimento,
+      una spinta, una seduta o una caduta chiudono la sosta al primo tick.
+      Esposto: `resting` e `rest_watch` in `robot.map_status` e
+      `map.frame`; il log dice quando si riposa, ogni guardia, ogni
+      risveglio e perché. `MAPLOC_REST=0` tiene sveglia ogni sosta.
+      Misurato. *Perché la papera del gemello gira e scivola da ferma*: vedi
+      la voce sopra (la rete in piedi, non quack-nav). In una sosta (dal
+      vivo, 2026-10-01, una build iniziale) è scivolata di 0,78 m di lato in
+      trenta minuti con l'odometria a 9 mm — da sveglia, rigiocata, la posa
+      non l'ha seguita neanche così (0,775 m alla fine; l'ancora della
+      sosta di 0fad2c0 la tiene, l'odometria non la vede). *Dal vivo,
+      trenta minuti dopo un `go_to` a soggiorno* (casa_grande, localize,
+      verità ogni secondo): corsa 3 (guardie con la spazzata, prima delle
+      ultime due regole): la papera ha girato di 139° ed è scivolata di
+      22 cm, la posa in media a 5,5 cm dalla verità (mediana 5,2, al peggio
+      11,2), l'angolo entro ~1°; un dubbio a ~11 cm rilocalizzato in 15 s.
+      L'ultima corsa dal vivo: scivolata di 12,5 cm, errore medio 7,9 cm
+      (al peggio 13,4), un dubbio, la ricerca vicino alla posa non ha saputo
+      far meglio e ha ripreso non verificata, e nessun dubbio dopo.
+      *Rigiocate* (le quattro lunghe soste registrate, codice finale,
+      sosta spenta -> accesa, errore medio): 0,088 -> 0,057 m (corsa 3),
+      0,037 -> 0,046 (l'ultima corsa), 0,394 -> 0,394 (lo scivolamento di
+      0,78 m), 0,237 -> 0,266 (la registrazione di 0fad2c0, giudicata su
+      una verità ferma): pari, gli errori peggiori pari o più bassi. Da
+      sveglia dal vivo per confronto (`MAPLOC_REST=0`, 10 minuti nello
+      stesso punto): la papera è scivolata di 9,7 cm, errore medio 12,0 cm,
+      al peggio 18,2. *Risveglio*: un `go_to` dalla sosta l'ha chiusa
+      0,12-0,13 s dopo la chiamata (la maniglia del lavoro si legge a ogni
+      tick di `robot.state`, prima che il primo comando del lavoro possa
+      muovere il corpo); la prima finestra integrata 2,2 s dopo la chiamata,
+      prima della prima rotazione del viaggio (4,7-5,1 s: la pianificazione
+      del percorso); il viaggio cammina sulla posa portata dalla sosta —
+      quella che la guardia ha giudicato negli ultimi due minuti — e le sue
+      soste (ogni 0,4 m, dopo ogni rotazione di 0,5 rad) la correggono,
+      limitate (0,30 m, 0,20 rad); arrivi a 0,10 e 0,15 m. Un rapimento con
+      scossone (0,58 m, 0,4 rad) l'ha svegliata sull'angolo dell'odometria
+      0,14 s dopo, il watchdog l'ha persa, la ricerca l'ha ritrovata in
+      20 s (0,14 m). Uno silenzioso (0,30 m, angolo intatto): la guardia
+      successiva, 124 s dopo, ha visto il suo residuo passare da 0,012 a
+      0,091 e ne ha dubitato. *Niente resta degradato dopo un risveglio*: le
+      finestre integrano dalla prima finestra della sosta seguente
+      (stop_and_scan inchiostra di nuovo, un test lo verifica), la guardia
+      dei dislivelli legge tofd per conto suo, `map.pose` è arrivata a
+      15,8-16/s a riposo come da sveglia, i campi del frame seguono. *CPU*:
+      quack-navd sul Mac, tutto il demone, il 2,72 % di un core fermo da
+      sveglio contro il 2,00-2,35 % a riposo; il replay di una sessione di
+      37 minuti con una sosta di 30, 21,9 s -> 11,9 s di CPU. *Corpus*: le
+      quaranta sessioni di 0fad2c0 con `MAPLOC_REST=0` identiche al byte;
+      con la sosta, che in un replay nessun lavoro trattiene, 13 sessioni
+      di 7 corse si riposano almeno una volta: ATE RMS medio 0,0920 ->
+      0,0913 m, mediana 0,0932 -> 0,0890, 2 meglio e 4 peggio di oltre 5 mm
+      (peggiore +9,3 mm, x19-grande s3; migliore -4,6 cm, x24-grande s2), le
+      altre 27 uguali: rumore. Test: sosta e risveglio, un lavoro o una
+      spinta che la chiudono al primo tick, un trasporto dubitato e
+      ritrovato, un dubbio non richiesto di nuovo, una deriva corretta.
+      Aperto: lo scivolamento che la rete in piedi del gemello fa lungo un
+      muro si vede appena da qualunque finestra, sveglia o a riposo — 10-13
+      cm di errore dopo mezz'ora, da sveglia non meglio. E la ricerca del
+      dubbio: con il codice finale un trasporto silenzioso di 0,35 m è
+      stato visto dalla guardia successiva (120 s dopo, residuo 0,040 ->
+      0,249) e messo in dubbio, ma la ricerca entro un metro non ha
+      confermato niente nelle sue 8 finestre e la posa è ripresa non
+      verificata a 0,47 m, come avrebbe fatto una sosta sveglia; il `go_to`
+      dopo ha perso la posa in una sosta ed è arrivato a 0,48 m. La ricerca
+      globale che si fa dopo una caduta ha confermato un alias a 3,8 m da
+      una sola vista da ferma (rigiocato), quindi non è la risposta; il
+      cammina-e-guarda del ritorno a casa, o nessuna resa quando la sosta
+      aveva visto la mappa d'accordo proprio in quel punto, sono i
+      candidati — non misurati.
+- [x] 2026-10-01: una rilocalizzazione non inchiostra più la mappa
+      congelata. La finestra che confermava una posa inchiostrava tramite
+      `resume_at` mentre il mapper era ancora perso (`frozen()` è falso
+      allora), così ogni avvio e ogni recupero in localize aggiungeva una
+      submap alla casa salvata — 627 -> 628 all'avvio del gemello, quella
+      che contava la voce di 0fad2c0 sopra — e una sosta cominciata dopo
+      giudicava le sue finestre contro il proprio inchiostro (residuo 0,000
+      su 1787 raggi mentre la papera scivolava). `resume_at` e `ink`
+      leggono il `frozen` della configurazione. Trenta sessioni (s2-s4 del
+      corpus) rigiocate congelate, 0fad2c0 -> questa: una submap in meno
+      ciascuna, ATE RMS medio 0,1183 -> 0,1169 m, mediana 0,1098 -> 0,0971,
+      4 meglio e 4 peggio di oltre 5 mm (peggiore +3,4 cm, x23-grande s2):
+      rumore. La modalità di mappatura non cambia (il corpus identico al
+      byte).
 - [ ] 2026-10-01: durante una giravolta veloce sul posto la posa della
       mappa può restare ferma fino a ~1.5 s, poi recuperare (x22
       casa_arredata: angolo sbagliato di 93° per 1.5 s con la posizione

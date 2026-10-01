@@ -132,6 +132,14 @@ breve:
   0,54 m, camminato con le guardie accese quando la posa sta entro
   10 cm — e perché a decidere è la posa, non le regole (lo scan matcher
   resta indietro di 8–10 cm lungo un corridoio: misurato, non supposto).
+- **Lunghe soste da ferma** (2026-10-01): dopo un minuto senza un
+  lavoro il mapper si riposa — l'odometria porta la posa, ogni due minuti
+  una finestra lunga una spazzata della testa è giudicata contro la mappa,
+  niente viene corretto — e un lavoro, un movimento o una spinta lo
+  svegliano al primo tick (un `go_to`: 0,12 s). In soste di trenta minuti
+  sul gemello, la cui papera in piedi gira e scivola da sola, la posa è
+  rimasta in media a 5,5-7,9 cm dalla verità, più o meno quanto da
+  sveglia, con meno CPU.
 - **Cose per terra**: un cubetto di 7 cm accanto a una gamba cieca
   viene visto e aggirato; sotto i ~9 cm la soglia del pavimento del
   sensore lo perde mentre cammina.
@@ -385,7 +393,7 @@ del settore.
   negli ADR. Insieme sono difficili da ragionare, e le loro soglie sono state
   tarate su tre case simulate (due generate): possono essere adattate al gemello.
 - **Il codice lo mostra.** `explore/mod.rs` è di circa 2.000
-  righe; 35 interruttori `QK_*` nell'ambiente (e 18 `MAPLOC_*`, tutti elencati in [`docs/knobs.it.md`](docs/knobs.it.md), generato dal codice); le gambe sono
+  righe; 35 interruttori `QK_*` nell'ambiente (e 19 `MAPLOC_*`, tutti elencati in [`docs/knobs.it.md`](docs/knobs.it.md), generato dal codice); le gambe sono
   `serde_json::Value`; i recuperi decidono sui *messaggi* di errore
   (`why.contains("° right")` nella ricerca del ritorno a casa), che una frase riformulata rompe.
 - **La localizzazione è fatta di soglie, non di confidenza.** Lo standard

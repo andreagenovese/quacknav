@@ -3979,11 +3979,117 @@ nothing: it explores and asks.
       `a_long_stand_does_not_walk_the_pose_along_a_wall` (0.24 m before,
       0.04 after). The paper twin's gate the same to the byte. To check
       live: `go_to`, then stand 15 minutes with the truth sampler.
-- [ ] 2026-10-01: the twin's duck turns in place while it stands: +80°
+- [x] ~~2026-10-01: the twin's duck turns in place while it stands: +80°
       in 14 minutes after that `go_to` (odometry and truth agree: 61° ->
       140°), about 0.1°/s, below the still test's bar. Why — a leftover
       `vyaw` (the stick's last step asked 0.024 rad/s), or the standing
-      controller — is not known.
+      controller — is not known.~~ Answered (2026-10-01): the standing
+      network on the twin, not quack-nav. A duck that never walked —
+      casa_grande, `HOMECOMING=off`, enabled and left standing, no
+      `robot.move`, no head command ever sent (`robot.state`: policy
+      `stand`, `move.requested` and `move.applied` [0, 0, 0] at every
+      sample, `limited_by` `deadman`, head 0) — turned +49.5° in 522 s
+      (0.095°/s, odometry and truth to the tenth of a degree) and slid
+      8.5 cm: the same rate as after the `go_to`. robotd's twist is an EMA
+      (`control.cmd_alpha`) that decays to nothing within a second of the
+      last intent, and the deadman zeroes the target besides; the stand
+      net is chosen below 0.05 of magnitude and fed what is left, which
+      is zero here. So the MuJoCo standing policy drifts with a zero
+      command; whether the real duck does is unmeasured. Nothing to fix
+      in quack-nav: the rest (below) follows the turn on odometry.
+- [x] 2026-10-01: **rest: long idle stands** (`RestConfig`, maploc). The
+      duck often stands ten minutes, sometimes thirty. Still for a minute
+      with no job driving the body (quack-navd's explore handle: `go_to`,
+      exploration, rim tour, the homecoming's exploring), the mapper rests:
+      no window integrates or corrects the pose, odometry alone carries it,
+      and mapd stops reprojecting the depth frames it would drop. A *watch*
+      judges one window against the map at the carried pose as the rest
+      begins and every 120 s, nothing applied; the head sweeps once for it
+      (6 s, the window one sweep long), because a still head saw the turning
+      duck face a corner the map could not judge (78 of 895 beams, then 1 of
+      960). Verdicts: `agrees`; `drifted` when the tracking's own match would
+      move the pose (5 cm, 0.05 rad) or explains a residual off — past
+      0.06 m, or 0.01 m past the rest's best watch — and, the first time in
+      a stand, when nothing explains it (the windows are asked first, below
+      a 0.10 residual): the rest ends and the windows correct, their prior
+      re-anchored where the rest left the pose; `contradicts` when off and
+      unexplained after that, asked again at once, and two in a row make the
+      pose doubtful: lost, as the watchdog makes it, searched for within
+      1 m and 0.6 rad, resumed unverified after 8 windows as an awake stand
+      would. A stand that has doubted once does not doubt again on the same
+      residual (it was asked every 72 s on the twin). A job, any move, a
+      push, a sit or a fall ends the rest on its first tick. Exposed:
+      `resting` and `rest_watch` in `robot.map_status` and `map.frame`; the
+      log says when it rests, each watch, each wake and why.
+      `MAPLOC_REST=0` keeps every stand awake.
+      Measured. *Why the twin's duck turns and slides while standing*: see
+      the entry above (the standing network, not quack-nav). On one stand
+      (live, 2026-10-01, an early build) it slid 0.78 m sideways in thirty
+      minutes with odometry reading 9 mm — awake, replayed, the pose did
+      not follow it either (0.775 m off at the end; the stand's anchor of
+      0fad2c0 holds it, odometry does not see it). *Live, thirty minutes
+      after a `go_to` to soggiorno* (casa_grande, localize, truth every
+      second): run 3 (watches with the sweep, before the last two rules):
+      the duck turned 139° and slid 22 cm, the pose 5.5 cm from the truth
+      on average (median 5.2, worst 11.2), heading within ~1°; one doubt at
+      ~11 cm relocalized in 15 s. The last live run: slid 12.5 cm, error
+      mean 7.9 cm (worst 13.4), one doubt, the search near the pose could
+      not do better and resumed unverified, and no doubt after. *Replayed*
+      (the four recorded long stands, final code, rest off -> on, mean
+      error): 0.088 -> 0.057 m (run 3), 0.037 -> 0.046 (the last run), 0.394
+      -> 0.394 (the 0.78 m slide), 0.237 -> 0.266 (the 0fad2c0 recording,
+      scored on a still truth): even, the worst errors even or lower. Awake
+      live for comparison (`MAPLOC_REST=0`, 10 minutes at the same spot):
+      the duck slid 9.7 cm, error mean 12.0 cm, worst 18.2. *Wake*: a
+      `go_to` from rest ended it 0.12-0.13 s after the call (the job's
+      handle is read on every `robot.state` tick, before the job's first
+      command can move the body); the first window integrated 2.2 s after
+      the call, before the journey's first turn (4.7-5.1 s: route
+      planning); the journey walks on the pose the rest carried — what the
+      watch judged within the last two minutes — and its stands (every
+      0.4 m, after every turn of 0.5 rad) correct it, bounded (0.30 m, 0.20
+      rad); arrivals 0.10 and 0.15 m off. A kidnap with a jolt (0.58 m,
+      0.4 rad) woke it on odometry's yaw 0.14 s later, the watchdog lost it,
+      the search found it in 20 s (0.14 m). A silent one (0.30 m, heading
+      untouched): the next watch, 124 s later, saw its residual go 0.012 ->
+      0.091 and doubted it. *Nothing stays degraded after a wake*: the
+      windows integrate on the next stand's first window (stop_and_scan
+      inks again, a test checks it), the cliff guard reads tofd on its own
+      lane, `map.pose` came at 15.8-16/s resting and awake alike, the
+      frame's fields follow. *CPU*: quack-navd on the Mac, the whole
+      daemon, 2.72 % of a core standing awake against 2.00-2.35 % resting;
+      the replay of a 37-minute session with a 30-minute stand, 21.9 s ->
+      11.9 s of CPU. *Corpus*: the forty sessions of 0fad2c0 with
+      `MAPLOC_REST=0` the same to the byte; with the rest, which no job
+      holds back in a replay, 13 sessions of 7 runs rest at least once:
+      ATE RMS mean 0.0920 -> 0.0913 m, median 0.0932 -> 0.0890, 2 better and 4
+      worse by more than 5 mm (worst +9.3 mm, x19-grande s3; best -4.6 cm,
+      x24-grande s2), the other 27 the same: noise. Tests: rest and wake, a job or a push
+      ending it on its first tick, a carry doubted and found, a doubt not
+      asked again, a drift corrected. Open: the slide the twin's standing
+      network makes along a wall is barely visible to any window, awake or
+      resting — 10-13 cm of error after half an hour, awake no better. And
+      the doubt's search: with the final code a silent 0.35 m carry was
+      seen by the next watch (120 s later, residual 0.040 -> 0.249) and
+      doubted, but the search within a metre confirmed nothing in its 8
+      windows and the pose resumed unverified 0.47 m off, as an awake
+      stand's would; the `go_to` after it lost the pose at a stand and
+      arrived 0.48 m off. The global search a fall gets confirmed an alias
+      3.8 m off from one standing view (replayed), so it is not the answer;
+      the homecoming's walk-and-look, or no give-up when the rest had seen
+      the map agree at this very spot, are the candidates — unmeasured.
+- [x] 2026-10-01: a relocalization no longer inks the frozen map. The
+      window that confirmed a pose inked through `resume_at` while the
+      mapper was still lost (`frozen()` is false then), so every boot and
+      every recovery in localize added a submap to the saved house — 627 ->
+      628 at the twin's boot, the one the 0fad2c0 entry above counted — and
+      a stand that began after it judged its windows against its own ink
+      (residual 0.000 over 1787 beams while the duck slid). `resume_at` and
+      `ink` read the configuration's `frozen`. Thirty sessions (s2-s4 of the
+      corpus) replayed frozen, 0fad2c0 -> this: one submap fewer each, ATE
+      RMS mean 0.1183 -> 0.1169 m, median 0.1098 -> 0.0971, 4 better and 4
+      worse by more than 5 mm (worst +3.4 cm, x23-grande s2): noise. Mapping
+      mode is untouched (the corpus the same to the byte).
 - [ ] 2026-10-01: during a fast spin in place the map pose can stay still
       for up to ~1.5 s, then catch up (x22 casa_arredata: heading 93° off
       for 1.5 s with the position within 5 cm). Seen in every

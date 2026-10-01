@@ -46,7 +46,7 @@ What a map view uses:
 
 | call | what it gives or does |
 |---|---|
-| `robot.map_status` | `pose` (x, y, yaw), `pose_uncertainty` (`xy_m`, `xy_minor_m`, `along_deg`, `yaw_deg`, one sigma; null while lost), `tracking`, `seated`, `mode`; `house` (`map`, `percent_mapped`, `sessions`, `done`); `explore` — the job: `state` (`idle`, `running`, `done`, `stopped`, `failed`), `reason`, `route` and `route_raw` (`[[x, y], …]`), `aim`, `goal` (`[x, y]`), `local` (`[[x, y, r], …]`: r ≥ 0.10 m a drop on the books, smaller an obstacle), `progress`, `question_pending` |
+| `robot.map_status` | `pose` (x, y, yaw), `pose_uncertainty` (`xy_m`, `xy_minor_m`, `along_deg`, `yaw_deg`, one sigma; null while lost), `tracking`, `seated`, `mode`; `resting` (true during a long idle stand: no job for a minute and the body still — the pose is carried by odometry and a window is judged against the map every two minutes, the head sweeping once for it, nothing corrected; a job, a move or a push ends it at once) and `rest_watch` (the last such judgement, null before any: `verdict` `agrees`, `unjudged`, `drifted` — the rest ended so the windows correct the pose — or `contradicts` — two in a row make the pose doubtful, `tracking` false until the search finds it; `ago_s`, `residual_m`, `observed` of `beams`, `offset_m` and `offset_deg`, how far the map would have moved the pose); `house` (`map`, `percent_mapped`, `sessions`, `done`); `explore` — the job: `state` (`idle`, `running`, `done`, `stopped`, `failed`), `reason`, `route` and `route_raw` (`[[x, y], …]`), `aim`, `goal` (`[x, y]`), `local` (`[[x, y, r], …]`: r ≥ 0.10 m a drop on the books, smaller an obstacle), `progress`, `question_pending` |
 | `robot.list_places` | each place's `name`, `radius_m`, `state` (`usable`, `pending` — the duck has not found itself on the place's map yet, `other_map` — another saved map is live, `stale` — its map is gone; see [README-places](../quack-nav/README-places.md#which-map-a-place-belongs-to)), `stale` (the old flag: `other_map` or `stale`), `map` (the saved map it belongs to, or null), `distance_m` (usable places only), and `at` — `{x, y}`, the anchor `go_to` walks to; `live_map`, the saved name of the live map (null when unknown or never saved) |
 | `robot.go_to` | `{"x", "y"}` a point, `{"place"}` a name, `{"stop": true}` stops whatever job runs |
 | `robot.map_explore` | `{}` starts a session, `{"stop": true}` stops it, `{"complete": true}` closes the map as it is; `fresh` replaces the map and asks for `confirmed` |
@@ -65,7 +65,8 @@ The answer `{"accepted", "enabled", "mode"}`, then notifications on the
 same line until the caller goes:
 
 - `map.frame`, once a second: `seq`, the pose (`x`, `y`, `yaw`, `tracking`,
-  `still`, `seated`, `frozen`, `pose_sigma`), the grid (`x_min`, `y_min`,
+  `still`, `seated`, `frozen`, `pose_sigma`, `resting` — absent when
+  false — and `rest_watch`, as in `robot.map_status`), the grid (`x_min`, `y_min`,
   `cell_m`, `rows`, `cols`, and `cells`: base64, one byte a cell, 0 unknown,
   1 free, 2 wall, row-major, row 0 at `y_min`), and `n_submaps`, `n_loops`,
   `windows`. A jump of tens of submaps is another map (loaded, adopted,

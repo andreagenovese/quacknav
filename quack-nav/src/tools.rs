@@ -444,6 +444,10 @@ fn map_status(places: &mut Places) -> Result<Value, String> {
         "mode": mode,
         "tracking": frame.tracking,
         "still": frame.still,
+        // A long idle stand: the pose carried by odometry, a window judged
+        // against the map now and then (`rest_watch`, null before any).
+        "resting": frame.resting,
+        "rest_watch": frame.rest_watch,
         "seated": frame.seated,
         "windows": frame.windows,
         "submaps": frame.n_submaps,
@@ -699,6 +703,8 @@ mod tests {
             seated,
             frozen: false,
             pose_sigma: None,
+            resting: false,
+            rest_watch: None,
         }
     }
 
@@ -792,6 +798,29 @@ mod tests {
         assert_eq!(s["pose"]["x"], 0.5);
         assert_eq!(s["clearance"]["ahead"]["by"], "edge");
         assert!(s["hint"].as_str().unwrap().contains("close its loops"));
+        assert_eq!(s["resting"], false);
+        assert!(s["rest_watch"].is_null());
+
+        let mut resting = frame(4, 0.5, 0.5, true, false);
+        resting.resting = true;
+        resting.rest_watch = Some(crate::map::RestWatchSeen {
+            verdict: "agrees".into(),
+            ago_s: 12.0,
+            residual_m: Some(0.012),
+            observed: 412,
+            beams: 600,
+            offset_m: 0.004,
+            offset_deg: 0.3,
+        });
+        places
+            .map
+            .as_ref()
+            .unwrap()
+            .push(MapEvent::Frame(Box::new(resting)));
+        let s = execute_places("robot.map_status", &json!({}), &mut places).unwrap();
+        assert_eq!(s["resting"], true);
+        assert_eq!(s["rest_watch"]["verdict"], "agrees");
+        assert_eq!(s["rest_watch"]["ago_s"], 12.0);
     }
 
     #[test]

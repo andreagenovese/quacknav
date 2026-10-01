@@ -49,7 +49,7 @@ Che cosa usa una vista della mappa:
 
 | chiamata | che cosa dà o fa |
 |---|---|
-| `robot.map_status` | `pose` (x, y, yaw), `pose_uncertainty` (`xy_m`, `xy_minor_m`, `along_deg`, `yaw_deg`, una sigma; null quando è persa), `tracking`, `seated`, `mode`; `house` (`map`, `percent_mapped`, `sessions`, `done`); `explore` — il lavoro: `state` (`idle`, `running`, `done`, `stopped`, `failed`), `reason`, `route` e `route_raw` (`[[x, y], …]`), `aim`, `goal` (`[x, y]`), `local` (`[[x, y, r], …]`: r ≥ 0,10 m un dislivello nei registri, meno un ostacolo), `progress`, `question_pending` |
+| `robot.map_status` | `pose` (x, y, yaw), `pose_uncertainty` (`xy_m`, `xy_minor_m`, `along_deg`, `yaw_deg`, una sigma; null quando è persa), `tracking`, `seated`, `mode`; `resting` (vero durante una lunga sosta senza far niente: nessun lavoro da un minuto e il corpo fermo — la posa la porta l'odometria e ogni due minuti una finestra è giudicata contro la mappa, la testa che spazza una volta per lei, senza correggere niente; un lavoro, un movimento o una spinta la chiudono subito) e `rest_watch` (l'ultimo di quei giudizi, null prima del primo: `verdict` `agrees`, `unjudged`, `drifted` — la sosta finisce perché le finestre correggano la posa — o `contradicts` — due di fila rendono la posa dubbia, `tracking` falso finché la ricerca non la ritrova; `ago_s`, `residual_m`, `observed` su `beams`, `offset_m` e `offset_deg`, di quanto la mappa avrebbe spostato la posa); `house` (`map`, `percent_mapped`, `sessions`, `done`); `explore` — il lavoro: `state` (`idle`, `running`, `done`, `stopped`, `failed`), `reason`, `route` e `route_raw` (`[[x, y], …]`), `aim`, `goal` (`[x, y]`), `local` (`[[x, y, r], …]`: r ≥ 0,10 m un dislivello nei registri, meno un ostacolo), `progress`, `question_pending` |
 | `robot.list_places` | di ogni luogo `name`, `radius_m`, `state` (`usable`, `pending` — la papera non si è ancora ritrovata sulla mappa del luogo, `other_map` — è viva un'altra mappa salvata, `stale` — la sua mappa non c'è più; vedi [README-places](../quack-nav/README-places.it.md#a-quale-mappa-appartiene-un-luogo)), `stale` (il vecchio flag: `other_map` o `stale`), `map` (la mappa salvata a cui appartiene, o null), `distance_m` (solo luoghi usabili), e `at` — `{x, y}`, l'ancora a cui va `go_to`; `live_map`, il nome salvato della mappa viva (null se ignota o mai salvata) |
 | `robot.go_to` | `{"x", "y"}` un punto, `{"place"}` un nome, `{"stop": true}` ferma qualunque lavoro sia in corso |
 | `robot.map_explore` | `{}` avvia una sessione, `{"stop": true}` la ferma, `{"complete": true}` chiude la mappa così com'è; `fresh` sostituisce la mappa e chiede `confirmed` |
@@ -68,7 +68,8 @@ La risposta `{"accepted", "enabled", "mode"}`, poi notifiche sulla stessa
 connessione finché il chiamante non se ne va:
 
 - `map.frame`, una al secondo: `seq`, la posa (`x`, `y`, `yaw`,
-  `tracking`, `still`, `seated`, `frozen`, `pose_sigma`), la griglia
+  `tracking`, `still`, `seated`, `frozen`, `pose_sigma`, `resting` —
+  assente quando è falso — e `rest_watch`, come in `robot.map_status`), la griglia
   (`x_min`, `y_min`, `cell_m`, `rows`, `cols`, e `cells`: base64, un byte
   per cella, 0 ignota, 1 libera, 2 muro, per righe, riga 0 a `y_min`), e
   `n_submaps`, `n_loops`, `windows`. Un salto di decine di submap è

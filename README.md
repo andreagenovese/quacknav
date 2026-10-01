@@ -123,6 +123,13 @@ shape of it:
   with the guards on when the pose is within 10 cm — and why it is the
   pose, not the rules, that decides (the scan matcher lags 8–10 cm
   along a corridor; measured, not guessed).
+- **Long idle stands** (2026-10-01): after a minute with no job the
+  mapper rests — odometry carries the pose, one window a head sweep long
+  is judged against the map every two minutes, nothing is corrected — and
+  a job, a move or a push wakes it on its first tick (a `go_to`: 0.12 s).
+  Over thirty-minute stands on the twin, whose standing duck turns and
+  slides by itself, the pose stayed 5.5-7.9 cm from the truth on average,
+  about what staying awake gives, for less CPU.
 - **Things on the floor**: a 7 cm cube beside a blind leg is seen and
   gone round; under ~9 cm the sensor's own floor threshold loses it
   while walking.
@@ -373,7 +380,7 @@ prototype, not a navigation stack to the standards of the field.
   they are hard to reason about, and their thresholds were tuned on three
   simulated houses (two of them generated): they may be fitted to the twin.
 - **The code shows it.** `explore/mod.rs` is some 2,000 lines; 35
-  `QK_*` environment knobs (and 18 `MAPLOC_*`, all listed in [`docs/knobs.md`](docs/knobs.md), generated from the code); legs are `serde_json::Value`s; recovery decides on
+  `QK_*` environment knobs (and 19 `MAPLOC_*`, all listed in [`docs/knobs.md`](docs/knobs.md), generated from the code); legs are `serde_json::Value`s; recovery decides on
   error *messages* (the homecoming's `why.contains("° right")`), which a reworded sentence breaks.
 - **Localization is thresholds, not confidence.** The standard (AMCL, SLAM
   Toolbox, Cartographer) carries a covariance; here a pose is trusted or not.

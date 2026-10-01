@@ -62,6 +62,7 @@ Every knob needs that restart: the environment is read at the process's start.
 | `MAPLOC_MIRROR_COLS` | on only if 1 | `maploc/examples/evaluate.rs` | MAPLOC_MIRROR_COLS=1 replays every frame with its columns reversed. |
 | `MAPLOC_MULTI_HYP` | on unless 0 | `maploc/src/mapper.rs` | `MAPLOC_MULTI_HYP=0` turns the multi-hypothesis boot search off, for measuring against the single-best agreement it replaces. |
 | `MAPLOC_RAW` | set = on (any value) | `maploc/examples/replay.rs` |  |
+| `MAPLOC_REST` | on unless 0 | `maploc/src/mapper.rs` | `MAPLOC_REST=0`: no stand ever rests, as before the rest (2026-10-01). |
 | `MAPLOC_SHADOW` | on unless 0 | `maploc/src/mapper.rs` | `MAPLOC_SHADOW=0`: no shadow map at boot. |
 | `MAPLOC_SHADOW_ASKS` | number (default 2) | `maploc/src/mapper.rs` | `MAPLOC_SHADOW_EVERY_S` and `MAPLOC_SHADOW_ASKS` override them. |
 | `MAPLOC_SHADOW_EVERY_S` | number (default 30.0) | `maploc/src/mapper.rs` | How often the shadow asks, how many answers in a row must agree, and what an answer must be (the homecoming's adoption rule, see quack-nav's `HomecomingConfig`, measured on 27 replayed wakes: 626 of 655 right answers pas… |
@@ -123,7 +124,7 @@ Every knob needs that restart: the environment is read at the process's start.
 | `TRACK` | 1 on, else off; unset: mapper_cfg.tracking.enabled | `maploc/examples/evaluate.rs` |  |
 | `TRACK_COND` | number (default mapper_cfg.tracking.min_conditioning) | `maploc/examples/evaluate.rs` |  |
 | `TRACK_IMPROVE` | number (default mapper_cfg.tracking.min_improvement) | `maploc/examples/evaluate.rs` |  |
-| `TRACK_LOG` | a path, or a value | `maploc/examples/trajectory.rs` | `TRACK_LOG=<file>`: the tracked pose every 0.2 s, and every note by name the moment it comes — to see what moves a pose no correction or closure accounts for. |
+| `TRACK_LOG` | a path, or a value | `maploc/examples/trajectory.rs` | `TRACK_LOG=<file>`: the tracked pose every 0.2 s, and every note by name the moment it comes (a rest's watch and end in full) — to see what moves a pose no correction or closure accounts for. |
 | `TRACK_MAX` | number (default mapper_cfg.tracking.max_correction_m) | `maploc/examples/evaluate.rs` |  |
 | `TRACK_MAX_AFTER` | number (default mapper_cfg.tracking.max_residual_after_m) | `maploc/examples/evaluate.rs` |  |
 | `TRACK_MIN_BEFORE` | number (default mapper_cfg.tracking.min_residual_before_m) | `maploc/examples/evaluate.rs` |  |

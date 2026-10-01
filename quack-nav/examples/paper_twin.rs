@@ -559,6 +559,8 @@ impl PaperTwin {
             seated: self.fell,
             frozen: false,
             pose_sigma: None,
+            resting: false,
+            rest_watch: None,
         }
     }
 

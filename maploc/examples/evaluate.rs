@@ -337,6 +337,9 @@ fn main() {
                 Note::ShadowAsked { .. } => "shadow_asked",
                 Note::ShadowSeed { .. } => "shadow_seed",
                 Note::ShadowSeedRefuted => "shadow_refuted",
+                Note::RestBegan { .. } => "rest_began",
+                Note::RestWatched(_) => "rest_watched",
+                Note::RestEnded { .. } => "rest_ended",
             };
             *tally.entry(key).or_insert(0u32) += 1;
             if let Note::WindowIntegrated { mean_residual_m, n_observed, .. } = &note
@@ -543,6 +546,17 @@ fn main() {
                     );
                 }
                 Note::WindowDiscarded { .. } => {}
+                Note::RestBegan { still_s } => println!("[{t:7.1}s] resting after {still_s:.0} s still"),
+                Note::RestWatched(w) => println!(
+                    "[{t:7.1}s] rest watch: {} (residual {:.3} over {}/{}, the map would move it {:.3} m, {:.1}°)",
+                    w.verdict.as_str(),
+                    w.residual_m,
+                    w.n_observed,
+                    w.n_beams,
+                    w.offset_m,
+                    w.offset_rad.to_degrees()
+                ),
+                Note::RestEnded { rested_s, why } => println!("[{t:7.1}s] rest over after {rested_s:.0} s: {why}"),
             }
         }
     }

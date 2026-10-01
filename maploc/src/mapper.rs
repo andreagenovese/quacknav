@@ -212,6 +212,119 @@ impl Default for WatchdogConfig {
     }
 }
 
+/// Rest: a long idle stand. A duck in a house stands still for ten minutes,
+/// half an hour, between errands; every window of such a stand is the same
+/// scene seen again, and each one matched, corrected and judged costs the
+/// board CPU and gives the pose nothing but a chance to creep (the 1.56 m
+/// walk of 2026-10-01, see `absorb_window`). Still this long, with no job
+/// driving the body (the host says so, [`Mapper::set_engaged`]), the mapper
+/// rests: no window is integrated or corrects the pose, odometry alone
+/// carries it (a body that really turns or slides is followed), and one
+/// window is judged against the map at the carried pose as the rest begins
+/// and every `watch_every_s` after — judged, never applied. The host pans
+/// the head for a watch, the window one sweep long (`watch_window_s`): a
+/// still head saw the twin's duck, turning in place, face a corner the map
+/// could not judge (78 of 895 beams, then 1 of 960) while it slid 13 cm.
+/// A job, motion, a sit or a fall wakes it; so does a watch the map says
+/// has drifted (the stand's windows then correct the pose as ever), and
+/// `doubt_after` watches in a row that contradict the map make the pose
+/// doubtful: lost, as the watchdog makes it, and searched for near where
+/// it was.
+///
+/// A watch is off when its residual is past `agree_max_m`, or has grown
+/// `drift_residual_m` past the rest's best: drifted when the tracking's
+/// own match explains it (as it does a match that would move the pose
+/// `drift_m` or turn it `drift_rad`), or the first time in a stand nothing
+/// does — the windows are asked first — and a contradiction after. The residual is what sees it: the twin's standing duck slid
+/// 0.78 m sideways in thirty minutes with odometry reading 9 mm
+/// (casa_grande, 2026-10-01), and the watches' residual grew 0.013 ->
+/// 0.055 -> 0.103 ... 0.31 m while the tracking's match, bounded by its
+/// 2 cm bar, said nothing; under the watchdog's 0.25 every one of them had
+/// "agreed".
+/// `MAPLOC_REST=0` keeps every stand awake, as before (2026-10-01).
+#[derive(Debug, Clone, Copy)]
+pub struct RestConfig {
+    pub enabled: bool,
+    pub after_s: f32,
+    pub watch_every_s: f32,
+    /// How long a watch's window collects: the host sweeps the head while a
+    /// watch is due ([`Mapper::watch_due`]), and one sweep is 6 s.
+    pub watch_window_s: f32,
+    /// A watch whose own tracking match would move the pose this far, or
+    /// turn it this much, has drifted: the mapper wakes to correct it.
+    pub drift_m: f32,
+    pub drift_rad: f32,
+    pub drift_residual_m: f32,
+    /// No watch agrees past this residual, whatever the rest's best.
+    pub agree_max_m: f32,
+    pub doubt_after: u32,
+}
+
+impl Default for RestConfig {
+    fn default() -> Self {
+        Self { enabled: true, after_s: 60.0, watch_every_s: 120.0, watch_window_s: 6.0, drift_m: 0.05, drift_rad: 0.05, drift_residual_m: 0.01, agree_max_m: 0.06, doubt_after: 2 }
+    }
+}
+
+/// `MAPLOC_REST=0`: no stand ever rests, as before the rest (2026-10-01).
+fn rest_switch() -> bool {
+    static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ON.get_or_init(|| std::env::var("MAPLOC_REST").map_or(true, |v| v != "0"))
+}
+
+/// What a rest's watch made of its window (see [`RestConfig`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Watch {
+    /// The map judged the window at the carried pose and agrees.
+    Agrees,
+    /// Too little of the window landed where the map can judge it.
+    Unjudged,
+    /// The map agrees a little way off: the pose drifted.
+    Drifted,
+    /// The map judged it off (see [`RestConfig`]) and no small correction
+    /// explains it.
+    Contradicts,
+}
+
+impl Watch {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Watch::Agrees => "agrees",
+            Watch::Unjudged => "unjudged",
+            Watch::Drifted => "drifted",
+            Watch::Contradicts => "contradicts",
+        }
+    }
+}
+
+/// One watch: when (the mapper's clock), the verdict, the window's mean
+/// residual over the beams the map judged and how many it judged of how
+/// many, and how far the map would have moved the pose (0 when it would
+/// not, or could not say).
+#[derive(Debug, Clone, Copy)]
+pub struct RestWatch {
+    pub at_s: f32,
+    pub verdict: Watch,
+    pub residual_m: f32,
+    pub n_observed: u32,
+    pub n_beams: u32,
+    pub offset_m: f32,
+    pub offset_rad: f32,
+}
+
+/// A rest under way.
+#[derive(Debug, Clone, Copy)]
+struct Rest {
+    since: f32,
+    next_watch: f32,
+    /// The watch's window is filling.
+    watching: bool,
+    /// Contradicting watches in a row.
+    contradictions: u32,
+    /// The best agreeing watch's residual: what agreement looks like here.
+    baseline: Option<f32>,
+}
+
 #[derive(Debug, Clone)]
 pub struct MapperConfig {
     /// `false` = stop-and-scan (windows, votes, gates); `true` = ink every
@@ -324,6 +437,7 @@ pub struct MapperConfig {
     /// [`crate::uncertainty`]).
     pub uncertainty: crate::uncertainty::UncertaintyConfig,
     pub settle: SettleConfig,
+    pub rest: RestConfig,
 }
 
 /// After a pose is found on a map from an earlier run — a boot's search, or
@@ -400,6 +514,7 @@ impl Default for MapperConfig {
             suspect_give_up_windows: 10,
             uncertainty: crate::uncertainty::UncertaintyConfig::default(),
             settle: SettleConfig::default(),
+            rest: RestConfig::default(),
         }
     }
 }
@@ -530,6 +645,16 @@ pub enum Note {
         dy: f32,
         dyaw: f32,
     },
+    /// A long idle stand: the mapper rests (see [`RestConfig`]), still for
+    /// `still_s`.
+    RestBegan { still_s: f32 },
+    /// A rest's watch judged a window against the map.
+    RestWatched(RestWatch),
+    /// The rest is over after `rested_s`: `why` is "job", "motion", "lost"
+    /// (a sit or a fall), "drift" (a watch: the windows correct the pose
+    /// again) or "doubt" (watches contradicted the map: the pose is lost, as
+    /// the watchdog makes it, and searched for near where it was).
+    RestEnded { rested_s: f32, why: &'static str },
     /// A vetted window matched the pre-stand map and moved the tracked
     /// pose by (dx, dy, dyaw) in the map frame.
     TrackingCorrected {
@@ -657,6 +782,25 @@ pub struct Mapper {
     /// prior where the stand began, not on the last window's answer (see
     /// `absorb_window`).
     stand_moved: (f32, f32),
+    /// When the current stand began, while the body is still.
+    still_since: Option<f32>,
+    /// A job drives the body (the host's word, [`Mapper::set_engaged`]):
+    /// no rest begins, and one under way ends.
+    engaged: bool,
+    /// The rest under way, if any (see [`RestConfig`]).
+    rest: Option<Rest>,
+    /// The last watch, rest or not since.
+    last_watch: Option<RestWatch>,
+    /// This stand's watches already made the pose doubtful once: a rest
+    /// after it agrees with whatever residual its search left, past
+    /// `agree_max_m` or not, and only a change from there is news. Without
+    /// it a search that could do no better than resume unverified was
+    /// asked again every 72 s (the twin, 2026-10-01). Over with the stand.
+    doubt_spent: bool,
+    /// This stand's watches already woke the windows once on a residual
+    /// their own match could not explain; the next such watch counts toward
+    /// the doubt. Over with the stand.
+    windows_tried: bool,
 }
 
 /// `MAPLOC_WATCHDOG_RESCUE=0`: the watchdog judges a window at the carried
@@ -811,6 +955,12 @@ impl Mapper {
             odom_window: Vec::new(),
             was_still: false,
             stand_moved: (0.0, 0.0),
+            still_since: None,
+            engaged: false,
+            rest: None,
+            last_watch: None,
+            doubt_spent: false,
+            windows_tried: false,
             after_boot: None,
             window_opened: None,
             windows: 0,
@@ -884,6 +1034,31 @@ impl Mapper {
     /// False while lost (kidnapped, or a resumed session the scans refute).
     pub fn tracking(&self) -> bool {
         !self.lost
+    }
+    /// Whether a job drives the body: no rest while one does (see
+    /// [`RestConfig`]). The host sets it every tick it knows.
+    pub fn set_engaged(&mut self, on: bool) {
+        self.engaged = on;
+    }
+    /// Resting since (the mapper's clock), while a rest is under way.
+    pub fn rest_since(&self) -> Option<f32> {
+        self.rest.map(|r| r.since)
+    }
+    pub fn resting(&self) -> bool {
+        self.rest.is_some()
+    }
+    /// The last watch a rest made (see [`RestConfig`]).
+    pub fn last_watch(&self) -> Option<RestWatch> {
+        self.last_watch
+    }
+    /// Would a depth frame at `t_s` be used? Not while resting, but for a
+    /// watch's window: the host may spare itself the reprojection.
+    pub fn wants_frames(&self, t_s: f32) -> bool {
+        self.rest.is_none_or(|r| r.watching || t_s >= r.next_watch)
+    }
+    /// A rest's watch is due or filling: the host sweeps the head for it.
+    pub fn watch_due(&self, t_s: f32) -> bool {
+        self.rest.is_some_and(|r| r.watching || t_s >= r.next_watch)
     }
     /// How sure the tracked pose is — map-frame covariance over (x, y, yaw) —
     /// or `None` while lost, when there is no pose to be sure of.
@@ -1004,9 +1179,9 @@ impl Mapper {
         // closes here whatever comes of it: leaving it armed after a
         // fruitless finish would flush every subsequent frame alone.
         let stand_ended = self.was_still && !still;
-        let ripe = self
-            .window_opened
-            .is_some_and(|t0| t_s - t0 >= self.cfg.window_flush_after_s);
+        // A watch's window lasts a whole head sweep (see `RestConfig`).
+        let flush_s = if self.rest.is_some() { self.cfg.rest.watch_window_s } else { self.cfg.window_flush_after_s };
+        let ripe = self.window_opened.is_some_and(|t0| t_s - t0 >= flush_s);
         if (stand_ended || ripe) && !self.acc.is_empty() {
             self.window_opened = None;
             if let Some((pose, composite)) = self.acc.finish() {
@@ -1023,6 +1198,9 @@ impl Mapper {
             self.stand_moved = (0.0, 0.0);
         }
         self.was_still = still;
+        self.still_since = if still { Some(self.still_since.unwrap_or(t_s)) } else { None };
+        self.doubt_spent &= still;
+        self.windows_tried &= still;
 
         // A sit or a fall invalidates the pose: the robot cannot feel a
         // carry, and a fall can drag and spin it. Arm the lost machinery
@@ -1043,6 +1221,7 @@ impl Mapper {
                 Note::SuspectAfterSit
             });
         }
+        self.rest_step(t_s, still, notes);
 
         // While lost the tracked pose is a guess; freezing submaps or
         // running closures on it would launder the guess into the graph.
@@ -1085,7 +1264,18 @@ impl Mapper {
         {
             shadow.fresh.frame(t_s, scan.clone());
         }
-        if self.cfg.continuous && !self.lost {
+        // Resting: nothing but a watch's window (see `RestConfig`).
+        if let Some(rest) = self.rest.as_mut()
+            && !rest.watching
+        {
+            if t_s < rest.next_watch || !self.was_still {
+                return false;
+            }
+            rest.watching = true;
+            self.acc = WindowAccumulator::new(self.cfg.accumulator);
+            self.window_opened = None;
+        }
+        if self.cfg.continuous && !self.lost && self.rest.is_none() {
             if self.cfg.continuous_correct_s > 0.0 {
                 self.roll.push(self.slam.tracked(), scan.clone());
             }
@@ -1108,6 +1298,10 @@ impl Mapper {
     }
 
     fn absorb_window(&mut self, pose: Pose2, composite: &Scan, t_s: f32, notes: &mut Vec<Note>) {
+        if self.rest.is_some() {
+            self.watch(pose, composite, t_s, notes);
+            return;
+        }
         self.last_window = Some((pose, composite.clone()));
         let beams = composite.n_valid();
         if beams < self.cfg.min_window_beams {
@@ -1673,6 +1867,164 @@ impl Mapper {
         });
     }
 
+    /// Begin a rest, or end one (see [`RestConfig`]): after the stand's own
+    /// bookkeeping, every tick.
+    fn rest_step(&mut self, t_s: f32, still: bool, notes: &mut Vec<Note>) {
+        if self.rest.is_some() {
+            // A sit or a fall armed the suspicion just above: the search's
+            // windows are wanted.
+            let why = if self.lost {
+                Some("lost")
+            } else if self.engaged {
+                Some("job")
+            } else if !still {
+                Some("motion")
+            } else {
+                None
+            };
+            if let Some(why) = why {
+                self.wake(t_s, why, notes);
+            }
+            return;
+        }
+        let rc = self.cfg.rest;
+        if rc.enabled
+            && rest_switch()
+            && still
+            && !self.engaged
+            && !self.lost
+            && self.settling.is_none()
+            && let Some(since) = self.still_since
+            && t_s - since >= rc.after_s
+        {
+            // The window under way is the stand's, not a watch's: dropped.
+            self.acc = WindowAccumulator::new(self.cfg.accumulator);
+            self.window_opened = None;
+            // The first watch at once: the pose was just corrected, and
+            // its residual is what agreement looks like at this stand.
+            self.rest = Some(Rest { since: t_s, next_watch: t_s, watching: false, contradictions: 0, baseline: None });
+            notes.push(Note::RestBegan { still_s: t_s - since });
+        }
+    }
+
+    /// The rest is over. The stand, if it goes on, waits `after_s` again
+    /// before the next one, and its windows meanwhile correct the pose as
+    /// any stand's: the first of them is the wake's verification, bounded
+    /// like every correction (`TrackingConfig::max_correction_m`).
+    fn wake(&mut self, t_s: f32, why: &'static str, notes: &mut Vec<Note>) {
+        let Some(rest) = self.rest.take() else {
+            return;
+        };
+        if rest.watching {
+            self.acc = WindowAccumulator::new(self.cfg.accumulator);
+            self.window_opened = None;
+        }
+        self.still_since = self.was_still.then_some(t_s);
+        if why == "job" {
+            self.doubt_spent = false;
+        }
+        // The stand's windows match with their prior where the rest left the
+        // pose, not where the stand began: odometry alone carried it since,
+        // and a body that slid where odometry did not see it would have its
+        // correction pulled back to the old spot.
+        self.stand_moved = (0.0, 0.0);
+        notes.push(Note::RestEnded { rested_s: t_s - rest.since, why });
+    }
+
+    /// A rest's watch: one window judged at the carried pose against the
+    /// map the stand began with — the watchdog's judgement and the
+    /// tracking's match, neither applied. Agreement, or no judgement, keeps
+    /// the rest; a drift wakes it for the windows to correct; contradiction
+    /// asks the next window at once, and `doubt_after` in a row make the
+    /// pose doubtful: lost, as the watchdog's two contradicting windows
+    /// make it, and searched for near the carried pose.
+    fn watch(&mut self, pose: Pose2, composite: &Scan, t_s: f32, notes: &mut Vec<Note>) {
+        let wd = self.cfg.watchdog;
+        let rc = self.cfg.rest;
+        let mut w = RestWatch { at_s: t_s, verdict: Watch::Unjudged, residual_m: f32::NAN, n_observed: 0, n_beams: composite.n_valid() as u32, offset_m: 0.0, offset_rad: 0.0 };
+        if composite.n_valid() >= self.cfg.min_window_beams
+            && let Some(grid) = self.stand_grid.as_mut()
+        {
+            let a = score_pose(grid, composite, pose, wd.clamp_m, wd.wall_threshold_fp, wd.observed_fp);
+            (w.residual_m, w.n_observed, w.n_beams) = (a.mean_residual_m, a.n_observed, a.n_beams);
+            let judged = a.n_observed >= wd.min_observed_beams && a.n_observed as f32 >= wd.min_observed_fraction * a.n_beams as f32;
+            if judged {
+                // Off: past what agreement looks like anywhere
+                // (`agree_max_m`), or `drift_residual_m` past what it looked
+                // like at this rest's best watch. Only the tracking's own
+                // match may call it a drift — what the windows will put back
+                // once awake; the watchdog's wider rescue is not asked: a
+                // carry it rescued stayed 0.5 m off, rescued at every window
+                // and corrected by none (the twin, 2026-10-01).
+                let fix = if self.cfg.tracking.enabled { tracking_correction(grid, composite, pose, pose, &self.cfg.tracking) } else { None };
+                if let Some((d, ..)) = fix {
+                    (w.offset_m, w.offset_rad) = (d.0.hypot(d.1), d.2);
+                }
+                let base = self.rest.and_then(|r| r.baseline);
+                let off = (a.mean_residual_m > rc.agree_max_m && !self.doubt_spent) || base.is_some_and(|b| a.mean_residual_m > b + rc.drift_residual_m);
+                w.verdict = if fix.is_some() && (off || w.offset_m >= rc.drift_m || w.offset_rad.abs() >= rc.drift_rad) {
+                    Watch::Drifted
+                } else if off && !self.windows_tried && a.mean_residual_m <= self.cfg.relocalize_confirm_max_residual_m {
+                    // Off, and the watch's own match cannot say where: the
+                    // stand's windows, narrower and matched every 3 s, are
+                    // asked first. On the twin's last thirty-minute stand
+                    // they followed a 12 cm slide the sweep's match could
+                    // not (replayed: 3.7 cm mean error awake, 6.6 doubting
+                    // at once). Not past what a relocalization would still
+                    // confirm (0.10): an awake window that far off inks
+                    // where the watchdog does not object.
+                    self.windows_tried = true;
+                    Watch::Drifted
+                } else if off {
+                    // Off, and no small correction explains it: a carry, or
+                    // a slide past what a window corrects.
+                    Watch::Contradicts
+                } else {
+                    Watch::Agrees
+                };
+            }
+        }
+        self.last_watch = Some(w);
+        notes.push(Note::RestWatched(w));
+        let Some(rest) = self.rest.as_mut() else {
+            return;
+        };
+        rest.watching = false;
+        match w.verdict {
+            Watch::Contradicts => {
+                rest.contradictions += 1;
+                if rest.contradictions >= rc.doubt_after {
+                    // The watchdog's own verdict, as two contradicting
+                    // windows of an awake stand would give it: lost, the
+                    // search kept within `hard_lost_search_radius_m` of the
+                    // carried pose. Not the global search a fall gets: from
+                    // one standing view it confirmed an alias 3.8 m off on
+                    // the replay of the sliding twin (casa_grande,
+                    // 2026-10-01), where the local one stays by the duck.
+                    self.wake(t_s, "doubt", notes);
+                    self.doubt_spent = true;
+                    self.lost = true;
+                    self.hard_lost = true;
+                    self.suspect = 0;
+                    self.pending_reloc = None;
+                    self.last_search = None;
+                    self.lost_windows = 0;
+                } else {
+                    // A passer-by, a lean: the next window says.
+                    rest.next_watch = t_s;
+                }
+            }
+            Watch::Drifted => self.wake(t_s, "drift", notes),
+            Watch::Agrees | Watch::Unjudged => {
+                if w.verdict == Watch::Agrees {
+                    rest.baseline = Some(rest.baseline.map_or(w.residual_m, |b| b.min(w.residual_m)));
+                }
+                rest.contradictions = 0;
+                rest.next_watch = t_s + rc.watch_every_s;
+            }
+        }
+    }
+
     /// Tracking resumes at `pose`; the window that earned it inks there.
     fn resume_at(&mut self, grid: &mut OccupancyGrid, pose: Pose2, composite: &Scan, t_s: f32) {
         // What the confirming window alone says of the pose: the search's
@@ -1690,8 +2042,14 @@ impl Mapper {
         // cross-room carry the current submap's grid is still anchored at
         // the pre-carry pose, and a composite integrated there is silently
         // clipped to nothing — the travel rule opens (or re-anchors to) a
-        // submap that actually covers where the robot now stands.
-        if !self.frozen() {
+        // submap that actually covers where the robot now stands. Not on a
+        // frozen map (`cfg.frozen`, not `frozen()`, which is false while
+        // still lost): the confirming window inked a submap into the saved
+        // house at every relocalization in localize — 627 -> 628 at the
+        // twin's boot — and a stand that began after it judged its windows
+        // against its own ink (residual 0.000 over 1787 beams while the
+        // body slid away, casa_grande, 2026-10-01).
+        if !self.cfg.frozen {
             self.slam.tick(t_s);
         }
         // Settling: the confirming window inks nothing either.
@@ -1850,7 +2208,9 @@ impl Mapper {
 
     fn ink(&mut self, pose: Pose2, composite: &Scan) {
         self.windows += 1;
-        if self.frozen() {
+        // The configuration's, not `frozen()`: the window that confirms a
+        // pose, inked from `resume_at` while still lost, is no exception.
+        if self.cfg.frozen {
             return;
         }
         self.slam
@@ -2321,6 +2681,224 @@ mod tests {
         assert!(err < 0.25, "relocalized {pose:?}, truth {truth:?}");
         assert!(wrap_pi(pose.2 - truth.2).abs() < 0.3);
         assert!(mapper.tracking());
+    }
+
+    /// A mapper on the room's map, mapped from two stands, the duck back at
+    /// the origin and standing; watches every 20 s to keep the tests short.
+    fn mapped_room() -> (Mapper, f32, Vec<Note>) {
+        mapped_room_with(MapperConfig::default())
+    }
+
+    fn mapped_room_with(cfg: MapperConfig) -> (Mapper, f32, Vec<Note>) {
+        let cfg = MapperConfig { rest: RestConfig { watch_every_s: 20.0, ..cfg.rest }, ..cfg };
+        let mut mapper = Mapper::new(cfg, Slam::new(SlamConfig::default()));
+        let mut notes = Vec::new();
+        let mut t = drive(&mut mapper, 0.0, (0.0, 0.0, 0.0), 8.0, &mut notes);
+        t = walk_in(&mut mapper, t, (0.0, 0.0, 0.0), (0.9, -0.6, -1.2), 2.0, &mut notes, room_scan);
+        t = drive(&mut mapper, t, (0.9, -0.6, -1.2), 8.0, &mut notes);
+        t = walk_in(&mut mapper, t, (0.9, -0.6, -1.2), (0.0, 0.0, 0.0), 2.0, &mut notes, room_scan);
+        assert!(mapper.tracking());
+        notes.clear();
+        (mapper, t, notes)
+    }
+
+    /// Stand at `odom` (odometry) while the sensor sees the room from
+    /// `truth`, for `for_s`; true if `stop` said so first.
+    #[allow(clippy::too_many_arguments)]
+    fn stand_until(
+        mapper: &mut Mapper,
+        t: &mut f32,
+        for_s: f32,
+        odom: impl Fn(f32) -> Pose2,
+        truth: impl Fn(f32) -> Pose2,
+        notes: &mut Vec<Note>,
+        stop: impl Fn(&Mapper, &[Note]) -> bool,
+    ) -> bool {
+        let (mut next_frame, until) = (*t, *t + for_s);
+        while *t < until {
+            mapper.observe(*t, MapperSample { odom: odom(*t), moving: false, sitting: false, fallen: false }, notes);
+            if *t >= next_frame {
+                mapper.frame(*t, room_scan(truth(*t)));
+                next_frame += 1.0 / 15.0;
+            }
+            if stop(mapper, notes) {
+                return true;
+            }
+            *t += 0.02;
+        }
+        false
+    }
+
+    /// A long idle stand rests: after a minute still no window corrects the
+    /// pose or inks, odometry alone carries it — a body turning slowly in
+    /// place, below the still test's bar, is followed — and a watch judges a
+    /// window against the map every so often. A job wakes it, and motion.
+    #[test]
+    fn a_long_idle_stand_rests_and_a_job_or_motion_wakes_it() {
+        let (mut mapper, mut t, mut notes) = mapped_room();
+        let t0 = t;
+        // Turning 0.1°/s in place, as the twin's standing duck does.
+        let turn = |t: f32| (0.0, 0.0, (t - t0) * 0.1_f32.to_radians());
+        let rested = stand_until(&mut mapper, &mut t, 75.0, turn, turn, &mut notes, |m, _| m.resting());
+        assert!(rested, "a minute still and no job: the mapper rests");
+        assert!(t - t0 >= 59.0 && t - t0 < 62.0, "rested after {:.1} s", t - t0);
+        let windows = mapper.windows();
+        notes.clear();
+        let mut seen = Vec::new();
+        let left = t0 + 200.0 - t;
+        stand_until(&mut mapper, &mut t, left, turn, turn, &mut notes, |_, _| false);
+        seen.append(&mut notes);
+        assert!(mapper.resting(), "{seen:?}");
+        assert_eq!(mapper.windows(), windows, "nothing integrates at rest");
+        assert!(!seen.iter().any(|n| matches!(n, Note::TrackingCorrected { .. } | Note::WindowIntegrated { .. })));
+        let watches: Vec<RestWatch> = seen.iter().filter_map(|n| if let Note::RestWatched(w) = n { Some(*w) } else { None }).collect();
+        assert!(watches.len() >= 5, "a watch every 20 s: {}", watches.len());
+        assert!(watches.iter().all(|w| w.verdict == Watch::Agrees), "{watches:?}");
+        // The pose followed odometry's turn: 200 s at 0.1°/s.
+        let p = mapper.slam().tracked();
+        assert!((p.2 - turn(t).2).abs() < 0.01, "yaw {:.3} against odometry's {:.3}", p.2, turn(t).2);
+        assert!(p.0.hypot(p.1) < 0.05);
+        // A job wakes it; the stand goes on, its windows correct again, and
+        // with the job still running it does not rest again.
+        mapper.set_engaged(true);
+        let woke = stand_until(&mut mapper, &mut t, 1.0, turn, turn, &mut notes, |m, _| !m.resting());
+        assert!(woke);
+        assert!(notes.iter().any(|n| matches!(n, Note::RestEnded { why: "job", .. })), "{notes:?}");
+        stand_until(&mut mapper, &mut t, 90.0, turn, turn, &mut notes, |_, _| false);
+        assert!(!mapper.resting(), "a job keeps it awake");
+        assert!(mapper.windows() > windows, "the windows are back");
+        // The job done, a minute more and it rests again; then motion wakes it.
+        mapper.set_engaged(false);
+        assert!(stand_until(&mut mapper, &mut t, 70.0, turn, turn, &mut notes, |m, _| m.resting()));
+        notes.clear();
+        let from = turn(t);
+        walk_in(&mut mapper, t, from, (0.3, 0.0, from.2), 1.0, &mut notes, room_scan);
+        assert!(!mapper.resting());
+        assert!(notes.iter().any(|n| matches!(n, Note::RestEnded { why: "motion", .. })), "{notes:?}");
+    }
+
+    /// The wake is immediate. A job: the host's word reaches the mapper on
+    /// the tick the job began, before its first command can move the body —
+    /// so the rest is over on the first sample that carries it, even one
+    /// already walking. A push nobody commanded: on the first tick odometry
+    /// leaves the still bar (1 cm or 0.05 rad within half a second). Either
+    /// way the next stand's windows correct and integrate as ever.
+    #[test]
+    fn a_job_or_a_push_ends_the_rest_on_its_first_tick() {
+        let (mut mapper, mut t, mut notes) = mapped_room();
+        let here = |_: f32| (0.0, 0.0, 0.0);
+        assert!(stand_until(&mut mapper, &mut t, 75.0, here, here, &mut notes, |m, _| m.resting()));
+        // The job is started and its first command is already on the wire:
+        // the first sample the mapper sees reads `moving`.
+        notes.clear();
+        mapper.set_engaged(true);
+        mapper.observe(t, MapperSample { odom: here(t), moving: true, sitting: false, fallen: false }, &mut notes);
+        assert!(!mapper.resting(), "over on the job's first tick");
+        assert!(notes.iter().any(|n| matches!(n, Note::RestEnded { why: "job", .. })), "{notes:?}");
+        t += 0.02;
+        // Back to rest, the job done.
+        mapper.set_engaged(false);
+        assert!(stand_until(&mut mapper, &mut t, 75.0, here, here, &mut notes, |m, _| m.resting()));
+        // Pushed: 2 cm in 0.1 s, `moving` never set.
+        notes.clear();
+        let (t0, mut woke_at) = (t, None);
+        let pushed = |t: f32| (((t - t0) * 0.2).min(0.02), 0.0, 0.0);
+        while t < t0 + 0.5 && woke_at.is_none() {
+            mapper.observe(t, MapperSample { odom: pushed(t), moving: false, sitting: false, fallen: false }, &mut notes);
+            if !mapper.resting() {
+                woke_at = Some(t - t0);
+            }
+            t += 0.02;
+        }
+        let woke_at = woke_at.expect("a push wakes the rest");
+        assert!(woke_at <= 0.1, "woke {woke_at:.2} s after the push began");
+        assert!(notes.iter().any(|n| matches!(n, Note::RestEnded { why: "motion", .. })), "{notes:?}");
+        // The next stand integrates and is judged as any stand's.
+        let windows = mapper.windows();
+        let there = |_: f32| (0.02, 0.0, 0.0);
+        stand_until(&mut mapper, &mut t, 8.0, there, there, &mut notes, |_, _| false);
+        assert!(mapper.windows() > windows, "windows integrate again after the wake");
+    }
+
+    /// A duck carried while it rests feels nothing odometry can tell: the
+    /// watch sees the map contradict the carried pose, asks the next window
+    /// at once, and two in a row make the pose doubtful — the rest over,
+    /// the pose lost and searched for near where it was, and found where the
+    /// duck now stands.
+    #[test]
+    fn a_carry_at_rest_is_doubted_and_found() {
+        let (mut mapper, mut t, mut notes) = mapped_room();
+        let here = |_: f32| (0.0, 0.0, 0.0);
+        assert!(stand_until(&mut mapper, &mut t, 75.0, here, here, &mut notes, |m, _| m.resting()));
+        // The first watch, before the carry: the map agrees.
+        stand_until(&mut mapper, &mut t, 25.0, here, here, &mut notes, |_, _| false);
+        assert_eq!(mapper.last_watch().map(|w| w.verdict), Some(Watch::Agrees));
+        // Carried: odometry still reads the origin.
+        // Within the watchdog's search (1 m, 0.6 rad): farther, the search
+        // gives up after `lost_give_up_windows` as an awake stand's does.
+        let carried = (0.5, 0.3, 0.4);
+        notes.clear();
+        let doubted = stand_until(&mut mapper, &mut t, 30.0, here, |_| carried, &mut notes, |m, _| !m.tracking());
+        assert!(doubted, "{notes:?}");
+        let verdicts: Vec<Watch> = notes.iter().filter_map(|n| if let Note::RestWatched(w) = n { Some(w.verdict) } else { None }).collect();
+        assert_eq!(verdicts, vec![Watch::Contradicts, Watch::Contradicts], "two in a row, the second at once");
+        assert!(notes.iter().any(|n| matches!(n, Note::RestEnded { why: "doubt", .. })));
+        assert!(!mapper.resting());
+        let mut found = None;
+        stand_until(&mut mapper, &mut t, 40.0, here, |_| carried, &mut notes, |m, _| m.tracking());
+        for n in notes.drain(..) {
+            if let Note::Relocalized { pose, .. } = n {
+                found = Some(pose);
+            }
+        }
+        let pose = found.expect("the search finds the duck where it was carried");
+        assert!((pose.0 - carried.0).hypot(pose.1 - carried.1) < 0.25, "{pose:?}");
+        assert!(wrap_pi(pose.2 - carried.2).abs() < 0.3);
+    }
+
+    /// Carried past what the search near the pose can find, the doubt ends
+    /// as the watchdog's does, resumed unverified after
+    /// `lost_give_up_windows`; the rests of that stand do not doubt again
+    /// on the same residual, or the search would be asked every minute.
+    #[test]
+    fn a_doubt_the_search_cannot_settle_is_not_asked_again() {
+        let (mut mapper, mut t, mut notes) = mapped_room();
+        let here = |_: f32| (0.0, 0.0, 0.0);
+        assert!(stand_until(&mut mapper, &mut t, 75.0, here, here, &mut notes, |m, _| m.resting()));
+        let far = |_: f32| (-1.0, 0.6, 2.0);
+        notes.clear();
+        assert!(stand_until(&mut mapper, &mut t, 30.0, here, far, &mut notes, |m, _| !m.tracking()), "{notes:?}");
+        assert!(notes.iter().any(|n| matches!(n, Note::RestEnded { why: "doubt", .. })));
+        notes.clear();
+        stand_until(&mut mapper, &mut t, 300.0, here, far, &mut notes, |_, _| false);
+        let doubts = notes.iter().filter(|n| matches!(n, Note::RestEnded { why: "doubt", .. })).count();
+        let rests = notes.iter().filter(|n| matches!(n, Note::RestBegan { .. })).count();
+        assert!(rests >= 1, "{notes:?}");
+        assert_eq!(doubts, 0, "doubted again: {notes:?}");
+    }
+
+    /// A watch the map agrees with only a little way off is a drift: the
+    /// rest ends and the stand's windows correct the pose. (This room's
+    /// map, inked from two raw stands, fits a scan no better than 2-4 cm:
+    /// the tracking's absolute bar is opened to 5 cm for it, here only.)
+    #[test]
+    fn a_drifted_watch_wakes_the_windows() {
+        let mut cfg = MapperConfig::default();
+        cfg.tracking.max_residual_after_m = 0.05;
+        let (mut mapper, mut t, mut notes) = mapped_room_with(cfg);
+        mapper.set_frozen(true);
+        let here = |_: f32| (0.0, 0.0, 0.0);
+        assert!(stand_until(&mut mapper, &mut t, 75.0, here, here, &mut notes, |m, _| m.resting()));
+        // The body slid 12 cm, so slowly odometry did not see it.
+        let slid = |_: f32| (0.12, 0.0, 0.0);
+        notes.clear();
+        let woke = stand_until(&mut mapper, &mut t, 30.0, here, slid, &mut notes, |m, _| !m.resting());
+        assert!(woke, "{notes:?}");
+        assert!(notes.iter().any(|n| matches!(n, Note::RestEnded { why: "drift", .. })), "{notes:?}");
+        assert!(mapper.tracking());
+        stand_until(&mut mapper, &mut t, 20.0, here, slid, &mut notes, |_, _| false);
+        let p = mapper.slam().tracked();
+        assert!((p.0 - 0.12).hypot(p.1) < 0.05, "corrected to {p:?}");
     }
 
     /// A robot that sits and stands WITHOUT being moved confirms its own

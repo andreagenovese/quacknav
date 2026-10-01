@@ -129,6 +129,32 @@ pub struct MapFrame {
     /// does not keep one (robotd's).
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pose_sigma: Option<PoseSigma>,
+    /// Resting: a long idle stand with no job, the pose carried by odometry
+    /// and only watched against the map now and then (maploc's
+    /// `RestConfig`). Left out of the wire when false.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub resting: bool,
+    /// The last watch of a rest, since this mapper began.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rest_watch: Option<RestWatchSeen>,
+}
+
+/// A rest's watch as the frame carries it: one window judged against the
+/// map at the carried pose, nothing applied. `verdict` is `agrees`,
+/// `unjudged`, `drifted` (the rest ended for the windows to correct it) or
+/// `contradicts` (two in a row: the pose doubtful, lost and searched for
+/// near where it was);
+/// the residual over the beams the map judged (null when none), how many
+/// of how many, and how far the map would have moved the pose.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct RestWatchSeen {
+    pub verdict: String,
+    pub ago_s: f64,
+    pub residual_m: Option<f64>,
+    pub observed: u32,
+    pub beams: u32,
+    pub offset_m: f64,
+    pub offset_deg: f64,
 }
 
 /// The pose covariance as a person reads it: the position ellipse's
@@ -733,6 +759,8 @@ mod tests {
             seated: false,
             frozen: false,
             pose_sigma: None,
+            resting: false,
+            rest_watch: None,
         }
     }
 

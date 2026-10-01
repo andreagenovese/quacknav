@@ -20,7 +20,9 @@
 //!
 //!   - **while the navigation drives** (an explore job, a journey, the
 //!     homecoming's exploring) **or the mapper searches for its pose** —
-//!     a duck standing in the living room keeps its head still;
+//!     a duck standing in the living room keeps its head still, but for
+//!     one sweep every two minutes once it rests (maploc's `RestConfig`:
+//!     the watch that judges the resting pose against the map);
 //!   - **and nobody else is using it.** robotd publishes the commanded
 //!     head; the sweep only ever writes yaw, so a pitch, a neck pitch or a
 //!     roll there is somebody else's (the thinking pose tilts its roll, a
@@ -70,7 +72,10 @@ pub fn spawn(host: Host, body: SharedBody, robotd_socket: String) {
                 let body = body.lock().expect("maploc body poisoned").clone();
                 let continuous = host.mode() == MaplocMode::Continuous;
                 let fresh = body.as_ref().filter(|b| now.duration_since(b.at) < STALE);
-                let wanted = host.driving() || host.searching();
+                // ... and for a rest's watch: one sweep every two minutes,
+                // the window that judges the resting pose (maploc's
+                // `RestConfig`).
+                let wanted = host.driving() || host.searching() || host.watching();
                 if fresh.is_some_and(|b| foreign(b.commanded_head)) {
                     if wanted && foreign_until.is_none_or(|t| t <= now) {
                         tracing::info!("maploc: somebody else is posing the head; the sweep stands aside");

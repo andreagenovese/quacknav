@@ -154,6 +154,8 @@ impl Subscribers {
 pub struct Host {
     tx: mpsc::SyncSender<Event>,
     searching: Arc<AtomicBool>,
+    /// A rest's watch is due: the sweep pans the head for its window.
+    watching: Arc<AtomicBool>,
     /// The map library: a `maps/` directory beside the working session.
     maps: Arc<PathBuf>,
     mode: MaplocMode,
@@ -280,6 +282,12 @@ impl Host {
         self.searching.load(Ordering::Relaxed)
     }
 
+    /// Is a rest's watch due (see maploc's `RestConfig`)? The sweep pans
+    /// the head for its window.
+    pub fn watching(&self) -> bool {
+        self.watching.load(Ordering::Relaxed)
+    }
+
     pub fn mode(&self) -> MaplocMode {
         self.mode
     }
@@ -303,10 +311,12 @@ pub fn spawn(config: &MaplocConfig, robotd_socket: &str, tof_socket: &str) -> Ho
     let map_path = PathBuf::from(&config.map_path);
     let maps = Arc::new(maps_dir(&map_path));
     let searching = Arc::new(AtomicBool::new(false));
+    let watching = Arc::new(AtomicBool::new(false));
     let subscribers = Subscribers::default();
     let host = Host {
         tx,
         searching: searching.clone(),
+        watching: watching.clone(),
         maps,
         mode: config.mode,
         subscribers: subscribers.clone(),
@@ -314,11 +324,12 @@ pub fn spawn(config: &MaplocConfig, robotd_socket: &str, tof_socket: &str) -> Ho
     };
 
     let worker_config = config.clone();
+    let driving = host.driving.clone();
     std::thread::Builder::new()
         .name("maploc".into())
         .spawn(move || {
             lower_this_thread(WORKER_NICE_STEP);
-            worker(&worker_config, rx, &subscribers, &searching)
+            worker(&worker_config, rx, &subscribers, &searching, &watching, &driving)
         })
         .expect("spawning the maploc thread cannot fail");
 
@@ -380,7 +391,14 @@ fn map_file(map_path: &Path, name: &str) -> PathBuf {
     maps_dir(map_path).join(format!("{name}.session"))
 }
 
-fn worker(config: &MaplocConfig, rx: mpsc::Receiver<Event>, map_tx: &Subscribers, searching: &AtomicBool) {
+fn worker(
+    config: &MaplocConfig,
+    rx: mpsc::Receiver<Event>,
+    map_tx: &Subscribers,
+    searching: &AtomicBool,
+    watching: &AtomicBool,
+    driving: &Mutex<Option<DrivingProbe>>,
+) {
     let map_path = PathBuf::from(&config.map_path);
     if let Some(dir) = map_path.parent()
         && let Err(e) = std::fs::create_dir_all(dir)
@@ -476,6 +494,10 @@ fn worker(config: &MaplocConfig, rx: mpsc::Receiver<Event>, map_tx: &Subscribers
                     tracing::warn!("maploc: recording write failed; recording stopped");
                     recorder = None;
                 }
+                // A job driving the body keeps the mapper from resting (see
+                // maploc's `RestConfig`): a `go_to` from a rest wakes it.
+                let probe = driving.lock().expect("driving probe poisoned").clone();
+                mapper.set_engaged(probe.is_some_and(|p| p()));
                 mapper.observe(
                     started.elapsed().as_secs_f32(),
                     MapperSample {
@@ -756,6 +778,7 @@ fn worker(config: &MaplocConfig, rx: mpsc::Receiver<Event>, map_tx: &Subscribers
             render_stale = true;
         }
         searching.store(!mapper.tracking(), Ordering::Relaxed);
+        watching.store(mapper.watch_due(started.elapsed().as_secs_f32()), Ordering::Relaxed);
 
         if last_status.elapsed() >= Duration::from_secs(5) {
             last_status = Instant::now();
@@ -771,6 +794,7 @@ fn worker(config: &MaplocConfig, rx: mpsc::Receiver<Event>, map_tx: &Subscribers
                 fallen = latest.as_ref().is_some_and(|s| s.fallen),
                 window_frames = mapper.window_frames(),
                 submaps = mapper.slam().n_submaps(),
+                resting = mapper.resting(),
                 "maploc: status"
             );
             if let Some(rec) = recorder.as_mut()
@@ -792,7 +816,8 @@ fn worker(config: &MaplocConfig, rx: mpsc::Receiver<Event>, map_tx: &Subscribers
             if let Some(grid) = &rendered {
                 seq += 1;
                 let seated = latest.as_ref().is_some_and(|s| s.sitting || s.fallen);
-                map_tx.send(&Published::Frame(Box::new(frame_from(&mapper, grid, seq, seated))));
+                let now_s = started.elapsed().as_secs_f32();
+                map_tx.send(&Published::Frame(Box::new(frame_from(&mapper, grid, seq, seated, now_s))));
                 last_pose = Instant::now();
             }
         }
@@ -954,6 +979,36 @@ fn log_note(note: Note) {
                 "maploc: settling after the resume; window corrects the pose, inks nothing"
             );
         }
+        Note::RestBegan { still_s } => {
+            tracing::info!(
+                still_s = format!("{still_s:.0}"),
+                "maploc: resting — a long idle stand: no window corrects the pose, odometry carries it, a watch judges one against the map now and then"
+            );
+        }
+        Note::RestWatched(w) => {
+            tracing::info!(
+                verdict = w.verdict.as_str(),
+                residual = format!("{:.3}", w.residual_m),
+                observed = format!("{}/{}", w.n_observed, w.n_beams),
+                offset_m = format!("{:.3}", w.offset_m),
+                offset_deg = format!("{:.1}", w.offset_rad.to_degrees()),
+                "maploc: rest watch — one window judged against the map, nothing applied"
+            );
+        }
+        Note::RestEnded { rested_s, why } => {
+            let what = match why {
+                "doubt" => "the map contradicts the pose: doubtful, lost, searching for it near where it was",
+                "drift" => "the pose drifted: the windows correct it again",
+                "job" => "a job drives the body",
+                "motion" => "the body moved",
+                _ => "the pose is suspect (a sit or a fall)",
+            };
+            if why == "doubt" {
+                tracing::warn!(rested_s = format!("{rested_s:.0}"), why, "maploc: rest over — {what}");
+            } else {
+                tracing::info!(rested_s = format!("{rested_s:.0}"), why, "maploc: rest over — {what}");
+            }
+        }
         Note::Settled { held, gave_up } => {
             if gave_up {
                 tracing::warn!(held, "maploc: settling gave up — the map could not judge; inking resumes");
@@ -1038,7 +1093,8 @@ fn frame_fields(mapper: &Mapper) -> (f64, f64, f64, bool, Option<crate::map::Pos
 }
 
 /// The wire frame: the cached grid plus everything that moves every second.
-fn frame_from(mapper: &Mapper, grid: &RenderedGrid, seq: u64, seated: bool) -> MapFrame {
+/// `now_s` is the mapper's clock, for the age of the last rest's watch.
+fn frame_from(mapper: &Mapper, grid: &RenderedGrid, seq: u64, seated: bool, now_s: f32) -> MapFrame {
     let (x, y, yaw, tracking, pose_sigma) = frame_fields(mapper);
     MapFrame {
         seq,
@@ -1059,6 +1115,16 @@ fn frame_from(mapper: &Mapper, grid: &RenderedGrid, seq: u64, seated: bool) -> M
         seated,
         frozen: mapper.frozen_set(),
         pose_sigma,
+        resting: mapper.resting(),
+        rest_watch: mapper.last_watch().map(|w| crate::map::RestWatchSeen {
+            verdict: w.verdict.as_str().to_string(),
+            ago_s: f64::from((now_s - w.at_s).max(0.0)).round(),
+            residual_m: w.residual_m.is_finite().then(|| (f64::from(w.residual_m) * 1000.0).round() / 1000.0),
+            observed: w.n_observed,
+            beams: w.n_beams,
+            offset_m: (f64::from(w.offset_m) * 1000.0).round() / 1000.0,
+            offset_deg: (f64::from(w.offset_rad).to_degrees() * 10.0).round() / 10.0,
+        }),
     }
 }
 
@@ -1118,6 +1184,10 @@ fn ingest(
     t_s: f32,
     n_frames_kept: &mut u64,
 ) {
+    // Resting, a frame is reprojected only for a watch's window.
+    if !mapper.wants_frames(t_s) {
+        return;
+    }
     let Some(ranges) = decode_ranges(frame) else {
         return;
     };

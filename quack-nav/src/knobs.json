@@ -103,6 +103,17 @@
    "doc": "`MAPLOC_MULTI_HYP=0` turns the multi-hypothesis boot search off, for measuring against the single-best agreement it replaces."
   },
   {
+   "name": "MAPLOC_REST",
+   "group": "MAPLOC",
+   "read_as": "on unless 0",
+   "type": "switch",
+   "default": "1",
+   "where": [
+    "maploc/src/mapper.rs"
+   ],
+   "doc": "`MAPLOC_REST=0`: no stand ever rests, as before the rest (2026-10-01)."
+  },
+  {
    "name": "MAPLOC_SHADOW",
    "group": "MAPLOC",
    "read_as": "on unless 0",
