@@ -73,6 +73,15 @@ to come from different stands.
 sim-maploc/apartment.toml out/` and compare `map walls vs room` and the
 LOST lines before and after.
 
+**The heading, too (2026-10-01).** A closure may still turn the heading
+by up to `max_correction_cap_rad`, 0.45 rad (26°) in the port. With dense
+truth on the twin, single closures asked for 16–21° while the pose's
+heading was right to 2°, and nothing they carry (residual, beams,
+witnesses' spread) told them from the right ones. Capped at 0.07 rad
+(4°): twenty replayed sessions, ATE RMS mean 0.0946 -> 0.0891 m (8
+better, 2 worse); live on the twin, the heading's median error 0.97–1.26°
+-> 0.63–0.92° over nine runs, map and journeys unchanged.
+
 ## 2. Nothing corrects the pose against the map between closures
 
 **What we see.** Between loop closures the tracked pose is dead reckoning:

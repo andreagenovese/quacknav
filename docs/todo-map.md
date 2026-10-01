@@ -3891,10 +3891,39 @@ nothing: it explores and asks.
       cross-check also covers names read with `env::var`/`envf`/...
       Tracked `__pycache__` out of git. The paper twin's gate the same
       to the byte.
-- [ ] Why some loop closures mis-measure the heading (x13: 5° wrong, the
+- [x] 2026-10-01: a loop closure may correct the heading by 4° at most
+      (`MAPLOC_LOOP_CAP_YAW`, 0.45 -> 0.07 rad). With dense truth
+      (x17–x19) single closures asked for 16–21° while the pose's heading
+      was right to 2°, and the graph, diluting them, still bent the
+      heading 4–9° when enough came together: closures asking 2° or more
+      often inject error, and no feature of a closure (residual, beams,
+      witnesses' spread — `MAPLOC_LOOP_DEBUG=1` prints them) separated
+      the right ones from the wrong; a cap does. Twenty replayed sessions
+      of three runs, ATE RMS mean by the cap: 0.45 rad 0.0946 m, 0.15
+      0.0939, 0.10 0.0905, 0.07 0.0891 (8 sessions better, 2 worse, the
+      worst excursion 0.36 -> 0.28 m, heading RMS 2.40° -> 2.21°), 0.05
+      0.0911, 0.04 0.0898. Live on the twin (final_house protocol, four
+      sessions of 1800 s and a `go_to` round per run): with 0.07 (x20,
+      x22, x23) the heading's median error was 0.63–0.92° in all five
+      runs, with 0.45 (x18, x19, x21) 0.97–1.26° in all four; its RMS
+      lower on casa_grande (1.40–2.03° against 2.08–2.39°), mixed on
+      casa_arredata (1.80–2.76° against 2.22–2.38°), where the spin lag
+      below inflates it. Walls on the truth 95–100 % against 96–99 %,
+      floor known 94–96 % either way, every journey arrived (6/6, 8/8),
+      no fall, phantom drops 0–1 against 0–2.
+- [x] ~~Why some loop closures mis-measure the heading (x13: 5° wrong, the
       live pose 35 cm off, σ 0.08 m); being measured with dense truth
       (`LOOP_LOG`, `POSEERR_DT=0.5`). Loop heading sigma 0.5 tried and
-      reverted: judge maploc's parameters on 12 sessions or more.
+      reverted: judge maploc's parameters on 12 sessions or more.~~
+      Answered in part (2026-10-01): why a closure measures wrong is not
+      known — nothing it carries tells it — but its heading correction is
+      capped at 4°, see the entry above.
+- [ ] 2026-10-01: during a fast spin in place the map pose can stay still
+      for up to ~1.5 s, then catch up (x22 casa_arredata: heading 93° off
+      for 1.5 s with the position within 5 cm). Seen in every
+      casa_arredata run since x18, never on casa_grande. The heading's
+      max in `traj_metrics` is inflated by it: read the RMS and the
+      median.
 - [ ] The apartment's wakes east of the stairwell are slow: the windows
       refute a right seed for minutes.
 
@@ -3943,7 +3972,9 @@ nothing: it explores and asks.
   the registry tolerates a reset by its generation (`places.rs`).
 - Some loop closures mis-measure the heading, and maploc's covariance does
   not flag the drift that follows (σ 0.08 m at 0.35 m off, x13): phantom
-  holes are booked where the pose has them. Under investigation (§2d).
+  holes are booked where the pose has them. Since 2026-10-01 a closure
+  turns the heading by 4° at most; why some measure wrong is still
+  unknown (§2d).
 - The apartment's wakes east of the stairwell are slow: the windows refute
   a right seed for minutes (§2d).
 - Stop-and-scan mapping is deliberate work: somebody has to walk the

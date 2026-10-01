@@ -76,6 +76,16 @@ una chiusura vengano da soste diverse.
 sim-maploc/apartment.toml out/` e confrontare `map walls vs room` e le
 righe LOST prima e dopo.
 
+**Anche l'angolo (2026-10-01).** Una chiusura può ancora girare l'angolo
+fino a `max_correction_cap_rad`, 0,45 rad (26°) nel port. Con la verità
+fitta sul gemello, chiusure singole chiedevano 16–21° mentre l'angolo della
+posa era giusto a 2°, e nulla di ciò che portano (residuo, raggi,
+dispersione dei testimoni) le distingueva da quelle giuste. Con un tetto a
+0,07 rad (4°): venti sessioni rigiocate, media dell'ATE RMS 0,0946 ->
+0,0891 m (8 meglio, 2 peggio); dal vivo sul gemello, l'errore mediano
+dell'angolo 0,97–1,26° -> 0,63–0,92° su nove corse, mappa e viaggi
+invariati.
+
 ## 2. Fra una chiusura e l'altra nulla corregge la posa sulla mappa
 
 **Cosa vediamo.** Fra le chiusure d'anello la posa tracciata è pura

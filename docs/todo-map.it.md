@@ -4154,11 +4154,41 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       anche i nomi letti con `env::var`/`envf`/... I `__pycache__`
       tracciati fuori da git. Il gate del gemello di carta identico al
       byte.
-- [ ] Perché alcune chiusure di loop misurano male l'angolo (x13: 5° di
+- [x] 2026-10-01: una chiusura di loop può correggere l'angolo di 4° al
+      massimo (`MAPLOC_LOOP_CAP_YAW`, 0.45 -> 0.07 rad). Con la verità
+      fitta (x17–x19) chiusure singole chiedevano 16–21° mentre l'angolo
+      della posa era giusto a 2°, e il grafo, diluendole, piegava comunque
+      l'angolo di 4–9° quando ne arrivavano abbastanza insieme: le
+      chiusure che chiedono 2° o più spesso iniettano errore, e nessuna
+      caratteristica di una chiusura (residuo, raggi, dispersione dei
+      testimoni — `MAPLOC_LOOP_DEBUG=1` li stampa) separava le giuste
+      dalle sbagliate; un tetto sì. Venti sessioni rigiocate di tre
+      corse, media dell'ATE RMS per tetto: 0.45 rad 0.0946 m, 0.15 0.0939,
+      0.10 0.0905, 0.07 0.0891 (8 sessioni meglio, 2 peggio, l'escursione
+      peggiore 0.36 -> 0.28 m, RMS dell'angolo 2.40° -> 2.21°), 0.05
+      0.0911, 0.04 0.0898. Dal vivo sul gemello (protocollo final_house,
+      quattro sessioni da 1800 s e un giro di `go_to` per corsa): con 0.07
+      (x20, x22, x23) l'errore mediano dell'angolo è stato 0.63–0.92° in
+      tutte e cinque le corse, con 0.45 (x18, x19, x21) 0.97–1.26° in
+      tutte e quattro; il suo RMS più basso in casa_grande (1.40–2.03°
+      contro 2.08–2.39°), misto in casa_arredata (1.80–2.76° contro
+      2.22–2.38°), dove lo gonfia il ritardo nelle giravolte qui sotto.
+      Muri sulla verità 95–100 % contro 96–99 %, pavimento noto 94–96 % in
+      entrambi i casi, ogni viaggio arrivato (6/6, 8/8), nessuna caduta,
+      buchi fantasma 0–1 contro 0–2.
+- [x] ~~Perché alcune chiusure di loop misurano male l'angolo (x13: 5° di
       errore, la posa dal vivo 35 cm fuori, σ 0.08 m); si misura con la
       verità fitta (`LOOP_LOG`, `POSEERR_DT=0.5`). Sigma d'angolo del loop
       a 0.5 provata e tolta: i parametri di maploc si giudicano su almeno
-      12 sessioni.
+      12 sessioni.~~ Risposto in parte (2026-10-01): perché una chiusura
+      misuri male non si sa — nulla di ciò che porta lo dice — ma la sua
+      correzione d'angolo ha un tetto di 4°, vedi la voce qui sopra.
+- [ ] 2026-10-01: durante una giravolta veloce sul posto la posa della
+      mappa può restare ferma fino a ~1.5 s, poi recuperare (x22
+      casa_arredata: angolo sbagliato di 93° per 1.5 s con la posizione
+      entro 5 cm). Visto in ogni corsa di casa_arredata da x18, mai in
+      casa_grande. Il massimo dell'angolo di `traj_metrics` ne è gonfiato:
+      leggere l'RMS e la mediana.
 - [ ] I risvegli dell'apartment a est del vano scala sono lenti: le
       finestre rifiutano per minuti un seme giusto.
 
@@ -4213,7 +4243,9 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
   generazione (`places.rs`).
 - Alcune chiusure di loop misurano male l'angolo, e la covarianza di maploc
   non segnala la deriva che ne segue (σ 0.08 m a 0.35 m di errore, x13): i
-  buchi fantasma si registrano dove li mette la posa. In corso (§2d).
+  buchi fantasma si registrano dove li mette la posa. Dal 2026-10-01 una
+  chiusura gira l'angolo di 4° al massimo; perché alcune misurino male
+  resta ignoto (§2d).
 - I risvegli dell'apartment a est del vano scala sono lenti: le finestre
   rifiutano per minuti un seme giusto (§2d).
 - La mappatura stop-and-scan è lavoro deliberato: qualcuno deve portare

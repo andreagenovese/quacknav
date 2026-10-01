@@ -333,8 +333,11 @@ cambiano.
   la posa dal vivo deriva con loro: i buchi fantasma a nord del vano scala
   di casa_arredata (x13) venivano da una posa 35 cm fuori dopo una chiusura
   sbagliata di 5°, e la covarianza di maploc non lo segnalava (σ 0.08 m a
-  0.35 m di errore). Il perché si sta misurando, con la verità campionata
-  fitta (`LOOP_LOG`, `POSEERR_DT=0.5`).
+  0.35 m di errore). Il perché resta ignoto — nulla di ciò che una
+  chiusura porta ne tradisce una sbagliata — ma dal 2026-10-01 una
+  chiusura gira l'angolo di 4° al massimo (erano 26°): sul gemello
+  l'errore mediano dell'angolo è sceso da 0.97–1.26° a 0.63–0.92°, mappa
+  e viaggi invariati.
 - **Più lenta di `main`.** La mediana di un viaggio è 106–111 s contro i 66–101 s
   di `main`; su pavimento libero (casa_libera) 1.7 volte tanto. È il prezzo del
   seguire la rotta pianificata (il filo teso al massimo 0.6 m, mai accanto a un

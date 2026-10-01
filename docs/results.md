@@ -320,8 +320,10 @@ unchanged.
   the live pose drifts with it: phantom holes north of casa_arredata's
   stairwell (x13) came from a pose 35 cm off after a closure 5° wrong, and
   maploc's covariance did not flag it (σ 0.08 m at 0.35 m off). Why is
-  being measured, with the truth sampled densely (`LOOP_LOG`,
-  `POSEERR_DT=0.5`).
+  still unknown — nothing a closure carries tells a wrong one — but since
+  2026-10-01 a closure turns the heading by 4° at most (was 26°): on the
+  twin the heading's median error went from 0.97–1.26° to 0.63–0.92°,
+  map and journeys unchanged.
 - **Slower than `main`.** A journey's median is 106–111 s against `main`'s
   66–101 s; on open floor (casa_libera) 1.7 times as long. It is the price of
   walking the planned route (the string pulled 0.6 m at most, none beside a
