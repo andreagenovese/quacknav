@@ -101,15 +101,18 @@ La risposta è `{"env_file", "restart_needed", "knobs": […]}`, ogni manopola
 come la tiene `quack-nav/src/knobs.json` — `name`, `group` (`QK`,
 `MAPLOC`), `type` (`number`; `switch` `0`/`1`; `choice` con `options`;
 `flag`, `1` accesa e assente spenta; `text`), `default` (null quando il
-default del codice non è un numero semplice), `read_as`, `where`, `doc` —
+codice non ne ha), `read_as`, `where`, `doc` —
 più `saved` (il valore del file, o null: il default) e `running` (quello di
 questo processo). `restart_needed` dice che i due differiscono da qualche
 parte. `null` in `set` toglie un valore. Un valore che non rispetta il tipo
 della sua manopola è rifiutato e non si scrive niente; le righe del file
 che non sono manopole (un `RUST_LOG`, un commento) restano. La lista è
 generata dal codice da `scripts/knobs.py` — solo le manopole lette dai
-sorgenti di quack-navd, non quelle dei banchi — e il CI controlla che sia
-aggiornata.
+sorgenti di quack-navd, non quelle dei banchi né l'oracolo del gemello
+(`QK_ORACLE_*`, che sostituiscono la mappa o la posa con la verità del
+simulatore) — e il CI controlla che sia aggiornata. Un `default` che nel
+codice è una costante è dato col suo valore; uno che dipende dal modo si
+legge `0.12 (guarded: 0.20)`.
 
 ## nav.restart
 

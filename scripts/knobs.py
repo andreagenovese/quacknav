@@ -124,6 +124,27 @@ def comment_above(lines, i):
     return first[:220] + ("…" if len(first) > 220 else "")
 
 
+def comment_naming(lines, name):
+    """The sentence of a comment elsewhere in the file that names the knob
+    in backticks — a module's doc listing its knobs — when the comment
+    above the read says nothing."""
+    com = [re.match(r"\s*//[/!]?\s?(.*)", ln) for ln in lines]
+    for k, m in enumerate(com):
+        if not (m and "`" + name in m.group(1)):
+            continue
+        a = k
+        while a > 0 and com[a - 1] and com[a - 1].group(1).strip() and not com[a].group(1).lstrip().startswith("- "):
+            a -= 1
+        b = k
+        while b + 1 < len(com) and com[b + 1] and com[b + 1].group(1).strip() and not com[b + 1].group(1).lstrip().startswith("- "):
+            b += 1
+        text = " ".join(com[x].group(1).strip() for x in range(a, b + 1)).lstrip("- ")
+        for sentence in re.split(r"(?<=[.;])\s+", text):
+            if "`" + name in sentence:
+                return sentence[:220] + ("…" if len(sentence) > 220 else "")
+    return ""
+
+
 def collect():
     found = {}
     for top in ("quack-nav", "quack-duck", "maploc"):
@@ -158,7 +179,7 @@ def collect():
                         e["where"].append(rel)
                     e["how"].add(semantics(fnn, stmt, before))
                     if not e["doc"]:
-                        e["doc"] = comment_above(lines, line)
+                        e["doc"] = comment_above(lines, line) or comment_naming(lines, name)
     for dp, dn, fn in os.walk(os.path.join(ROOT, "scripts")):
         dn[:] = [d for d in dn if d != "__pycache__"]
         for f in sorted(fn):
@@ -241,11 +262,15 @@ def render(found, lang):
     out = [HEAD[lang]]
     for n in order:
         e = found[n]
-        how = "; ".join(sorted(e["how"] if lang == "en" else {how_it(h) for h in e["how"]}))
+        hows = {readable(h) for h in e["how"]}
+        how = "; ".join(sorted(hows if lang == "en" else {how_it(h) for h in hows}))
         where = ", ".join(f"`{w}`" for w in e["where"][:3]) + (" …" if len(e["where"]) > 3 else "")
         doc = e["doc"].replace("|", "\\|")
         out.append(f"| `{n}` | {how} | {where} | {doc} |\n")
     return "".join(out)
+
+
+TWIN_ONLY = ("QK_ORACLE_",)
 
 
 def daemon_file(rel):
@@ -268,6 +293,21 @@ def constant(name):
     return None
 
 
+def resolved(d):
+    """A default as a number: its constants replaced by their values, and
+    `if mode { a } else { b }` said as "b (mode: a)"."""
+    d = re.sub(r"\b[A-Z][A-Z0-9_]{2,}\b", lambda m: constant(m.group(0)) or m.group(0), d)
+    m = re.fullmatch(r"if (\w+) \{ (\S+) \} else \{ (\S+) \}", d.strip())
+    return f"{m.group(3)} ({m.group(1)}: {m.group(2)})" if m else d
+
+
+def readable(h):
+    """A reading as the docs say it: a default named by a constant given as
+    its value."""
+    m = re.fullmatch(r"number \(default (.+?)(, after conversion)?\)", h)
+    return f"number (default {resolved(m.group(1))}{m.group(2) or ''})" if m else h
+
+
 def typed(hows):
     """How a client edits a knob: its type — number, switch ("0"/"1"),
     choice (one of `options`), flag (set to "1" is on, unset off) or text —
@@ -275,10 +315,7 @@ def typed(hows):
     for h in sorted(hows):
         m = re.match(r"number \(default (.+)\)$", h)
         if m:
-            d = m.group(1).replace(", after conversion", "")
-            if not re.fullmatch(r"[-0-9_.eE+]+", d):
-                d = constant(d) or d
-            return {"type": "number", "default": d}
+            return {"type": "number", "default": resolved(m.group(1).replace(", after conversion", ""))}
         if h == "number" or h.startswith("number (unset"):
             return {"type": "number", "default": None}
         if h.startswith("1 on, 0 off"):
@@ -305,7 +342,11 @@ def machine(found):
         where = [w for w in e["where"] if daemon_file(w)]
         if not (n.startswith("QK_") or n.startswith("MAPLOC_")) or not where:
             continue
-        k = {"name": n, "group": n.split("_", 1)[0], "read_as": "; ".join(sorted(e["how"]))}
+        # The oracle's knobs replace the map, the holes or the pose with the
+        # twin's truth (src/oracle.rs): measuring tools, not the duck's.
+        if n.startswith(TWIN_ONLY):
+            continue
+        k = {"name": n, "group": n.split("_", 1)[0], "read_as": "; ".join(sorted(readable(h) for h in e["how"]))}
         k.update(typed(e["how"]))
         k["where"] = where
         k["doc"] = e["doc"]

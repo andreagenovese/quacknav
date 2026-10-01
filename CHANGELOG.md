@@ -45,6 +45,10 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Fixed
 
+- docs/knobs.md and `nav.knobs` give a default named by a constant as its
+  value (`QK_DROP_INFLATE` 0.05, not `DROP_INFLATE_DEFAULT`), a knob with no
+  comment above its read takes the sentence of its file that names it, and
+  the twin's oracle knobs (`QK_ORACLE_*`) are left out of `nav.knobs`.
 - The install examples ssh in as `microduck`, the board image's account
   (Pollen's #340), not `radxa`.
 - The GitHub release's text: CI makes the release notes' relative links

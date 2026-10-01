@@ -49,6 +49,11 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Corretto
 
+- docs/knobs.md e `nav.knobs` danno un default che nel codice è una
+  costante col suo valore (`QK_DROP_INFLATE` 0.05, non `DROP_INFLATE_DEFAULT`),
+  una manopola senza commento sopra la lettura prende la frase del suo file
+  che la nomina, e le manopole dell'oracolo del gemello (`QK_ORACLE_*`)
+  restano fuori da `nav.knobs`.
 - Gli esempi di installazione entrano via ssh come `microduck`, l'account
   dell'immagine della scheda (#340 di Pollen), non `radxa`.
 - Il testo della release su GitHub: la CI rende assoluti i link relativi

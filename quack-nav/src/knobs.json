@@ -122,7 +122,7 @@
    "where": [
     "maploc/src/mapper.rs"
    ],
-   "doc": ""
+   "doc": "`MAPLOC_SHADOW_EVERY_S` and `MAPLOC_SHADOW_ASKS` override them."
   },
   {
    "name": "MAPLOC_SHADOW_EVERY_S",
@@ -172,7 +172,7 @@
   {
    "name": "QK_ANCHOR_DROP_M",
    "group": "QK",
-   "read_as": "number (default ANCHOR_NOT_NEAR_DROP_DEFAULT_M)",
+   "read_as": "number (default 1.0)",
    "type": "number",
    "default": "1.0",
    "where": [
@@ -250,18 +250,18 @@
   {
    "name": "QK_COST_HUG",
    "group": "QK",
-   "read_as": "number (default COST_HUG_DEFAULT)",
+   "read_as": "number (default 30)",
    "type": "number",
    "default": "30",
    "where": [
     "quack-nav/src/frontier.rs"
    ],
-   "doc": ""
+   "doc": "`QK_COST_HUG=0` restores the flat price."
   },
   {
    "name": "QK_CURVE_RAD",
    "group": "QK",
-   "read_as": "number (default CURVE_RAD)",
+   "read_as": "number (default 1.0)",
    "type": "number",
    "default": "1.0",
    "where": [
@@ -272,20 +272,20 @@
   {
    "name": "QK_DROP_INFLATE",
    "group": "QK",
-   "read_as": "number (default DROP_INFLATE_DEFAULT)",
+   "read_as": "number (default 0.05)",
    "type": "number",
    "default": "0.05",
    "where": [
     "quack-nav/src/frontier.rs"
    ],
-   "doc": ""
+   "doc": "`QK_DROP_INFLATE` to measure."
   },
   {
    "name": "QK_DROP_PLAN_RADIUS_M",
    "group": "QK",
-   "read_as": "number (default if guarded { DROP_PLAN_RADIUS_GUARDED_M } else { DROP_PLAN_RADIUS_M })",
+   "read_as": "number (default 0.12 (guarded: 0.20))",
    "type": "number",
-   "default": "if guarded { DROP_PLAN_RADIUS_GUARDED_M } else { DROP_PLAN_RADIUS_M }",
+   "default": "0.12 (guarded: 0.20)",
    "where": [
     "quack-nav/src/explore/mode.rs"
    ],
@@ -294,13 +294,13 @@
   {
    "name": "QK_DROP_REACH_M",
    "group": "QK",
-   "read_as": "number (default DROP_REACH_M)",
+   "read_as": "number (default 0.30)",
    "type": "number",
    "default": "0.30",
    "where": [
     "quack-nav/src/explore/books.rs"
    ],
-   "doc": ""
+   "doc": "`QK_DROP_REACH_M=0` goes back to points."
   },
   {
    "name": "QK_EDGE_DISCRIMINATE",
@@ -316,7 +316,7 @@
   {
    "name": "QK_GAP_LANE_HALF_M",
    "group": "QK",
-   "read_as": "number (default GAP_LANE_HALF_M)",
+   "read_as": "number (default 0.115)",
    "type": "number",
    "default": "0.115",
    "where": [
@@ -327,7 +327,7 @@
   {
    "name": "QK_GAP_MAX_M",
    "group": "QK",
-   "read_as": "number (default GAP_MAX_M)",
+   "read_as": "number (default 0.6)",
    "type": "number",
    "default": "0.6",
    "where": [
@@ -360,7 +360,7 @@
   {
    "name": "QK_LANE_HALF_M",
    "group": "QK",
-   "read_as": "number (default LANE_HALF_M)",
+   "read_as": "number (default 0.16)",
    "type": "number",
    "default": "0.16",
    "where": [
@@ -379,39 +379,6 @@
     "quack-nav/src/explore/journey.rs"
    ],
    "doc": "`QK_NO_GUARDS`: every leg, kick and pulse goes through `robot.move`, blind, and the route check is off — the planner alone (the frozen map, the books, the margins) brings the duck home."
-  },
-  {
-   "name": "QK_ORACLE_HOLES",
-   "group": "QK",
-   "read_as": "a value",
-   "type": "text",
-   "default": null,
-   "where": [
-    "quack-nav/src/oracle.rs"
-   ],
-   "doc": ""
-  },
-  {
-   "name": "QK_ORACLE_POSE",
-   "group": "QK",
-   "read_as": "a value",
-   "type": "text",
-   "default": null,
-   "where": [
-    "quack-nav/src/oracle.rs"
-   ],
-   "doc": ""
-  },
-  {
-   "name": "QK_ORACLE_WALLS",
-   "group": "QK",
-   "read_as": "a value",
-   "type": "text",
-   "default": null,
-   "where": [
-    "quack-nav/src/oracle.rs"
-   ],
-   "doc": ""
   },
   {
    "name": "QK_PULL_DEVIATION_M",
@@ -495,7 +462,7 @@
   {
    "name": "QK_STRAIGHT_RAD",
    "group": "QK",
-   "read_as": "number (default STRAIGHT_RAD)",
+   "read_as": "number (default 0.35)",
    "type": "number",
    "default": "0.35",
    "where": [
@@ -512,7 +479,7 @@
    "where": [
     "quack-nav/src/explore/books.rs"
    ],
-   "doc": ""
+   "doc": "Off with `QK_TRAIL=0`, for measuring."
   },
   {
    "name": "QK_TRUSTED_FLOOR",

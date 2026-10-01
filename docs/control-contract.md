@@ -95,14 +95,16 @@ process's environment, which nothing outside can change. So:
 The answer is `{"env_file", "restart_needed", "knobs": […]}`, each knob as
 `quack-nav/src/knobs.json` has it — `name`, `group` (`QK`, `MAPLOC`),
 `type` (`number`; `switch` `0`/`1`; `choice` with `options`; `flag`, `1` on
-and unset off; `text`), `default` (null when the code's default is not a
-plain number), `read_as`, `where`, `doc` — plus `saved` (the file's value,
+and unset off; `text`), `default` (null when the code has none), `read_as`, `where`, `doc` — plus `saved` (the file's value,
 or null: the default) and `running` (this process's). `restart_needed` says
 the two differ somewhere. `null` in `set` drops an override. A value that
 does not fit its knob's type is refused and nothing is written; lines the
 file has that are not knobs (a `RUST_LOG`, a comment) are kept. The list is
 generated from the code by `scripts/knobs.py` — only the knobs quack-navd's
-own sources read, not the benches' — and CI checks it is current.
+own sources read, not the benches', nor the twin's oracle (`QK_ORACLE_*`,
+which swap the map or the pose for the simulator's truth) — and CI checks
+it is current. A `default` named by a constant in the code is given as its
+value; one that depends on the mode reads `0.12 (guarded: 0.20)`.
 
 ## nav.restart
 

@@ -18,28 +18,28 @@ del processo.
 | Variabile | Letta come | Dove | Cosa dice il codice |
 |---|---|---|---|
 | `QK_ALIGN_KICK` | 1 accesa, 0 spenta, altrimenti quella del modo | `quack-nav/src/explore/mode.rs` |  |
-| `QK_ANCHOR_DROP_M` | numero (default ANCHOR_NOT_NEAR_DROP_DEFAULT_M) | `quack-nav/src/explore/mod.rs` | Not beside a drop: a revisit there turns the duck round in the mouth of the passage it is entering. |
+| `QK_ANCHOR_DROP_M` | numero (default 1.0) | `quack-nav/src/explore/mod.rs` | Not beside a drop: a revisit there turns the duck round in the mouth of the passage it is entering. |
 | `QK_BACK_NO_STEP_M` | numero (default 0.30) | `quack-nav/src/explore/gait.rs` | No blind step back at all with a booked drop this close to the body, whatever its bearing, on the trail or not (`QK_BACK_NO_STEP_M`). |
 | `QK_BACK_REORIENT` | accesa salvo 0 | `quack-nav/src/explore/gait.rs` | `QK_BACK_REORIENT=0`: after the step back, head for the most open floor and walk a leg there, as before. |
 | `QK_BACK_S` | numero (default 1.5) | `quack-nav/src/explore/gait.rs` | The step back: this gait needs about a second to start moving at all, so a shorter one moves nothing (measured); and no more often than this. |
 | `QK_BLIND_CONE_LANE` | accesa salvo 0 | `quack-nav/src/explore/guarded.rs` | The cone widens at short range to the lane's own angle — at 0.25 m a 12 cm lane is 26°, and a cube 0.25 m ahead at 18° inside the lane was outside the 15° cone, walked over and dragged 1.9 m (sideA016r, 2026-09-22). |
 | `QK_CLIFF_MARGIN_M` | numero (default 0.25) | `quack-nav/src/tools.rs` | Stop this far short of a drop's edge — farther than a wall's margin, because an edge is not a bump. |
 | `QK_CLOSE_LOOK` | 1 accesa, 0 spenta, altrimenti il default del chiamante | `quack-nav/src/explore/close_look.rs` | `QK_CLOSE_LOOK=0`: no close looks. |
-| `QK_COST_HUG` | numero (default COST_HUG_DEFAULT) | `quack-nav/src/frontier.rs` |  |
-| `QK_CURVE_RAD` | numero (default CURVE_RAD) | `quack-nav/src/explore/gait.rs` |  |
-| `QK_DROP_INFLATE` | numero (default DROP_INFLATE_DEFAULT) | `quack-nav/src/frontier.rs` |  |
-| `QK_DROP_PLAN_RADIUS_M` | numero (default if guarded { DROP_PLAN_RADIUS_GUARDED_M } else { DROP_PLAN_RADIUS_M }) | `quack-nav/src/explore/mode.rs` |  |
-| `QK_DROP_REACH_M` | numero (default DROP_REACH_M) | `quack-nav/src/explore/books.rs` |  |
+| `QK_COST_HUG` | numero (default 30) | `quack-nav/src/frontier.rs` | `QK_COST_HUG=0` restores the flat price. |
+| `QK_CURVE_RAD` | numero (default 1.0) | `quack-nav/src/explore/gait.rs` |  |
+| `QK_DROP_INFLATE` | numero (default 0.05) | `quack-nav/src/frontier.rs` | `QK_DROP_INFLATE` to measure. |
+| `QK_DROP_PLAN_RADIUS_M` | numero (default 0.12 (guarded: 0.20)) | `quack-nav/src/explore/mode.rs` |  |
+| `QK_DROP_REACH_M` | numero (default 0.30) | `quack-nav/src/explore/books.rs` | `QK_DROP_REACH_M=0` goes back to points. |
 | `QK_EDGE_DISCRIMINATE` | accesa salvo 0 | `quack-nav/src/explore/books.rs` | `QK_EDGE_DISCRIMINATE=0`: every sensed drop goes on the books as a hole, as before. |
-| `QK_GAP_LANE_HALF_M` | numero (default GAP_LANE_HALF_M) | `quack-nav/src/explore/mod.rs` |  |
-| `QK_GAP_MAX_M` | numero (default GAP_MAX_M) | `quack-nav/src/explore/mod.rs` |  |
+| `QK_GAP_LANE_HALF_M` | numero (default 0.115) | `quack-nav/src/explore/mod.rs` |  |
+| `QK_GAP_MAX_M` | numero (default 0.6) | `quack-nav/src/explore/mod.rs` |  |
 | `QK_GUARD_ARC_FULL` | accesa solo con 1 | `quack-duck/src/body.rs` | Turning costs little forward speed: 0.110 m/s at vyaw 0.7 against 0.121 straight, measured on the human drive (2026-09-07). |
 | `QK_INFLATE_M` | numero (default 0.12) | `quack-nav/src/frontier.rs` | The inflation the planner runs with: 0.12, a little over the body's half-width, 0.10 (`QK_INFLATE_M`). |
-| `QK_LANE_HALF_M` | numero (default LANE_HALF_M) | `quack-nav/src/explore/mod.rs` |  |
+| `QK_LANE_HALF_M` | numero (default 0.16) | `quack-nav/src/explore/mod.rs` |  |
 | `QK_NO_GUARDS` | 1 accesa, 0 spenta, altrimenti il default del chiamante | `quack-nav/src/explore/journey.rs` | `QK_NO_GUARDS`: every leg, kick and pulse goes through `robot.move`, blind, and the route check is off — the planner alone (the frozen map, the books, the margins) brings the duck home. |
-| `QK_ORACLE_HOLES` | un valore | `quack-nav/src/oracle.rs` |  |
-| `QK_ORACLE_POSE` | un valore | `quack-nav/src/oracle.rs` |  |
-| `QK_ORACLE_WALLS` | un valore | `quack-nav/src/oracle.rs` |  |
+| `QK_ORACLE_HOLES` | un valore | `quack-nav/src/oracle.rs` | `QK_ORACLE_HOLES=<truth.json>`: its `holes` (`[x0, x1, y0, y1]`, metres) drawn into that map as wall — the planner keeps off them. |
+| `QK_ORACLE_POSE` | un valore | `quack-nav/src/oracle.rs` | `QK_ORACLE_POSE=<host:port>`: the pose the navigation reads is the simulator's trunk, read as `poseerr.py` reads it, at 20 Hz. |
+| `QK_ORACLE_WALLS` | un valore | `quack-nav/src/oracle.rs` | `QK_ORACLE_WALLS=<walls.toml>`: the map the navigation plans on is drawn from the truth's wall segments (centimetres, the MuJoCo world frame, as `scripts/twin/houses/*.toml` hold them): every cell inside the house free, … |
 | `QK_PULL_DEVIATION_M` | numero (default 0.20) | `quack-nav/src/frontier.rs` | A straight run may stray this far from the Dijkstra route it replaces: the staircase is smoothed, the route is not redrawn — a diagonal across the room cut corners and brushed walls Dijkstra had kept away from (the user'… |
 | `QK_PULL_ROUTE` | accesa salvo 0 | `quack-nav/src/frontier.rs` | `QK_PULL_ROUTE=0` leaves Dijkstra's staircase as it is. |
 | `QK_REACH_TO_FLOOR` | accesa salvo 0 | `quack-nav/src/explore/books.rs` | `QK_REACH_TO_FLOOR=0`: the reach behind a rim ignores where the floor comes back (see `record_drops`). |
@@ -47,8 +47,8 @@ del processo.
 | `QK_RIM_TOUR` | 1 accesa, 0 spenta, altrimenti il default del chiamante | `quack-nav/src/explore/rim_tour.rs` | `QK_RIM_TOUR=0`: no rounds of the holes. |
 | `QK_SPIN_WATCH` | accesa salvo 0 | `quack-nav/src/explore/gait.rs` | `QK_SPIN_WATCH=0`: turn in place without watching the sensor, as before. |
 | `QK_STICK_CAREFUL` | 1 accesa, 0 spenta, altrimenti il default del chiamante | `quack-nav/src/explore/navigate.rs` |  |
-| `QK_STRAIGHT_RAD` | numero (default STRAIGHT_RAD) | `quack-nav/src/explore/gait.rs` |  |
-| `QK_TRAIL` | accesa salvo 0 | `quack-nav/src/explore/books.rs` |  |
+| `QK_STRAIGHT_RAD` | numero (default 0.35) | `quack-nav/src/explore/gait.rs` |  |
+| `QK_TRAIL` | accesa salvo 0 | `quack-nav/src/explore/books.rs` | Off with `QK_TRAIL=0`, for measuring. |
 | `QK_TRUSTED_FLOOR` | 1 accesa, 0 spenta, altrimenti quella del modo | `quack-nav/src/explore/mode.rs` |  |
 | `QK_TURN_IN_PLACE` | accesa salvo 0 | `quack-nav/src/explore/gait.rs` | `QK_TURN_IN_PLACE=0` turns the old way (kick, then yaw) everywhere. |
 | `QK_WALL_MARGIN_M` | numero (default 0.18) | `quack-nav/src/tools.rs` |  |
@@ -65,17 +65,17 @@ del processo.
 | `MAPLOC_MULTI_HYP` | accesa salvo 0 | `maploc/src/mapper.rs` | `MAPLOC_MULTI_HYP=0` turns the multi-hypothesis boot search off, for measuring against the single-best agreement it replaces. |
 | `MAPLOC_RAW` | presente = accesa (qualsiasi valore) | `maploc/examples/replay.rs` |  |
 | `MAPLOC_SHADOW` | accesa salvo 0 | `maploc/src/mapper.rs` | `MAPLOC_SHADOW=0`: no shadow map at boot. |
-| `MAPLOC_SHADOW_ASKS` | numero (default 2) | `maploc/src/mapper.rs` |  |
+| `MAPLOC_SHADOW_ASKS` | numero (default 2) | `maploc/src/mapper.rs` | `MAPLOC_SHADOW_EVERY_S` and `MAPLOC_SHADOW_ASKS` override them. |
 | `MAPLOC_SHADOW_EVERY_S` | numero (default 30.0) | `maploc/src/mapper.rs` | How often the shadow asks, how many answers in a row must agree, and what an answer must be (the homecoming's adoption rule, see quack-nav's `HomecomingConfig`, measured on 27 replayed wakes: 626 of 655 right answers pas… |
 | `MAPLOC_VALLEY_CROSS` | accesa salvo 0 | `maploc/src/mapper.rs` | Two valleys that cross resolve each other (see `Mapper::valley_blocks`); `MAPLOC_VALLEY_CROSS=0` for the valley test alone. |
 | `MAPLOC_VERBOSE` | presente = accesa (qualsiasi valore) | `maploc/examples/replay.rs` |  |
 | `MAPLOC_WATCHDOG_RESCUE` | accesa salvo 0 | `maploc/src/mapper.rs` | `MAPLOC_WATCHDOG_RESCUE=0`: the watchdog judges a window at the carried pose alone, as before 2026-09-28. |
 | `AB_REPO` | un valore (script) | `scripts/twin/houses/final_house.py` |  |
 | `ACC_RANGE` | numero (default mapper_cfg.accumulator.max_range_m) | `maploc/examples/evaluate.rs` | `ACC_RANGE`: how far a beam may be and still reach the map. |
-| `ALIGN_BEAMS` | number (unset: none) | `maploc/examples/align_maps.rs` |  |
-| `ALIGN_RESID` | number (unset: none) | `maploc/examples/align_maps.rs` |  |
-| `ASK_EVERY_S` | numero (default 60.0) | `maploc/examples/wake_match.rs` |  |
-| `ASK_FOR_S` | numero (default 900.0) | `maploc/examples/wake_match.rs` |  |
+| `ALIGN_BEAMS` | number (unset: none) | `maploc/examples/align_maps.rs` | `ALIGN_BEAMS` and `ALIGN_RESID` override the two knobs. |
+| `ALIGN_RESID` | number (unset: none) | `maploc/examples/align_maps.rs` | `ALIGN_BEAMS` and `ALIGN_RESID` override the two knobs. |
+| `ASK_EVERY_S` | numero (default 60.0) | `maploc/examples/wake_match.rs` | The homecoming's map-to-map question, asked offline, with the answer known: a recording replayed from `start_s` into a FRESH map — a duck woken there, its map starting where it stands — and every `ASK_EVERY_S` the fresh … |
+| `ASK_FOR_S` | numero (default 900.0) | `maploc/examples/wake_match.rs` | `ASK_EVERY_S` (60) and `ASK_FOR_S` (900) set the cadence and the span. |
 | `BOOK` | un valore | `quack-nav/examples/drop_replay.rs` | `BOOK=<ground.json>:<map>`: the book's holes too, each checked against the floor strike (explore::books' rule, replayed): which phantoms it would take off, and whether it ever takes a true rim. |
 | `CORR_LOG` | un percorso, o un valore | `maploc/examples/trajectory.rs` | `CORR_LOG=<file>`: every tracking correction a window made, against the truth — which of them moved the pose toward it and which away (casa_arredata, 2026-09-29: the windows pulled the pose 3.5-7 cm north one after the o… |
 | `CUT_ON_CORR` | numero (default mapper_cfg.tracking.cut_on_correction_m) | `maploc/examples/evaluate.rs` |  |
@@ -95,9 +95,9 @@ del processo.
 | `LOOP_SPREAD` | numero (default slam_cfg.loops.verify_max_spread_m) | `maploc/examples/evaluate.rs` |  |
 | `LOOP_VERBOSE` | presente = accesa (qualsiasi valore) | `maploc/examples/evaluate.rs` |  |
 | `MAP_FALLBACK` | un valore (script) | `scripts/twin/viewer/body_with_map.py` |  |
-| `MAP_LOAD_AT_S` | number (unset: none) | `quack-nav/examples/drop_replay.rs`, `maploc/examples/trajectory.rs` | `MAP_LOAD_AT_S=<t>`: a fresh map until `t` seconds into the recording, the saved one from then on, as the daemon boots live (see `bench::replay_loading`); unset, the saved one from the start. |
+| `MAP_LOAD_AT_S` | number (unset: none) | `quack-nav/examples/drop_replay.rs`, `maploc/examples/trajectory.rs` | `MAP_SESSION` / `MAP_LOAD_AT_S` as `maploc`'s `trajectory` example: the saved map the session resumed on, loaded when the daemon loaded it. |
 | `MAP_LOAD_CARRY` | accesa salvo 0 | `maploc/examples/trajectory.rs` |  |
-| `MAP_SESSION` | un percorso, o un valore | `quack-nav/examples/drop_replay.rs`, `maploc/examples/evaluate.rs`, `maploc/examples/trajectory.rs` | `MAP_SESSION=<file>` replays into a map saved by an earlier run, starting lost: the boot-relocalization question, on the bench. |
+| `MAP_SESSION` | un percorso, o un valore | `quack-nav/examples/drop_replay.rs`, `maploc/examples/evaluate.rs`, `maploc/examples/trajectory.rs` | `MAP_SESSION` / `MAP_LOAD_AT_S` as `maploc`'s `trajectory` example: the saved map the session resumed on, loaded when the daemon loaded it. |
 | `MAX_T` | numero (default f32::INFINITY) | `maploc/examples/evaluate.rs` |  |
 | `MICRODUCK` | un valore (script) | `scripts/twin/houses/run_house.py` |  |
 | `MICRODUCK_RL` | un valore (script) | `scripts/twin/houses/run_house.py` |  |
@@ -111,7 +111,7 @@ del processo.
 | `OUT_SESSION` | un percorso, o un valore | `maploc/examples/evaluate.rs` | `OUT_SESSION=<file>`: the map this replay built, saved the way the robot saves one — so a bench run and a live run are scored by the same tools (quacksat's mapquality.py, dump_frame). |
 | `POLICY_DIR` | un valore (script) | `scripts/twin/houses/run_house.py` |  |
 | `POSEERR_DT` | un valore (script) | `scripts/twin/houses/poseerr.py` |  |
-| `PROPTEST_CASES` | numero (default 256) | `quack-nav/tests/route_properties.rs` |  |
+| `PROPTEST_CASES` | numero (default 256) | `quack-nav/tests/route_properties.rs` | `PROPTEST_CASES=5000` for a long hunt. |
 | `QN_REPO` | un valore (script) | `scripts/twin/houses/run_house.py` |  |
 | `QUACK_NAV_SOCKET` | un valore (script) | `scripts/twin/viewer/body_with_map.py` |  |
 | `REJECT` | numero (default slam_cfg.optimizer.reject_sigmas) | `maploc/examples/evaluate.rs` |  |
