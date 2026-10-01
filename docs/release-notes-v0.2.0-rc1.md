@@ -43,7 +43,7 @@ On the MuJoCo twin unless said otherwise; sources in
   error was 0.63–0.92° in all five runs, against 0.97–1.26° in all four
   without; 20 replayed sessions, mean ATE 0.0946 → 0.0891 m.
 - **The paper twin gate** (CI, fixed seeds): explore 40 runs, 0 falls, mean
-  coverage 53.2 %; `go_to` 30/30. 151 tests pass (1 ignored).
+  coverage 53.2 %; `go_to` 30/30. 153 tests pass (1 ignored).
 
 ## Build, install, run
 

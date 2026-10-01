@@ -56,7 +56,7 @@ impl Robot {
         let control = match quack_duck::Control::connect(robotd_socket) {
             Ok(control) => Some(control),
             Err(e) => {
-                tracing::warn!(error = %e, "robotd unreachable — the navigation runs without the robot");
+                tracing::warn!(error = %format!("{e:#}"), "robotd unreachable — the navigation runs without the robot");
                 None
             }
         };
@@ -89,7 +89,11 @@ impl Places {
                 registry
             }
             Err(e) => {
-                tracing::warn!(error = %e, "places registry unusable — places will not persist");
+                tracing::warn!(
+                    error = %format!("{e:#}"),
+                    path = %config.places_path,
+                    "places registry unusable — places will not persist; fix or move the file, or set [map] places_path"
+                );
                 Registry::in_memory()
             }
         };
@@ -293,7 +297,7 @@ fn map_status(places: &mut Places) -> Result<Value, String> {
         }));
     };
     if let Err(e) = places.registry.observe(status.epoch, frame.n_submaps) {
-        tracing::warn!(error = %e, "places registry not saved");
+        tracing::warn!(error = %format!("{e:#}"), "places registry not saved");
     }
     let grid = frame.grid().ok();
     let (free, wall) = grid
@@ -490,7 +494,7 @@ fn locate(places: &mut Places) -> Result<Fix, NoFix> {
         ));
     };
     if let Err(e) = places.registry.observe(status.epoch, frame.n_submaps) {
-        tracing::warn!(error = %e, "places registry not saved");
+        tracing::warn!(error = %format!("{e:#}"), "places registry not saved");
     }
     match status.trusted_pose() {
         Some(pose) => Ok(Fix {

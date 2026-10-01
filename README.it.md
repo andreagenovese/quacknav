@@ -187,7 +187,14 @@ esegue `/usr/local/bin/quack-navd /etc/robot/quack-nav.toml` e crea
 `/run/quack-nav/` per i socket. Lanciato a mano fuori da quell'unità,
 `/run/quack-nav/` deve esistere ed essere scrivibile — `[maploc] socket` ha
 come predefinito `/run/quack-nav/map.sock` anche quando `socket` è altrove —
-altrimenti il demone si ferma subito con `No such file or directory`. Parte
+altrimenti il demone si ferma subito, nominando il percorso e la via d'uscita:
+
+```text
+Error: cannot bind the map socket /run/quack-nav/map.sock: No such file or directory (os error 2) — its directory /run/quack-nav does not exist (systemd's RuntimeDirectory= creates it; by hand: mkdir -p /run/quack-nav or set `[maploc] socket`)
+```
+
+Un file di configurazione che non si legge o non si interpreta viene
+nominato allo stesso modo. Parte
 anche senza robotd e tofd e li aspetta (intanto gli strumenti rispondono "no
 map yet"); senza la papera, il gemello MuJoCo fa le veci di entrambi ([scripts/twin/README.it.md](scripts/twin/README.it.md)).
 
@@ -228,7 +235,7 @@ del settore.
   e i recuperi in un behavior tree. Qui: Dijkstra, un filo teso, gambe a
   stop-and-go, e recuperi sparsi nell'esploratore. Il libro dei drop è uno
   strato di costmap in tutto tranne che nel nome.
-- **Test.** 151 test che passano e 1 ignorato (2026-10-01). Il gemello di carta gira in CI
+- **Test.** 153 test che passano e 1 ignorato (2026-10-01). Il gemello di carta gira in CI
   come soglia su semi fissi (esplorazione 40 × 1200 s, `go_to` 30;
   `.github/workflows/ci.yml`, `scripts/ci/paper_twin_gate.py`); oltre a
   quello, il comportamento si verifica con giri di ore, non deterministici,

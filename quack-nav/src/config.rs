@@ -1,6 +1,7 @@
 //! The `[map]` configuration section, owned here so a host embeds it
 //! rather than transcribing it.
 
+use anyhow::Context;
 use serde::Deserialize;
 
 /// The live map and the places registry. Costs one idle socket on a robot
@@ -260,12 +261,28 @@ impl NavdConfig {
     /// somebody has to know about before the duck can walk.
     pub fn load(path: &str) -> anyhow::Result<Self> {
         match std::fs::read_to_string(path) {
-            Ok(text) => Ok(toml::from_str(&text)?),
+            Ok(text) => toml::from_str(&text).with_context(|| format!("the config file {path} does not parse")),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
                 tracing::info!(path, "no config file; the defaults it is");
                 Ok(Self::default())
             }
-            Err(e) => Err(e.into()),
+            Err(e) => Err(e).with_context(|| format!("cannot read the config file {path} (is it readable by this user?)")),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_config_that_does_not_parse_names_its_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("quack-nav.toml");
+        std::fs::write(&path, "socket = \"/tmp/nav.sock\"\nnot_a_key = 1\n").unwrap();
+        let path = path.to_str().unwrap();
+        let e = format!("{:#}", NavdConfig::load(path).unwrap_err());
+        assert!(e.contains(path), "{e}");
+        assert!(e.contains("not_a_key"), "{e}");
     }
 }

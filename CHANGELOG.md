@@ -125,6 +125,11 @@ A release candidate: the whole stack validated on the twins. Release notes:
   a `go_to` (8643067, 0954d3d); after `fresh`, `map_explore` reports the new
   map (4aa11ba).
 - The homecoming's boot search never saves over the house (e8d9482).
+- Startup errors name their path: a socket that cannot be bound (the nav
+  socket, the map socket), a config file that cannot be read or parsed, and
+  the non-fatal warnings (robotd unreachable, the places registry, the saved
+  session) say which file and what to do — run by hand without
+  `/run/quack-nav/`, the daemon said only `No such file or directory`.
 
 ### Breaking changes for integrators
 

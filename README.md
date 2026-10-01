@@ -179,7 +179,14 @@ install it as an unprivileged service beside robotd; the unit runs
 `/run/quack-nav/` for the sockets. Run by hand outside that unit,
 `/run/quack-nav/` must exist and be writable — `[maploc] socket` defaults to
 `/run/quack-nav/map.sock` even when `socket` is set elsewhere — or the daemon
-stops at once with `No such file or directory`. It starts without robotd
+stops at once, naming the path and the way out:
+
+```text
+Error: cannot bind the map socket /run/quack-nav/map.sock: No such file or directory (os error 2) — its directory /run/quack-nav does not exist (systemd's RuntimeDirectory= creates it; by hand: mkdir -p /run/quack-nav or set `[maploc] socket`)
+```
+
+A config file that does not parse, or cannot be read, is named the same
+way. It starts without robotd
 and tofd and waits for them (tools answer "no map yet" meanwhile); without
 the duck, the MuJoCo twin stands in for both
 ([scripts/twin/README.md](scripts/twin/README.md)).
@@ -219,7 +226,7 @@ prototype, not a navigation stack to the standards of the field.
   behaviour tree. Here: Dijkstra, a string pulled taut, stop-and-go legs, and
   recoveries spread through the explorer. The drop book is a costmap layer in
   all but name.
-- **Tests.** 151 tests passing and 1 ignored (2026-10-01). The paper twin runs in CI as a
+- **Tests.** 153 tests passing and 1 ignored (2026-10-01). The paper twin runs in CI as a
   gate on fixed seeds (explore 40 × 1200 s, `go_to` 30;
   `.github/workflows/ci.yml`, `scripts/ci/paper_twin_gate.py`); beyond it,
   behaviour is verified by hours-long, non-deterministic runs on the MuJoCo

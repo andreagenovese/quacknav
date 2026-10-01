@@ -136,6 +136,12 @@ rilascio: [docs/release-notes-v0.2.0-rc1.it.md](docs/release-notes-v0.2.0-rc1.it
   mappa nuova (4aa11ba).
 - La ricerca all'avvio del ritorno a casa non salva mai sopra la casa
   (e8d9482).
+- Gli errori all'avvio nominano il loro percorso: un socket che non si
+  riesce a creare (quello di navigazione, quello della mappa), un file di
+  configurazione illeggibile o che non si interpreta, e gli avvisi non
+  fatali (robotd irraggiungibile, il registro dei luoghi, la sessione
+  salvata) dicono quale file e cosa fare — lanciato a mano senza
+  `/run/quack-nav/`, il demone diceva solo `No such file or directory`.
 
 ### Modifiche incompatibili per chi integra
 

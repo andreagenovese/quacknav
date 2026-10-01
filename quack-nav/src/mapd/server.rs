@@ -9,7 +9,7 @@
 //! robot.
 
 use std::io::{BufRead, BufReader, Write};
-use std::os::unix::net::{UnixListener, UnixStream};
+use std::os::unix::net::UnixStream;
 use std::sync::{Arc, Mutex};
 
 use duck_ipc_proto as proto;
@@ -24,9 +24,7 @@ const BAD_NAME: &str = "a map name is 1 to 64 letters, digits, '-' or '_'";
 
 /// Bind `path` (replacing a stale socket) and serve it on a thread of its own.
 pub fn serve(host: Host, path: &str) -> anyhow::Result<()> {
-    let _ = std::fs::remove_file(path);
-    let listener = UnixListener::bind(path)?;
-    crate::sockets::share(path)?;
+    let listener = crate::sockets::bind(path, "map socket", "`[maploc] socket`")?;
     tracing::info!(socket = path, mode = host.mode().as_str(), "maploc: serving the map");
     std::thread::Builder::new()
         .name("maploc-serve".into())

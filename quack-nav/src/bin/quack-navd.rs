@@ -13,7 +13,7 @@
 //! voice assistant, the navigation is its own thing).
 
 use std::io::{BufRead, BufReader, Write};
-use std::os::unix::net::{UnixListener, UnixStream};
+use std::os::unix::net::UnixStream;
 use std::sync::{Arc, Mutex};
 
 use quack_nav::config::NavdConfig;
@@ -56,9 +56,7 @@ fn main() -> anyhow::Result<()> {
         quack_nav::homecoming::spawn(robot.clone(), config.homecoming.clone());
     }
 
-    let _ = std::fs::remove_file(&config.socket);
-    let listener = UnixListener::bind(&config.socket)?;
-    quack_nav::sockets::share(&config.socket)?;
+    let listener = quack_nav::sockets::bind(&config.socket, "nav socket", "`socket`")?;
     tracing::info!(socket = %config.socket, "listening");
     for stream in listener.incoming() {
         match stream {

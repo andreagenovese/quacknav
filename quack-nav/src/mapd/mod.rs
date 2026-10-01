@@ -398,7 +398,7 @@ fn worker(config: &MaplocConfig, rx: mpsc::Receiver<Event>, map_tx: &Subscribers
             }
             Ok(None) => Slam::new(SlamConfig::default()),
             Err(e) => {
-                tracing::warn!(error = %e, "maploc: saved session unreadable; starting fresh");
+                tracing::warn!(error = %e, path = %map_path.display(), "maploc: saved session unreadable; starting fresh");
                 Slam::new(SlamConfig::default())
             }
         }

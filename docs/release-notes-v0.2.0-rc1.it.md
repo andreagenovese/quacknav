@@ -44,7 +44,7 @@ e [todo-map.it.md](todo-map.it.md) §2d.
   0,97–1,26° in tutti e quattro senza; 20 sessioni rigiocate, ATE medio da
   0,0946 a 0,0891 m.
 - **La soglia del gemello di carta** (CI, semi fissi): esplorazione 40 giri,
-  0 cadute, copertura media 53,2 %; `go_to` 30/30. 151 test passano (1
+  0 cadute, copertura media 53,2 %; `go_to` 30/30. 153 test passano (1
   ignorato).
 
 ## Compilare, installare, far girare
