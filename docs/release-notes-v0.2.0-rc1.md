@@ -55,7 +55,7 @@ the systemd unit, and the paper twin. For the board (Radxa Zero 3,
 aarch64, Debian 13), `scripts/cross-build.sh` cross-builds `quack-navd`
 from a Mac or a Linux machine without Docker
 ([Building for the duck](../README.md#building-for-the-duck)), and
-`scripts/install-on-duck.sh radxa@<duck>` installs or upgrades it with its
+`scripts/install-on-duck.sh microduck@<duck>` installs or upgrades it with its
 systemd unit ([Installing on the duck](../README.md#installing-on-the-duck)) —
 tried in a systemd container, not yet on a board. The MuJoCo twin is in
 [scripts/twin/README.md](../scripts/twin/README.md).

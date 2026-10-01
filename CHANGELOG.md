@@ -13,6 +13,8 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Fixed
 
+- The install examples ssh in as `microduck`, the board image's account
+  (Pollen's #340), not `radxa`.
 - The GitHub release's text: CI makes the release notes' relative links
   absolute to the files at the tag (`scripts/ci/release_body.py`); on the
   release page they led nowhere (fixed by hand on v0.2.0-rc1).

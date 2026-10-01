@@ -285,8 +285,12 @@ lettura tranne la sua directory di stato.
 Un solo comando dalla macchina di sviluppo, dopo `scripts/cross-build.sh`:
 
 ```sh
-scripts/install-on-duck.sh radxa@192.168.1.42
+scripts/install-on-duck.sh microduck@192.168.1.42
 ```
+
+`microduck` è l'account dell'immagine della scheda (nei documenti di
+Pollen e in `duckctl` dal 2026-10-01; le immagini più vecchie avevano
+`radxa`).
 
 Copia i quattro file con `scp`, poi con `sudo` sulla papera installa il
 binario, l'unità e l'utente, installa la configurazione solo se
@@ -300,7 +304,7 @@ scp. A mano, lo stesso:
 # sulla macchina di sviluppo
 scp target/aarch64-unknown-linux-gnu/release/quack-navd \
     quack-nav/systemd/quack-navd.service quack-nav/systemd/sysusers.d/quack-nav.conf \
-    quack-nav/quack-nav.example.toml radxa@192.168.1.42:/tmp/
+    quack-nav/quack-nav.example.toml microduck@192.168.1.42:/tmp/
 # sulla papera
 sudo install -m 755 /tmp/quack-navd /usr/local/bin/quack-navd
 sudo install -m 644 /tmp/quack-navd.service /etc/systemd/system/quack-navd.service

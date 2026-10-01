@@ -57,7 +57,7 @@ configurazione, unità systemd e gemello di carta. Per la scheda (Radxa
 Zero 3, aarch64, Debian 13), `scripts/cross-build.sh` compila
 `quack-navd` in cross da un Mac o da Linux senza Docker
 ([Compilare per la papera](../README.it.md#compilare-per-la-papera)), e
-`scripts/install-on-duck.sh radxa@<papera>` lo installa o lo aggiorna con
+`scripts/install-on-duck.sh microduck@<papera>` lo installa o lo aggiorna con
 la sua unità systemd ([Installare sulla papera](../README.it.md#installare-sulla-papera)) —
 provato in un container con systemd, non ancora su una scheda. Il gemello MuJoCo è in
 [scripts/twin/README.it.md](../scripts/twin/README.it.md).

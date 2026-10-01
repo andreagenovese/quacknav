@@ -15,6 +15,8 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Corretto
 
+- Gli esempi di installazione entrano via ssh come `microduck`, l'account
+  dell'immagine della scheda (#340 di Pollen), non `radxa`.
 - Il testo della release su GitHub: la CI rende assoluti i link relativi
   delle note di rilascio, verso i file al tag (`scripts/ci/release_body.py`);
   sulla pagina della release non portavano da nessuna parte (corretti a mano

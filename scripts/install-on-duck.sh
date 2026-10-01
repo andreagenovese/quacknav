@@ -4,7 +4,7 @@
 # Usage: scripts/install-on-duck.sh <user@host> [binary]
 #   binary defaults to target/aarch64-unknown-linux-gnu/release/quack-navd
 #   (scripts/cross-build.sh). Extra ssh/scp options, e.g. a port:
-#   SSH_OPTS="-p 2222" scripts/install-on-duck.sh radxa@192.168.1.42
+#   SSH_OPTS="-p 2222" scripts/install-on-duck.sh microduck@192.168.1.42
 #
 # Idempotent, and it replaces only what it owns: the binary
 # (/usr/local/bin/quack-navd), the unit (/etc/systemd/system/

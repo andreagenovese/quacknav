@@ -276,8 +276,11 @@ for its state directory.
 One command from the dev machine, after `scripts/cross-build.sh`:
 
 ```sh
-scripts/install-on-duck.sh radxa@192.168.1.42
+scripts/install-on-duck.sh microduck@192.168.1.42
 ```
+
+`microduck` is the board image's account (Pollen's docs and `duckctl`
+since 2026-10-01; older images had `radxa`).
 
 It copies the four files over `scp`, then with `sudo` on the duck
 installs the binary, the unit and the account, installs the config only if
@@ -291,7 +294,7 @@ scp. By hand, the same:
 # on the dev machine
 scp target/aarch64-unknown-linux-gnu/release/quack-navd \
     quack-nav/systemd/quack-navd.service quack-nav/systemd/sysusers.d/quack-nav.conf \
-    quack-nav/quack-nav.example.toml radxa@192.168.1.42:/tmp/
+    quack-nav/quack-nav.example.toml microduck@192.168.1.42:/tmp/
 # on the duck
 sudo install -m 755 /tmp/quack-navd /usr/local/bin/quack-navd
 sudo install -m 644 /tmp/quack-navd.service /etc/systemd/system/quack-navd.service
