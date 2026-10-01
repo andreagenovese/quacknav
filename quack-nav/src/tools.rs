@@ -175,7 +175,9 @@ fn catalog_places() -> Vec<Value> {
                 "type": "object",
                 "properties": {
                     "name": {"type": "string", "description": "the place's name, as the user says it"},
-                    "radius_m": {"type": "number", "description": "how far from this spot still counts as the place; default 1.5 m", "minimum": MIN_RADIUS_M, "maximum": MAX_RADIUS_M}
+                    "radius_m": {"type": "number", "description": "how far from this spot still counts as the place; default 1.5 m", "minimum": MIN_RADIUS_M, "maximum": MAX_RADIUS_M},
+                    "x": {"type": "number", "description": "only from a map view: teach a point on the map (map metres, with y) instead of where the duck stands; it must be mapped floor"},
+                    "y": {"type": "number", "description": "only from a map view, with x"}
                 },
                 "required": ["name"]
             }
@@ -219,6 +221,9 @@ fn execute_places(name: &str, args: &Value, places: &mut Places) -> Result<Value
         "robot.remember_place" => {
             let name = require_str(args, "name")?;
             let radius = args.get("radius_m").and_then(Value::as_f64);
+            if args.get("x").is_some() || args.get("y").is_some() {
+                return remember_at_point(places, name, args, radius);
+            }
             let fix = located(places)?;
             let place = places
                 .registry
@@ -252,6 +257,9 @@ fn execute_places(name: &str, args: &Value, places: &mut Places) -> Result<Value
                         "anchors": place.anchors.len(),
                         "radius_m": place.radius_m,
                         "stale": stale,
+                        // Where `robot.go_to` takes the duck: the first
+                        // anchor, in map metres (a map view pins it there).
+                        "at": place.anchors.first().map(|a| json!({"x": round2(a.x), "y": round2(a.y)})),
                         "distance_m": here
                             .filter(|_| !stale)
                             .map(|(x, y, _)| round2(place.distance_to(x, y))),
@@ -263,6 +271,46 @@ fn execute_places(name: &str, args: &Value, places: &mut Places) -> Result<Value
         "robot.map_status" => map_status(places),
         other => Err(format!("unknown tool `{other}`")),
     }
+}
+
+/// Teach `name` at a point on the map (`x`, `y` in map metres) rather than
+/// where the duck stands: what a map view offers by a tap. The point must
+/// be floor the live map knows — not a wall, not unexplored, not off the
+/// grid — and the map must be the registry's current one; the duck's own
+/// position does not matter.
+fn remember_at_point(places: &mut Places, name: &str, args: &Value, radius: Option<f64>) -> Result<Value, String> {
+    let (Some(x), Some(y)) = (args.get("x").and_then(Value::as_f64), args.get("y").and_then(Value::as_f64)) else {
+        return Err("x and y go together, in map metres".into());
+    };
+    let Some(map) = &places.map else {
+        return Err("this satellite has no map lane ([map] enabled = false)".into());
+    };
+    let status = map.snapshot();
+    let Some(frame) = &status.latest else {
+        return Err("no map yet: robotd is unreachable or has not sent a map frame".into());
+    };
+    if let Err(e) = places.registry.observe(status.epoch, frame.n_submaps) {
+        tracing::warn!(error = %format!("{e:#}"), "places registry not saved");
+    }
+    let grid = frame.grid().map_err(|e| e.to_string())?;
+    match grid.at(x, y) {
+        Some(crate::map::Cell::Free) => {}
+        Some(crate::map::Cell::Wall) => return Err(format!("({x:.2}, {y:.2}) is a wall on the map: pick a point on the floor")),
+        Some(crate::map::Cell::Unknown) | None => {
+            return Err(format!("({x:.2}, {y:.2}) is not mapped floor: pick a point the map knows"));
+        }
+    }
+    let place = places
+        .registry
+        .remember(name, (x, y, 0.0), radius)
+        .map_err(|e| format!("cannot remember `{name}`: {e}"))?;
+    Ok(json!({
+        "remembered": place.name,
+        "anchors": place.anchors.len(),
+        "radius_m": place.radius_m,
+        "pose": pose_json((x, y, 0.0)),
+        "at_point": true,
+    }))
 }
 
 /// The map's state in numbers and in one line of advice — what a tour
@@ -710,6 +758,32 @@ mod tests {
         places.map = Some(watch);
         let err = execute_places("robot.where_am_i", &json!({}), &mut places).unwrap_err();
         assert!(err.contains("disabled"), "{err}");
+    }
+
+    #[test]
+    fn a_place_is_taught_at_a_point_of_mapped_floor_and_listed_where_it_is() {
+        // One row: floor, wall, unknown, from (-5, -5) at 5 cm.
+        let mut f = frame(1, 0.0, 0.0, false, false);
+        f.cols = 3;
+        f.cells = crate::mapd::wire::b64_encode(&[1, 2, 0]);
+        let mut places = mapped(f);
+        let taught = execute_places(
+            "robot.remember_place",
+            &json!({"name": "divano", "x": -4.97, "y": -4.98}),
+            &mut places,
+        )
+        .unwrap();
+        assert_eq!(taught["at_point"], true, "an untrusted pose does not matter here");
+        assert_eq!(taught["pose"]["x"], -4.97);
+        for (x, why) in [(-4.92, "wall"), (-4.87, "not mapped"), (3.0, "not mapped")] {
+            let e = execute_places("robot.remember_place", &json!({"name": "x", "x": x, "y": -4.98}), &mut places)
+                .unwrap_err();
+            assert!(e.contains(why), "{x}: {e}");
+        }
+        let e = execute_places("robot.remember_place", &json!({"name": "x", "x": 1.0}), &mut places).unwrap_err();
+        assert!(e.contains("together"), "{e}");
+        let listed = execute_places("robot.list_places", &json!({}), &mut places).unwrap();
+        assert_eq!(listed["places"][0]["at"], json!({"x": -4.97, "y": -4.98}));
     }
 
     #[test]

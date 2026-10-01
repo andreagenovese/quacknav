@@ -62,6 +62,13 @@ rifiutato. Altrimenti nomina il luogo più vicino con `at_place` e
 `distance_m`: il più vicino, non per forza quello in cui si trova
 l'anatra.
 
+Una vista della mappa (la pagina di quack-control, dal 2026-10-01) può
+dare un nome a un punto invece che a dove sta l'anatra: `remember_place`
+con `x` e `y` in metri della mappa insegna lì, qualunque sia la posa — il
+punto dev'essere pavimento che la mappa dal vivo conosce, non un muro né
+l'inesplorato. `list_places` dà di ogni luogo il suo `at`, l'ancora a cui
+va `go_to`, così una vista può segnarlo.
+
 Un nome si confronta senza badare alle maiuscole, mai tradotto:
 `cucina` e `kitchen` sono due luoghi. Un modello che ospita gli
 strumenti può tradurre di suo (qwen3:8b ha insegnato `kitchen` a

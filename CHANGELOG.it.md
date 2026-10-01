@@ -13,6 +13,15 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ## [Unreleased]
 
+### Aggiunto
+
+- **Luoghi da una vista della mappa**: `robot.list_places` dà di ogni luogo
+  il suo `at` (l'ancora a cui va `go_to`, in metri della mappa);
+  `robot.remember_place` con `x` e `y` dà un nome a un punto di pavimento
+  mappato invece che a dove sta l'anatra. Ciò che serve alla pagina di
+  quack-control per segnare i luoghi e nominare un punto toccato; nient'altro
+  cambia.
+
 ### Modificato
 
 - **Fissato a daemon-v0.15.0** (API 37; prima daemon-v0.14.4, API 34):

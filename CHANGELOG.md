@@ -11,6 +11,14 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ## [Unreleased]
 
+### Added
+
+- **Places from a map view**: `robot.list_places` gives each place's `at`
+  (the anchor `go_to` walks to, map metres); `robot.remember_place` with
+  `x` and `y` names a point of mapped floor instead of where the duck
+  stands. What quack-control's page needs to pin places and name a tapped
+  point; nothing else changes.
+
 ### Changed
 
 - **Pinned to daemon-v0.15.0** (API 37; was daemon-v0.14.4, API 34):

@@ -59,6 +59,12 @@ untrusted (seated, searching, no map yet); teaching is refused there.
 Otherwise it names the nearest place with `at_place` and `distance_m`:
 the nearest, not necessarily the one the duck is in.
 
+A map view (quack-control's page, since 2026-10-01) can name a point
+instead of where the duck stands: `remember_place` with `x` and `y` in map
+metres teaches there, whatever the pose — the point must be floor the
+live map knows, not a wall or the unexplored. `list_places` gives each
+place's `at`, the anchor `go_to` walks to, so a view can pin it.
+
 A name is matched without regard to case, never translated: `cucina`
 and `kitchen` are two places. A model that hosts the tools may translate
 on its own (qwen3:8b taught `kitchen` when told "questa è la cucina",
