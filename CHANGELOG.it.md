@@ -13,6 +13,19 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ## [Unreleased]
 
+### Modificato
+
+- **Fissato a daemon-v0.15.0** (API 37; prima daemon-v0.14.4, API 34):
+  `duck-ipc-proto` e `kinematics` di Pollen a quel tag. Le API 35–37 sono
+  aggiunte — `robot.state` porta le `velocities` misurate dei servo
+  (rad/s) e `currents_ma` (corrente presente, mA), facoltative sul filo,
+  e `update.status` due campi di `updaterd`; `kinematics` non cambia.
+  Per la scheda: `quack-navd` si comporta come prima, contro robotd 0.15.0
+  o su una scheda ancora alla 0.14.4 (lì i nuovi blocchi mancano e ancora
+  nessuno li legge). robotd 0.15.0 li pubblica di default (`[control]
+  publish_velocity_and_load`), circa il 10–12 % di byte in più per frame
+  di stato. Il gemello lo usa (`scripts/twin/README.it.md`).
+
 ### Corretto
 
 - Gli esempi di installazione entrano via ssh come `microduck`, l'account

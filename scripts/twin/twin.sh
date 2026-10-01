@@ -7,7 +7,7 @@
 #   scripts/twin/twin.sh down    stop what `up` started, and only that
 #
 # Needs (see README.md):
-#   MICRODUCK     pollen-robotics/microduck at daemon-v0.14.4, with
+#   MICRODUCK     pollen-robotics/microduck at daemon-v0.15.0, with
 #                 `cargo build -p robotd -p tof` done (target/debug)
 #   MICRODUCK_RL  pollen-robotics/microduck_rl, with its .venv
 #   POLICY_DIR    alpha_walking.onnx, alpha_stand.onnx, alpha_sitstand.onnx,

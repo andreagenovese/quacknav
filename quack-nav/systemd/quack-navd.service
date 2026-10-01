@@ -28,7 +28,7 @@ RuntimeDirectory=quack-nav
 StateDirectory=quack-nav
 
 # Resource fence: the navigation must never cost robotd its 50 Hz loop.
-# robotd runs at nice 0 with no real-time class (daemon-v0.14.4). This
+# robotd runs at nice 0 with no real-time class (daemon-v0.14.4, 0.15.0). This
 # daemon walks the duck, so it sits at 5, not lower — the explorer steers
 # and the cliff guard must answer in time — and the maploc worker lowers
 # its own thread by 5 more (src/mapd/mod.rs), nice 10, where the fork ran

@@ -3,7 +3,7 @@
 //!
 //! In the robotd fork this was `robotd/src/maploc.rs`, and the control
 //! loop handed it one struct per tick over a channel. The released robotd
-//! (daemon-v0.14.4, API 34) publishes everything that struct held on
+//! (daemon-v0.14.4, API 34, and on) publishes everything that struct held on
 //! `robot.state` — contact odometry, gravity, trunk height, the measured
 //! head joints, `CLOCK_MONOTONIC` — so the same worker runs in this daemon
 //! instead, with no change to robotd at all:

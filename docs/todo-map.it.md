@@ -4176,6 +4176,14 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       Muri sulla verità 95–100 % contro 96–99 %, pavimento noto 94–96 % in
       entrambi i casi, ogni viaggio arrivato (6/6, 8/8), nessuna caduta,
       buchi fantasma 0–1 contro 0–2.
+- [x] 2026-10-01: `main` fissato a daemon-v0.15.0 (API 37; prima
+      daemon-v0.14.4, API 34). Le API 35–37 sono aggiunte: `velocities`
+      (rad/s) e `currents_ma` (corrente presente, mA, in modulo) su
+      `robot.state`, indicizzate come `JOINT_NAMES` e assenti quando non
+      riportate, e due campi di `update.status`; `kinematics` non cambia.
+      L'unica modifica: la fixture `RobotState` della lane nomina i due
+      campi nuovi. 153 test, il gate del gemello di carta identico al
+      byte.
 - [x] ~~Perché alcune chiusure di loop misurano male l'angolo (x13: 5° di
       errore, la posa dal vivo 35 cm fuori, σ 0.08 m); si misura con la
       verità fitta (`LOOP_LOG`, `POSEERR_DT=0.5`). Sigma d'angolo del loop
@@ -4191,6 +4199,10 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       leggere l'RMS e la mediana.
 - [ ] I risvegli dell'apartment a est del vano scala sono lenti: le
       finestre rifiutano per minuti un seme giusto.
+- [ ] 2026-10-01: velocità e carico (corrente presente) dei servo su
+      `robot.state` da robotd 0.15 (API v36: `velocities`, rad/s;
+      `currents_ma`, mA): studiare il carico come rilevatore d'urto per
+      gli ostacoli che il ToF non vede.
 
 ## 3. `go_to` (fatto in quack-nav, senza RPC upstream)
 - [x] ~~Seguire upstream per un RPC tipo `robot.goto`~~ — non serve:

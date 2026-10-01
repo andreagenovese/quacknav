@@ -294,7 +294,7 @@ cambiano.
   `microduck-015`: quattro sessioni per casa, nessuna regressione. Lì si è
   misurato che una testa che gira non costa quasi niente alla mappa
   (3.2–3.3 cm di residuo da 0.05 a 1 rad/s; 3.46 cm sull'1 % di frame
-  oltre). `main` resta su daemon-v0.14.4.
+  oltre). `main` è fissato a quella dal 2026-10-01.
 
 ## Limiti noti
 

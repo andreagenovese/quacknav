@@ -11,6 +11,19 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ## [Unreleased]
 
+### Changed
+
+- **Pinned to daemon-v0.15.0** (API 37; was daemon-v0.14.4, API 34):
+  Pollen's `duck-ipc-proto` and `kinematics` at that tag. API 35–37 are
+  additive — `robot.state` gains the servos' measured `velocities` (rad/s)
+  and `currents_ma` (present current, mA), optional on the wire, and
+  `update.status` two fields of `updaterd`'s; `kinematics` is unchanged.
+  For the board: `quack-navd` behaves the same, against robotd 0.15.0 or
+  a board still on 0.14.4 (the new blocks are absent there and nothing
+  reads them yet). robotd 0.15.0 publishes them by default (`[control]
+  publish_velocity_and_load`), about 10–12 % more bytes per state frame.
+  The twin runs it (`scripts/twin/README.md`).
+
 ### Fixed
 
 - The install examples ssh in as `microduck`, the board image's account

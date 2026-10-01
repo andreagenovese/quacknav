@@ -139,7 +139,7 @@ does to a passage).
 ## Running it
 
 Rust 1.89 or newer; the first build fetches Pollen's `duck-ipc-proto` and
-`kinematics` crates from GitHub (tag daemon-v0.14.4).
+`kinematics` crates from GitHub (tag daemon-v0.15.0).
 
 ```sh
 git clone https://github.com/andreagenovese/quacknav.git && cd quacknav
@@ -172,7 +172,8 @@ With `[maploc]` on, `quack-navd` runs Pollen's `maploc` itself (the
 `maploc` crate in this workspace): it reads `robot.state` and tofd's
 depth stream, pans the head at stops, and serves the map on
 `/run/quack-nav/map.sock` in robotd's `robot.map*` dialect. Nothing in
-robotd changes — daemon-v0.14.4 publishes everything the mapper needs.
+robotd changes — the release (daemon-v0.14.4 and on) publishes everything
+the mapper needs.
 With it off, the map comes from a robotd that hosts maploc itself.
 
 `quack-nav/systemd/quack-navd.service` and `quack-nav/systemd/sysusers.d/`
@@ -388,13 +389,14 @@ behaviour and put it in the field's shapes:
 Measured on the MuJoCo twin (`microduck_rl` + robotd); the physical duck
 arrives in December 2026. Two ways to run it:
 
-- **Released robotd** (daemon-v0.14.4) with `[maploc] enabled`: the
+- **Released robotd** (daemon-v0.15.0) with `[maploc] enabled`: the
   mapper in `quack-navd`. This is the preview's configuration; the numbers
-  are in [`docs/results.md`](docs/results.md).
+  in [`docs/results.md`](docs/results.md) were measured on daemon-v0.14.4.
 - **A robotd that hosts maploc** — upstream PR 127, still open, plus the
   map library of `docs/study/upstream-asks.md` §5, which lives on a fork
   of `pollen-robotics/microduck` — with `[maploc]` off.
 
-daemon-v0.15.0 (API 37) is validated on the twin only on the branch
-`microduck-015` (four sessions per house, no regression); `main` stays
-pinned to daemon-v0.14.4.
+`main` is pinned to daemon-v0.15.0 (API 37) since 2026-10-01; it was
+validated on the twin on the branch `microduck-015` (four sessions per
+house, no regression). Its additions are optional on the wire, so the
+same `quack-navd` runs against a board still on daemon-v0.14.4.

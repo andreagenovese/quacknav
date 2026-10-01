@@ -2,8 +2,8 @@
 
 **Status 2026-09-30.** An analysis of the design draft, kept as written.
 The navigation runs against the released robotd, unmodified (`main`
-pinned to daemon-v0.14.4, API 34; daemon-v0.15.0, API 37, validated on
-the twin only on the branch `microduck-015`). robotd does not host
+pinned to daemon-v0.15.0, API 37, since 2026-10-01; daemon-v0.14.4, API
+34, before). robotd does not host
 `maploc`: it is vendored in this repo and runs in `quack-navd`, a robotd
 client like any other (ADR 0006, ADR 0007).
 

@@ -1,16 +1,16 @@
 # The twin, on the released robotd
 
 Everything needed to run quack-nav on the MuJoCo twin with Pollen's
-**released** robotd (daemon-v0.14.4) and the mapper hosted in
+**released** robotd (daemon-v0.15.0) and the mapper hosted in
 `quack-navd` (`[maploc]`, see ADR 0007) — and to repeat the measurements
-of 2026-09-23 that say it behaves like the robotd fork.
+of 2026-09-23 (on daemon-v0.14.4) that say it behaves like the robotd fork.
 
 ## Setting up
 
 ```sh
 # Pollen's daemon at the release, robotd and tofd built for the simulator
 git clone https://github.com/pollen-robotics/microduck && cd microduck
-git checkout daemon-v0.14.4 && cargo build -p robotd -p tof
+git checkout daemon-v0.15.0 && cargo build -p robotd -p tof
 
 # the simulator (its README sets up the .venv)
 git clone https://github.com/pollen-robotics/microduck_rl
@@ -20,7 +20,7 @@ cargo build --release
 ```
 
 ```sh
-export MICRODUCK=~/src/microduck          # at daemon-v0.14.4, built
+export MICRODUCK=~/src/microduck          # at daemon-v0.15.0, built
 export MICRODUCK_RL=~/src/microduck_rl    # with its .venv
 export POLICY_DIR=~/policies              # the alpha set: alpha_walking.onnx, alpha_stand.onnx,
                                           # alpha_sitstand.onnx, alpha_ground_pick.onnx,

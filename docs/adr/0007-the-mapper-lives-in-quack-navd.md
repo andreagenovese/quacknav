@@ -150,7 +150,7 @@ relocalize search weighs a tenth of the control loop under contention.
   causes no longer carries the pose off (7e2825b: 0.43 m / 7° in the
   apartment's corridor; 20 replayed sessions, mean ATE 0.1045 ->
   0.0975 m).
-- The release: daemon-v0.15.0 (API 37) is validated on the twin only on
-  the branch `microduck-015` (four sessions per house, no regression);
-  `main` stays pinned to daemon-v0.14.4. The joint velocities of upstream
+- The release: daemon-v0.15.0 (API 37) was validated on the twin on the
+  branch `microduck-015` (four sessions per house, no regression); `main`
+  is pinned to it since 2026-10-01. The joint velocities of upstream
   PR #260, recorded there, give the map nothing measurable from the head.

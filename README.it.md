@@ -147,7 +147,7 @@ vero fa a un passaggio).
 ## Farlo girare
 
 Rust 1.89 o più recente; la prima compilazione scarica da GitHub i crate
-`duck-ipc-proto` e `kinematics` di Pollen (tag daemon-v0.14.4).
+`duck-ipc-proto` e `kinematics` di Pollen (tag daemon-v0.15.0).
 
 ```sh
 git clone https://github.com/andreagenovese/quacknav.git && cd quacknav
@@ -180,8 +180,8 @@ Con `[maploc]` acceso, `quack-navd` fa girare da sé il `maploc` di Pollen
 (il crate `maploc` di questo workspace): legge `robot.state` e lo stream
 di profondità di tofd, muove la testa a ogni sosta e serve la mappa su
 `/run/quack-nav/map.sock` nel dialetto `robot.map*` di robotd. In robotd
-non cambia niente — la daemon-v0.14.4 pubblica tutto ciò che serve al
-mapper. Spento, la mappa arriva da un robotd che ospita maploc da sé.
+non cambia niente — la release (dalla daemon-v0.14.4 in poi) pubblica
+tutto ciò che serve al mapper. Spento, la mappa arriva da un robotd che ospita maploc da sé.
 
 `quack-nav/systemd/quack-navd.service` e `quack-nav/systemd/sysusers.d/`
 lo installano come servizio non privilegiato accanto a robotd
@@ -402,13 +402,16 @@ il comportamento e dargli le forme del settore:
 Misurato sul gemello MuJoCo (`microduck_rl` + robotd); la papera fisica
 arriva a dicembre 2026. Due modi di farlo girare:
 
-- **robotd ufficiale** (daemon-v0.14.4) con `[maploc] enabled`: il
+- **robotd ufficiale** (daemon-v0.15.0) con `[maploc] enabled`: il
   mapper sta in `quack-navd`. È la configurazione della preview; i numeri
-  sono in [`docs/results.it.md`](docs/results.it.md).
+  di [`docs/results.it.md`](docs/results.it.md) sono stati misurati sulla
+  daemon-v0.14.4.
 - **Un robotd che ospita maploc** — la PR 127 upstream, ancora aperta,
   più la libreria di mappe di `docs/study/upstream-asks.md` §5, che vive su
   un fork di `pollen-robotics/microduck` — con `[maploc]` spento.
 
-daemon-v0.15.0 (API 37) è validato sul gemello solo sul branch
-`microduck-015` (quattro sessioni per casa, nessuna regressione); `main`
-resta fissato a daemon-v0.14.4.
+`main` è fissato a daemon-v0.15.0 (API 37) dal 2026-10-01; era stato
+validato sul gemello sul branch `microduck-015` (quattro sessioni per
+casa, nessuna regressione). Le sue aggiunte sono facoltative sul filo,
+quindi lo stesso `quack-navd` gira anche su una scheda ancora alla
+daemon-v0.14.4.

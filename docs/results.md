@@ -285,7 +285,7 @@ unchanged.
   `microduck-015`: four sessions per house, no regression. There a
   turning head was measured to cost the map next to nothing (3.2–3.3 cm
   of residual from 0.05 to 1 rad/s; 3.46 cm on the 1 % of frames above).
-  `main` stays on daemon-v0.14.4.
+  `main` is pinned to it since 2026-10-01.
 
 ## Known limits
 

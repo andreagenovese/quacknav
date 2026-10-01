@@ -2,7 +2,7 @@
 //! publishes.
 //!
 //! In the robotd fork this was `kinematics::tof::Reprojector::flatten`;
-//! the released `kinematics` (daemon-v0.14.4) has `project` but not
+//! the released `kinematics` (daemon-v0.14.4, 0.15.0) has `project` but not
 //! `flatten`, so the half that turns projected zones into a levelled
 //! polar scan lives here, beside its one consumer. Behind the
 //! `kinematics` feature: the SLAM itself does not need the head.

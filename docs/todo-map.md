@@ -3911,6 +3911,13 @@ nothing: it explores and asks.
       below inflates it. Walls on the truth 95–100 % against 96–99 %,
       floor known 94–96 % either way, every journey arrived (6/6, 8/8),
       no fall, phantom drops 0–1 against 0–2.
+- [x] 2026-10-01: `main` pinned to daemon-v0.15.0 (API 37; was
+      daemon-v0.14.4, API 34). API 35–37 are additive: `robot.state`'s
+      `velocities` (rad/s) and `currents_ma` (present current, mA,
+      magnitude), both `JOINT_NAMES`-indexed and absent when not
+      reported, and two `update.status` fields; `kinematics` unchanged.
+      The one edit: the lane's `RobotState` fixture names the two new
+      fields. 153 tests, the paper twin's gate the same to the byte.
 - [x] ~~Why some loop closures mis-measure the heading (x13: 5° wrong, the
       live pose 35 cm off, σ 0.08 m); being measured with dense truth
       (`LOOP_LOG`, `POSEERR_DT=0.5`). Loop heading sigma 0.5 tried and
@@ -3926,6 +3933,10 @@ nothing: it explores and asks.
       median.
 - [ ] The apartment's wakes east of the stairwell are slow: the windows
       refute a right seed for minutes.
+- [ ] 2026-10-01: servo velocity and load (present current) on
+      `robot.state` since robotd 0.15 (API v36: `velocities`, rad/s;
+      `currents_ma`, mA): study load as a bump detector for obstacles
+      the ToF does not see.
 
 ## 3. `go_to` (done in quack-nav, no upstream RPC)
 - [x] ~~Follow upstream for a `robot.goto`-style RPC~~ — not needed: the

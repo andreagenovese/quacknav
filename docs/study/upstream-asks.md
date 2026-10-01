@@ -44,8 +44,8 @@ section:
   stamp.
 - §7, low furniture read as a hole: on our side, a sensor covered by a
   blanket (valid zones under 30 mm) is occlusion, not a hole (953285b).
-- Since: daemon-v0.15.0 (API 37) is validated on the twin only on the
-  branch `microduck-015`, `main` stays pinned to daemon-v0.14.4; the joint
+- Since: daemon-v0.15.0 (API 37), validated on the twin on the branch
+  `microduck-015`, is `main`'s pin since 2026-10-01; the joint
   velocities of upstream PR #260, recorded there, give the map nothing
   measurable from the head.
 

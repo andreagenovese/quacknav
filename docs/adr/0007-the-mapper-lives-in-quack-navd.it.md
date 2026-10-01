@@ -161,8 +161,8 @@ quando i core sono contesi.
   non si porta più via la posa (7e2825b: 0,43 m / 7° nel corridoio
   dell'appartamento; 20 sessioni rigiocate, ATE medio 0,1045 ->
   0,0975 m).
-- La release: daemon-v0.15.0 (API 37) è validato sul gemello solo sul
+- La release: daemon-v0.15.0 (API 37) è stato validato sul gemello sul
   branch `microduck-015` (quattro sessioni per casa, nessuna
-  regressione); `main` resta fissato a daemon-v0.14.4. Le velocità dei
+  regressione); `main` è fissato a quella dal 2026-10-01. Le velocità dei
   giunti della PR upstream #260, registrate lì, dalla testa non danno
   alla mappa nulla di misurabile.

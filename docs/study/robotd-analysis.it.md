@@ -2,8 +2,8 @@
 
 **Stato al 2026-09-30.** Un'analisi della bozza di design, lasciata com'è.
 La navigazione gira contro il robotd rilasciato, non modificato (`main`
-fissato a daemon-v0.14.4, API 34; daemon-v0.15.0, API 37, validato sul
-gemello solo sul branch `microduck-015`). robotd non ospita `maploc`: è
+fissato a daemon-v0.15.0, API 37, dal 2026-10-01; prima daemon-v0.14.4,
+API 34). robotd non ospita `maploc`: è
 vendorizzato in questo repo e gira in `quack-navd`, un client di robotd
 come gli altri (ADR 0006, ADR 0007).
 

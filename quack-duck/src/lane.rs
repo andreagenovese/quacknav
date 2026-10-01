@@ -184,6 +184,8 @@ mod tests {
             imu: None,
             frames: None,
             skeleton: Vec::new(),
+            velocities: Vec::new(),
+            currents_ma: Vec::new(),
         }
     }
 

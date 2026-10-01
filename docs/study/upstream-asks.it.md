@@ -46,8 +46,8 @@ modifica qui sotto. Sezione per sezione:
 - §7, mobili bassi letti come buco: da parte nostra, un sensore coperto da
   una coperta (zone valide sotto 30 mm) è occlusione, non un buco
   (953285b).
-- Da allora: daemon-v0.15.0 (API 37) è validato sul gemello solo sul
-  branch `microduck-015`, `main` resta fissato a daemon-v0.14.4; le
+- Da allora: daemon-v0.15.0 (API 37), validato sul gemello sul branch
+  `microduck-015`, è il pin di `main` dal 2026-10-01; le
   velocità dei giunti della PR upstream #260, registrate lì, dalla testa
   non danno alla mappa nulla di misurabile.
 
