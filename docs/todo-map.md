@@ -3954,6 +3954,16 @@ nothing: it explores and asks.
 - [ ] Open-vocabulary scene graph and `where_is(object)` /
       `describe_surroundings()` stay in this phase.
 
+## 5. The map app (study, 2026-10-01)
+- [ ] An app like a robot vacuum's — live map and pose, tap-to-go, places
+      and rooms, explore control, and a chat with quacksat's agent — that
+      works from outside the home over Pollen's rendezvous. Studied in
+      [`study/map-app.md`](study/map-app.md): mediad routes only
+      `proto::Call`, so the proposal is an adapter of ours registered as
+      its own producer (`quack-linkd`), plus an extension-route ask
+      upstream. Waits on the user's answers (§8 of the study) and on
+      asking Pollen whether a third-party producer is welcome.
+
 ## Risks and open questions
 - **Live maploc drifts where its own replay does not (2026-09-05).** On the
   twin, with a 94-submap map inherited from a human tour, the live

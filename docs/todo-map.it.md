@@ -4220,6 +4220,17 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
 - [ ] Scene graph a vocabolario aperto e `where_is(object)` /
       `describe_surroundings()` restano in questa fase.
 
+## 5. L'app della mappa (studio, 2026-10-01)
+- [ ] Un'app come quella di un robot aspirapolvere — mappa e posa dal
+      vivo, tocca-e-vai, luoghi e stanze, controllo dell'esplorazione, e
+      una chat con l'agente di quacksat — che funzioni anche fuori casa
+      tramite il rendezvous di Pollen. Studiata in
+      [`study/map-app.it.md`](study/map-app.it.md): mediad instrada solo
+      `proto::Call`, quindi la proposta è un nostro adattatore registrato
+      come producer a sé (`quack-linkd`), più una richiesta upstream di
+      rotte di estensione. Aspetta le risposte dell'utente (§8 dello
+      studio) e la domanda a Pollen se un producer di terzi è benvenuto.
+
 ## Rischi e domande aperte
 - **Il maploc dal vivo scivola dove il suo stesso replay non scivola
   (2026-09-05).** Sul gemello, con una mappa da 94 sottomappe ereditata da
