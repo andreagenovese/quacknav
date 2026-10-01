@@ -9,6 +9,14 @@ Every number below was measured on the MuJoCo or paper twins, never on a
 physical duck; the details are in [docs/results.md](docs/results.md) and
 [docs/todo-map.md](docs/todo-map.md).
 
+## [Unreleased]
+
+### Fixed
+
+- The GitHub release's text: CI makes the release notes' relative links
+  absolute to the files at the tag (`scripts/ci/release_body.py`); on the
+  release page they led nowhere (fixed by hand on v0.2.0-rc1).
+
 ## [0.2.0-rc1] - 2026-10-01
 
 A release candidate: the whole stack validated on the twins. Release notes:

@@ -11,6 +11,15 @@ carta, mai su una papera fisica; i dettagli sono in
 [docs/results.it.md](docs/results.it.md) e
 [docs/todo-map.it.md](docs/todo-map.it.md).
 
+## [Unreleased]
+
+### Corretto
+
+- Il testo della release su GitHub: la CI rende assoluti i link relativi
+  delle note di rilascio, verso i file al tag (`scripts/ci/release_body.py`);
+  sulla pagina della release non portavano da nessuna parte (corretti a mano
+  sulla v0.2.0-rc1).
+
 ## [0.2.0-rc1] - 2026-10-01
 
 Una release candidate: tutto lo stack validato sui gemelli. Note di

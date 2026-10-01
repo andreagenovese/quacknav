@@ -100,12 +100,12 @@ jobs:
           name: quack-navd-aarch64-linux
           path: dist
 
-      # The release's text is docs/release-notes-<tag>.md when there is one.
+      # The release's text is docs/release-notes-<tag>.md when there is one,
+      # its relative links made absolute to the files at the tag.
       - name: Release notes
         run: |
-          notes="docs/release-notes-${GITHUB_REF_NAME}.md"
-          [ -f "$notes" ] || { echo "$GITHUB_REF_NAME" > "$RUNNER_TEMP/notes.md"; notes="$RUNNER_TEMP/notes.md"; }
-          echo "NOTES=$notes" >> "$GITHUB_ENV"
+          python3 scripts/ci/release_body.py "$GITHUB_REF_NAME" "$GITHUB_REPOSITORY" "$RUNNER_TEMP/notes.md"
+          echo "NOTES=$RUNNER_TEMP/notes.md" >> "$GITHUB_ENV"
 
       - uses: softprops/action-gh-release@v2
         with:
