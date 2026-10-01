@@ -47,6 +47,9 @@ On the MuJoCo twin unless said otherwise; sources in
 
 ## Build, install, run
 
+The board's binary is attached to this release (`quack-navd-aarch64-linux`,
+with its sha256), built by CI with `scripts/cross-build.sh`.
+
 Follow the [README](../README.md#running-it): build, the configuration,
 the systemd unit, and the paper twin. For the board (Radxa Zero 3,
 aarch64, Debian 13), `scripts/cross-build.sh` cross-builds `quack-navd`

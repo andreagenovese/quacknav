@@ -68,6 +68,10 @@ A release candidate: the whole stack validated on the twins. Release notes:
   a5c83e8 also `scripts/knobs.py --check`.
 - **`docs/knobs.md`**: every environment variable the code reads, generated
   from the code.
+- **The board's binary from CI**: an `aarch64` job cross-builds
+  `quack-navd` on every push (artifact `quack-navd-aarch64-linux` with its
+  sha256, glibc symbols checked against the 2.31 floor); a `v*` tag attaches
+  it to the GitHub release, a prerelease when the tag has `-rc`.
 - **Cross-building for the board** (`scripts/cross-build.sh`):
   `cargo zigbuild` for `aarch64-unknown-linux-gnu` with the glibc floor
   pinned at 2.31, no Docker; the binary needs glibc 2.30 and ran in a

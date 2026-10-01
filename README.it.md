@@ -215,6 +215,13 @@ python3 scripts/ci/paper_twin_gate.py target/release/examples/paper_twin \
 
 ### Compilare per la papera
 
+Non serve compilare: la CI compila `quack-navd` per la scheda a ogni push
+(l'artifact `quack-navd-aarch64-linux` del job `aarch64`, con il suo
+sha256), e ogni tag `v*` lo allega alla
+[release su GitHub](https://github.com/andreagenovese/quacknav/releases)
+(`quack-navd-aarch64-linux`, da copiare in `/usr/local/bin/quack-navd`). Per
+compilarlo da sé:
+
 La scheda della papera è una Radxa Zero 3 (RK3566, aarch64) con Armbian
 26.2.x e l'userland di Debian 13 (Trixie), glibc 2.41. Un Mac con Apple
 silicon ha la stessa CPU ma non lo stesso sistema operativo, quindi

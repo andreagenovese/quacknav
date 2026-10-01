@@ -1,5 +1,6 @@
-# Every push and pull request: the tests, the replay regression and the
-# paper twin gate (ADR 0009, step 0). Release builds throughout: the replay
+# Every push and pull request: the tests, the replay regression, the
+# paper twin gate (ADR 0009, step 0) and the board's aarch64 build; a v* tag
+# also publishes that build on the release. Release builds throughout: the replay
 # and the twin are numeric and run ten times faster optimized, and a release
 # build is what the duck runs.
 name: CI
@@ -36,3 +37,79 @@ jobs:
           mkdir -p "$RUNNER_TEMP/paper-twin"
           python3 scripts/ci/paper_twin_gate.py target/release/examples/paper_twin \
             quack-nav/examples/apartment.world.json "$RUNNER_TEMP/paper-twin"
+
+  # quack-navd for the duck's board (Radxa Zero 3, RK3566, aarch64 Linux),
+  # built the way scripts/cross-build.sh builds it: cargo-zigbuild, glibc
+  # floor 2.31. Every push leaves it as an artifact; a v* tag also attaches
+  # it to the GitHub release (the `release` job below).
+  aarch64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-unknown-linux-gnu
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: aarch64
+
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.14.1
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-zigbuild
+
+      - name: Cross-build
+        run: scripts/cross-build.sh
+
+      # An ARM aarch64 ELF, and no glibc symbol newer than the floor.
+      - name: Check the binary
+        run: |
+          bin=target/aarch64-unknown-linux-gnu/release/quack-navd
+          file "$bin" | tee /dev/stderr | grep -q 'ARM aarch64'
+          newest=$(readelf -V "$bin" | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1)
+          echo "newest glibc symbol: $newest"
+          [ "$(printf '%s\nGLIBC_2.31\n' "$newest" | sort -V | tail -1)" = GLIBC_2.31 ]
+          mkdir -p dist
+          cp "$bin" dist/quack-navd-aarch64-linux
+          (cd dist && sha256sum quack-navd-aarch64-linux > quack-navd-aarch64-linux.sha256)
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: quack-navd-aarch64-linux
+          path: dist/
+
+  # A v* tag: the board's binary and its checksum on the GitHub release,
+  # once the tests and the build have passed. A tag with -rc in it is a
+  # prerelease.
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [test, aarch64]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: quack-navd-aarch64-linux
+          path: dist
+
+      # The release's text is docs/release-notes-<tag>.md when there is one.
+      - name: Release notes
+        run: |
+          notes="docs/release-notes-${GITHUB_REF_NAME}.md"
+          [ -f "$notes" ] || { echo "$GITHUB_REF_NAME" > "$RUNNER_TEMP/notes.md"; notes="$RUNNER_TEMP/notes.md"; }
+          echo "NOTES=$notes" >> "$GITHUB_ENV"
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          body_path: ${{ env.NOTES }}
+          prerelease: ${{ contains(github.ref_name, '-rc') }}
+          generate_release_notes: false

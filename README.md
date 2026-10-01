@@ -208,6 +208,13 @@ python3 scripts/ci/paper_twin_gate.py target/release/examples/paper_twin \
 
 ### Building for the duck
 
+No build needed: CI cross-builds `quack-navd` for the board on every push
+(the `aarch64` job's artifact `quack-navd-aarch64-linux`, with its
+sha256), and every `v*` tag attaches it to the
+[GitHub release](https://github.com/andreagenovese/quacknav/releases)
+(`quack-navd-aarch64-linux`, to copy to `/usr/local/bin/quack-navd`). To
+build it yourself:
+
 The duck's board is a Radxa Zero 3 (RK3566, aarch64) running Armbian
 26.2.x with the Debian 13 (Trixie) userland, glibc 2.41. An Apple-silicon
 Mac shares the CPU but not the OS, so `quack-navd` is cross-built for

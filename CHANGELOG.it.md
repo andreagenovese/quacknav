@@ -73,6 +73,10 @@ rilascio: [docs/release-notes-v0.2.0-rc1.it.md](docs/release-notes-v0.2.0-rc1.it
   ogni push; da a5c83e8 anche `scripts/knobs.py --check`.
 - **`docs/knobs.it.md`**: ogni variabile d'ambiente che il codice legge,
   generata dal codice.
+- **Il binario della scheda dalla CI**: un job `aarch64` compila in cross
+  `quack-navd` a ogni push (artifact `quack-navd-aarch64-linux` con il suo
+  sha256, simboli glibc controllati contro il minimo 2.31); un tag `v*` lo
+  allega alla release su GitHub, come pre-release se il tag contiene `-rc`.
 - **Compilazione cross per la scheda** (`scripts/cross-build.sh`):
   `cargo zigbuild` per `aarch64-unknown-linux-gnu` con la glibc minima
   fissata a 2.31, senza Docker; il binario richiede glibc 2.30 ed è stato

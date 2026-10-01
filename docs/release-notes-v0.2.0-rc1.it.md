@@ -49,6 +49,9 @@ e [todo-map.it.md](todo-map.it.md) §2d.
 
 ## Compilare, installare, far girare
 
+Il binario per la scheda è allegato a questa release (`quack-navd-aarch64-linux`,
+con il suo sha256), compilato dalla CI con `scripts/cross-build.sh`.
+
 Segui il [README](../README.it.md#farlo-girare): compilazione,
 configurazione, unità systemd e gemello di carta. Per la scheda (Radxa
 Zero 3, aarch64, Debian 13), `scripts/cross-build.sh` compila
