@@ -4307,6 +4307,25 @@ nothing: it explores and asks.
       `robot.state` since robotd 0.15 (API v36: `velocities`, rad/s;
       `currents_ma`, mA): study load as a bump detector for obstacles
       the ToF does not see.
+- [ ] 2026-10-02: a step instead of a hole — never tried. A step down
+      (a few centimetres to a lower floor, a sunken living room, a
+      doorway sill) and a step up (a raised platform, a kerb-like
+      threshold): does the cliff guard and `QK_EDGE_DISCRIMINATE` book a
+      step down as a hole to keep off (it should: the duck cannot walk
+      down one), read the riser of a step up as a wall or as a low
+      obstacle, and does the map draw the edge in the right place? Needs a
+      twin scene with steps of several heights (2, 5, 10, 15 cm, up and
+      down) and the cliff probe's measurements on them.
+- [ ] 2026-10-02: temporary obstacles, re-measure — point 6 (2026-09-19)
+      built the walking obstacle guard on the blind leg of the old leg
+      path, which 9975422 removed (2026-09-30): check that the journeys
+      and the exploration's travel (`explore/navigate.rs`, `stick.rs`)
+      still stop for a thing dropped ahead of the walking duck (the
+      twin's `place_object`, `dyntest.sh`), and what happens when it is
+      taken away again — are the obstacles the stands booked forgotten
+      (the 3 s local memory, "the planner keeps off it from now on" after
+      repeated stalls), or does a removed chair keep closing a door?
+      A person walking by: still "a wall that moves".
 
 ## 3. `go_to` (done in quack-nav, no upstream RPC)
 - [x] ~~Follow upstream for a `robot.goto`-style RPC~~ — not needed: the

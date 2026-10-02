@@ -4616,6 +4616,27 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       `robot.state` da robotd 0.15 (API v36: `velocities`, rad/s;
       `currents_ma`, mA): studiare il carico come rilevatore d'urto per
       gli ostacoli che il ToF non vede.
+- [ ] 2026-10-02: un gradino invece di un buco — mai provato. Un gradino
+      in discesa (pochi centimetri verso un pavimento più basso, un
+      soggiorno ribassato, una soglia) e uno in salita (una pedana, una
+      soglia rialzata): la guardia del dirupo e `QK_EDGE_DISCRIMINATE`
+      registrano un gradino in discesa come un buco da evitare (dovrebbero:
+      la papera non sa scenderlo), leggono l'alzata di un gradino in salita
+      come muro o come ostacolo basso, e la mappa disegna il bordo al posto
+      giusto? Serve una scena del gemello con gradini di varie altezze (2,
+      5, 10, 15 cm, in salita e in discesa) e le misure della sonda del
+      dirupo su di essi.
+- [ ] 2026-10-02: ostacoli temporanei, da rimisurare — il punto 6
+      (2026-09-19) aveva costruito la guardia degli ostacoli in cammino
+      sulla gamba cieca del vecchio percorso, tolto da 9975422
+      (2026-09-30): verificare che i viaggi e il cammino dell'esplorazione
+      (`explore/navigate.rs`, `stick.rs`) si fermino ancora per un oggetto
+      lasciato davanti alla papera che cammina (`place_object` del gemello,
+      `dyntest.sh`), e cosa succede quando viene tolto — gli ostacoli
+      registrati nelle soste si dimenticano (la memoria locale di 3 s, "il
+      planner lo evita d'ora in poi" dopo blocchi ripetuti), o una sedia
+      tolta continua a chiudere una porta? Una persona che passa: ancora
+      "un muro che si muove".
 
 ## 3. `go_to` (fatto in quack-nav, senza RPC upstream)
 - [x] ~~Seguire upstream per un RPC tipo `robot.goto`~~ — non serve:
