@@ -4604,6 +4604,10 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
 - [ ] Il bastone dovrebbe leggere la risposta di `blind_move`: un passo
       rifiutato o accorciato non è un urto, e non va ripetuto senza una
       sosta.
+- [ ] 2026-10-02: uno STOP senza niente in corso imposta comunque il blocco,
+      così il ritorno a casa non avvia niente finché l'utente non chiede
+      un lavoro (f36f51b): farlo valere solo quando qualcosa partito da
+      sé si stava muovendo — decisione dell'utente, su un branch a parte.
 - [ ] 2026-10-01: durante una giravolta veloce sul posto la posa della
       mappa può restare ferma fino a ~1.5 s, poi recuperare (x22
       casa_arredata: angolo sbagliato di 93° per 1.5 s con la posizione

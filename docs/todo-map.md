@@ -4295,6 +4295,10 @@ nothing: it explores and asks.
       first stop), so how they came to be is still open.
 - [ ] The stick should read `blind_move`'s answer: a step refused or cut
       short is not a bump, and it should not be retried without a stand.
+- [ ] 2026-10-02: a STOP with nothing running still sets the hold, so the
+      homecoming starts nothing until the user asks for a job (f36f51b):
+      make it hold only when something self-started was moving — the
+      user's call, on a branch of its own.
 - [ ] 2026-10-01: during a fast spin in place the map pose can stay still
       for up to ~1.5 s, then catch up (x22 casa_arredata: heading 93° off
       for 1.5 s with the position within 5 cm). Seen in every
