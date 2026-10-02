@@ -48,6 +48,9 @@ section:
   `microduck-015`, is `main`'s pin since 2026-10-01; the joint
   velocities of upstream PR #260, recorded there, give the map nothing
   measurable from the head.
+- §8 (new, 2026-10-02), no drop protection in robotd: the one ask here
+  that quack-nav cannot answer from outside — Pollen's own teleop does
+  not go through quack-nav.
 
 ## 1. Loop closures fire on map noise, and walk the pose off
 
@@ -556,6 +559,40 @@ position lag, a fixed latency to measure and subtract. Falls back to
   believes it will refuse to walk. (Our client now tells a hole from an
   edge by asking whether an obstacle stands at the same bearing; on the
   twin that classifies three drops in four as furniture.)
+
+## 8. robotd has no drop protection, and its own teleop walks off stairs
+
+**What we see.** robotd's safety layer at daemon-v0.15.0
+(`duck_control::safety`, `robotd/src/main.rs`) has the deadman (a twist
+older than 500 ms is zeroed), joint range and finite-target limits, and
+the fall detector (`duck_control::fall`, gravity in the trunk frame);
+`move.limited_by` names `deadman`, `joint_range`, `not_finite`. Nothing
+in it reads the depth sensor: robotd subscribes to `tofd` only for the
+theremin, and its reprojection (`kinematics::tof`) serves the map. So a
+twist from Pollen's own teleop — the gamepad through `padd`, the console —
+walks the duck over a stair's edge as readily as onto the floor.
+
+**Why we cannot fix it from outside.** quack-nav guards every move it
+sends (`robot.move` and `robot.map_step` since 2026-10-02: the depth
+sensor's drop guard, forward moves), but the teleop's `robot.move` goes
+straight to robotd, last writer wins, and quack-nav never hears of it.
+Overriding a driver from a second client would fight it on the wire
+every 20 ms — exactly the masquerade the deadman contract forbids.
+
+**Proposed change.** A cliff stop in robotd's safety layer, fed by
+`tofd`: the frames robotd already receives for the theremin, judged as
+quack-nav's guard judges them (`quack-nav/src/cliff.rs`: a downward beam
+that should meet the floor within reach and returns nothing, or a return
+at least 1.5 times too long; two beams a frame; the frame skipped when a
+quarter of its zones read under 30 mm, a sensor against a blanket), and
+a forward twist zeroed while a true hole is within ~0.4 m in the walking
+lane — surfaced as `move.limited_by = "cliff"`, like the deadman.
+Backing up stays the driver's: the sensor looks forward and down.
+
+**How to check it.** On the twin, casa_grande's holes (`gen.py`): drive
+the gamepad at a rim; with the stop, the duck halts 0.3–0.5 m short
+(quack-nav's guard on `robot.move`: the trunk 0.56 m short of the rim
+walking, every further forward call refused).
 
 ## What we would send with it
 

@@ -32,6 +32,15 @@ commands to quack-nav's tools and does no navigation.
 > hardware, keep it away from drops and stay beside it. The numbers in
 > [docs/results.md](docs/results.md) are what the twin measured, not a
 > promise of what a real house will do.
+>
+> Every move quack-nav sends — `robot.move` and `robot.map_step`
+> included — stops at a drop the depth sensor sees ahead (forward moves
+> only). **Pollen's own teleop (the gamepad, the console) does not go
+> through quack-nav, and robotd has no drop protection of its own**:
+> driven that way the duck walks off a stair as onto the floor (an ask
+> upstream, [docs/study/upstream-asks.md §8](docs/study/upstream-asks.md)).
+> Driving it around by hand does not lose its position: walking explains
+> the motion; only a carry, a sit or a fall makes it look for itself.
 
 Current release: **v0.2.0-rc1**, a release candidate validated on the twins —
 [release notes](docs/release-notes-v0.2.0-rc1.md), [changelog](CHANGELOG.md).

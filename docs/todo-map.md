@@ -4186,6 +4186,39 @@ nothing: it explores and asks.
       has walls), so a pose that is wrong but still `tracking` falls back to
       the sensor-only checks too (`fit.rs` measures it at the explorer's
       stands; `map_step` does not yet).
+- [x] 2026-10-02: **driving the duck around freely keeps its position**
+      (the user's: someone just drives it around, by `robot.move`,
+      `map_step` or Pollen's own teleop — the gamepad through `padd`, the
+      console — which moves it through robotd with quack-nav never told).
+      Checked, not changed: the rest's "is anybody walking it" is
+      `MapperSample::moving`, rebuilt in `mapd::feed` from
+      `robot.state.policy`, robotd's step label (daemon-v0.15.0,
+      `robotd/src/control.rs`): `walk` whenever the smoothed command twist
+      (`move.applied`, an EMA of every client's last-writer-wins
+      `robot.move`) is past the standing threshold (0.05) — any client's
+      walking, the teleop's too; below it the standing network holds the
+      body still, so `move.applied` adds nothing the label does not say.
+      Motion with the label `walk` (or a skill's, a kick's) wakes the rest
+      as "motion": the pose follows odometry, nothing untrusted, the next
+      stand's windows correct it as ever. Only motion the gait does not
+      explain — odometry past 5 cm or 0.15 rad with no walking (a carry,
+      a lift-and-set-down), a sit, a fall — makes it `untrusted`; the
+      thresholds stay. Tests: walked 2.2 m away and back while resting
+      (`moving`, engaged false), the gait's last 2 cm settling under the
+      standing label: "motion", never untrusted, tracking, windows
+      integrating, the pose within 0.1 m; a carried jump of 0.4 m and 0.5
+      rad in one tick: "pushed", untrusted at once. Live (casa_grande):
+      resting, driven 16 s at vx 0.3 through robotd at 50 Hz, as `padd`
+      does (the gait veered: 1.17 m net, 108° turned) — "rest over — the
+      body walked", untrusted false, tracking, the map pose's displacement
+      (0.97, −0.66) against the truth's (0.973, −0.658), the next windows
+      integrated. **robotd has no drop protection** (daemon-v0.15.0: the
+      deadman, joint range, finite targets and the fall detector; it reads
+      tofd only for the theremin): Pollen's teleop walks off a stair, and
+      quack-nav's guard cannot stop a driver it does not hear. Asked
+      upstream (`docs/study/upstream-asks.md` §8: a cliff stop in robotd's
+      safety layer, fed by tofd, `move.limited_by = "cliff"`), said in the
+      README's safety note.
 - [ ] 2026-10-01: during a fast spin in place the map pose can stay still
       for up to ~1.5 s, then catch up (x22 casa_arredata: heading 93° off
       for 1.5 s with the position within 5 cm). Seen in every

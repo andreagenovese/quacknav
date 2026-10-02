@@ -38,6 +38,18 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   guard, things in the way, "stand first" where it has not looked), and the
   reply's new `checks` says `"position uncertain: checks from the sensor
   only"` (otherwise `"map and sensor"`), `clearance` null, with a hint.
+- **Driving the duck around by hand keeps its position**, checked: the
+  rest's verdict on motion is robotd's step label, which any client's
+  walking sets — Pollen's teleop through robotd, quack-nav never told,
+  as much as `robot.move` — so a drive wakes the rest as "motion" and the
+  pose follows odometry, trusted; only motion the gait does not explain
+  (odometry moved past 5 cm or 0.15 rad with no walking: a carry; a sit;
+  a fall) makes it `untrusted`. On the twin: resting, driven 2 m straight
+  through robotd at 50 Hz like `padd` — woke as "motion", never
+  untrusted, the map pose 1 cm from the truth's displacement, the next
+  stand's windows integrating. Pollen's teleop bypasses quack-nav's cliff
+  guard, and robotd has none: said in the README's safety note and asked
+  upstream ([docs/study/upstream-asks.md §8](docs/study/upstream-asks.md)).
 - **Rest: long idle stands** (maploc). A minute still with no job driving
   the body (no `go_to`, exploration, rim tour, homecoming), the mapper
   rests: no window is integrated or corrects the pose, odometry alone

@@ -36,6 +36,17 @@ dell'utente agli strumenti di quack-nav e non fa navigazione.
 > stagli accanto. I numeri in [docs/results.it.md](docs/results.it.md)
 > sono quello che ha misurato il gemello, non una promessa di cosa farà
 > una casa vera.
+>
+> Ogni mossa che manda quack-nav — `robot.move` e `robot.map_step`
+> compresi — si ferma davanti a un dislivello che il sensore di profondità
+> vede (solo le mosse in avanti). **Il teleop di Pollen (il gamepad, la
+> console) non passa da quack-nav, e robotd non ha una sua protezione dai
+> dislivelli**: guidata così la papera scende da una scala come cammina sul
+> pavimento (una richiesta a monte,
+> [docs/study/upstream-asks.it.md §8](docs/study/upstream-asks.it.md)).
+> Guidarla in giro a mano non le fa perdere la posizione: il camminare
+> spiega il movimento; solo un trasporto, una seduta o una caduta le fanno
+> cercare dov'è.
 
 Release attuale: **v0.2.0-rc1**, una release candidate validata sui gemelli —
 [note di rilascio](docs/release-notes-v0.2.0-rc1.it.md), [changelog](CHANGELOG.it.md).

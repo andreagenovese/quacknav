@@ -246,6 +246,28 @@ mod tests {
         }
     }
 
+    /// Whoever drives — Pollen's teleop through robotd, quack-nav never
+    /// told — the step label says the gait walks, and the mapper's rest
+    /// takes the motion as explained (a "motion" wake, never "pushed").
+    #[test]
+    fn another_clients_walking_is_moving() {
+        let walking = |policy: &str, applied: f64| -> OdomSample {
+            let tick: Tick = serde_json::from_value(serde_json::json!({
+                "odom": {"position": [0.4, 0.1, 0.117], "yaw": 0.2},
+                "joints": vec![0.0; 15],
+                "policy": policy,
+                "move": {"requested": [0.3, 0, 0], "applied": [applied, 0, 0]},
+                "imu": {"gyro": [0, 0, 0], "quat": [1, 0, 0, 0]}
+            }))
+            .unwrap();
+            sample(&tick).unwrap()
+        };
+        assert!(walking("walk", 0.3).moving);
+        // The command decaying under the standing threshold: the standing
+        // network holds the body, not moving.
+        assert!(!walking("stand", 0.04).moving);
+    }
+
     #[test]
     fn a_state_becomes_the_forks_sample() {
         let tick: Tick = serde_json::from_value(serde_json::json!({

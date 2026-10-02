@@ -50,6 +50,9 @@ modifica qui sotto. Sezione per sezione:
   `microduck-015`, è il pin di `main` dal 2026-10-01; le
   velocità dei giunti della PR upstream #260, registrate lì, dalla testa
   non danno alla mappa nulla di misurabile.
+- §8 (nuova, 2026-10-02), nessuna protezione dai dislivelli in robotd:
+  l'unica richiesta qui a cui quack-nav non può rispondere da fuori — il
+  teleop di Pollen non passa da quack-nav.
 
 ## 1. Le chiusure d'anello scattano sul rumore della mappa e spostano la posa
 
@@ -590,6 +593,43 @@ senza `t_ns` (un `tofd` precedente alla v24).
   crede si rifiuta di camminare. (Il nostro ora distingue un buco da uno
   spigolo chiedendosi se un ostacolo stia alla stessa direzione: sul gemello
   classifica tre dislivelli su quattro come mobilio.)
+
+## 8. robotd non ha protezione dai dislivelli, e il suo teleop scende le scale
+
+**Cosa vediamo.** Lo strato di sicurezza di robotd a daemon-v0.15.0
+(`duck_control::safety`, `robotd/src/main.rs`) ha il deadman (un twist
+più vecchio di 500 ms viene azzerato), i limiti di escursione dei giunti
+e dei target finiti, e il rilevatore di caduta (`duck_control::fall`, la
+gravità nel riferimento del tronco); `move.limited_by` nomina `deadman`,
+`joint_range`, `not_finite`. Niente lì legge il sensore di profondità:
+robotd si abbona a `tofd` solo per il theremin, e la sua riproiezione
+(`kinematics::tof`) serve alla mappa. Così un twist del teleop di Pollen —
+il gamepad tramite `padd`, la console — porta la papera oltre il bordo di
+una scala con la stessa facilità con cui la porta sul pavimento.
+
+**Perché non possiamo sistemarlo da fuori.** quack-nav sorveglia ogni
+mossa che manda (`robot.move` e `robot.map_step` dal 2026-10-02: la
+guardia del dirupo del sensore di profondità, mosse in avanti), ma il
+`robot.move` del teleop va dritto a robotd, vince l'ultimo che scrive, e
+quack-nav non ne sa niente. Scavalcare un guidatore da un secondo client
+vorrebbe dire combatterlo sul filo ogni 20 ms — proprio la mascherata che
+il contratto del deadman vieta.
+
+**Modifica proposta.** Uno stop sui dislivelli nello strato di sicurezza
+di robotd, alimentato da `tofd`: i frame che robotd riceve già per il
+theremin, giudicati come li giudica la guardia di quack-nav
+(`quack-nav/src/cliff.rs`: un raggio verso il basso che dovrebbe toccare
+il pavimento a portata e non torna, o torna almeno 1,5 volte troppo
+lungo; due raggi per frame; il frame scartato quando un quarto delle sue
+zone legge sotto 30 mm, un sensore contro una coperta), e un twist in
+avanti azzerato finché un buco vero è entro ~0,4 m nella corsia di
+cammino — esposto come `move.limited_by = "cliff"`, come il deadman. La
+retromarcia resta del guidatore: il sensore guarda avanti e in basso.
+
+**Come verificarlo.** Sul gemello, i buchi di casa_grande (`gen.py`):
+guidare col gamepad verso un bordo; con lo stop, la papera si ferma
+0,3–0,5 m prima (la guardia di quack-nav su `robot.move`: il tronco a
+0,56 m dal bordo in cammino, ogni altra chiamata in avanti rifiutata).
 
 ## Cosa manderemmo insieme
 

@@ -2975,6 +2975,53 @@ mod tests {
         assert!(!notes.iter().any(|n| matches!(n, Note::ResumedUnverified { .. })));
     }
 
+    /// Driven while it rests — Pollen's own teleop through robotd, which
+    /// quack-nav does not hear of, or anybody's `robot.move`: the gait
+    /// walks it, `moving` is robotd's step label (any client's walking), and
+    /// the motion is explained. Two metres walked from the rest wake it as
+    /// "motion", never "pushed", never untrusted; the pose follows odometry,
+    /// and the windows of the next stand track as ever. The gait's last
+    /// settle after the label is back to "stand" (2 cm in 0.3 s) is no
+    /// push: the rest was over.
+    #[test]
+    fn teleop_walking_at_rest_wakes_it_and_the_pose_stays_trusted() {
+        let (mut mapper, mut t, mut notes) = mapped_room();
+        let here = |_: f32| (0.0, 0.0, 0.0);
+        assert!(stand_until(&mut mapper, &mut t, 75.0, here, here, &mut notes, |m, _| m.resting()));
+        notes.clear();
+        let away = (0.9, -0.6, -1.2);
+        t = walk_in(&mut mapper, t, (0.0, 0.0, 0.0), away, 6.0, &mut notes, room_scan);
+        t = walk_in(&mut mapper, t, away, (0.0, 0.0, 0.0), 6.0, &mut notes, room_scan);
+        // The settle: standing label, the body still coming to rest.
+        let t0 = t;
+        let settle = move |t: f32| (((t - t0) / 0.3).min(1.0) * 0.02, 0.0, 0.0);
+        stand_until(&mut mapper, &mut t, 0.4, settle, settle, &mut notes, |_, _| false);
+        assert!(notes.iter().any(|n| matches!(n, Note::RestEnded { why: "motion", .. })), "{notes:?}");
+        assert!(!notes.iter().any(|n| matches!(n, Note::Untrusted | Note::RestEnded { why: "pushed" | "lost" | "doubt", .. })), "{notes:?}");
+        assert!(!mapper.untrusted() && mapper.tracking());
+        let windows = mapper.windows();
+        let there = |_: f32| (0.02, 0.0, 0.0);
+        stand_until(&mut mapper, &mut t, 10.0, there, there, &mut notes, |_, _| false);
+        assert!(mapper.windows() > windows, "the windows track after the drive");
+        let p = mapper.slam().tracked();
+        assert!((p.0 - 0.02).hypot(p.1) < 0.1, "{p:?}");
+        assert!(!mapper.untrusted() && mapper.tracking());
+    }
+
+    /// Carried while it rests: odometry jumps — 0.4 m and 0.5 rad in a tick
+    /// — with nobody walking it. Not the gait's: untrusted at once.
+    #[test]
+    fn a_carried_jump_at_rest_is_untrusted() {
+        let (mut mapper, mut t, mut notes) = mapped_room();
+        let here = |_: f32| (0.0, 0.0, 0.0);
+        assert!(stand_until(&mut mapper, &mut t, 75.0, here, here, &mut notes, |m, _| m.resting()));
+        notes.clear();
+        mapper.observe(t, MapperSample { odom: (0.4, 0.0, 0.5), moving: false, sitting: false, fallen: false }, &mut notes);
+        assert!(mapper.untrusted() && !mapper.tracking(), "{notes:?}");
+        assert!(notes.iter().any(|n| matches!(n, Note::RestEnded { why: "pushed", .. })));
+        assert!(notes.iter().any(|n| matches!(n, Note::Untrusted)));
+    }
+
     /// Seated while resting: picked up, maybe. Untrusted.
     #[test]
     fn a_sit_at_rest_untrusts_the_pose() {

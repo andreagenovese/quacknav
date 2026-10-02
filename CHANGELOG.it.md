@@ -43,6 +43,20 @@ carta, mai su una papera fisica; i dettagli sono in
   mezzo, "fermati prima" dove non ha guardato), e il nuovo `checks` della
   risposta dice `"position uncertain: checks from the sensor only"`
   (altrimenti `"map and sensor"`), `clearance` null, con un suggerimento.
+- **Guidare la papera in giro a mano non le fa perdere la posizione**,
+  verificato: il giudizio della sosta sul movimento è l'etichetta di passo
+  di robotd, che il camminare di qualunque client imposta — il teleop di
+  Pollen tramite robotd, senza che quack-nav lo sappia, quanto
+  `robot.move` — così una guida sveglia la sosta come "motion" e la posa
+  segue l'odometria, fidata; solo un movimento che l'andatura non spiega
+  (odometria spostata oltre 5 cm o 0,15 rad senza camminare: un
+  trasporto; una seduta; una caduta) la rende `untrusted`. Sul gemello: a
+  riposo, guidata 2 m dritta tramite robotd a 50 Hz come `padd` —
+  svegliata come "motion", mai non fidata, la posa della mappa a 1 cm
+  dallo spostamento vero, le finestre della sosta successiva integrate. Il
+  teleop di Pollen scavalca la guardia del dirupo di quack-nav, e robotd
+  non ne ha una: detto nella nota di sicurezza del README e chiesto a monte
+  ([docs/study/upstream-asks.it.md §8](docs/study/upstream-asks.it.md)).
 - **La sosta: le lunghe pause da ferma** (maploc). Un minuto ferma senza
   un lavoro che guidi il corpo (né `go_to`, né esplorazione, né giro dei
   bordi, né ritorno a casa), il mapper si riposa: nessuna finestra viene

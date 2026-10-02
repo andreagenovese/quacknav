@@ -4480,6 +4480,43 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       pavimento, pavimento dove ha muri), così che anche una posa sbagliata
       ma ancora `tracking` ricada sui controlli del solo sensore (`fit.rs`
       lo misura nelle soste dell'esploratore; `map_step` non ancora).
+- [x] 2026-10-02: **guidare la papera in giro liberamente non le fa
+      perdere la posizione** (dell'utente: qualcuno la porta solo in giro,
+      con `robot.move`, `map_step` o col teleop di Pollen — il gamepad
+      tramite `padd`, la console — che la muove tramite robotd senza che
+      quack-nav lo sappia). Verificato, non cambiato: il "qualcuno la sta
+      facendo camminare" della sosta è `MapperSample::moving`, ricostruito
+      in `mapd::feed` da `robot.state.policy`, l'etichetta di passo di
+      robotd (daemon-v0.15.0, `robotd/src/control.rs`): `walk` ogni volta
+      che il twist di comando smussato (`move.applied`, una EMA
+      dell'ultimo `robot.move` di qualunque client) supera la soglia di
+      stazione (0,05) — il camminare di qualunque client, anche del
+      teleop; sotto, la rete di stazione tiene il corpo fermo, quindi
+      `move.applied` non aggiunge nulla che l'etichetta non dica. Un
+      movimento con etichetta `walk` (o di un'abilità, un calcio) sveglia
+      la sosta come "motion": la posa segue l'odometria, niente non
+      fidato, le finestre della sosta dopo la correggono come sempre. Solo
+      un movimento che l'andatura non spiega — odometria oltre 5 cm o 0,15
+      rad senza camminare (un trasporto, un sollevare e riappoggiare), una
+      seduta, una caduta — la rende `untrusted`; le soglie restano. Test:
+      camminata 2,2 m andata e ritorno durante la sosta (`moving`, engaged
+      falso), gli ultimi 2 cm di assestamento sotto l'etichetta di stazione:
+      "motion", mai non fidata, tracking, finestre integrate, la posa entro
+      0,1 m; un salto da trasporto di 0,4 m e 0,5 rad in un tick: "pushed",
+      non fidata subito. Dal vivo (casa_grande): a riposo, guidata 16 s a
+      vx 0,3 tramite robotd a 50 Hz, come fa `padd` (l'andatura ha deviato:
+      1,17 m netti, 108° girati) — "rest over — the body walked",
+      untrusted falso, tracking, lo spostamento della posa della mappa
+      (0,97, −0,66) contro quello vero (0,973, −0,658), le finestre dopo
+      integrate. **robotd non ha protezione dai dislivelli**
+      (daemon-v0.15.0: il deadman, l'escursione dei giunti, i target
+      finiti e il rilevatore di caduta; legge tofd solo per il theremin):
+      il teleop di Pollen scende da una scala, e la guardia di quack-nav
+      non può fermare un guidatore che non sente. Chiesto a monte
+      (`docs/study/upstream-asks.it.md` §8: uno stop sui dislivelli nello
+      strato di sicurezza di robotd, alimentato da tofd,
+      `move.limited_by = "cliff"`), detto nella nota di sicurezza del
+      README.
 - [ ] 2026-10-01: durante una giravolta veloce sul posto la posa della
       mappa può restare ferma fino a ~1.5 s, poi recuperare (x22
       casa_arredata: angolo sbagliato di 93° per 1.5 s con la posizione
