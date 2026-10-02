@@ -57,6 +57,27 @@ carta, mai su una papera fisica; i dettagli sono in
   teleop di Pollen scavalca la guardia del dirupo di quack-nav, e robotd
   non ne ha una: detto nella nota di sicurezza del README e chiesto a monte
   ([docs/study/upstream-asks.it.md §8](docs/study/upstream-asks.it.md)).
+- **Il movimento autonomo della papera è detto, e STOP lo ferma per
+  davvero.** Quando la papera cammina da sola — la ricerca guarda-e-cammina
+  del ritorno a casa all'avvio (nuovo `explore.state` `searching`),
+  l'esplorazione che il ritorno a casa avvia (nessuna conferma, "starting a
+  fresh map and exploring instead"; una sessione progressiva; dopo aver
+  adottato la mappa salvata), la rilocalizzazione prima di un lavoro —
+  `robot.map_status` lo dice (`explore.self_started`, il motivo, un
+  suggerimento) e quack-navd lo scrive una volta nel log come avviso. Lo
+  stop dell'utente (`robot.go_to`/`robot.map_explore` `{"stop": true}`, lo
+  STOP di quack-control) ora copre tutto questo, compresa la ricerca
+  all'avvio, e agisce prima del lucchetto del robot: la gamba in corso
+  finisce entro un tick e la sosta è accorciata (sul gemello lo STOP ha
+  risposto in 0,15 s e la papera ha proseguito 3 cm per inerzia; prima
+  aspettava 7–8 s la fine del passo, 0,18–0,33 m camminati). Poi tiene —
+  `explore.stopped_by_user`, "stopped by the user; not searching again
+  until asked" — finché non si chiede un lavoro: il ritorno a casa non
+  avvia più nulla. Un `robot.move` o `robot.map_step` mentre la papera si
+  muove da sola ferma quel movimento e obbedisce (`stopped_own` nella
+  risposta); dopo uno STOP funzionano subito. `robot.map_step` ora è
+  rifiutato, come `robot.move`, mentre corre un lavoro chiesto
+  dall'utente.
 - **La sosta: le lunghe pause da ferma** (maploc). Un minuto ferma senza
   un lavoro che guidi il corpo (né `go_to`, né esplorazione, né giro dei
   bordi, né ritorno a casa), il mapper si riposa: nessuna finestra viene

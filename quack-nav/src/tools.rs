@@ -426,8 +426,13 @@ fn map_status(places: &mut Places) -> Result<Value, String> {
         .cliff
         .as_ref()
         .and_then(|c| c.snapshot().nearest(Instant::now()));
+    let own = places.explore.self_started().map(|why| {
+        format!("the duck is moving on its own: {why}. robot.go_to with stop=true stops it, and it does not start again on its own until a job is asked for")
+    });
     let hint = if frame.seated {
         "the duck is seated or fallen: stand it up before mapping (nothing is mapped from the floor)"
+    } else if let Some(own) = own.as_deref() {
+        own
     } else if frame.untrusted {
         "the duck may have been moved while it rested: the next go_to (or exploration) first walks and looks until it finds where it is, then sets out"
     } else if !frame.tracking {
@@ -1095,7 +1100,12 @@ pub fn catalog() -> Vec<Value> {
     user now (\"on my way\") and end your turn; do not wait for the arrival or poll it in \
     the same reply. When the user asks, robot.map_status tells (explore.state, \
     explore.target_distance_m, explore.reason once it is done). While it runs, \
-    robot.move and robot.map_step are refused. Call with stop=true to stop it.",
+    robot.move and robot.map_step are refused. Call with stop=true to stop it. stop=true also \
+    stops whatever the duck does on its own (the search for where it is after waking up, the \
+    exploring it started itself, the relocalization before a job: robot.map_status says so, \
+    explore.self_started), and then nothing starts moving it on its own again until a job is \
+    asked for; robot.move and robot.map_step work right after. A robot.move or robot.map_step \
+    while the duck moves on its own stops that motion and obeys (the reply's stopped_own).",
         "parameters": {
             "type": "object",
             "properties": {
@@ -1197,7 +1207,10 @@ pub fn execute(name: &str, args: &Value, robot: &mut Robot) -> Result<Value, Str
             }),
             None => json!({"asking": false}),
         }),
-        "robot.map_step" => map_step(robot, args),
+        "robot.map_step" => {
+            let obeyed = drive_by_hand(robot)?;
+            map_step(robot, args).map(|r| with_obeyed(r, obeyed))
+        }
         "robot.map_explore" => map_explore(robot, args),
         "robot.go_to" => go_to(robot, args),
         "robot.map_save" => {
@@ -1252,11 +1265,11 @@ pub fn execute(name: &str, args: &Value, robot: &mut Robot) -> Result<Value, Str
             Ok(wiped)
         }
         "robot.move" => {
-            robot.places.not_exploring()?;
+            let obeyed = drive_by_hand(robot)?;
             let params = quack_duck::body::move_params(args);
             let duration = quack_duck::body::number(args, "duration_s").clamp(0.0, quack_duck::body::MAX_MOVE_DURATION_S);
             let params = quack_duck::body::trimmed(&robot.places.gait, params);
-            guarded_move(robot, params, duration)
+            guarded_move(robot, params, duration).map(|r| with_obeyed(r, obeyed))
         }
         other => Err(format!("this is not a navigation tool: `{other}`")),
     }
@@ -1343,19 +1356,120 @@ fn drop_words(d: &crate::cliff::Drop) -> String {
 fn guarded_move(robot: &mut Robot, params: proto::MoveParams, duration: f64) -> Result<Value, String> {
     let cliff = robot.places.cliff.clone();
     let cover = MoveCover::of(cliff.as_ref().map(|c| c.snapshot()).as_ref(), &params);
+    let (own, explore) = (own_motion(robot), robot.places.explore.clone());
     let mut guard = || -> Option<String> {
+        if own && explore.held() {
+            return Some(HELD.into());
+        }
         let MoveCover::Ahead(heading) = cover else { return None };
         let status = cliff.as_ref()?.snapshot();
         move_drop_ahead(&status, Instant::now(), heading).map(|d| drop_words(&d))
     };
     let stopped = quack_duck::body::timed_move_guarded(&mut robot.control, params, duration, None, &mut guard)?;
     Ok(match stopped {
+        Some((why, _)) if why == HELD => return Err(HELD.into()),
         Some((why, walked_s)) => {
             tracing::warn!(why, walked_s = format!("{walked_s:.2}"), "robot.move: stopped early by the cliff guard");
             json!({"done": false, "stopped": why, "walked_s": round2(walked_s), "cliff_guard": cover.word()})
         }
         None => json!({"done": true, "walked_s": duration, "cliff_guard": cover.word()}),
     })
+}
+
+thread_local! {
+    /// This thread moves the duck on its own: the homecoming's, the
+    /// relocator's (see [`mark_self_driven`]).
+    static SELF_DRIVEN: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// The calling thread moves the duck on its own account — the homecoming,
+/// the relocator — not on a caller's: its moves stop when the user stops
+/// the duck, and it starts nothing while the user's stop holds.
+pub fn mark_self_driven() {
+    SELF_DRIVEN.with(|c| c.set(true));
+}
+
+/// Whether this call is the duck's own motion: a self-driven thread, or a
+/// running job's own robot.
+fn own_motion(robot: &Robot) -> bool {
+    SELF_DRIVEN.with(|c| c.get()) || robot.places.explore.is_child()
+}
+
+/// What the duck's own motion is told once the user stopped it.
+const HELD: &str = "stopped by the user: the duck does not move on its own until a job is asked for";
+
+/// A stop asked for: the user's (everything stops, a leg in flight at
+/// once, and nothing self-started starts again until asked), or the
+/// duck's own (the homecoming trading maps: the job alone).
+fn stop_motion(robot: &Robot) -> bool {
+    if own_motion(robot) {
+        let busy = robot.places.explore.busy();
+        robot.places.explore.request_stop();
+        busy
+    } else {
+        robot.places.explore.user_stop()
+    }
+}
+
+/// A job asked for: the user's ends the hold of their last stop; the
+/// duck's own is refused while that hold lasts.
+fn asked(robot: &Robot) -> Result<(), String> {
+    if own_motion(robot) {
+        if robot.places.explore.held() {
+            return Err(HELD.into());
+        }
+    } else {
+        robot.places.explore.user_asks();
+    }
+    Ok(())
+}
+
+/// Before a move or a step. The duck's own: refused once the user stopped
+/// it. A caller's: while the duck moves on its own (the homecoming's search
+/// or exploration, a relocalization) that motion is stopped and the caller
+/// obeyed — the user may always take the duck by hand; the answer says what
+/// was stopped. While a job the user asked for runs, refused, as ever.
+fn drive_by_hand(robot: &mut Robot) -> Result<Option<String>, String> {
+    if own_motion(robot) {
+        return if robot.places.explore.held() { Err(HELD.into()) } else { Ok(None) };
+    }
+    if let Some(why) = robot.places.explore.take_halted().or_else(|| robot.places.explore.self_started()) {
+        robot.places.explore.user_stop();
+        tracing::warn!(why, "a move by hand while the duck moved on its own: that motion stopped, the move obeyed");
+        return Ok(Some(why));
+    }
+    robot.places.not_exploring()?;
+    Ok(None)
+}
+
+/// The user's word before the robot is theirs: a caller's stop, or a
+/// caller's move while the duck moves on its own, holds the duck's own
+/// motion at once — the leg it walks ends within a tick, its stand is cut
+/// short — instead of after the step that motion holds the robot for
+/// (a STOP on the twin waited 7 s, the leg walked out, before this). The
+/// daemon calls it for every caller's call, before the lock.
+pub fn before_the_lock(explore: &crate::explore::ExploreHandle, name: &str, args: &Value) {
+    let stop = args.get("stop").and_then(Value::as_bool).unwrap_or(false);
+    match name {
+        "robot.go_to" | "robot.map_explore" if stop => {
+            explore.halt();
+        }
+        "robot.move" | "robot.map_step" => {
+            explore.halt_own();
+        }
+        _ => {}
+    }
+}
+
+/// The reply of a move that stopped the duck's own motion says so.
+fn with_obeyed(mut reply: Value, obeyed: Option<String>) -> Value {
+    if let (Some(why), Some(map)) = (obeyed, reply.as_object_mut()) {
+        map.insert(
+            "stopped_own".into(),
+            json!(format!("the duck was moving on its own ({why}): stopped to obey, and it does not start again on its own until a job is asked for")),
+        );
+    }
+    reply
 }
 
 fn wall_margin_m() -> f64 {
@@ -1433,10 +1547,10 @@ fn map_explore(robot: &mut Robot, args: &Value) -> Result<Value, String> {
         return map_explore_complete(robot, args);
     }
     if args.get("stop").and_then(Value::as_bool).unwrap_or(false) {
-        let was_running = robot.places.explore.busy();
-        robot.places.explore.request_stop();
+        let was_running = stop_motion(robot);
         return Ok(json!({"stopped": was_running, "explore": robot.places.explore.status().to_json()}));
     }
+    asked(robot)?;
     if robot.places.explore.busy() {
         return Ok(json!({"running": true, "explore": robot.places.explore.status().to_json()}));
     }
@@ -1688,9 +1802,12 @@ fn library_request(path: &str, method: &str, params: Option<Value>) -> anyhow::R
 /// Walk to a known place, or to a point on the map: `robot.go_to`.
 fn go_to(robot: &mut Robot, args: &Value) -> Result<Value, String> {
     if args.get("stop").and_then(Value::as_bool).unwrap_or(false) {
-        let was_running = robot.places.explore.busy();
-        robot.places.explore.request_stop();
+        let was_running = stop_motion(robot);
         return Ok(json!({"stopped": was_running, "explore": robot.places.explore.status().to_json()}));
+    }
+    asked(robot)?;
+    if let Some(why) = robot.places.explore.self_started() {
+        return Err(format!("the duck is moving on its own ({why}): stop it first with robot.go_to {{\"stop\": true}}"));
     }
     if robot.places.explore.busy() {
         return Err("the duck is already on its way (or exploring, or finding where it is): stop that first".into());
@@ -2346,9 +2463,23 @@ fn map_step(robot: &mut Robot, args: &Value) -> Result<Value, String> {
                 (true, Some(f)) => Some((f, 0.0, bias)),
                 _ => None,
             };
-        quack_duck::body::timed_move_held(&mut robot.control, params, walk_s, hold)?;
+        // The duck's own leg ends the moment the user stops it.
+        let (own, explore) = (own_motion(robot), robot.places.explore.clone());
+        let mut guard = || (own && explore.held()).then(|| HELD.to_string());
+        if quack_duck::body::timed_move_guarded(&mut robot.control, params, walk_s, hold, &mut guard)?.is_some() {
+            return Err(HELD.into());
+        }
     }
-    std::thread::sleep(Duration::from_secs_f64(stop_s));
+    // The stand; the duck's own is cut short by the user's stop, so the
+    // robot is theirs at once.
+    let (own, explore) = (own_motion(robot), robot.places.explore.clone());
+    let stand_end = Instant::now() + Duration::from_secs_f64(stop_s);
+    while Instant::now() < stand_end {
+        if own && explore.held() {
+            return Err(HELD.into());
+        }
+        std::thread::sleep(Duration::from_millis(100).min(stand_end.saturating_duration_since(Instant::now())));
+    }
     let after = map.snapshot();
     let last = after.latest.clone().unwrap_or(first.clone());
     let new_windows = last.windows.saturating_sub(first.windows);
@@ -2564,6 +2695,135 @@ mod move_guard_tests {
 
     fn sent_vx(lines: &Arc<Mutex<Vec<Value>>>) -> Vec<f64> {
         lines.lock().unwrap().iter().filter(|v| v["method"] == "robot.move").map(|v| v["params"]["vx"].as_f64().unwrap()).collect()
+    }
+
+    /// The duck moving on its own (the homecoming's search) is said in the
+    /// status, and the user's STOP — `robot.go_to` `stop` — stops it and
+    /// holds: the duck's own motion is refused from then on (its moves,
+    /// its jobs), until the user asks for a job. A move by hand works
+    /// right after the STOP, and a move by hand *during* the duck's own
+    /// motion stops that motion and obeys, saying so.
+    #[test]
+    fn the_users_stop_holds_the_ducks_own_motion_and_frees_the_hand() {
+        let (_dir, path, lines) = fake_robotd();
+        let mut robot = Robot::detached();
+        robot.control = Some(quack_duck::Control::connect(&path).unwrap());
+        let explore = robot.places.explore.clone();
+
+        // The boot's search: searching, self-started, the reason said.
+        explore.search_began(crate::homecoming::WHY_BOOT);
+        let st = explore.status().to_json();
+        assert_eq!(st["state"], "searching");
+        assert_eq!(st["self_started"], true);
+        assert_eq!(st["reason"], crate::homecoming::WHY_BOOT);
+        assert!(explore.busy());
+        // A go_to meanwhile is told what moves and how to stop it.
+        let e = execute("robot.go_to", &json!({"x": 1.0, "y": 0.0}), &mut robot).unwrap_err();
+        assert!(e.starts_with("the duck is moving on its own") && e.contains("\"stop\": true"), "{e}");
+
+        // STOP, as quack-control's button sends it.
+        let r = execute("robot.go_to", &json!({"stop": true}), &mut robot).unwrap();
+        assert_eq!(r["stopped"], true);
+        assert_eq!(r["explore"]["state"], "stopped");
+        assert_eq!(r["explore"]["reason"], crate::explore::STOPPED_BY_USER);
+        assert_eq!(r["explore"]["stopped_by_user"], true);
+        assert!(!explore.busy() && explore.held());
+
+        // The duck's own motion, from a self-driven thread (the homecoming,
+        // the relocator), is refused while the stop holds: no move, no job.
+        let own = std::thread::spawn({
+            let path = path.clone();
+            let explore = explore.clone();
+            move || {
+                mark_self_driven();
+                let mut own = Robot::detached();
+                own.control = Some(quack_duck::Control::connect(&path).unwrap());
+                own.places.explore = explore;
+                (
+                    execute("robot.move", &json!({"vx": 0.3, "duration_s": 0.5}), &mut own),
+                    execute("robot.map_explore", &json!({}), &mut own),
+                )
+            }
+        });
+        let (moved, explored) = own.join().unwrap();
+        assert_eq!(moved.unwrap_err(), HELD);
+        assert_eq!(explored.unwrap_err(), HELD);
+        std::thread::sleep(Duration::from_millis(100));
+        assert!(sent_vx(&lines).is_empty(), "nothing sent by the duck's own motion");
+
+        // By hand, right after the STOP: obeyed, the pose irrelevant.
+        let r = execute("robot.move", &json!({"vx": 0.3, "duration_s": 0.2}), &mut robot).unwrap();
+        assert_eq!(r["done"], true, "{r}");
+        assert!(r.get("stopped_own").is_none());
+
+        // The duck moving on its own again (a job asked for ends the hold;
+        // the relocalization is the duck's own walk): a move by hand stops
+        // it and obeys, and the reply says what it stopped.
+        explore.user_asks();
+        assert!(!explore.held());
+        explore.search_began(crate::homecoming::WHY_BOOT);
+        let r = execute("robot.move", &json!({"vx": 0.3, "duration_s": 0.2}), &mut robot).unwrap();
+        assert_eq!(r["done"], true, "{r}");
+        assert!(r["stopped_own"].as_str().unwrap().contains(crate::homecoming::WHY_BOOT), "{r}");
+        assert_eq!(explore.status().state, crate::explore::State::Stopped);
+        assert!(explore.held());
+    }
+
+    /// A job's leg in flight ends the moment the user stops the duck: the
+    /// job's own robot shares the stop.
+    #[test]
+    fn a_leg_in_flight_ends_at_the_users_stop() {
+        let (_dir, path, lines) = fake_robotd();
+        let parent = crate::explore::ExploreHandle::new();
+        let mut job = Robot::detached();
+        job.control = Some(quack_duck::Control::connect(&path).unwrap());
+        job.places.explore = parent.child();
+        let stopper = std::thread::spawn({
+            let parent = parent.clone();
+            move || {
+                std::thread::sleep(Duration::from_millis(200));
+                parent.user_stop();
+            }
+        });
+        let began = Instant::now();
+        let r = execute("robot.move", &json!({"vx": 0.3, "duration_s": 2.5}), &mut job);
+        stopper.join().unwrap();
+        assert_eq!(r.unwrap_err(), HELD);
+        assert!(began.elapsed() < Duration::from_millis(600), "{:?}", began.elapsed());
+        std::thread::sleep(Duration::from_millis(100));
+        assert_eq!(sent_vx(&lines).last(), Some(&0.0), "stopped with a zero");
+    }
+
+    /// The STOP does not wait for the step the duck's own motion holds the
+    /// robot for: the daemon's caller lane sets the hold before the lock,
+    /// the leg ends within a tick, and the lock is the caller's at once.
+    #[test]
+    fn a_stop_reaches_the_ducks_own_step_before_the_lock() {
+        let (_dir, path, _lines) = fake_robotd();
+        let mut robot = Robot::detached();
+        robot.control = Some(quack_duck::Control::connect(&path).unwrap());
+        let explore = robot.places.explore.clone();
+        explore.search_began(crate::homecoming::WHY_BOOT);
+        let robot = Arc::new(Mutex::new(robot));
+        let search = std::thread::spawn({
+            let robot = robot.clone();
+            move || {
+                mark_self_driven();
+                let mut robot = robot.lock().unwrap();
+                execute("robot.move", &json!({"vx": 0.3, "duration_s": 3.0}), &mut robot)
+            }
+        });
+        std::thread::sleep(Duration::from_millis(200));
+        let asked = Instant::now();
+        before_the_lock(&explore, "robot.go_to", &json!({"stop": true}));
+        let r = {
+            let mut robot = robot.lock().unwrap();
+            execute("robot.go_to", &json!({"stop": true}), &mut robot).unwrap()
+        };
+        assert!(asked.elapsed() < Duration::from_millis(500), "the STOP waited {:?}", asked.elapsed());
+        assert_eq!(search.join().unwrap().unwrap_err(), HELD);
+        assert_eq!(r["stopped"], true, "{r}");
+        assert_eq!(r["explore"]["state"], "stopped");
     }
 
     /// `robot.move` toward a hole: refused before the first step when the

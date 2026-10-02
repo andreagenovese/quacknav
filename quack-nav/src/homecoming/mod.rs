@@ -59,7 +59,6 @@ use crate::config::HomecomingConfig;
 use crate::tools::{self, Robot};
 
 mod search;
-use search::confirmed_within;
 
 /// The boot's walk-and-look search ([`search`]), for a pose the mapper no
 /// longer trusts at all (see `crate::relocate`): stand, look, step where
@@ -67,6 +66,33 @@ use search::confirmed_within;
 /// `stop` says so. True when confirmed.
 pub fn find_pose(robot: &Arc<Mutex<Robot>>, seconds: f64, stop: &dyn Fn() -> bool) -> bool {
     search::confirmed_within_or(robot, seconds, stop)
+}
+
+/// Why the duck moves on its own, as `explore.reason` says it while it does.
+pub const WHY_BOOT: &str = "the duck woke up on a saved map and does not know where it is yet: walking and looking to find itself";
+pub const WHY_FRESH: &str = "the duck did not recognise the house: exploring to find itself";
+pub const WHY_ADOPTED: &str = "the duck found itself on the saved map: exploring on from there";
+pub const WHY_RESUME: &str = "exploring on from where the last session stopped";
+
+/// The walk-and-look search as the duck's own motion: `explore.state`
+/// "searching" while it runs, stopped by the user's stop (and then nothing
+/// more: see [`held`]).
+fn search(robot: &Arc<Mutex<Robot>>, seconds: f64, why: &str) -> bool {
+    let explore = robot.lock().expect("robot poisoned").places.explore.clone();
+    explore.search_began(why);
+    let found = search::confirmed_within_or(robot, seconds, &|| explore.held());
+    explore.search_ended(found);
+    found
+}
+
+/// The user stopped the duck: the homecoming moves it no more in this
+/// power-on (until a job is asked for, which is the user's own).
+fn held(robot: &Arc<Mutex<Robot>>) -> bool {
+    let held = robot.lock().expect("robot poisoned").places.explore.held();
+    if held {
+        tracing::warn!("homecoming: {}", crate::explore::STOPPED_BY_USER);
+    }
+    held
 }
 
 /// How close two asks must agree, in metres, to count as the same answer.
@@ -85,6 +111,9 @@ pub fn spawn(robot: Arc<Mutex<Robot>>, cfg: HomecomingConfig) {
     std::thread::Builder::new()
         .name("homecoming".into())
         .spawn(move || {
+            // Everything this thread moves is the duck's own motion: said,
+            // and stopped by the user's stop (see `tools::mark_self_driven`).
+            tools::mark_self_driven();
             run(&ours, &cfg);
             ours.lock().expect("robot poisoned").places.registry.homecoming_settled();
         })
@@ -130,7 +159,7 @@ fn run(robot: &Arc<Mutex<Robot>>, cfg: &HomecomingConfig) {
         match call(robot, "robot.map_load", &json!({"name": newest})) {
             Ok(_) => {
                 tracing::info!(map = newest, "homecoming: loaded the newest map; standing still to see if the duck knows where it is");
-                if confirmed_within(robot, cfg.boot_search_s) {
+                if search(robot, cfg.boot_search_s, WHY_BOOT) {
                     tracing::info!(map = newest, "homecoming: home — the pose is confirmed on the saved map");
                     resume_exploring(robot, cfg, &newest);
                     return;
@@ -149,13 +178,19 @@ fn run(robot: &Arc<Mutex<Robot>>, cfg: &HomecomingConfig) {
                 // not start a fresh map: saved at the end of the session
                 // it would replace the map it could not find itself on.
                 if frozen || cfg.resume_explore {
+                    if held(robot) {
+                        return;
+                    }
                     tracing::info!(map = newest, waited_s = cfg.boot_search_s, "homecoming: no confirmation yet; the map is frozen, so the search goes on");
-                    if confirmed_within(robot, cfg.boot_search_s * 3.0) {
+                    if search(robot, cfg.boot_search_s * 3.0, WHY_BOOT) {
                         tracing::info!(map = newest, "homecoming: home — the pose is confirmed on the saved map");
                         resume_exploring(robot, cfg, &newest);
-                    } else {
+                    } else if !held(robot) {
                         tracing::warn!(map = newest, "homecoming: no confirmation on the frozen map; standing down — the duck does not know where it is");
                     }
+                    return;
+                }
+                if held(robot) {
                     return;
                 }
                 tracing::info!(
@@ -183,16 +218,22 @@ fn run(robot: &Arc<Mutex<Robot>>, cfg: &HomecomingConfig) {
         // second later. Asking to explore before then is refused for a
         // pose that no longer exists — the frame in hand is the one from
         // the map just thrown away.
-        if !confirmed_within(robot, 20.0) {
+        if !search(robot, 20.0, WHY_FRESH) {
+            if held(robot) {
+                return;
+            }
             tracing::warn!("homecoming: the fresh map has not settled; exploring anyway");
         }
+    }
+    if held(robot) {
+        return;
     }
 
     // Explore, and ask the map-to-map question as the map grows.
     // A search, not a session: nothing of this fresh map is saved under the
     // house's name — adopting the saved map stops it, and a session would
     // save the six minutes over the house.
-    if let Err(e) = start_exploring(robot, cfg.explore_max_s, false) {
+    if let Err(e) = start_exploring(robot, cfg.explore_max_s, false, WHY_FRESH) {
         tracing::warn!(error = %e, "homecoming: cannot start exploring");
         return;
     }
@@ -202,6 +243,9 @@ fn run(robot: &Arc<Mutex<Robot>>, cfg: &HomecomingConfig) {
     let mut asked_after_exploring = false;
     loop {
         std::thread::sleep(Duration::from_secs_f64(cfg.recognize_every_s));
+        if held(robot) {
+            return;
+        }
         let exploring = robot.lock().expect("robot poisoned").places.explore.running();
         if !exploring && asked_after_exploring {
             tracing::info!("homecoming: the duck stopped exploring; not asking any more");
@@ -351,6 +395,9 @@ fn adopt(robot: &Arc<Mutex<Robot>>, name: &str, x: f64, y: f64, yaw: f64, max_s:
         tracing::warn!("homecoming: the exploring job will not stop; not adopting");
         return;
     }
+    if held(robot) {
+        return;
+    }
     let params = json!({"name": name, "x": x, "y": y, "yaw": yaw});
     match call(robot, "robot.map_adopt", &params) {
         Ok(_) => {
@@ -366,10 +413,13 @@ fn adopt(robot: &Arc<Mutex<Robot>>, name: &str, x: f64, y: f64, yaw: f64, max_s:
     // mapper treats as suspect until a still window agrees with it — and
     // the explorer will not start without a pose it trusts. So stand and
     // let it confirm, exactly as at boot.
-    if !confirmed_within(robot, 60.0) {
+    if !search(robot, 60.0, WHY_ADOPTED) {
+        if held(robot) {
+            return;
+        }
         tracing::warn!("homecoming: the adopted place is still unconfirmed; exploring anyway");
     }
-    if let Err(e) = start_exploring(robot, max_s, true) {
+    if let Err(e) = start_exploring(robot, max_s, true, WHY_ADOPTED) {
         tracing::warn!(error = %e, "homecoming: cannot pick exploring back up after adopting");
     }
 }
@@ -409,8 +459,12 @@ fn resume_exploring(robot: &Arc<Mutex<Robot>>, cfg: &HomecomingConfig, name: &st
     }
     let mut last = String::new();
     for _ in 0..10 {
+        if held(robot) {
+            return;
+        }
         match call(robot, "robot.map_explore", &json!({"max_s": cfg.explore_max_s, "save_as": name, "battery_min_pct": cfg.resume_battery_min_pct})) {
             Ok(answer) if answer.get("started").is_some() => {
+                robot.lock().expect("robot poisoned").places.explore.self_start(WHY_RESUME);
                 tracing::info!(map = name, "homecoming: exploring on from where the last session stopped");
                 return;
             }
@@ -422,13 +476,19 @@ fn resume_exploring(robot: &Arc<Mutex<Robot>>, cfg: &HomecomingConfig, name: &st
     tracing::warn!(map = name, error = last, "homecoming: could not explore on");
 }
 
-fn start_exploring(robot: &Arc<Mutex<Robot>>, max_s: f64, session: bool) -> Result<(), String> {
+fn start_exploring(robot: &Arc<Mutex<Robot>>, max_s: f64, session: bool, why: &str) -> Result<(), String> {
     let mut last = String::new();
     for _ in 0..10 {
+        if held(robot) {
+            return Err(crate::explore::STOPPED_BY_USER.into());
+        }
         match call(robot, "robot.map_explore", &json!({"max_s": max_s, "session": session})) {
             // `map_explore` answers `running: true` when a job is already
             // going, which is not the same as having started one.
-            Ok(answer) if answer.get("started").is_some() => return Ok(()),
+            Ok(answer) if answer.get("started").is_some() => {
+                robot.lock().expect("robot poisoned").places.explore.self_start(why);
+                return Ok(());
+            }
             Ok(answer) => {
                 last = format!("the duck did not start: {answer}");
                 std::thread::sleep(Duration::from_secs(2));

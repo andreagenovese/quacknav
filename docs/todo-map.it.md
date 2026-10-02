@@ -4517,6 +4517,62 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       strato di sicurezza di robotd, alimentato da tofd,
       `move.limited_by = "cliff"`), detto nella nota di sicurezza del
       README.
+- [x] 2026-10-02: **il movimento autonomo della papera: detto,
+      fermabile, e poi fermo** (dell'utente: il ritorno a casa può muovere
+      la papera da sola — la ricerca guarda-e-cammina all'avvio,
+      l'esplorazione su mappa nuova del passo 3, una sessione progressiva,
+      la rilocalizzazione della sosta prima di un lavoro — ma deve dirlo,
+      uno STOP deve fermare tutto, e dopo uno STOP la papera non deve
+      ripartire da sola in quell'accensione, e dev'essere libera di essere
+      guidata a mano). `ExploreStatus::self_started` (perché, mentre si
+      muove), `explore.state` `searching` per la ricerca all'avvio
+      (`homecoming::search`, `ExploreHandle::search_began/ended`), il
+      motivo in `explore.reason`, un suggerimento di `map_status`, una riga
+      di avviso una volta quando parte ("the duck is moving on its own —
+      …; robot.go_to {"stop": true} stops it"). Lo stop dell'utente
+      (`ExploreHandle::user_stop`, da `go_to`/`map_explore` `stop`, lo STOP
+      di quack-control) imposta un fermo condiviso con gli handle dei
+      lavori (`ExploreHandle::child`): ogni mossa autonoma — un thread che
+      guida da sé (`tools::mark_self_driven`: il ritorno a casa, il
+      rilocalizzatore) o il robot di un lavoro — finisce entro un tick (la
+      guardia del ciclo a tempo), la sua sosta è accorciata, e la mossa o il
+      lavoro successivi sono rifiutati ("stopped by the user: …"); il
+      ritorno a casa controlla il fermo a ogni passo ed esce ("homecoming:
+      stopped by the user; not searching again until asked"). Il fermo dura
+      finché l'utente non chiede un lavoro (`go_to`, `map_explore`). Lo stop
+      agisce prima del lucchetto del robot (`tools::before_the_lock`, dalla
+      corsia del chiamante del demone): la ricerca all'avvio tiene il
+      lucchetto per un passo intero, e uno STOP che lo aspettava arrivava
+      7–8 s dopo con la gamba camminata (dal vivo: 0,18 e 0,33 m dopo la
+      chiamata); con questo, 0,15 s e 3 cm di inerzia. Un `robot.move` o
+      `map_step` a mano mentre la papera si muove da sola ferma quel
+      movimento e obbedisce (`stopped_own` nella risposta); mentre corre un
+      lavoro chiesto dall'utente, entrambi sono rifiutati (`map_step` da
+      ora, come documentato). Dal vivo (casa_grande, localize, ritorno a
+      casa acceso, la papera nata nello studio): `searching`,
+      self_started, il suggerimento e la riga di avviso al caricamento;
+      STOP durante una gamba: risposta in 0,15 s, `stopped`,
+      `stopped_by_user`, il ritorno a casa uscito 3 s dopo, 30 s ferma
+      dopo (7 mm di deriva in piedi); `robot.move` a mano subito dopo:
+      camminato 2 s; a un nuovo avvio, un `robot.move` a mano durante la
+      gamba della ricerca: obbedito subito, la ricerca fermata
+      (`stopped_own`); `map_step` a mano sulla posa persa: camminato,
+      `checks` "position uncertain: checks from the sensor only". Test: la
+      ricerca all'avvio detta, un `go_to` nel frattempo informato su come
+      fermarla, lo STOP che ferma e tiene, la mossa e il lavoro autonomi
+      rifiutati durante il fermo senza nulla inviato, una mossa a mano
+      subito dopo e durante; la gamba in corso di un lavoro finita a 0,2 s
+      dallo stop dell'utente, con uno zero; uno STOP che raggiunge un passo
+      che tiene il lucchetto in meno di 0,5 s; la rilocalizzazione segnata
+      come autonoma.
+- [ ] **quacksat: dirlo ad alta voce** — quack-navd non ha un canale per
+      spingere un annuncio al front end vocale (quacksat interroga
+      `nav.take_question` per il "dove siamo?" dell'esploratore, nient'altro).
+      Finché non c'è, quacksat dovrebbe interrogare `robot.map_status` e
+      parlare una volta quando `explore.self_started` diventa vero ("Sto
+      cercando dove sono — dimmi stop per fermarmi"), e una volta quando
+      `stopped_by_user` tiene; oppure quack-navd si dota di un
+      `nav.take_announcement` come `nav.take_question`.
 - [ ] 2026-10-01: durante una giravolta veloce sul posto la posa della
       mappa può restare ferma fino a ~1.5 s, poi recuperare (x22
       casa_arredata: angolo sbagliato di 93° per 1.5 s con la posizione

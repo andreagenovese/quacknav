@@ -198,6 +198,9 @@ fn answer(line: &str, daemon: &Daemon) -> Value {
             if !quack_nav::tools::handles(&name) {
                 return error(id, -32601, &format!("this daemon has no tool `{name}`"));
             }
+            // A STOP, or a move by hand, reaches the duck's own motion
+            // before the lock its step holds (see `tools::before_the_lock`).
+            quack_nav::tools::before_the_lock(&daemon.shutdown.explore, &name, &args);
             let result = {
                 let mut robot = robot.lock().expect("robot poisoned");
                 quack_nav::tools::execute(&name, &args, &mut robot)

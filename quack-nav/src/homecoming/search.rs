@@ -1,6 +1,6 @@
 //! The boot's search on a saved map: stand still, look around, take a
 //! step where the sensor sees the most room, stand again — until maploc
-//! confirms the pose or the time is up (see [`confirmed_within`]). Its own
+//! confirms the pose or the time is up (see [`confirmed_within_or`]). Its own
 //! walking, none of the explorer's: a change to the exploration's legs,
 //! guards or planner does not reach it.
 
@@ -30,12 +30,10 @@ use crate::tools::Robot;
 ///   the yaw without) toward the freer side, stands, and looks again;
 /// - a dead-reckoned trail of its stands, and a bearing that leads back
 ///   over it counts as that short.
-pub(super) fn confirmed_within(robot: &Arc<Mutex<Robot>>, seconds: f64) -> bool {
-    confirmed_within_or(robot, seconds, &|| false)
-}
-
-/// [`confirmed_within`], given up early when `stop` says so (a job's own
-/// relocalization, which its caller may stop; see `crate::relocate`).
+///
+/// Given up early when `stop` says so: the user's stop (the homecoming's
+/// own search, see `super::search`), or a stop of the job a relocalization
+/// serves (see `crate::relocate`).
 pub(super) fn confirmed_within_or(robot: &Arc<Mutex<Robot>>, seconds: f64, stop: &dyn Fn() -> bool) -> bool {
     let deadline = Instant::now() + Duration::from_secs_f64(seconds);
     // The frame in hand is the one from BEFORE the load: the map lane
@@ -485,7 +483,7 @@ fn turn_to(robot: &Arc<Mutex<Robot>>, bearing: f64, ahead: f64) -> f64 {
 /// the spot, a stand and a look at each; then a turn to the freest way
 /// of the four, and that look — re-taken there — is the answer.
 /// Whether maploc vouches for the pose on a frame newer than the first
-/// `frames0` (see `confirmed_within`).
+/// `frames0` (see `confirmed_within_or`).
 fn confirmed_since(robot: &Arc<Mutex<Robot>>, frames0: u64) -> bool {
     let robot = robot.lock().expect("robot poisoned");
     robot.places.map.as_ref().is_some_and(|map| {

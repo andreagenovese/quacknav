@@ -47,6 +47,8 @@ pub fn spawn(robot: Arc<Mutex<Robot>>, budget_s: f64) {
     std::thread::Builder::new()
         .name("relocate".into())
         .spawn(move || {
+            // The search is the duck's own motion (see `tools::mark_self_driven`).
+            tools::mark_self_driven();
             for request in rx {
                 let found = |stop: &dyn Fn() -> bool| crate::homecoming::find_pose(&robot, budget_s, stop);
                 let start = || {
@@ -115,6 +117,7 @@ mod tests {
         assert_eq!(s.state, State::Relocalizing);
         assert_eq!(s.reason.as_deref(), Some(REASON));
         assert_eq!(s.goal, Some((1.0, 2.0)));
+        assert_eq!(s.self_started.as_deref(), Some(REASON), "the walk-and-look is the duck's own motion");
         assert!(explore.busy() && !explore.running());
         assert!(explore.relocalize_then(request()).is_err(), "one at a time");
 

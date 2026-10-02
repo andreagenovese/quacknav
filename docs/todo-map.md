@@ -4219,6 +4219,55 @@ nothing: it explores and asks.
       upstream (`docs/study/upstream-asks.md` §8: a cliff stop in robotd's
       safety layer, fed by tofd, `move.limited_by = "cliff"`), said in the
       README's safety note.
+- [x] 2026-10-02: **the duck's own motion: said, stoppable, and then
+      still** (the user's: the homecoming may move the duck on its own —
+      the boot's walk-and-look, step 3's fresh-map exploration, a
+      progressive session, the rest's relocalization before a job — but it
+      must say so, a STOP must stop all of it, and after a STOP the duck
+      must not start again by itself in that power-on, and must be free to
+      drive by hand). `ExploreStatus::self_started` (why, while it moves),
+      `explore.state` `searching` for the boot's search
+      (`homecoming::search`, `ExploreHandle::search_began/ended`), the
+      reason in `explore.reason`, a `map_status` hint, a warn line once
+      when it starts ("the duck is moving on its own — …; robot.go_to
+      {"stop": true} stops it"). The user's stop (`ExploreHandle::user_stop`,
+      from `go_to`/`map_explore` `stop`, quack-control's STOP) sets a hold
+      shared with the jobs' own handles (`ExploreHandle::child`): every
+      move of the duck's own — a self-driven thread (`tools::mark_self_driven`:
+      the homecoming, the relocator) or a job's robot — ends within a tick
+      (the timed loop's guard), its stand is cut short, and its next move
+      or job is refused ("stopped by the user: …"); the homecoming checks the
+      hold at every step and returns ("homecoming: stopped by the user; not
+      searching again until asked"). The hold lasts until the user asks for a
+      job (`go_to`, `map_explore`). The stop acts before the robot's lock
+      (`tools::before_the_lock`, from the daemon's caller lane): the boot's
+      search holds the lock for a whole step, and a STOP that waited for it
+      came 7–8 s late with the leg walked out (live: 0.18 and 0.33 m after
+      the call); with it, 0.15 s and 3 cm of coasting. A `robot.move` or
+      `map_step` by hand while the duck moves on its own stops that motion
+      and obeys (`stopped_own` in the reply); while a job the user asked for
+      runs, both are refused (`map_step` newly, as documented). Live
+      (casa_grande, localize, homecoming on, the duck spawned in the study):
+      `searching`, self_started, the hint and the warn line at the load;
+      STOP during a leg: answered in 0.15 s, `stopped`, `stopped_by_user`,
+      the homecoming out 3 s later, 30 s still afterwards (7 mm of standing
+      drift); `robot.move` by hand right after: walked 2 s; on a fresh boot,
+      a `robot.move` by hand during the search's leg: obeyed at once, the
+      search stopped (`stopped_own`); `map_step` by hand on the lost pose:
+      walked, `checks` "position uncertain: checks from the sensor only".
+      Tests: the boot search said, a `go_to` meanwhile told how to stop it,
+      STOP stopping and holding, the duck's own move and job refused while
+      held with nothing sent, a move by hand right after and during it; a
+      job's leg in flight ended 0.2 s in by the user's stop, with a zero; a
+      STOP reaching a step that holds the lock in under 0.5 s; the
+      relocalization marked self-started.
+- [ ] **quacksat: say it out loud** — quack-navd has no channel to push an
+      announcement to the voice front end (quacksat polls `nav.take_question`
+      for the explorer's "where are we?", nothing else). Until there is one,
+      quacksat should poll `robot.map_status` and speak once when
+      `explore.self_started` turns true ("I'm looking for where I am — say
+      stop to stop me"), and once when `stopped_by_user` holds; or
+      quack-navd grows a `nav.take_announcement` like `nav.take_question`.
 - [ ] 2026-10-01: during a fast spin in place the map pose can stay still
       for up to ~1.5 s, then catch up (x22 casa_arredata: heading 93° off
       for 1.5 s with the position within 5 cm). Seen in every

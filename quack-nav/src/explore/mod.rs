@@ -275,6 +275,10 @@ pub enum State {
     /// where it is first (see [`crate::relocate`]); the job starts once it
     /// has.
     Relocalizing,
+    /// The homecoming's own walk-and-look search at boot (see
+    /// `crate::homecoming`): the duck moves on its own, nobody asked;
+    /// [`ExploreStatus::self_started`] says why.
+    Searching,
     Running,
     Done,
     Stopped,
@@ -286,6 +290,7 @@ impl State {
         match self {
             State::Idle => "idle",
             State::Relocalizing => "relocalizing",
+            State::Searching => "searching",
             State::Running => "running",
             State::Done => "done",
             State::Stopped => "stopped",
@@ -350,7 +355,19 @@ pub struct ExploreStatus {
     pub fit: Option<(f64, usize, usize)>,
     pub pending_question: Option<Question>,
     pub questions_asked: u32,
+    /// The duck moves on its own and why — the homecoming's search or
+    /// exploration, the relocalization before a job — not a job somebody
+    /// asked for as such (the user's, 2026-10-02: allowed, but said, and
+    /// stoppable). `None` for a job asked for, and when nothing moves.
+    pub self_started: Option<String>,
+    /// The user stopped the duck (see [`ExploreHandle::user_stop`]): nothing
+    /// starts moving it on its own again in this power-on until a job is
+    /// asked for. Filled in by [`ExploreHandle::status`].
+    pub stopped_by_user: bool,
 }
+
+/// What `explore.reason` says once the user stopped the duck's own motion.
+pub const STOPPED_BY_USER: &str = "stopped by the user; not searching again until asked";
 
 impl Default for ExploreStatus {
     fn default() -> Self {
@@ -379,6 +396,8 @@ impl Default for ExploreStatus {
             goal: None,
             pending_question: None,
             questions_asked: 0,
+            self_started: None,
+            stopped_by_user: false,
         }
     }
 }
@@ -420,7 +439,7 @@ impl ExploreStatus {
         });
         json!({
             "state": self.state.as_str(),
-            "reason": self.reason,
+            "reason": self.reason.as_ref().or(self.self_started.as_ref()),
             "elapsed_s": elapsed,
             "legs": self.legs,
             "refusals": self.refusals,
@@ -438,6 +457,10 @@ impl ExploreStatus {
             "goal": self.goal.map(|(x, y)| json!([round2(x), round2(y)])),
             "question_pending": self.pending_question.is_some(),
             "progress": self.progress,
+            // The duck moves on its own (the homecoming, a relocalization):
+            // why, in `reason` while the job has no reason of its own.
+            "self_started": self.self_started.is_some(),
+            "stopped_by_user": self.stopped_by_user,
         })
     }
 }
@@ -460,6 +483,19 @@ pub struct ExploreHandle {
     /// Where a job asked for on an untrusted pose goes first (see
     /// [`crate::relocate`]); none on a job's own idle handle.
     relocator: Arc<Mutex<Option<std::sync::mpsc::Sender<crate::relocate::Request>>>>,
+    /// The user stopped the duck: nothing self-started moves it until a job
+    /// is asked for (see [`ExploreHandle::user_stop`]). Shared with the
+    /// jobs' own handles, so a leg in flight sees it.
+    held: Arc<AtomicBool>,
+    /// The duck's own motion a caller's move halted before it could take
+    /// the robot (see [`ExploreHandle::halt_own`]): what it was.
+    halted: Arc<Mutex<Option<String>>>,
+    /// Something moved when [`ExploreHandle::halt`] held it: the stop's
+    /// answer says so even when the motion has wound down by then.
+    halted_busy: Arc<AtomicBool>,
+    /// A running job's own handle ([`ExploreHandle::child`]): its moves are
+    /// the job's, not a caller's.
+    child: bool,
 }
 
 /// Where the drops of each saved map are kept, and which map is live.
@@ -704,7 +740,9 @@ impl ExploreHandle {
     }
 
     pub fn status(&self) -> ExploreStatus {
-        self.status.lock().expect("explore status poisoned").clone()
+        let mut s = self.status.lock().expect("explore status poisoned").clone();
+        s.stopped_by_user = self.held();
+        s
     }
 
     pub fn running(&self) -> bool {
@@ -713,7 +751,134 @@ impl ExploreHandle {
 
     /// A job runs, or is finding the pose before it does.
     pub fn busy(&self) -> bool {
-        matches!(self.status().state, State::Running | State::Relocalizing)
+        matches!(self.status().state, State::Running | State::Relocalizing | State::Searching)
+    }
+
+    /// A running job's own handle: idle (its steps are not refused as
+    /// "somebody else drives"), the user's stop shared.
+    pub fn child(&self) -> Self {
+        Self { held: self.held.clone(), child: true, ..Self::default() }
+    }
+
+    /// Whether this is a job's own handle (see [`ExploreHandle::child`]).
+    pub fn is_child(&self) -> bool {
+        self.child
+    }
+
+    /// The user stopped the duck, and has asked for nothing since.
+    pub fn held(&self) -> bool {
+        self.held.load(Ordering::Relaxed)
+    }
+
+    /// The duck is moving on its own, and why (see
+    /// [`ExploreStatus::self_started`]): `Some` only while it moves.
+    pub fn self_started(&self) -> Option<String> {
+        let s = self.status.lock().expect("explore status poisoned");
+        matches!(s.state, State::Running | State::Relocalizing | State::Searching).then(|| s.self_started.clone()).flatten()
+    }
+
+    /// The job just started is the duck's own, not one asked for: said in
+    /// the status and, once, in the log at warn.
+    pub fn self_start(&self, why: &str) {
+        self.update(|s| s.self_started = Some(why.to_string()));
+        tracing::warn!(why, "the duck is moving on its own — {why}; robot.go_to {{\"stop\": true}} stops it");
+    }
+
+    /// The homecoming's walk-and-look search begins: `explore.state`
+    /// "searching", the reason beside it. Nothing of the job before is
+    /// reset (the books and the trail are the house's).
+    pub fn search_began(&self, why: &str) {
+        {
+            let mut s = self.status.lock().expect("explore status poisoned");
+            if matches!(s.state, State::Running | State::Relocalizing) {
+                return;
+            }
+            s.state = State::Searching;
+            s.reason = Some(why.to_string());
+            s.started = Some(Instant::now());
+            s.finished = None;
+        }
+        self.self_start(why);
+    }
+
+    /// The search is over: found or not, back to idle — or stopped, when
+    /// the user stopped it.
+    pub fn search_ended(&self, found: bool) {
+        let mut s = self.status.lock().expect("explore status poisoned");
+        if s.state != State::Searching {
+            return;
+        }
+        s.self_started = None;
+        s.finished = Some(Instant::now());
+        if self.held() {
+            s.state = State::Stopped;
+            s.reason = Some(STOPPED_BY_USER.into());
+        } else {
+            s.state = State::Idle;
+            s.reason = Some(if found { "found where it is" } else { "the search ended without finding where it is" }.into());
+        }
+    }
+
+    /// The user's stop (`robot.go_to` or `robot.map_explore` with
+    /// `stop`, quack-control's STOP; or a move of their own while the duck
+    /// moves on its own): whatever job runs stops, a leg in flight at once,
+    /// and nothing self-started — the homecoming's search or exploration —
+    /// starts again until a job is asked for. True when something was
+    /// moving.
+    pub fn user_stop(&self) -> bool {
+        self.stop.store(true, Ordering::Relaxed);
+        self.held.store(true, Ordering::Relaxed);
+        let mut s = self.status.lock().expect("explore status poisoned");
+        let moving = matches!(s.state, State::Running | State::Relocalizing | State::Searching);
+        let busy = self.halted_busy.swap(false, Ordering::Relaxed) || moving;
+        let was = s.self_started.clone().filter(|_| moving).or_else(|| self.halted.lock().expect("halted poisoned").clone());
+        if busy && let Some(why) = was {
+            tracing::warn!(was = why.as_str(), "the duck's own motion is {STOPPED_BY_USER}");
+        }
+        if s.state == State::Searching {
+            s.state = State::Stopped;
+            s.reason = Some(STOPPED_BY_USER.into());
+            s.self_started = None;
+            s.finished = Some(Instant::now());
+        }
+        busy
+    }
+
+    /// The user asked for a job: the hold of their last stop is over.
+    pub fn user_asks(&self) {
+        self.held.store(false, Ordering::Relaxed);
+        self.halted_busy.store(false, Ordering::Relaxed);
+        *self.halted.lock().expect("halted poisoned") = None;
+    }
+
+    /// A caller's move arrives while the duck moves on its own: the hold is
+    /// set at once — the leg in flight ends, the stand is cut short — so the
+    /// caller does not wait for the step the duck's own motion is in to
+    /// end. What was halted is kept for the move's answer
+    /// ([`ExploreHandle::take_halted`]). None when nothing moved on its own.
+    pub fn halt_own(&self) -> Option<String> {
+        self.self_started()?;
+        self.halt()
+    }
+
+    /// The user's stop, at once: the hold set, a leg in flight ends within
+    /// a tick, and what moved is remembered for the answer the stop gives
+    /// once it has the robot ([`ExploreHandle::user_stop`]). Returns what
+    /// moved on its own, if anything did.
+    pub fn halt(&self) -> Option<String> {
+        let (busy, why) = (self.busy(), self.self_started());
+        self.stop.store(true, Ordering::Relaxed);
+        self.held.store(true, Ordering::Relaxed);
+        if busy {
+            self.halted_busy.store(true, Ordering::Relaxed);
+        }
+        *self.halted.lock().expect("halted poisoned") = why.clone();
+        why
+    }
+
+    /// What [`ExploreHandle::halt_own`] halted, once.
+    pub fn take_halted(&self) -> Option<String> {
+        self.halted.lock().expect("halted poisoned").take()
     }
 
     /// Was a stop asked for since the last job began?
@@ -736,7 +901,7 @@ impl ExploreHandle {
         })?;
         {
             let mut s = self.status.lock().expect("explore status poisoned");
-            if matches!(s.state, State::Running | State::Relocalizing) {
+            if matches!(s.state, State::Running | State::Relocalizing | State::Searching) {
                 return Err("the duck is already on its way (or exploring, or finding where it is): stop that first".into());
             }
             let _ = ExploreStatus::begin_job(&mut s);
@@ -744,6 +909,8 @@ impl ExploreHandle {
             s.reason = Some(crate::relocate::REASON.into());
             s.goal = request.goal;
         }
+        // The walk-and-look is the duck's own motion: said, and stoppable.
+        self.self_start(crate::relocate::REASON);
         self.stop.store(false, Ordering::Relaxed);
         tx.send(request).map_err(|_| {
             self.finish(State::Failed, "the relocator is not running".into());
@@ -853,8 +1020,8 @@ impl ExploreHandle {
         let trail: Vec<(f64, f64)>;
         {
             let mut s = self.status.lock().expect("explore status poisoned");
-            if s.state == State::Running {
-                return Err("the duck is already exploring".into());
+            if matches!(s.state, State::Running | State::Searching) {
+                return Err("the duck is already exploring (or searching on its own)".into());
             }
             let Some(map) = &places.map else {
                 return Err("this satellite has no map lane ([map] enabled = false)".into());
@@ -879,7 +1046,7 @@ impl ExploreHandle {
                 map: places.map.clone(),
                 registry: Registry::in_memory(),
                 cliff: places.cliff.clone(),
-                explore: ExploreHandle::new(),
+                explore: self.child(),
                 robotd_socket: robotd_socket.to_owned(),
                 map_socket: places.map_socket.clone(),
                 map_config: MapConfig::default(),
@@ -909,6 +1076,7 @@ impl ExploreHandle {
     fn finish(&self, state: State, reason: String) {
         let mut s = self.status.lock().expect("explore status poisoned");
         s.state = state;
+        s.self_started = None;
         s.reason = Some(reason.clone());
         s.finished = Some(Instant::now());
         s.target = None;

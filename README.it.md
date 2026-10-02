@@ -100,6 +100,19 @@ qualunque cosa parli il socket:
   la mappa conosce il pavimento, con la guardia dove non lo conosce.
   `robot.go_to` verso un posto con nome o un punto; `robot.remember_place`
   dà un nome a dove si trova.
+- **Quando si muove da sola.** Dopo un'accensione la papera può camminare
+  per conto suo — cercando dov'è sulla mappa salvata, esplorando per
+  riconoscere la casa, ritrovandosi prima di un lavoro dopo essere stata
+  spostata. Permesso, ma detto: `robot.map_status` →
+  `explore.self_started` e il motivo (`explore.state` `searching`
+  all'avvio), un avviso nel log, un suggerimento. **STOP** —
+  `robot.go_to {"stop": true}`, il pulsante di quack-control — la ferma
+  subito e tiene: niente la rimette in moto da sola in quell'accensione
+  finché non si chiede un lavoro. Un `robot.move` o `robot.map_step` mentre
+  si muove da sola ferma quel movimento e obbedisce (`stopped_own` nella
+  risposta); dopo uno STOP funzionano subito — su una posa persa o non
+  fidata giudicati dal solo sensore di profondità, con la guardia del
+  dirupo di `robot.move` accesa.
 
 Il progetto è l'ADR 0008.
 
@@ -420,7 +433,7 @@ del settore.
   e i recuperi in un behavior tree. Qui: Dijkstra, un filo teso, gambe a
   stop-and-go, e recuperi sparsi nell'esploratore. Il libro dei drop è uno
   strato di costmap in tutto tranne che nel nome.
-- **Test.** 153 test che passano e 1 ignorato (2026-10-01). Il gemello di carta gira in CI
+- **Test.** 179 test che passano e 1 ignorato (2026-10-02). Il gemello di carta gira in CI
   come soglia su semi fissi (esplorazione 40 × 1200 s, `go_to` 30;
   `.github/workflows/ci.yml`, `scripts/ci/paper_twin_gate.py`); oltre a
   quello, il comportamento si verifica con giri di ore, non deterministici,

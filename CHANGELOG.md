@@ -50,6 +50,24 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   stand's windows integrating. Pollen's teleop bypasses quack-nav's cliff
   guard, and robotd has none: said in the README's safety note and asked
   upstream ([docs/study/upstream-asks.md §8](docs/study/upstream-asks.md)).
+- **The duck's own motion is said, and STOP stops it for good.** When
+  the duck walks by itself — the homecoming's walk-and-look at boot (new
+  `explore.state` `searching`), the exploring the homecoming starts
+  (no confirmation, "starting a fresh map and exploring instead"; a
+  progressive session; after adopting the saved map), the relocalization
+  before a job — `robot.map_status` says so (`explore.self_started`, the
+  reason, a hint) and quack-navd logs it once at warn. The user's stop
+  (`robot.go_to`/`robot.map_explore` `{"stop": true}`, quack-control's
+  STOP) now covers all of it, the boot's search included, and acts before
+  the robot's lock: the leg in flight ends within a tick and the stand is
+  cut short (on the twin the STOP answered in 0.15 s and the duck coasted
+  3 cm; before, it waited 7–8 s for the step to end, 0.18–0.33 m walked).
+  It then holds — `explore.stopped_by_user`, "stopped by the user; not
+  searching again until asked" — until a job is asked for: the homecoming
+  starts nothing more. A `robot.move` or `robot.map_step` while the duck
+  moves on its own stops that motion and obeys (`stopped_own` in the
+  reply); after a STOP they work at once. `robot.map_step` is now refused,
+  like `robot.move`, while a job the user asked for runs.
 - **Rest: long idle stands** (maploc). A minute still with no job driving
   the body (no `go_to`, exploration, rim tour, homecoming), the mapper
   rests: no window is integrated or corrects the pose, odometry alone
