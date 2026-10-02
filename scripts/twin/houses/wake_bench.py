@@ -9,7 +9,9 @@ wrong (confirmed further off), never (not confirmed in `limit_s`).
 
 Spawns: the truth's goals, each with its own heading (0°, 90°, 180°,
 -90° in turn, all turned by `WAKE_TURN` degrees for another pass);
-`WAKE_SPAWNS="x,y,yaw_rad;..."` overrides them.
+`WAKE_SPAWNS="x,y,yaw_rad;..."` overrides them. `WAKE_MODE=localize` boots
+as the navigation does (the map frozen, no exploring on) instead of the
+progressive exploration's resume.
 
 Kept per wake-up in <out>: the recording (`wake-<i>.mdlg`), the pose
 sampler's files (`wake-<i>.pose.tsv[.untracked]`) and the navd log, for
@@ -54,7 +56,11 @@ def wake(i, x, y, yaw):
     shutil.rmtree(f"{state}/maps", ignore_errors=True); shutil.copytree(maps_dir, f"{state}/maps")
     shutil.copy(book_p, f"{state}/ground.json")
     shutil.rmtree(f"{state}/rec", ignore_errors=True)
-    sp = boot(WIPE="on", MAPLOC_MODE="stop_and_scan", HOMECOMING="on", RESUME="on", MICRODUCK_START=f"{x},{y},{yaw}")
+    if os.environ.get("WAKE_MODE") == "localize":
+        # The navigation's boot: the map frozen, no exploring on.
+        sp = boot(WIPE="on", MAPLOC_MODE="localize", HOMECOMING="on", MICRODUCK_START=f"{x},{y},{yaw}")
+    else:
+        sp = boot(WIPE="on", MAPLOC_MODE="stop_and_scan", HOMECOMING="on", RESUME="on", MICRODUCK_START=f"{x},{y},{yaw}")
     if sp is None:
         say(f"{name} wake {i} at ({x:+.2f},{y:+.2f},{math.degrees(yaw):+.0f}°): the twin did not come up; the wake is skipped")
         return None

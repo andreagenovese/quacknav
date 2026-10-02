@@ -124,7 +124,7 @@ off; `MAPLOC_SHADOW_EVERY_S` (30) and `MAPLOC_SHADOW_ASKS` (2) set it.
 | `modes_test.py` | resume, "how far along", complete, the frozen map after a restart, a fresh map replacing the old one only when it saves |
 | `run_house.py`, `prog_house.py` | the one-exploration and the sessions-only versions |
 | `poseerr.py <nav.sock> <port> <out.tsv>` | the map's pose against the simulator's truth every 5 s (`POSEERR_DT`; 0.5 for loop closures), `<out>.untracked` while the mapper vouches for none |
-| `wake_bench.py <name> <scene> <state> <port> <truth> <out> <maps_dir> <book.json> [limit_s]` | wake-ups from spots across the house on a saved map (the duck put there with `MICRODUCK_START`), each judged right, wrong or never against the truth; `WAKE_TURN` turns every spawn, `WAKE_SPAWNS="x,y,yaw;..."` replaces them |
+| `wake_bench.py <name> <scene> <state> <port> <truth> <out> <maps_dir> <book.json> [limit_s]` | wake-ups from spots across the house on a saved map (the duck put there with `MICRODUCK_START`), each judged right, wrong or never against the truth; `WAKE_TURN` turns every spawn, `WAKE_SPAWNS="x,y,yaw;..."` replaces them, `WAKE_MODE=localize` boots as the navigation does (the map frozen) |
 | `traj_metrics.py <pose.tsv>` | ATE and RPE from a sampler's file (live or `trajectory`'s), `--tum` for `evo` |
 | `map_vs_truth.py <frame.json> <truth.toml> <truth.json> [book.json name]` | an explored map against the house, room by room: walls on, thickened or phantom, free inside walls, faces, floor, fit, book |
 | `room_fit.py <frame.json> <truth.toml> <truth.json>` | the rigid misfit of the map and of each room against the true walls |

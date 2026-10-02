@@ -128,7 +128,7 @@ Copia inglese canonica: `README.md`.
 | `modes_test.py` | ripresa, "a che punto sei", completata, la mappa congelata dopo un riavvio, una mappa nuova che sostituisce la vecchia solo quando salva |
 | `run_house.py`, `prog_house.py` | le versioni con un'esplorazione sola e con le sole sessioni |
 | `poseerr.py <nav.sock> <porta> <out.tsv>` | la posa della mappa contro la verità del simulatore ogni 5 s (`POSEERR_DT`; 0.5 per le chiusure di loop), `<out>.untracked` mentre il mapper non ne garantisce nessuna |
-| `wake_bench.py <nome> <scena> <state> <porta> <truth> <out> <maps_dir> <book.json> [limit_s]` | risvegli da punti sparsi per la casa su una mappa salvata (la papera messa lì con `MICRODUCK_START`), ognuno giudicato giusto, sbagliato o mai contro la verità; `WAKE_TURN` gira ogni partenza, `WAKE_SPAWNS="x,y,yaw;..."` le sostituisce |
+| `wake_bench.py <nome> <scena> <state> <porta> <truth> <out> <maps_dir> <book.json> [limit_s]` | risvegli da punti sparsi per la casa su una mappa salvata (la papera messa lì con `MICRODUCK_START`), ognuno giudicato giusto, sbagliato o mai contro la verità; `WAKE_TURN` gira ogni partenza, `WAKE_SPAWNS="x,y,yaw;..."` le sostituisce, `WAKE_MODE=localize` avvia come la navigazione (mappa congelata) |
 | `traj_metrics.py <pose.tsv>` | ATE e RPE da un file del campionatore (dal vivo o di `trajectory`), `--tum` per `evo` |
 | `map_vs_truth.py <frame.json> <truth.toml> <truth.json> [book.json nome]` | una mappa esplorata contro la casa, stanza per stanza: muri giusti, ispessiti o fantasma, libero dentro i muri, facce, pavimento, allineamento, libro |
 | `room_fit.py <frame.json> <truth.toml> <truth.json>` | lo scostamento rigido della mappa e di ogni stanza contro i muri veri |
