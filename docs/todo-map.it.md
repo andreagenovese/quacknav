@@ -4615,6 +4615,19 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       stop_and_scan del 2026-10-02 (accensione, "esplora da capo", go_to
       sulla mappa appena congelata, riaccensioni altrove); da correggere
       dopo, su un branch a parte.
+- [ ] 2026-10-02: la percentuale della casa e la regola di fine sessione
+      contano l'ignoto FUORI dalla casa quando il riferimento della mappa
+      non è allineato con essa. "Esplora da capo" dalla cucina ha iniziato
+      una mappa nella posa della papera, ruotata di ~204° rispetto alla
+      casa: dopo due turni 45,2 m² di pavimento noto (la vecchia mappa
+      completa: 47,1 m²), ma "50 %", "restano 44,6 m²", "bloccata: il pezzo
+      ignoto più grande, 16,2 m², non è raggiungibile" — la griglia segue
+      gli assi della mappa, i suoi angoli stanno oltre i muri, e il loro
+      ignoto conta come casa. Mai visto nei banchi del gemello, che partono
+      sempre dall'origine verso +x. Contare solo l'ignoto racchiuso dai
+      muri (scartare i pezzi che toccano il bordo della griglia, o che
+      stanno fuori dal contorno chiuso dei muri) in
+      `largest_unknown_piece_m2`, `left_m2` e nella percentuale.
 - [ ] 2026-10-02: uno STOP senza niente in corso imposta comunque il blocco,
       così il ritorno a casa non avvia niente finché l'utente non chiede
       un lavoro (f36f51b): farlo valere solo quando qualcosa partito da

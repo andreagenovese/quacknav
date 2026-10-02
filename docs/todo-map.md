@@ -4304,6 +4304,18 @@ nothing: it explores and asks.
       `done` (or declared by the user). Found by the stop_and_scan life
       test of 2026-10-02 (boot, "esplora da capo", go_to on the map just
       frozen, reboots elsewhere); fix after it, on a branch of its own.
+- [ ] 2026-10-02: the house's percentage and the session-end rule count
+      unknown OUTSIDE the house when the map's frame is not aligned with
+      it. "Esplora da capo" from the kitchen started a map at the duck's
+      pose, turned ~204° from the house: after two rounds 45.2 m² of floor
+      known (the old complete map: 47.1 m²), but "50 %", "left 44.6 m²",
+      "stuck: the largest unknown piece 16.2 m² is unreachable" — the
+      grid follows the map's axes, its corners lie beyond the walls, and
+      their unknown counts as house. Never seen on the twin's benches,
+      which always start at the origin facing +x. Count only unknown
+      enclosed by the walls (drop pieces that touch the grid's border, or
+      lie outside the walls' closed outline) in `largest_unknown_piece_m2`,
+      `left_m2` and the percentage.
 - [ ] 2026-10-02: a STOP with nothing running still sets the hold, so the
       homecoming starts nothing until the user asks for a job (f36f51b):
       make it hold only when something self-started was moving — the
