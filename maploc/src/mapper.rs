@@ -225,11 +225,13 @@ impl Default for WatchdogConfig {
 /// the head for a watch, the window one sweep long (`watch_window_s`): a
 /// still head saw the twin's duck, turning in place, face a corner the map
 /// could not judge (78 of 895 beams, then 1 of 960) while it slid 13 cm.
-/// A job, motion, a sit or a fall wakes it; so does a watch the map says
-/// has drifted (the stand's windows then correct the pose as ever), and
-/// `doubt_after` watches in a row that contradict the map make the pose
-/// doubtful: lost, as the watchdog makes it, and searched for near where
-/// it was.
+/// A job or walking wakes it; so does a watch the map says has drifted
+/// (the stand's windows then correct the pose as ever). The duck may also
+/// have been carried anywhere: `doubt_after` watches in a row that
+/// contradict the map, a push past a nudge (`PUSH_M`, `PUSH_RAD`), a sit or
+/// a fall make the pose *untrusted* — searched for over the whole map as at
+/// a boot, never resumed unverified, and only once a job asks for it
+/// ([`Mapper::untrusted`]).
 ///
 /// A watch is off when its residual is past `agree_max_m`, or has grown
 /// `drift_residual_m` past the rest's best: drifted when the tracking's
@@ -323,7 +325,16 @@ struct Rest {
     contradictions: u32,
     /// The best agreeing watch's residual: what agreement looks like here.
     baseline: Option<f32>,
+    /// Odometry when the rest began: a push is measured from here.
+    odom: Pose2,
 }
+
+/// A push out of a rest that moves odometry farther than this, or turns it
+/// more, is no nudge: the pose is untrusted (see [`Mapper::distrust`]).
+/// Odometry at a stand moves millimetres, the twin's standing turn 0.1°/s;
+/// a hand that bumps the duck, a few centimetres.
+const PUSH_M: f32 = 0.05;
+const PUSH_RAD: f32 = 0.15;
 
 #[derive(Debug, Clone)]
 pub struct MapperConfig {
@@ -650,10 +661,14 @@ pub enum Note {
     RestBegan { still_s: f32 },
     /// A rest's watch judged a window against the map.
     RestWatched(RestWatch),
-    /// The rest is over after `rested_s`: `why` is "job", "motion", "lost"
-    /// (a sit or a fall), "drift" (a watch: the windows correct the pose
-    /// again) or "doubt" (watches contradicted the map: the pose is lost, as
-    /// the watchdog makes it, and searched for near where it was).
+    /// The duck may have been moved while it rested: the pose is untrusted
+    /// until a search confirms one (see [`Mapper::untrusted`]).
+    Untrusted,
+    /// The rest is over after `rested_s`: `why` is "job", "motion" (walked),
+    /// "pushed" (moved with nobody walking it: past 5 cm or 0.15 rad of
+    /// odometry, untrusted), "lost" (a sit or a fall: untrusted), "drift" (a
+    /// watch: the windows correct the pose again) or "doubt" (watches
+    /// contradicted the map: untrusted).
     RestEnded { rested_s: f32, why: &'static str },
     /// A vetted window matched the pre-stand map and moved the tracked
     /// pose by (dx, dy, dyaw) in the map frame.
@@ -797,6 +812,11 @@ pub struct Mapper {
     /// it a search that could do no better than resume unverified was
     /// asked again every 72 s (the twin, 2026-10-01). Over with the stand.
     doubt_spent: bool,
+    /// The pose is untrusted (see [`Mapper::untrusted`]).
+    untrusted: bool,
+    /// An uncommanded motion out of a rest under way: the odometry pose the
+    /// rest left, to measure the push against.
+    pushed_from: Option<Pose2>,
     /// This stand's watches already woke the windows once on a residual
     /// their own match could not explain; the next such watch counts toward
     /// the doubt. Over with the stand.
@@ -900,28 +920,46 @@ impl Mapper {
     /// on in a house it has mapped before needs — the saved pose is only
     /// right if it was switched on where it was switched off.
     pub fn resumed_lost(cfg: MapperConfig, slam: Slam) -> Self {
-        let shadow_cfg = cfg.clone();
-        let mut cfg = cfg;
-        // The two settings that make a kidnap recoverable are wrong at
-        // boot. `hard_lost_search_radius_m` keeps the search near where the
-        // duck thinks it is — but on a resumed map that is the pose the
-        // previous run ended at, which is exactly what must not be trusted;
-        // search the whole map instead. And giving up means falling back
-        // to that same pose, so do not: keep searching and let the client
-        // decide what to do while the pose is unconfirmed.
-        let after_boot = (cfg.hard_lost_search_radius_m, cfg.lost_give_up_windows);
-        cfg.hard_lost_search_radius_m = 0.0;
-        cfg.lost_give_up_windows = 0;
         let mut mapper = Self::new(cfg, slam);
-        mapper.after_boot = Some(after_boot);
-        mapper.lost = true;
-        mapper.hard_lost = true;
-        mapper.resumed_from_session = true;
-        mapper.booting = true;
+        mapper.search_afresh();
+        mapper
+    }
+
+    /// The pose is nobody's to vouch for: search the whole map as at a
+    /// boot on it. The two settings that make a kidnap recoverable are
+    /// wrong here. `hard_lost_search_radius_m` keeps the search near where
+    /// the duck thinks it is — but that is exactly what must not be
+    /// trusted; search the whole map instead. And giving up means falling
+    /// back to that same pose, so do not: keep searching and let the
+    /// client decide what to do while the pose is unconfirmed. The shadow
+    /// map walks along (see [`Shadow`]); its own mapper inks whatever the
+    /// configuration says of the live map — frozen in localize, where it
+    /// inked nothing and never asked (not once in the twin's localize boots
+    /// of 2026-10-01) — and never rests.
+    fn search_afresh(&mut self) {
+        let mut shadow_cfg = self.cfg.clone();
+        if let Some((radius, give_up)) = self.after_boot {
+            shadow_cfg.hard_lost_search_radius_m = radius;
+            shadow_cfg.lost_give_up_windows = give_up;
+        } else {
+            self.after_boot = Some((self.cfg.hard_lost_search_radius_m, self.cfg.lost_give_up_windows));
+        }
+        shadow_cfg.frozen = false;
+        shadow_cfg.rest.enabled = false;
+        self.cfg.hard_lost_search_radius_m = 0.0;
+        self.cfg.lost_give_up_windows = 0;
+        self.lost = true;
+        self.hard_lost = true;
+        self.resumed_from_session = true;
+        self.booting = true;
+        self.hypotheses.clear();
+        self.valleys.clear();
+        self.lost_windows = 0;
+        self.shadow = None;
         if shadow_enabled()
-            && let Some(saved) = mapper.slam.render()
+            && let Some(saved) = self.slam.render()
         {
-            mapper.shadow = Some(Box::new(Shadow {
+            self.shadow = Some(Box::new(Shadow {
                 fresh: Mapper::new(shadow_cfg, Slam::new(crate::pipeline::SlamConfig::default())),
                 saved,
                 origin: None,
@@ -933,7 +971,22 @@ impl Mapper {
                 agreed_wide: 0,
             }));
         }
-        mapper
+    }
+
+    /// The duck may have been moved anywhere while it rested (see
+    /// [`RestConfig`]): the pose is untrusted until the search, global as
+    /// at a boot, confirms one — "not moved" its first hypothesis, the
+    /// carried pose as the soft seed. Nothing is searched while no job asks
+    /// (see [`Mapper::set_engaged`]): the duck does not wander on its own,
+    /// and the windows of a stand cannot settle it alone; the host walks it
+    /// (quack-nav's homecoming search) when one does.
+    fn distrust(&mut self, notes: &mut Vec<Note>) {
+        if !self.lost {
+            self.arm_suspicion();
+        }
+        self.search_afresh();
+        self.untrusted = true;
+        notes.push(Note::Untrusted);
     }
 
     pub fn new(cfg: MapperConfig, slam: Slam) -> Self {
@@ -960,6 +1013,8 @@ impl Mapper {
             rest: None,
             last_watch: None,
             doubt_spent: false,
+            untrusted: false,
+            pushed_from: None,
             windows_tried: false,
             after_boot: None,
             window_opened: None,
@@ -1047,6 +1102,18 @@ impl Mapper {
     pub fn resting(&self) -> bool {
         self.rest.is_some()
     }
+    /// The duck may have been moved anywhere while it rested — a watch the
+    /// map contradicted, a push past what odometry explains, a sit or a
+    /// fall: the pose is not to be used until a search confirms one, and it
+    /// searches only while a job asks for it (see [`Mapper::distrust`]).
+    pub fn untrusted(&self) -> bool {
+        self.untrusted
+    }
+    /// Is the pose being searched for right now? Lost, and not merely
+    /// untrusted with nothing asking (the host sweeps the head for it).
+    pub fn searching(&self) -> bool {
+        self.lost && (!self.untrusted || self.engaged)
+    }
     /// The last watch a rest made (see [`RestConfig`]).
     pub fn last_watch(&self) -> Option<RestWatch> {
         self.last_watch
@@ -1054,7 +1121,7 @@ impl Mapper {
     /// Would a depth frame at `t_s` be used? Not while resting, but for a
     /// watch's window: the host may spare itself the reprojection.
     pub fn wants_frames(&self, t_s: f32) -> bool {
-        self.rest.is_none_or(|r| r.watching || t_s >= r.next_watch)
+        !(self.untrusted && !self.engaged) && self.rest.is_none_or(|r| r.watching || t_s >= r.next_watch)
     }
     /// A rest's watch is due or filling: the host sweeps the head for it.
     pub fn watch_due(&self, t_s: f32) -> bool {
@@ -1221,7 +1288,7 @@ impl Mapper {
                 Note::SuspectAfterSit
             });
         }
-        self.rest_step(t_s, still, notes);
+        self.rest_step(t_s, still, sample, notes);
 
         // While lost the tracked pose is a guess; freezing submaps or
         // running closures on it would launder the guess into the graph.
@@ -1259,6 +1326,10 @@ impl Mapper {
     /// One reprojected depth frame, already in the body frame. Returns
     /// true when the frame was kept (accumulated or inked).
     pub fn frame(&mut self, t_s: f32, scan: Scan) -> bool {
+        // Untrusted and nothing asking: no search runs (see `distrust`).
+        if self.untrusted && !self.engaged {
+            return false;
+        }
         if self.lost
             && let Some(shadow) = self.shadow.as_mut()
         {
@@ -1310,6 +1381,9 @@ impl Mapper {
         }
 
         if self.lost {
+            if self.untrusted && !self.engaged {
+                return;
+            }
             let Some(mut grid) = self.slam.render() else {
                 return;
             };
@@ -1869,14 +1943,32 @@ impl Mapper {
 
     /// Begin a rest, or end one (see [`RestConfig`]): after the stand's own
     /// bookkeeping, every tick.
-    fn rest_step(&mut self, t_s: f32, still: bool, notes: &mut Vec<Note>) {
-        if self.rest.is_some() {
+    fn rest_step(&mut self, t_s: f32, still: bool, sample: MapperSample, notes: &mut Vec<Note>) {
+        // A push out of a rest: carried on while the body is moved and
+        // nobody walks it. Past what a nudge is, the duck may have been
+        // carried anywhere — a hand that lifts it rarely leaves odometry
+        // that tells where.
+        if let Some(from) = self.pushed_from {
+            let d = between(from, sample.odom);
+            if self.engaged || sample.moving || self.lost {
+                self.pushed_from = None;
+            } else if d.0.hypot(d.1) > PUSH_M || wrap_pi(d.2).abs() > PUSH_RAD {
+                self.pushed_from = None;
+                self.distrust(notes);
+                return;
+            } else if still {
+                self.pushed_from = None;
+            }
+        }
+        if let Some(rest) = self.rest {
             // A sit or a fall armed the suspicion just above: the search's
             // windows are wanted.
             let why = if self.lost {
                 Some("lost")
             } else if self.engaged {
                 Some("job")
+            } else if !still && !sample.moving {
+                Some("pushed")
             } else if !still {
                 Some("motion")
             } else {
@@ -1884,6 +1976,21 @@ impl Mapper {
             };
             if let Some(why) = why {
                 self.wake(t_s, why, notes);
+                match why {
+                    // Seated or fallen while resting: the duck may have
+                    // been picked up.
+                    "lost" => self.distrust(notes),
+                    "pushed" => self.pushed_from = Some(rest.odom),
+                    _ => {}
+                }
+                // ... and a push already past a nudge on its first tick.
+                if why == "pushed" {
+                    let d = between(rest.odom, sample.odom);
+                    if d.0.hypot(d.1) > PUSH_M || wrap_pi(d.2).abs() > PUSH_RAD {
+                        self.pushed_from = None;
+                        self.distrust(notes);
+                    }
+                }
             }
             return;
         }
@@ -1902,7 +2009,7 @@ impl Mapper {
             self.window_opened = None;
             // The first watch at once: the pose was just corrected, and
             // its residual is what agreement looks like at this stand.
-            self.rest = Some(Rest { since: t_s, next_watch: t_s, watching: false, contradictions: 0, baseline: None });
+            self.rest = Some(Rest { since: t_s, next_watch: t_s, watching: false, contradictions: 0, baseline: None, odom: sample.odom });
             notes.push(Note::RestBegan { still_s: t_s - since });
         }
     }
@@ -1936,8 +2043,7 @@ impl Mapper {
     /// tracking's match, neither applied. Agreement, or no judgement, keeps
     /// the rest; a drift wakes it for the windows to correct; contradiction
     /// asks the next window at once, and `doubt_after` in a row make the
-    /// pose doubtful: lost, as the watchdog's two contradicting windows
-    /// make it, and searched for near the carried pose.
+    /// pose untrusted (see [`Mapper::distrust`]).
     fn watch(&mut self, pose: Pose2, composite: &Scan, t_s: f32, notes: &mut Vec<Note>) {
         let wd = self.cfg.watchdog;
         let rc = self.cfg.rest;
@@ -1994,21 +2100,15 @@ impl Mapper {
             Watch::Contradicts => {
                 rest.contradictions += 1;
                 if rest.contradictions >= rc.doubt_after {
-                    // The watchdog's own verdict, as two contradicting
-                    // windows of an awake stand would give it: lost, the
-                    // search kept within `hard_lost_search_radius_m` of the
-                    // carried pose. Not the global search a fall gets: from
-                    // one standing view it confirmed an alias 3.8 m off on
-                    // the replay of the sliding twin (casa_grande,
-                    // 2026-10-01), where the local one stays by the duck.
+                    // The map contradicts where odometry kept the duck:
+                    // it may have been carried anywhere. Not the watchdog's
+                    // search within a metre, which resumes unverified when
+                    // it finds nothing: a silent 0.35 m carry on the twin
+                    // ended 0.47 m off that way, and the `go_to` after it
+                    // arrived 0.48 m off (2026-10-01).
                     self.wake(t_s, "doubt", notes);
                     self.doubt_spent = true;
-                    self.lost = true;
-                    self.hard_lost = true;
-                    self.suspect = 0;
-                    self.pending_reloc = None;
-                    self.last_search = None;
-                    self.lost_windows = 0;
+                    self.distrust(notes);
                 } else {
                     // A passer-by, a lean: the next window says.
                     rest.next_watch = t_s;
@@ -2059,6 +2159,7 @@ impl Mapper {
             self.ink(pose, composite);
         }
         self.lost = false;
+        self.untrusted = false;
         self.suspect = 0;
         self.unjudged = 0;
         self.seed_agreed = 0;
@@ -2812,69 +2913,77 @@ mod tests {
         }
         let woke_at = woke_at.expect("a push wakes the rest");
         assert!(woke_at <= 0.1, "woke {woke_at:.2} s after the push began");
-        assert!(notes.iter().any(|n| matches!(n, Note::RestEnded { why: "motion", .. })), "{notes:?}");
-        // The next stand integrates and is judged as any stand's.
+        assert!(notes.iter().any(|n| matches!(n, Note::RestEnded { why: "pushed", .. })), "{notes:?}");
+        // The next stand integrates and is judged as any stand's: a nudge
+        // leaves the pose trusted.
         let windows = mapper.windows();
         let there = |_: f32| (0.02, 0.0, 0.0);
         stand_until(&mut mapper, &mut t, 8.0, there, there, &mut notes, |_, _| false);
         assert!(mapper.windows() > windows, "windows integrate again after the wake");
+        assert!(mapper.tracking() && !mapper.untrusted());
+        // Rested again, then turned 0.4 rad by a hand: no nudge.
+        assert!(stand_until(&mut mapper, &mut t, 75.0, there, there, &mut notes, |m, _| m.resting()));
+        notes.clear();
+        let t0 = t;
+        let turned = |t: f32| (0.02, 0.0, ((t - t0) * 4.0).min(0.4));
+        while t < t0 + 0.5 {
+            mapper.observe(t, MapperSample { odom: turned(t), moving: false, sitting: false, fallen: false }, &mut notes);
+            t += 0.02;
+        }
+        assert!(mapper.untrusted() && !mapper.tracking(), "{notes:?}");
+        assert!(notes.iter().any(|n| matches!(n, Note::Untrusted)));
     }
 
     /// A duck carried while it rests feels nothing odometry can tell: the
     /// watch sees the map contradict the carried pose, asks the next window
-    /// at once, and two in a row make the pose doubtful — the rest over,
-    /// the pose lost and searched for near where it was, and found where the
-    /// duck now stands.
+    /// at once, and two in a row make the pose untrusted. Nothing is
+    /// searched while no job asks — the duck does not wander, and the head
+    /// stays still — and once one does, the search is the boot's: here the
+    /// duck was set back where it stood, and "not moved", its first
+    /// hypothesis, is confirmed.
     #[test]
-    fn a_carry_at_rest_is_doubted_and_found() {
+    fn a_carry_at_rest_is_untrusted_until_a_job_finds_it() {
         let (mut mapper, mut t, mut notes) = mapped_room();
         let here = |_: f32| (0.0, 0.0, 0.0);
         assert!(stand_until(&mut mapper, &mut t, 75.0, here, here, &mut notes, |m, _| m.resting()));
-        // The first watch, before the carry: the map agrees.
         stand_until(&mut mapper, &mut t, 25.0, here, here, &mut notes, |_, _| false);
         assert_eq!(mapper.last_watch().map(|w| w.verdict), Some(Watch::Agrees));
         // Carried: odometry still reads the origin.
-        // Within the watchdog's search (1 m, 0.6 rad): farther, the search
-        // gives up after `lost_give_up_windows` as an awake stand's does.
         let carried = (0.5, 0.3, 0.4);
         notes.clear();
-        let doubted = stand_until(&mut mapper, &mut t, 30.0, here, |_| carried, &mut notes, |m, _| !m.tracking());
-        assert!(doubted, "{notes:?}");
+        assert!(stand_until(&mut mapper, &mut t, 30.0, here, |_| carried, &mut notes, |m, _| m.untrusted()), "{notes:?}");
         let verdicts: Vec<Watch> = notes.iter().filter_map(|n| if let Note::RestWatched(w) = n { Some(w.verdict) } else { None }).collect();
         assert_eq!(verdicts, vec![Watch::Contradicts, Watch::Contradicts], "two in a row, the second at once");
         assert!(notes.iter().any(|n| matches!(n, Note::RestEnded { why: "doubt", .. })));
-        assert!(!mapper.resting());
-        let mut found = None;
-        stand_until(&mut mapper, &mut t, 40.0, here, |_| carried, &mut notes, |m, _| m.tracking());
-        for n in notes.drain(..) {
-            if let Note::Relocalized { pose, .. } = n {
-                found = Some(pose);
-            }
-        }
-        let pose = found.expect("the search finds the duck where it was carried");
-        assert!((pose.0 - carried.0).hypot(pose.1 - carried.1) < 0.25, "{pose:?}");
-        assert!(wrap_pi(pose.2 - carried.2).abs() < 0.3);
+        assert!(!mapper.tracking() && !mapper.resting());
+        // No job: nothing searched, nothing resumed, however long.
+        notes.clear();
+        let windows = mapper.windows();
+        stand_until(&mut mapper, &mut t, 120.0, here, |_| carried, &mut notes, |_, _| false);
+        assert!(!mapper.searching() && !mapper.wants_frames(t));
+        assert!(mapper.untrusted() && !mapper.tracking());
+        assert_eq!(mapper.windows(), windows);
+        assert!(!notes.iter().any(|n| matches!(n, Note::ResumedUnverified { .. } | Note::Relocalized { .. } | Note::RelocalizeCandidate { .. })), "{notes:?}");
+        // Set back where it stood, and a job asks: found, trusted again.
+        mapper.set_engaged(true);
+        assert!(mapper.searching());
+        let found = stand_until(&mut mapper, &mut t, 60.0, here, here, &mut notes, |m, _| m.tracking());
+        assert!(found, "{notes:?}");
+        assert!(!mapper.untrusted());
+        let p = mapper.slam().tracked();
+        assert!(p.0.hypot(p.1) < 0.1, "{p:?}");
+        assert!(!notes.iter().any(|n| matches!(n, Note::ResumedUnverified { .. })));
     }
 
-    /// Carried past what the search near the pose can find, the doubt ends
-    /// as the watchdog's does, resumed unverified after
-    /// `lost_give_up_windows`; the rests of that stand do not doubt again
-    /// on the same residual, or the search would be asked every minute.
+    /// Seated while resting: picked up, maybe. Untrusted.
     #[test]
-    fn a_doubt_the_search_cannot_settle_is_not_asked_again() {
+    fn a_sit_at_rest_untrusts_the_pose() {
         let (mut mapper, mut t, mut notes) = mapped_room();
         let here = |_: f32| (0.0, 0.0, 0.0);
         assert!(stand_until(&mut mapper, &mut t, 75.0, here, here, &mut notes, |m, _| m.resting()));
-        let far = |_: f32| (-1.0, 0.6, 2.0);
         notes.clear();
-        assert!(stand_until(&mut mapper, &mut t, 30.0, here, far, &mut notes, |m, _| !m.tracking()), "{notes:?}");
-        assert!(notes.iter().any(|n| matches!(n, Note::RestEnded { why: "doubt", .. })));
-        notes.clear();
-        stand_until(&mut mapper, &mut t, 300.0, here, far, &mut notes, |_, _| false);
-        let doubts = notes.iter().filter(|n| matches!(n, Note::RestEnded { why: "doubt", .. })).count();
-        let rests = notes.iter().filter(|n| matches!(n, Note::RestBegan { .. })).count();
-        assert!(rests >= 1, "{notes:?}");
-        assert_eq!(doubts, 0, "doubted again: {notes:?}");
+        mapper.observe(t, MapperSample { odom: here(t), moving: false, sitting: true, fallen: false }, &mut notes);
+        assert!(mapper.untrusted() && !mapper.resting(), "{notes:?}");
     }
 
     /// A watch the map agrees with only a little way off is a drift: the

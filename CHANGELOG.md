@@ -34,7 +34,18 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   awake, even (the mean error 0.057 against 0.088 m on one, 0.046 against
   0.037 on another). quack-navd spends 2.0-2.35 % of a Mac core resting
   against 2.72 % standing awake; the replay, 46 % less CPU. Forty
-  replayed sessions, ATE as before (mean 0.0920 -> 0.0913 m). Details in
+  replayed sessions, ATE as before (mean 0.0920 -> 0.0913 m). The duck
+  may be moved anywhere while it rests: two watches the map contradicts, a
+  push past a nudge (5 cm, 0.15 rad of odometry with nobody walking it), a
+  sit or a fall make the pose `untrusted` — searched over the whole map
+  as at a boot, never resumed unverified, and only when a job asks: a
+  `go_to` or `map_explore` then answers `relocalizing: true`, the
+  homecoming's walk-and-look search finds the pose
+  (`quack-nav/src/relocate.rs`, `explore.state` "relocalizing"), and the
+  job starts once maploc confirms it — or fails with nothing walked
+  toward the goal. On the twin: carried 3.3 m into another room, found in
+  70 s and arrived 0.02 m off; a 0.35 m silent carry, found in 71 s,
+  arrived 0.15 m off. Details in
   [docs/todo-map.md](docs/todo-map.md).
 
 - **Places from a map view**: `robot.list_places` gives each place's `at`
@@ -56,6 +67,9 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Changed
 
+- **The shadow map works in localize** (maploc): its own mapper took the
+  live map's configuration, frozen there, and inked nothing; it is now
+  never frozen and never rests.
 - **A relocalization no longer inks the frozen map** (maploc, localize).
   The window that confirmed a pose was inked while the mapper was still
   lost, so every boot and every recovery added a submap to the saved

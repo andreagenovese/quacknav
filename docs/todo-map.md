@@ -4090,6 +4090,50 @@ nothing: it explores and asks.
       RMS mean 0.1183 -> 0.1169 m, median 0.1098 -> 0.0971, 4 better and 4
       worse by more than 5 mm (worst +3.4 cm, x23-grande s2): noise. Mapping
       mode is untouched (the corpus the same to the byte).
+- [x] 2026-10-02: **a duck moved while it rested finds itself before it
+      sets out** (the user's: it may be moved anywhere without knowing it).
+      Any doubt raised at rest makes the pose *untrusted*
+      (`Mapper::untrusted`): two watches the map contradicts, a push out of
+      the rest past a nudge (odometry 5 cm or 0.15 rad with nobody walking
+      it — a carry turns the twin's IMU heading at once), a sit or a fall.
+      Untrusted is a boot's lost on the live map — the whole map searched,
+      "not moved" the soft seed, the shadow map walking along, nothing
+      resumed unverified — but searched only while a job asks: no window,
+      no reprojection, no sweep while the duck stands with nothing to do.
+      A `go_to` or `map_explore` asked for then answers `relocalizing: true`
+      and hands its call to the relocator (`quack-nav/src/relocate.rs`),
+      which runs the homecoming's walk-and-look search
+      (`homecoming::find_pose`, budget 4 × `boot_search_s`) and replays the
+      call once maploc confirms; `explore.state` is `relocalizing` with
+      "the duck may have been moved: finding where it is first", the goal
+      beside it; not found in the budget, the job fails and nothing walked
+      toward the goal; a stop stops it. A trusted rest starts at once as
+      before. `untrusted` rides `map.frame` and `robot.map_status`. Also: the
+      shadow's own mapper was built with the live map's configuration, so
+      in localize it was frozen, inked nothing and never asked (none of the
+      twin's localize boots); it is now never frozen and never rests. Live
+      (casa_grande, localize, truth every second), the final code: a
+      thirty-minute stand after a `go_to` (the duck turned 66° -> 155° and
+      slid 8 cm): watches agreed, one drift woke the windows at 888 s, error
+      mean 10.0 cm, median 9.6, worst 17.2 (the slide unseen, as awake);
+      (c) a `go_to` from that trusted rest: woken 0.13 s after the call,
+      first window 2.2 s, first step 2.7 s, arrived 76 s later 0.27 m off
+      (it set out 0.17 m off); (a) at cucina the first watch already
+      contradicted the arrival's 0.28 m and a 0.35 m silent carry followed:
+      untrusted at the second watch, 6 s later; the `go_to` relocalized in
+      71 s (6 steps, confirmed 0.05 m off), the journey started 2 s after,
+      arrived 154 s after the call 0.15 m off; (b) carried 3.3 m into
+      another room and turned 86° while resting: untrusted on the same tick
+      (the push), the `go_to` found the pose in 70 s (the shadow's fit at
+      62 s, confirmed at 69 s, 0.02 m off), arrived 161 s after the call
+      0.02 m off. quack-navd 2.2 % of a Mac core resting, 2.0 % untrusted
+      and idle, 6.5 % while the search walked. Corpus with the final code:
+      `MAPLOC_REST=0` the same to the byte as 0fad2c0 (40/40); with the rest
+      ATE mean 0.0920 -> 0.0913 m, 2 better and 4 worse by > 5 mm, no
+      session untrusted (a replay has no job, so an untrusted replay would
+      search no more: none happened). Tests: untrusted until a job, a push
+      and a sit untrusting, the relocator starting the journey only after
+      the confirmation, failing or stopping with nothing started.
 - [ ] 2026-10-01: during a fast spin in place the map pose can stay still
       for up to ~1.5 s, then catch up (x22 casa_arredata: heading 93° off
       for 1.5 s with the position within 5 cm). Seen in every

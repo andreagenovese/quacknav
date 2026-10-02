@@ -52,13 +52,20 @@ fn main() -> anyhow::Result<()> {
     // The head sweep is the navigation's only while the navigation drives.
     if let Some(host) = &mapper {
         let explore = explore.clone();
-        host.set_driving(move || explore.running());
+        // ... and while it finds the pose a job asked for (see `relocate`),
+        // which is also what lets an untrusted mapper search.
+        host.set_driving(move || explore.busy());
     }
     let shutdown = Shutdown { mapper: mapper.clone(), explore, sockets: vec![config.maploc.socket.clone(), config.socket.clone()] };
     if mapper.is_some() {
         save_on_signal(shutdown.clone())?;
     }
     let daemon = Arc::new(Daemon { robot: robot.clone(), knobs_env: config.knobs_env.clone(), shutdown });
+
+    // A job asked for on a pose the mapper no longer trusts (the duck may
+    // have been moved while it rested) finds the pose first, with the
+    // homecoming's search and its budget on a frozen map.
+    quack_nav::relocate::spawn(robot.clone(), config.homecoming.boot_search_s.max(60.0) * 4.0);
 
     // Waking up in a house the duck has mapped before: the daemon's own
     // business now, not the satellite's.

@@ -40,7 +40,18 @@ carta, mai su una papera fisica; i dettagli sono in
   un'altra). quack-navd spende il 2,0-2,35 % di un core del Mac a riposo
   contro il 2,72 % fermo da sveglio; il replay, il 46 % di CPU in meno.
   Quaranta sessioni rigiocate, ATE come prima (media 0,0920 -> 0,0913 m).
-  Dettagli in
+  La papera può essere spostata ovunque mentre si riposa: due guardie
+  contraddette dalla mappa, una spinta oltre un urtino (5 cm, 0,15 rad di
+  odometria senza che nessuno la faccia camminare), una seduta o una caduta
+  rendono la posa `untrusted` — cercata su tutta la mappa come a un avvio,
+  mai ripresa non verificata, e solo quando un lavoro lo chiede: un
+  `go_to` o un `map_explore` risponde allora `relocalizing: true`, la
+  ricerca cammina-e-guarda del ritorno a casa trova la posa
+  (`quack-nav/src/relocate.rs`, `explore.state` "relocalizing"), e il
+  lavoro parte quando maploc la conferma — o fallisce senza aver camminato
+  verso la meta. Sul gemello: portata a 3,3 m in un'altra stanza, trovata
+  in 70 s e arrivata a 0,02 m; un trasporto silenzioso di 0,35 m, trovata
+  in 71 s, arrivata a 0,15 m. Dettagli in
   [docs/todo-map.it.md](docs/todo-map.it.md).
 
 - **Luoghi da una vista della mappa**: `robot.list_places` dà di ogni luogo
@@ -64,6 +75,9 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Modificato
 
+- **La mappa ombra funziona in localize** (maploc): il suo mapper prendeva
+  la configurazione della mappa viva, lì congelata, e non inchiostrava
+  niente; ora non è mai congelato e non si riposa mai.
 - **Una rilocalizzazione non inchiostra più la mappa congelata** (maploc,
   localize). La finestra che confermava una posa veniva inchiostrata
   mentre il mapper era ancora perso, così ogni avvio e ogni recupero

@@ -428,6 +428,8 @@ fn map_status(places: &mut Places) -> Result<Value, String> {
         .and_then(|c| c.snapshot().nearest(Instant::now()));
     let hint = if frame.seated {
         "the duck is seated or fallen: stand it up before mapping (nothing is mapped from the floor)"
+    } else if frame.untrusted {
+        "the duck may have been moved while it rested: the next go_to (or exploration) first walks and looks until it finds where it is, then sets out"
     } else if !frame.tracking {
         "the duck is not sure of its position: keep it standing still and let it look around until it is"
     } else if drop_now.is_some() {
@@ -448,6 +450,8 @@ fn map_status(places: &mut Places) -> Result<Value, String> {
         // against the map now and then (`rest_watch`, null before any).
         "resting": frame.resting,
         "rest_watch": frame.rest_watch,
+        // Maybe moved while it rested: the next job finds the pose first.
+        "untrusted": frame.untrusted,
         "seated": frame.seated,
         "windows": frame.windows,
         "submaps": frame.n_submaps,
@@ -704,6 +708,7 @@ mod tests {
             frozen: false,
             pose_sigma: None,
             resting: false,
+            untrusted: false,
             rest_watch: None,
         }
     }
@@ -1332,11 +1337,11 @@ fn map_explore(robot: &mut Robot, args: &Value) -> Result<Value, String> {
         return map_explore_complete(robot, args);
     }
     if args.get("stop").and_then(Value::as_bool).unwrap_or(false) {
-        let was_running = robot.places.explore.running();
+        let was_running = robot.places.explore.busy();
         robot.places.explore.request_stop();
         return Ok(json!({"stopped": was_running, "explore": robot.places.explore.status().to_json()}));
     }
-    if robot.places.explore.running() {
+    if robot.places.explore.busy() {
         return Ok(json!({"running": true, "explore": robot.places.explore.status().to_json()}));
     }
     // The same preconditions as a mapping step: a map, a standing duck.
@@ -1347,6 +1352,13 @@ fn map_explore(robot: &mut Robot, args: &Value) -> Result<Value, String> {
     let Some(frame) = snapshot.latest.clone() else {
         return Err("no map yet: robotd is unreachable or has not sent a map frame".into());
     };
+    // Moved while it rested, maybe anywhere: found first (see `relocate`).
+    // A new map from nothing needs no pose on the old one.
+    if frame.untrusted && !frame.seated && !args.get("fresh").and_then(Value::as_bool).unwrap_or(false) {
+        quack_duck::body::with_robot(&mut robot.control)?;
+        robot.places.explore.relocalize_then(crate::relocate::Request { tool: "robot.map_explore".into(), args: args.clone(), goal: None })?;
+        return Ok(json!({"started": true, "relocalizing": true, "reason": crate::relocate::REASON}));
+    }
     if snapshot.trusted_pose().is_none() {
         return Err(if frame.seated {
             "the duck is seated or fallen: stand it up first (sit_toggle)".into()
@@ -1580,12 +1592,12 @@ fn library_request(path: &str, method: &str, params: Option<Value>) -> anyhow::R
 /// Walk to a known place, or to a point on the map: `robot.go_to`.
 fn go_to(robot: &mut Robot, args: &Value) -> Result<Value, String> {
     if args.get("stop").and_then(Value::as_bool).unwrap_or(false) {
-        let was_running = robot.places.explore.running();
+        let was_running = robot.places.explore.busy();
         robot.places.explore.request_stop();
         return Ok(json!({"stopped": was_running, "explore": robot.places.explore.status().to_json()}));
     }
-    if robot.places.explore.running() {
-        return Err("the duck is already on its way (or exploring): stop that first".into());
+    if robot.places.explore.busy() {
+        return Err("the duck is already on its way (or exploring, or finding where it is): stop that first".into());
     }
     robot.places.fold();
     let Some(map) = &robot.places.map else {
@@ -1595,7 +1607,9 @@ fn go_to(robot: &mut Robot, args: &Value) -> Result<Value, String> {
     let Some(frame) = snapshot.latest.clone() else {
         return Err("no map yet: robotd is unreachable or has not sent a map frame".into());
     };
-    if snapshot.trusted_pose().is_none() {
+    // Moved while it rested, maybe anywhere: found first (see `relocate`).
+    let untrusted = frame.untrusted && !frame.seated;
+    if snapshot.trusted_pose().is_none() && !untrusted {
         return Err(if frame.seated {
             "the duck is seated or fallen: stand it up first (sit_toggle)".into()
         } else {
@@ -1653,6 +1667,14 @@ fn go_to(robot: &mut Robot, args: &Value) -> Result<Value, String> {
             ((x, y), format!("({x:.2}, {y:.2})"))
         }
     };
+    if untrusted {
+        quack_duck::body::with_robot(&mut robot.control)?;
+        robot.places.explore.relocalize_then(crate::relocate::Request { tool: "robot.go_to".into(), args: args.clone(), goal: Some(goal) })?;
+        return Ok(json!({
+            "started": true, "relocalizing": true, "reason": crate::relocate::REASON,
+            "to": what, "goal": {"x": goal.0, "y": goal.1},
+        }));
+    }
     // Is there a way there at all? Answer now, not after a minute of walking.
     let grid = frame.grid().map_err(|e| e.to_string())?;
     let pose = frame.pose();

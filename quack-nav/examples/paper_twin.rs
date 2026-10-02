@@ -560,6 +560,7 @@ impl PaperTwin {
             frozen: false,
             pose_sigma: None,
             resting: false,
+            untrusted: false,
             rest_watch: None,
         }
     }

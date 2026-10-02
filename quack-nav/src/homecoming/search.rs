@@ -31,6 +31,12 @@ use crate::tools::Robot;
 /// - a dead-reckoned trail of its stands, and a bearing that leads back
 ///   over it counts as that short.
 pub(super) fn confirmed_within(robot: &Arc<Mutex<Robot>>, seconds: f64) -> bool {
+    confirmed_within_or(robot, seconds, &|| false)
+}
+
+/// [`confirmed_within`], given up early when `stop` says so (a job's own
+/// relocalization, which its caller may stop; see `crate::relocate`).
+pub(super) fn confirmed_within_or(robot: &Arc<Mutex<Robot>>, seconds: f64, stop: &dyn Fn() -> bool) -> bool {
     let deadline = Instant::now() + Duration::from_secs_f64(seconds);
     // The frame in hand is the one from BEFORE the load: the map lane
     // learns of a load from the next frame, a second later, and that stale
@@ -60,7 +66,7 @@ pub(super) fn confirmed_within(robot: &Arc<Mutex<Robot>>, seconds: f64) -> bool 
     let mut params = json!({"vx": 0.0, "vyaw": 0.0, "walk_s": 0.0, "stop_s": STAND_S});
     let mut what = "look";
     let mut scanned = false;
-    while Instant::now() < deadline {
+    while Instant::now() < deadline && !stop() {
         steps += 1;
         let began = Instant::now();
         let step = call(robot, "robot.map_step", &params);

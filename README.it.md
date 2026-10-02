@@ -139,7 +139,11 @@ breve:
   svegliano al primo tick (un `go_to`: 0,12 s). In soste di trenta minuti
   sul gemello, la cui papera in piedi gira e scivola da sola, la posa è
   rimasta in media a 5,5-7,9 cm dalla verità, più o meno quanto da
-  sveglia, con meno CPU.
+  sveglia, con meno CPU. Spostata mentre si riposa — una guardia
+  contraddetta dalla mappa, una spinta, una seduta — la posa non è più
+  fidata, e il prossimo `go_to` cammina e guarda finché non trova dov'è
+  prima di partire (portata a 3,3 m in un'altra stanza: trovata in 70 s,
+  arrivata a 2 cm).
 - **Cose per terra**: un cubetto di 7 cm accanto a una gamba cieca
   viene visto e aggirato; sotto i ~9 cm la soglia del pavimento del
   sensore lo perde mentre cammina.

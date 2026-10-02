@@ -134,6 +134,12 @@ pub struct MapFrame {
     /// `RestConfig`). Left out of the wire when false.
     #[serde(default, skip_serializing_if = "std::ops::Not::not")]
     pub resting: bool,
+    /// The duck may have been moved while it rested (a watch the map
+    /// contradicted, a push, a sit or a fall): `tracking` is false, and the
+    /// next job finds the pose first (quack-nav's relocalization). Left out
+    /// of the wire when false.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub untrusted: bool,
     /// The last watch of a rest, since this mapper began.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rest_watch: Option<RestWatchSeen>,
@@ -142,8 +148,7 @@ pub struct MapFrame {
 /// A rest's watch as the frame carries it: one window judged against the
 /// map at the carried pose, nothing applied. `verdict` is `agrees`,
 /// `unjudged`, `drifted` (the rest ended for the windows to correct it) or
-/// `contradicts` (two in a row: the pose doubtful, lost and searched for
-/// near where it was);
+/// `contradicts` (two in a row: the pose untrusted, see `untrusted`);
 /// the residual over the beams the map judged (null when none), how many
 /// of how many, and how far the map would have moved the pose.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -760,6 +765,7 @@ mod tests {
             frozen: false,
             pose_sigma: None,
             resting: false,
+            untrusted: false,
             rest_watch: None,
         }
     }

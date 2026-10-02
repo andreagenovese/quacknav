@@ -61,6 +61,14 @@ use crate::tools::{self, Robot};
 mod search;
 use search::confirmed_within;
 
+/// The boot's walk-and-look search ([`search`]), for a pose the mapper no
+/// longer trusts at all (see `crate::relocate`): stand, look, step where
+/// the sensor sees room, until maploc confirms a pose, `seconds` pass or
+/// `stop` says so. True when confirmed.
+pub fn find_pose(robot: &Arc<Mutex<Robot>>, seconds: f64, stop: &dyn Fn() -> bool) -> bool {
+    search::confirmed_within_or(robot, seconds, stop)
+}
+
 /// How close two asks must agree, in metres, to count as the same answer.
 const AGREE_M: f64 = 0.30;
 

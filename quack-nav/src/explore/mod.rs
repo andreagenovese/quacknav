@@ -268,6 +268,10 @@ const DISTRUST_FAIL: u32 = 6;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum State {
     Idle,
+    /// A job asked for while the pose was untrusted: the duck is finding
+    /// where it is first (see [`crate::relocate`]); the job starts once it
+    /// has.
+    Relocalizing,
     Running,
     Done,
     Stopped,
@@ -278,6 +282,7 @@ impl State {
     pub fn as_str(self) -> &'static str {
         match self {
             State::Idle => "idle",
+            State::Relocalizing => "relocalizing",
             State::Running => "running",
             State::Done => "done",
             State::Stopped => "stopped",
@@ -449,6 +454,9 @@ pub struct ExploreHandle {
     /// registry to hear: the job saves from its own thread, which cannot
     /// reach the registry ([`ExploreHandle::take_saved`]).
     saved: Arc<Mutex<Vec<String>>>,
+    /// Where a job asked for on an untrusted pose goes first (see
+    /// [`crate::relocate`]); none on a job's own idle handle.
+    relocator: Arc<Mutex<Option<std::sync::mpsc::Sender<crate::relocate::Request>>>>,
 }
 
 /// Where the drops of each saved map are kept, and which map is live.
@@ -698,6 +706,61 @@ impl ExploreHandle {
 
     pub fn running(&self) -> bool {
         self.status().state == State::Running
+    }
+
+    /// A job runs, or is finding the pose before it does.
+    pub fn busy(&self) -> bool {
+        matches!(self.status().state, State::Running | State::Relocalizing)
+    }
+
+    /// Was a stop asked for since the last job began?
+    pub fn stop_requested(&self) -> bool {
+        self.stop.load(Ordering::Relaxed)
+    }
+
+    /// Where jobs asked for on an untrusted pose go (quack-navd's
+    /// relocator thread).
+    pub fn set_relocator(&self, tx: std::sync::mpsc::Sender<crate::relocate::Request>) {
+        *self.relocator.lock().expect("relocator poisoned") = Some(tx);
+    }
+
+    /// Hand a job to the relocator: the status says the duck is finding
+    /// where it is, the job's goal (if any) beside it. Refused while a job
+    /// runs, and where there is no relocator.
+    pub fn relocalize_then(&self, request: crate::relocate::Request) -> Result<(), String> {
+        let tx = self.relocator.lock().expect("relocator poisoned").clone().ok_or_else(|| {
+            "the duck may have been moved and is not sure where it is; nothing here can find it (no relocator)".to_string()
+        })?;
+        {
+            let mut s = self.status.lock().expect("explore status poisoned");
+            if matches!(s.state, State::Running | State::Relocalizing) {
+                return Err("the duck is already on its way (or exploring, or finding where it is): stop that first".into());
+            }
+            let _ = ExploreStatus::begin_job(&mut s);
+            s.state = State::Relocalizing;
+            s.reason = Some(crate::relocate::REASON.into());
+            s.goal = request.goal;
+        }
+        self.stop.store(false, Ordering::Relaxed);
+        tx.send(request).map_err(|_| {
+            self.finish(State::Failed, "the relocator is not running".into());
+            "the relocator is not running".to_string()
+        })
+    }
+
+    /// The relocalization is over: confirmed, the status goes back to idle
+    /// for the job to start; otherwise it ends the job as `state`.
+    pub fn relocalized(&self, outcome: Result<(), (State, String)>) {
+        match outcome {
+            Ok(()) => {
+                let mut s = self.status.lock().expect("explore status poisoned");
+                if s.state == State::Relocalizing {
+                    s.state = State::Idle;
+                    s.reason = Some("the pose is confirmed; the job starts".into());
+                }
+            }
+            Err((state, reason)) => self.finish(state, reason),
+        }
     }
 
     pub fn request_stop(&self) {

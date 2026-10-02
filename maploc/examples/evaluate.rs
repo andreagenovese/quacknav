@@ -340,6 +340,7 @@ fn main() {
                 Note::RestBegan { .. } => "rest_began",
                 Note::RestWatched(_) => "rest_watched",
                 Note::RestEnded { .. } => "rest_ended",
+                Note::Untrusted => "untrusted",
             };
             *tally.entry(key).or_insert(0u32) += 1;
             if let Note::WindowIntegrated { mean_residual_m, n_observed, .. } = &note
@@ -557,6 +558,7 @@ fn main() {
                     w.offset_rad.to_degrees()
                 ),
                 Note::RestEnded { rested_s, why } => println!("[{t:7.1}s] rest over after {rested_s:.0} s: {why}"),
+                Note::Untrusted => println!("[{t:7.1}s] pose untrusted: it may have been moved while resting"),
             }
         }
     }

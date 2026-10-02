@@ -42,6 +42,7 @@ pub mod oracle;
 pub mod mapd;
 pub mod passage;
 pub mod places;
+pub mod relocate;
 pub mod sockets;
 pub mod tools;
 

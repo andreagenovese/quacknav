@@ -129,7 +129,11 @@ shape of it:
   a job, a move or a push wakes it on its first tick (a `go_to`: 0.12 s).
   Over thirty-minute stands on the twin, whose standing duck turns and
   slides by itself, the pose stayed 5.5-7.9 cm from the truth on average,
-  about what staying awake gives, for less CPU.
+  about what staying awake gives, for less CPU. Moved while it rested — a
+  watch the map contradicts, a push, a sit — the pose is untrusted, and
+  the next `go_to` walks and looks until it finds where it is before it
+  sets out (carried 3.3 m into another room: found in 70 s, arrived 2 cm
+  off).
 - **Things on the floor**: a 7 cm cube beside a blind leg is seen and
   gone round; under ~9 cm the sensor's own floor threshold loses it
   while walking.

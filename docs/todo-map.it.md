@@ -4375,6 +4375,55 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       4 meglio e 4 peggio di oltre 5 mm (peggiore +3,4 cm, x23-grande s2):
       rumore. La modalità di mappatura non cambia (il corpus identico al
       byte).
+- [x] 2026-10-02: **una papera spostata mentre si riposava ritrova
+      dov'è prima di partire** (dell'utente: può essere spostata ovunque
+      senza saperlo). Ogni dubbio sorto a riposo rende la posa *non fidata*
+      (`Mapper::untrusted`): due guardie contraddette dalla mappa, una spinta
+      fuori dalla sosta oltre un urtino (odometria 5 cm o 0,15 rad senza
+      che nessuno la faccia camminare — un trasporto gira subito l'angolo
+      IMU del gemello), una seduta o una caduta. Non fidata è il perso di un
+      avvio sulla mappa viva — cercata su tutta la mappa, "non spostata" il
+      seme morbido, la mappa ombra che cammina con lei, niente ripreso non
+      verificato — ma cercata solo mentre un lavoro lo chiede: nessuna
+      finestra, nessuna riproiezione, nessuna spazzata mentre la papera sta
+      ferma senza niente da fare. Un `go_to` o un `map_explore` chiesto
+      allora risponde `relocalizing: true` e passa la sua chiamata al
+      rilocalizzatore (`quack-nav/src/relocate.rs`), che fa la ricerca
+      cammina-e-guarda del ritorno a casa (`homecoming::find_pose`, budget
+      4 × `boot_search_s`) e ripete la chiamata quando maploc conferma;
+      `explore.state` è `relocalizing` con "the duck may have been moved:
+      finding where it is first", la meta accanto; non trovata nel budget, il
+      lavoro fallisce e niente ha camminato verso la meta; uno stop la ferma.
+      Una sosta fidata parte subito come prima. `untrusted` viaggia in
+      `map.frame` e `robot.map_status`. Inoltre: il mapper della mappa ombra
+      era costruito con la configurazione della mappa viva, così in localize
+      era congelato, non inchiostrava niente e non chiedeva mai (in nessuno
+      degli avvii in localize del gemello); ora non è mai congelato e non si
+      riposa mai. Dal vivo (casa_grande, localize, verità ogni secondo), il
+      codice finale: una sosta di trenta minuti dopo un `go_to` (la papera
+      ha girato da 66° a 155° ed è scivolata di 8 cm): guardie d'accordo, una
+      deriva ha svegliato le finestre a 888 s, errore medio 10,0 cm, mediana
+      9,6, al peggio 17,2 (lo scivolamento non visto, come da sveglia); (c)
+      un `go_to` da quella sosta fidata: svegliata 0,13 s dopo la chiamata,
+      prima finestra a 2,2 s, primo passo a 2,7 s, arrivata 76 s dopo a
+      0,27 m (era partita a 0,17 m); (a) in cucina la prima guardia
+      contraddiceva già i 0,28 m dell'arrivo ed è seguito un trasporto
+      silenzioso di 0,35 m: non fidata alla seconda guardia, 6 s dopo; il
+      `go_to` si è rilocalizzato in 71 s (6 passi, confermata a 0,05 m), il
+      viaggio è partito 2 s dopo, arrivata 154 s dopo la chiamata a 0,15 m;
+      (b) portata a 3,3 m in un'altra stanza e girata di 86° durante la
+      sosta: non fidata allo stesso tick (la spinta), il `go_to` ha trovato
+      la posa in 70 s (il fit dell'ombra a 62 s, confermata a 69 s, a
+      0,02 m), arrivata 161 s dopo la chiamata a 0,02 m. quack-navd il 2,2 %
+      di un core del Mac a riposo, il 2,0 % non fidata e ferma, il 6,5 %
+      mentre la ricerca camminava. Corpus con il codice finale:
+      `MAPLOC_REST=0` identico al byte a 0fad2c0 (40/40); con la sosta ATE
+      medio 0,0920 -> 0,0913 m, 2 meglio e 4 peggio di oltre 5 mm, nessuna
+      sessione non fidata (un replay non ha lavori, quindi un replay non
+      fidato non cercherebbe più: non è successo). Test: non fidata finché
+      un lavoro non chiede, una spinta e una seduta che tolgono fiducia, il
+      rilocalizzatore che fa partire il viaggio solo dopo la conferma, che
+      fallisce o si ferma senza far partire niente.
 - [ ] 2026-10-01: durante una giravolta veloce sul posto la posa della
       mappa può restare ferma fino a ~1.5 s, poi recuperare (x22
       casa_arredata: angolo sbagliato di 93° per 1.5 s con la posizione

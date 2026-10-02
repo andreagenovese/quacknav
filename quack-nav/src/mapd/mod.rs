@@ -470,7 +470,7 @@ fn worker(
     let mut last_status = Instant::now();
     let (mut n_odom, mut n_frames, mut n_frames_kept) = (0u64, 0u64, 0u64);
 
-    searching.store(!mapper.tracking(), Ordering::Relaxed);
+    searching.store(mapper.searching(), Ordering::Relaxed);
 
     // Blocking recv; the feeds hold senders for the life of the process,
     // so the loop ends on `Shutdown`.
@@ -777,7 +777,7 @@ fn worker(
             unsaved = true;
             render_stale = true;
         }
-        searching.store(!mapper.tracking(), Ordering::Relaxed);
+        searching.store(mapper.searching(), Ordering::Relaxed);
         watching.store(mapper.watch_due(started.elapsed().as_secs_f32()), Ordering::Relaxed);
 
         if last_status.elapsed() >= Duration::from_secs(5) {
@@ -997,17 +997,21 @@ fn log_note(note: Note) {
         }
         Note::RestEnded { rested_s, why } => {
             let what = match why {
-                "doubt" => "the map contradicts the pose: doubtful, lost, searching for it near where it was",
+                "doubt" => "the map contradicts the pose",
                 "drift" => "the pose drifted: the windows correct it again",
                 "job" => "a job drives the body",
-                "motion" => "the body moved",
-                _ => "the pose is suspect (a sit or a fall)",
+                "motion" => "the body walked",
+                "pushed" => "the body was moved with nobody walking it",
+                _ => "the duck sat or fell",
             };
             if why == "doubt" {
                 tracing::warn!(rested_s = format!("{rested_s:.0}"), why, "maploc: rest over — {what}");
             } else {
                 tracing::info!(rested_s = format!("{rested_s:.0}"), why, "maploc: rest over — {what}");
             }
+        }
+        Note::Untrusted => {
+            tracing::warn!("maploc: the duck may have been moved while it rested — the pose is untrusted; the next job finds it first");
         }
         Note::Settled { held, gave_up } => {
             if gave_up {
@@ -1116,6 +1120,7 @@ fn frame_from(mapper: &Mapper, grid: &RenderedGrid, seq: u64, seated: bool, now_
         frozen: mapper.frozen_set(),
         pose_sigma,
         resting: mapper.resting(),
+        untrusted: mapper.untrusted(),
         rest_watch: mapper.last_watch().map(|w| crate::map::RestWatchSeen {
             verdict: w.verdict.as_str().to_string(),
             ago_s: f64::from((now_s - w.at_s).max(0.0)).round(),
