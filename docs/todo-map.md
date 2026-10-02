@@ -4150,9 +4150,9 @@ nothing: it explores and asks.
       sidestep component; not covered: backing up, pure sidesteps (the
       sensor looks forward and down); not judged: turns in place; `off`
       without the guard or a sensor. The reply: `done`, `stopped`,
-      `walked_s`, `cliff_guard`. The explorer's blind legs and the
-      homecoming's pulses use `robot.move` too, so they carry it now; the
-      paper twin's `blind_move` does not model it (gate unchanged). Live,
+      `walked_s`, `cliff_guard`. Callers' moves only (see the entry on x25
+      below): the duck's own legs take `tools::internal_move`; the paper
+      twin's `blind_move` is unguarded too (gate unchanged). Live,
       casa_grande (VIEWER on), the duck facing the living room's hole from
       1.15 m: the first 3 s walked, the second stopped after 1.71 s with
       the trunk 0.56 m short of the rim (walking frames put the edge at
@@ -4268,6 +4268,33 @@ nothing: it explores and asks.
       `explore.self_started` turns true ("I'm looking for where I am — say
       stop to stop me"), and once when `stopped_by_user` holds; or
       quack-navd grows a `nav.take_announcement` like `nav.take_question`.
+- [x] 2026-10-02: **the always-on guard is the callers' alone.** x25
+      (casa_arredata, explore from nothing, move-guards): the explorer's
+      stick legs go through `Body::blind_move`, which was
+      `execute("robot.move")` and so carried the new guard — 17 legs
+      stopped near the corridor's true hole (x 2.0–2.6), often at 0.00 s,
+      four in 20 ms; the explorer was then "sealed in by local obstacles"
+      and "stuck on this spot again and again" (never in x22/x24), then went
+      round a hole at (−0.42, 0.14) that is not there. Now the separation is
+      explicit: the `robot.move` tool, called by a client (nav.call), is
+      `guarded_move`; the duck's own moves — `Body::blind_move` for the
+      explorer, the rim tour and the journeys, `homecoming::blind_move` for
+      the search's pulses and turns — call `tools::internal_move`, the
+      timed move as it was before (stopped only by the user's STOP), and a
+      self-driven or job's call that reaches the tool by name is routed
+      there too. Test: the same hole 0.3 m ahead stops a caller's
+      `robot.move` and neither a job's `blind_move`, nor the tool from the
+      job's robot, nor a self-driven thread's move. Found on the way, not
+      fixed here: the stick ignores `blind_move`'s answer and reads a step
+      that did not move the body as a stall, three of them as a bump, and
+      books an obstacle at the nose (`STALLS_TURN`) — a step that returns
+      at once (refused, robotd lost, the user's hold) loops in milliseconds
+      and books phantom obstacles. The phantom hole's points were not
+      booked by the guard (drops are booked only by `record_drops` at
+      stands; the duck passed x ≈ −0.4 at 08:49, nine minutes before the
+      first stop), so how they came to be is still open.
+- [ ] The stick should read `blind_move`'s answer: a step refused or cut
+      short is not a bump, and it should not be retried without a stand.
 - [ ] 2026-10-01: during a fast spin in place the map pose can stay still
       for up to ~1.5 s, then catch up (x22 casa_arredata: heading 93° off
       for 1.5 s with the position within 5 cm). Seen in every

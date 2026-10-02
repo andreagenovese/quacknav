@@ -511,6 +511,13 @@ fn wipe(robot: &Arc<Mutex<Robot>>) -> Result<(), String> {
     tools::map_library(&socket, crate::map::METHOD_ROBOT_MAP_WIPE, None).map(|_| ())
 }
 
+/// The search's own pulses and turns: the duck's own move, without the
+/// callers' cliff guard (see `tools::internal_move`).
+fn blind_move(robot: &Arc<Mutex<Robot>>, args: &Value) -> Result<Value, String> {
+    let mut robot = robot.lock().expect("robot poisoned");
+    tools::internal_move(&mut robot, args)
+}
+
 /// One tool call on the shared robot. The lock is held for the call and
 /// nothing more: whoever calls in over the daemon's socket wants it too.
 fn call(robot: &Arc<Mutex<Robot>>, name: &str, args: &Value) -> Result<Value, String> {

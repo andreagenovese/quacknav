@@ -26,7 +26,13 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   `"done": true` as before, with `cliff_guard`. Forward moves only — the
   sensor looks forward and down: backing up and sidesteps are `"not
   covered"`, a turn in place `"not judged"`, no sensor `"off"`. The
-  explorer's and the homecoming's own blind moves go through it too. On
+  guard is the callers' alone (nav.call from a client: the voice front
+  end, quack-control, any socket client): the explorer's legs, the
+  homecoming's pulses and steps and the rim tour move through
+  `tools::internal_move`, unguarded as before, with their own guards
+  tuned to approach a rim — given the always-on guard too, an exploration
+  on casa_arredata (x25) had its legs stopped 17 times at the corridor's
+  hole and sealed itself in. On
   the twin (casa_grande): walking at the hole's rim, stopped with the
   trunk 0.56 m short of it and every further forward call refused; nine
   calls over 4 m of open floor, no false stop.

@@ -74,10 +74,9 @@ const NO_GO_RADIUS_M: f64 = 0.20;
 pub trait Body {
     /// `robot.map_step`: a guarded, timed walk, then a stand.
     fn step(&mut self, args: &Value) -> Result<Value, String>;
-    /// `robot.move`: a timed move blind to the map — no wall, book or
-    /// passage guard, the caller's risk — with only the depth sensor's
-    /// cliff guard on it (since 2026-10-02): a hole within 0.4 m in the
-    /// lane ends it early. The paper twin's is blind entirely.
+    /// A blind timed move (no guards — the caller's risk): the robot's is
+    /// `tools::internal_move`, not the callers' `robot.move` with its
+    /// always-on cliff guard; the explorer judges the sensor itself.
     fn blind_move(&mut self, args: &Value) -> Result<Value, String>;
     /// The newest map frame, if any.
     fn frame(&self) -> Option<MapFrame>;
@@ -107,7 +106,8 @@ impl Body for Robot {
         execute("robot.map_step", args, self)
     }
     fn blind_move(&mut self, args: &Value) -> Result<Value, String> {
-        execute("robot.move", args, self)
+        // The duck's own move: not the caller's guarded `robot.move`.
+        crate::tools::internal_move(self, args)
     }
     fn frame(&self) -> Option<MapFrame> {
         let frame = self.places.map.as_ref().and_then(|m| m.snapshot().latest.clone())?;

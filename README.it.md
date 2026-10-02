@@ -433,7 +433,7 @@ del settore.
   e i recuperi in un behavior tree. Qui: Dijkstra, un filo teso, gambe a
   stop-and-go, e recuperi sparsi nell'esploratore. Il libro dei drop è uno
   strato di costmap in tutto tranne che nel nome.
-- **Test.** 179 test che passano e 1 ignorato (2026-10-02). Il gemello di carta gira in CI
+- **Test.** 180 test che passano e 1 ignorato (2026-10-02). Il gemello di carta gira in CI
   come soglia su semi fissi (esplorazione 40 × 1200 s, `go_to` 30;
   `.github/workflows/ci.yml`, `scripts/ci/paper_twin_gate.py`); oltre a
   quello, il comportamento si verifica con giri di ore, non deterministici,

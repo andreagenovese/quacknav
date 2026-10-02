@@ -29,8 +29,13 @@ carta, mai su una papera fisica; i dettagli sono in
   `"done": true` come prima, con `cliff_guard`. Solo in avanti — il
   sensore guarda avanti e in basso: retromarcia e passi laterali sono
   `"not covered"`, una rotazione sul posto `"not judged"`, senza sensore
-  `"off"`. Ci passano anche le mosse cieche dell'esploratore e del
-  ritorno a casa. Sul gemello (casa_grande): camminando verso il bordo del
+  `"off"`. La guardia è solo dei chiamanti (nav.call da un client: il
+  front end vocale, quack-control, qualunque client del socket): le gambe
+  dell'esploratore, gli impulsi e i passi del ritorno a casa e il giro dei
+  bordi si muovono con `tools::internal_move`, senza guardia come prima,
+  con le loro guardie tarate per avvicinarsi a un bordo — con la guardia
+  sempre accesa anche lì, un'esplorazione su casa_arredata (x25) si è vista
+  fermare le gambe 17 volte al buco del corridoio e si è sigillata. Sul gemello (casa_grande): camminando verso il bordo del
   buco, fermata col tronco a 0,56 m dal bordo e ogni altra chiamata in
   avanti rifiutata; nove chiamate su 4 m di pavimento libero, nessuno stop
   falso.

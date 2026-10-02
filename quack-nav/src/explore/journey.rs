@@ -114,8 +114,7 @@ impl Job {
     /// `QK_NO_GUARDS`: every leg, kick and pulse goes through
     /// `robot.move`, blind, and the route check is off — the planner
     /// alone (the frozen map, the books, the margins) brings the duck
-    /// home; `robot.move`'s own cliff guard (a hole within 0.4 m in the
-    /// lane stops the move, since 2026-10-02) stays on. Never while mapping.
+    /// home. Never while mapping.
     pub(super) fn blind(&self) -> bool {
         switch("QK_NO_GUARDS").unwrap_or_else(|| self.frozen_journey())
     }

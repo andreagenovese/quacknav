@@ -389,7 +389,7 @@
    "where": [
     "quack-nav/src/explore/journey.rs"
    ],
-   "doc": "`QK_NO_GUARDS`: every leg, kick and pulse goes through `robot.move`, blind, and the route check is off — the planner alone (the frozen map, the books, the margins) brings the duck home; `robot.move`'s own cliff guard (a …"
+   "doc": "`QK_NO_GUARDS`: every leg, kick and pulse goes through `robot.move`, blind, and the route check is off — the planner alone (the frozen map, the books, the margins) brings the duck home."
   },
   {
    "name": "QK_PULL_DEVIATION_M",

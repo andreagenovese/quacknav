@@ -4442,9 +4442,10 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       retromarcia, i passi laterali puri (il sensore guarda avanti e in
       basso); non giudicate: le rotazioni sul posto; `off` senza guardia o
       senza sensore. La risposta: `done`, `stopped`, `walked_s`,
-      `cliff_guard`. Anche le gambe cieche dell'esploratore e gli impulsi
-      del ritorno a casa passano da `robot.move`, quindi ora ce l'hanno; il
-      `blind_move` del gemello di carta non la modella (gate invariato). Dal
+      `cliff_guard`. Solo le mosse dei chiamanti (vedi la voce su x25 più
+      sotto): le gambe della papera stessa passano da
+      `tools::internal_move`; anche il `blind_move` del gemello di carta è
+      senza guardia (gate invariato). Dal
       vivo, casa_grande (VIEWER on), la papera davanti al buco del soggiorno
       a 1,15 m: i primi 3 s camminati, la seconda fermata dopo 1,71 s col
       tronco a 0,56 m dal bordo (i frame in cammino mettono il bordo a
@@ -4573,6 +4574,36 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       cercando dove sono — dimmi stop per fermarmi"), e una volta quando
       `stopped_by_user` tiene; oppure quack-navd si dota di un
       `nav.take_announcement` come `nav.take_question`.
+- [x] 2026-10-02: **la guardia sempre accesa è solo dei chiamanti.** x25
+      (casa_arredata, esplorazione da zero, move-guards): le gambe a bastone
+      dell'esploratore passano da `Body::blind_move`, che era
+      `execute("robot.move")` e quindi portava la nuova guardia — 17 gambe
+      fermate vicino al buco vero del corridoio (x 2,0–2,6), spesso a 0,00
+      s, quattro in 20 ms; l'esploratore poi "sealed in by local obstacles"
+      e "stuck on this spot again and again" (mai in x22/x24), poi ha fatto
+      il giro di un buco a (−0,42, 0,14) che non c'è. Ora la separazione è
+      esplicita: lo strumento `robot.move`, chiamato da un client
+      (nav.call), è `guarded_move`; le mosse della papera stessa —
+      `Body::blind_move` per l'esploratore, il giro dei bordi e i viaggi,
+      `homecoming::blind_move` per gli impulsi e le rotazioni della ricerca
+      — chiamano `tools::internal_move`, la mossa a tempo com'era prima
+      (fermata solo dallo STOP dell'utente), e una chiamata autonoma o di un
+      lavoro che arriva allo strumento per nome è dirottata lì. Test: lo
+      stesso buco a 0,3 m davanti ferma il `robot.move` di un chiamante e
+      né il `blind_move` di un lavoro, né lo strumento dal robot del lavoro,
+      né la mossa di un thread autonomo. Trovato strada facendo, non
+      sistemato qui: il bastone ignora la risposta di `blind_move` e legge
+      un passo che non ha mosso il corpo come uno stallo, tre come un urto,
+      e mette a registro un ostacolo al naso (`STALLS_TURN`) — un passo che
+      torna subito (rifiutato, robotd perso, il fermo dell'utente) gira in
+      millisecondi e registra ostacoli fantasma. I punti del buco fantasma
+      non li ha registrati la guardia (i dislivelli si registrano solo con
+      `record_drops` nelle soste; la papera è passata per x ≈ −0,4 alle
+      08:49, nove minuti prima del primo stop): come ci siano finiti resta
+      aperto.
+- [ ] Il bastone dovrebbe leggere la risposta di `blind_move`: un passo
+      rifiutato o accorciato non è un urto, e non va ripetuto senza una
+      sosta.
 - [ ] 2026-10-01: durante una giravolta veloce sul posto la posa della
       mappa può restare ferma fino a ~1.5 s, poi recuperare (x22
       casa_arredata: angolo sbagliato di 93° per 1.5 s con la posizione

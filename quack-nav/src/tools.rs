@@ -1264,6 +1264,16 @@ pub fn execute(name: &str, args: &Value, robot: &mut Robot) -> Result<Value, Str
             robot.places.map_started_afresh();
             Ok(wiped)
         }
+        // A caller's `robot.move` — nav.call from a client: the voice
+        // front end, quack-control, any socket client — carries the cliff
+        // guard. The duck's own moves (the explorer's legs, the
+        // homecoming's pulses, the rim tour) take `internal_move`, as they
+        // did before the guard: their own guards are tuned to approach a
+        // rim, and the always-on guard stopped their legs at it in a tight
+        // loop (x25, casa_arredata, 2026-10-02: 17 stops in a session, the
+        // explorer sealed in). A self-driven call that comes this way is
+        // routed there too.
+        "robot.move" if own_motion(robot) => internal_move(robot, args),
         "robot.move" => {
             let obeyed = drive_by_hand(robot)?;
             let params = quack_duck::body::move_params(args);
@@ -1275,6 +1285,26 @@ pub fn execute(name: &str, args: &Value, robot: &mut Robot) -> Result<Value, Str
     }
 }
 
+
+/// The duck's own timed move — the explorer's legs and turns
+/// (`Body::blind_move`), the homecoming's pulses and steps, the rim tour:
+/// blind to the map and to the sensor, as `robot.move` was before
+/// 2026-10-02 (their callers judge the sensor themselves, with margins
+/// tuned to approach a rim). It ends only at the user's stop.
+pub fn internal_move(robot: &mut Robot, args: &Value) -> Result<Value, String> {
+    if robot.places.explore.held() && own_motion(robot) {
+        return Err(HELD.into());
+    }
+    let params = quack_duck::body::move_params(args);
+    let duration = quack_duck::body::number(args, "duration_s").clamp(0.0, quack_duck::body::MAX_MOVE_DURATION_S);
+    let params = quack_duck::body::trimmed(&robot.places.gait, params);
+    let (own, explore) = (own_motion(robot), robot.places.explore.clone());
+    let mut guard = || (own && explore.held()).then(|| HELD.to_string());
+    match quack_duck::body::timed_move_guarded(&mut robot.control, params, duration, None, &mut guard)? {
+        Some(_) => Err(HELD.into()),
+        None => Ok(json!({"done": true, "walked_s": duration})),
+    }
+}
 
 /// `robot.move`'s cliff guard (2026-10-02): a drop's edge the depth
 /// sensor sees in the move's lane, nearer than this, stops the move — the
@@ -1348,7 +1378,7 @@ fn drop_words(d: &crate::cliff::Drop) -> String {
     )
 }
 
-/// `robot.move`: the timed move, with the cliff guard always on. Every
+/// `robot.move` as a caller asks it: the timed move, with the cliff guard always on. Every
 /// tick the guard's newest frames are read; a true hole in the move's lane
 /// within reach ends it (one explicit zero), whatever the pose says and
 /// whether or not there is a map — the sensor sees the hole where the duck
@@ -1356,18 +1386,13 @@ fn drop_words(d: &crate::cliff::Drop) -> String {
 fn guarded_move(robot: &mut Robot, params: proto::MoveParams, duration: f64) -> Result<Value, String> {
     let cliff = robot.places.cliff.clone();
     let cover = MoveCover::of(cliff.as_ref().map(|c| c.snapshot()).as_ref(), &params);
-    let (own, explore) = (own_motion(robot), robot.places.explore.clone());
     let mut guard = || -> Option<String> {
-        if own && explore.held() {
-            return Some(HELD.into());
-        }
         let MoveCover::Ahead(heading) = cover else { return None };
         let status = cliff.as_ref()?.snapshot();
         move_drop_ahead(&status, Instant::now(), heading).map(|d| drop_words(&d))
     };
     let stopped = quack_duck::body::timed_move_guarded(&mut robot.control, params, duration, None, &mut guard)?;
     Ok(match stopped {
-        Some((why, _)) if why == HELD => return Err(HELD.into()),
         Some((why, walked_s)) => {
             tracing::warn!(why, walked_s = format!("{walked_s:.2}"), "robot.move: stopped early by the cliff guard");
             json!({"done": false, "stopped": why, "walked_s": round2(walked_s), "cliff_guard": cover.word()})
@@ -2824,6 +2849,52 @@ mod move_guard_tests {
         assert_eq!(search.join().unwrap().unwrap_err(), HELD);
         assert_eq!(r["stopped"], true, "{r}");
         assert_eq!(r["explore"]["state"], "stopped");
+    }
+
+    /// The always-on guard is the callers' alone: the same hole the sensor
+    /// sees 0.3 m ahead stops a caller's `robot.move`, and does not stop
+    /// the duck's own legs — a job's `Body::blind_move`, or a self-driven
+    /// thread's move (the homecoming, the rim tour) — whose own guards are
+    /// tuned to approach a rim (x25, 2026-10-02).
+    #[test]
+    fn the_ducks_own_legs_are_not_stopped_by_the_callers_guard() {
+        use crate::explore::Body;
+        let (_dir, path, _lines) = fake_robotd();
+        let cliff = crate::cliff::CliffWatch::detached();
+        cliff.push(frame(vec![hole(0.0, 0.30)], true));
+        cliff.push(frame(vec![hole(0.0, 0.29)], true));
+        let robot_with = |explore: crate::explore::ExploreHandle| {
+            let mut r = Robot::detached();
+            r.control = Some(quack_duck::Control::connect(&path).unwrap());
+            r.places.cliff = Some(cliff.clone());
+            r.places.explore = explore;
+            r
+        };
+        // A caller's move: stopped at once.
+        let parent = crate::explore::ExploreHandle::new();
+        let mut caller = robot_with(parent.clone());
+        let r = execute("robot.move", &json!({"vx": 0.3, "duration_s": 0.3}), &mut caller).unwrap();
+        assert_eq!(r["done"], false, "{r}");
+        // A job's leg toward the same hole: walked its time.
+        let mut job = robot_with(parent.child());
+        let r = job.blind_move(&json!({"vx": 0.3, "duration_s": 0.3})).unwrap();
+        assert_eq!(r["done"], true, "{r}");
+        assert!(r.get("cliff_guard").is_none());
+        // ... and through the tool's name from the job's robot.
+        let r = execute("robot.move", &json!({"vx": 0.3, "duration_s": 0.3}), &mut job).unwrap();
+        assert_eq!(r["done"], true, "{r}");
+        // A self-driven thread's move (the homecoming's pulses): walked.
+        let r = std::thread::spawn({
+            let mut own = robot_with(parent.clone());
+            move || {
+                mark_self_driven();
+                execute("robot.move", &json!({"vx": 0.3, "duration_s": 0.3}), &mut own)
+            }
+        })
+        .join()
+        .unwrap()
+        .unwrap();
+        assert_eq!(r["done"], true, "{r}");
     }
 
     /// `robot.move` toward a hole: refused before the first step when the

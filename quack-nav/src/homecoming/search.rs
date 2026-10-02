@@ -9,7 +9,7 @@ use std::time::{Duration, Instant};
 
 use serde_json::{Value, json};
 
-use super::call;
+use super::{blind_move, call};
 use crate::cliff::CliffStatus;
 use crate::tools::Robot;
 
@@ -196,7 +196,7 @@ pub(super) fn confirmed_within_or(robot: &Arc<Mutex<Robot>>, seconds: f64, stop:
                     turns_stuck = if turned < 0.1 { turns_stuck + 1 } else { 0 };
                     if turns_stuck >= 3 && drop_ahead {
                         tracing::info!(turns_stuck, "homecoming: the turn beside a drop ahead moved nothing three times; a step back from it, blind");
-                        let _ = call(robot, "robot.move", &json!({"vx": -0.3, "vyaw": 0.5, "duration_s": 1.5}));
+                        let _ = blind_move(robot, &json!({"vx": -0.3, "vyaw": 0.5, "duration_s": 1.5}));
                         turns_stuck = 0;
                     }
                     params = json!({"vx": 0.0, "vyaw": 0.0, "walk_s": 0.0, "stop_s": STAND_S});
@@ -256,9 +256,9 @@ pub(super) fn confirmed_within_or(robot: &Arc<Mutex<Robot>>, seconds: f64, stop:
                 let behind_is_trail = BEHIND_IS_TRAIL.with(|b| b.get()) && !drop_seen_now;
                 if wedged {
                     tracing::info!(boxed, side_free = format!("{side_free:.2}"), "homecoming: wedged — the backing moved nothing; a walking kick with the yaw toward the looked, free side");
-                    let _ = call(robot, "robot.move", &json!({"vx": 0.3, "vyaw": turn, "duration_s": 1.0}));
+                    let _ = blind_move(robot, &json!({"vx": 0.3, "vyaw": turn, "duration_s": 1.0}));
                 } else if boxed >= 2 && !drop_in_view && behind_is_trail {
-                    let _ = call(robot, "robot.move", &json!({"vx": -0.3, "vyaw": 0.6, "duration_s": 2.5}));
+                    let _ = blind_move(robot, &json!({"vx": -0.3, "vyaw": 0.6, "duration_s": 2.5}));
                 }
                 let _ = turn_to(robot, turn * 2.0, ahead);
                 params = json!({"vx": 0.0, "vyaw": 0.0, "walk_s": 0.0, "stop_s": STAND_S});
@@ -449,7 +449,7 @@ fn turn_to(robot: &Arc<Mutex<Robot>>, bearing: f64, ahead: f64) -> f64 {
         // No room for the kick (bed2: 0.22 m ahead, refused, and yaw
         // alone from standstill turned 0°): a step back, blind — nothing
         // is in view that could be fallen into — then the kick again.
-        let _ = call(robot, "robot.move", &json!({"vx": -0.3, "vyaw": 0.5, "duration_s": 1.5}));
+        let _ = blind_move(robot, &json!({"vx": -0.3, "vyaw": 0.5, "duration_s": 1.5}));
         std::thread::sleep(Duration::from_millis(800));
         kicked = call(robot, "robot.map_step", &json!({"vx": 0.3, "vyaw": 0.7, "walk_s": BOOT_KICK_S, "stop_s": 0.0})).is_ok();
     }
@@ -463,7 +463,7 @@ fn turn_to(robot: &Arc<Mutex<Robot>>, bearing: f64, ahead: f64) -> f64 {
     let budget = Duration::from_secs_f64((want / 0.4).clamp(2.0, 20.0));
     let mut turned = 0.0_f64;
     while started.elapsed() < budget {
-        let _ = call(robot, "robot.move", &json!({"vx": 0.0, "vyaw": 0.7, "duration_s": 0.25}));
+        let _ = blind_move(robot, &json!({"vx": 0.0, "vyaw": 0.7, "duration_s": 0.25}));
         if let Some(y) = odom_yaw(robot) {
             // Unwrapped: a turn past π keeps counting.
             let d = (y - yaw0).sin().atan2((y - yaw0).cos());
@@ -603,7 +603,7 @@ fn pure_turn(robot: &Arc<Mutex<Robot>>, sign: f64, want: f64) -> Option<f64> {
     let budget = Duration::from_secs_f64(2.0 * want / 0.5 + 1.0);
     let mut turned = 0.0_f64;
     while started.elapsed() < budget {
-        let _ = call(robot, "robot.move", &json!({"vx": 0.0, "vyaw": quack_duck::body::TURN_IN_PLACE_RAD_S * sign.signum(), "duration_s": 0.15}));
+        let _ = blind_move(robot, &json!({"vx": 0.0, "vyaw": quack_duck::body::TURN_IN_PLACE_RAD_S * sign.signum(), "duration_s": 0.15}));
         if let Some(y) = odom_yaw(robot) {
             turned = (y - yaw0).sin().atan2((y - yaw0).cos()) * sign.signum();
             if turned >= goal {
@@ -633,7 +633,7 @@ fn turn_in_place(robot: &Arc<Mutex<Robot>>, sign: f64, want: f64, ahead: f64, at
         // Blind: the guard judges nothing walked backwards (look7: a
         // map_step with vx −0.3 did nothing, wedged on a door post for
         // three minutes). The gait backs only with +yaw, 6–10 cm in 1.5 s.
-        return call(robot, "robot.move", &json!({"vx": -0.3, "vyaw": 0.5, "duration_s": 1.5}))
+        return blind_move(robot, &json!({"vx": -0.3, "vyaw": 0.5, "duration_s": 1.5}))
             .and_then(|_| call(robot, "robot.map_step", &json!({"vx": 0.0, "vyaw": 0.0, "walk_s": 0.0, "stop_s": 3.0})));
     }
     if ahead >= 0.45 {
@@ -653,7 +653,7 @@ fn turn_in_place(robot: &Arc<Mutex<Robot>>, sign: f64, want: f64, ahead: f64, at
     // the rest.
     while pulses < PULSES_MAX && turned < want - 0.25 {
         pulses += 1;
-        call(robot, "robot.move", &json!({"vx": -0.3, "vyaw": 0.7 * sign.signum(), "duration_s": PULSE_S}))?;
+        blind_move(robot, &json!({"vx": -0.3, "vyaw": 0.7 * sign.signum(), "duration_s": PULSE_S}))?;
         std::thread::sleep(Duration::from_secs_f64(PULSE_PAUSE_S));
         if let (Some(a), Some(b)) = (start, yaw_now()) {
             turned = ((b - a).sin().atan2((b - a).cos()) * sign.signum()).max(0.0);
