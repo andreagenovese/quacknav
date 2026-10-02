@@ -4604,6 +4604,17 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
 - [ ] Il bastone dovrebbe leggere la risposta di `blind_move`: un passo
       rifiutato o accorciato non è un urto, e non va ripetuto senza una
       sosta.
+- [ ] 2026-10-02: una casa dichiarata completa non viene congelata dopo
+      un'accensione in `stop_and_scan` (il default della papera): il
+      ritorno a casa conferma la posa sulla mappa salvata e naviga, ma
+      maploc continua a disegnarci (casa_grande 627 → 630 sottomappe,
+      "still window integrated" mentre naviga soltanto). `localize`
+      congela la mappa caricata appena la posa è confermata;
+      `stop_and_scan` deve fare lo stesso quando la casa della mappa è
+      `done` (o dichiarata dall'utente). Trovato dalla prova della vita in
+      stop_and_scan del 2026-10-02 (accensione, "esplora da capo", go_to
+      sulla mappa appena congelata, riaccensioni altrove); da correggere
+      dopo, su un branch a parte.
 - [ ] 2026-10-02: uno STOP senza niente in corso imposta comunque il blocco,
       così il ritorno a casa non avvia niente finché l'utente non chiede
       un lavoro (f36f51b): farlo valere solo quando qualcosa partito da

@@ -4295,6 +4295,15 @@ nothing: it explores and asks.
       first stop), so how they came to be is still open.
 - [ ] The stick should read `blind_move`'s answer: a step refused or cut
       short is not a bump, and it should not be retried without a stand.
+- [ ] 2026-10-02: a house declared done is not frozen after a power-on
+      in `stop_and_scan` (the duck's default): the homecoming confirms the
+      pose on the saved map and navigates, but maploc keeps inking it
+      (casa_grande 627 → 630 submaps, "still window integrated" while
+      only navigating). `localize` freezes the loaded map once the pose is
+      confirmed; `stop_and_scan` must do the same when the map's house is
+      `done` (or declared by the user). Found by the stop_and_scan life
+      test of 2026-10-02 (boot, "esplora da capo", go_to on the map just
+      frozen, reboots elsewhere); fix after it, on a branch of its own.
 - [ ] 2026-10-02: a STOP with nothing running still sets the hold, so the
       homecoming starts nothing until the user asks for a job (f36f51b):
       make it hold only when something self-started was moving — the
