@@ -138,5 +138,6 @@ del processo.
 | `UNC_XY` | numero (default u.xy_var_per_m.sqrt()) | `maploc/examples/trajectory.rs` |  |
 | `UNC_YAW_M` | numero (default u.yaw_var_per_m.sqrt()) | `maploc/examples/trajectory.rs` |  |
 | `UNC_YAW_RAD` | numero (default u.yaw_var_per_rad.sqrt()) | `maploc/examples/trajectory.rs` |  |
+| `WAKE_MODE` | un valore (script) | `scripts/twin/houses/wake_bench.py` |  |
 | `WAKE_SPAWNS` | un valore (script) | `scripts/twin/houses/wake_bench.py` |  |
 | `WAKE_TURN` | un valore (script) | `scripts/twin/houses/wake_bench.py` |  |

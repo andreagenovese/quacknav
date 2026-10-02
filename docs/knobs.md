@@ -136,5 +136,6 @@ Every knob needs that restart: the environment is read at the process's start.
 | `UNC_XY` | number (default u.xy_var_per_m.sqrt()) | `maploc/examples/trajectory.rs` |  |
 | `UNC_YAW_M` | number (default u.yaw_var_per_m.sqrt()) | `maploc/examples/trajectory.rs` |  |
 | `UNC_YAW_RAD` | number (default u.yaw_var_per_rad.sqrt()) | `maploc/examples/trajectory.rs` |  |
+| `WAKE_MODE` | a value (script) | `scripts/twin/houses/wake_bench.py` |  |
 | `WAKE_SPAWNS` | a value (script) | `scripts/twin/houses/wake_bench.py` |  |
 | `WAKE_TURN` | a value (script) | `scripts/twin/houses/wake_bench.py` |  |
