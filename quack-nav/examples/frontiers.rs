@@ -7,7 +7,8 @@
 //!
 //! The file is what `sim-maploc/mapdump.py` (or any `robot.map` client)
 //! saves: either the frame object itself or `{"frame": {...}}`. Prints the
-//! grid's make-up, the raw frontier cells, the groups and which of them
+//! grid's make-up, the raw frontier cells, the house's progress as a
+//! session's end reads it (`explore::explored_share`), the groups and which of them
 //! are reachable from the frame's own pose — the numbers to look at when
 //! "map everything" says it is done and the room says otherwise.
 
@@ -66,6 +67,16 @@ fn main() -> anyhow::Result<()> {
         }
     }
     println!("raw frontier cells: {raw} (groups need at least {MIN_FRONTIER_CELLS})");
+    // The house's progress as a session's end reads it.
+    let (share, known, open) = quack_nav::explore::explored_share(&grid);
+    let cell2 = grid.cell_m * grid.cell_m;
+    println!(
+        "progress: {:.0} %, known floor {:.1} m², left {:.1} m², largest unknown piece {:.1} m²",
+        share * 100.0,
+        known as f64 * cell2,
+        open as f64 * cell2,
+        quack_nav::explore::largest_unknown_piece_m2(&grid)
+    );
     if !walls.is_empty() {
         println!("local obstacles: {walls:?}");
     }

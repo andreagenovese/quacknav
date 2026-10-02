@@ -152,6 +152,19 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Fixed
 
+- **A map turned from the house no longer counts the unknown beyond its
+  walls.** The house's percentage, `left_m2` and the session end's
+  largest unknown piece counted the unknown inside the walls' box on the
+  map's own axes; a map started where the duck stood is turned as the
+  duck was, and the box took in the grid's corners beyond the walls,
+  joined to the house through any gap. "Esplora da capo" from the kitchen
+  (a map ~200° from the house) read 55 %, 37.9 m² left and "stuck" on a
+  15.4 m² piece. The box is now turned to the walls (the turn that lines
+  the wall cells up best; the map's axes kept while they line them up
+  within 90 %), a turned one trimmed a cell a side: the same map reads
+  83 %, 9.5 m², 2.2 m² (the house's aligned map: 80 %, 11.6, 2.7), and
+  both turned 15–290° on paper 82–83 %. Aligned maps are unchanged to the
+  cell (the 19 of x24 and x26, the paper twin's gate).
 - **A standing duck's pose no longer creeps along a wall.** At a stand,
   every still window's tracking correction took the last window's answer
   as its prior, so corrections of a centimetre added up along a direction

@@ -1102,42 +1102,131 @@ pub struct Session {
     pub battery_min_pct: f64,
 }
 
-/// A session's progress: its share of floor the map knows against the
-/// floor it knows plus the unknown still reachable from a frontier inside
-/// the map's walls. Unknown pockets walled in on every side (the inside
-/// of a sofa, a box) are not left to explore, and are not counted.
-/// The largest piece of unknown, in m², that touches known floor within
-/// the walls' box: under a bed, inside a hole — or a room not seen yet.
-pub(crate) fn largest_unknown_piece_m2(grid: &Grid) -> f64 {
-    let (rows, cols) = (grid.rows, grid.cols);
-    let (mut r0, mut r1, mut c0, mut c1) = (rows, 0, cols, 0);
-    for r in 0..rows {
-        for c in 0..cols {
-            if grid.cell(r, c) == Some(Cell::Wall) {
-                r0 = r0.min(r); r1 = r1.max(r); c0 = c0.min(c); c1 = c1.max(c);
-            }
+/// The house as the walls draw it: the cells inside the box, turned to
+/// the walls, that holds every wall cell — the region where unknown counts
+/// as house. A map started where the duck stood is turned as the duck
+/// was, and a box on the map's own axes took in the corners beyond the
+/// walls (casa_grande from the kitchen, 2026-10-02: a map ~200° from the
+/// house read 55 %, 37.9 m² left and a 15.4 m² piece, where the house on
+/// its own axes read 80 %, 11.6 m² and 2.7 m²).
+///
+/// The turn is the one that lines the wall cells up best — the most cells
+/// sharing a row or a column of the turned grid ([`wall_turn`]). The map's
+/// own axes are kept while they line the walls up within [`AXES_LINED`] of
+/// that turn: an aligned house keeps its box to the cell (every map of
+/// x24 and x26, 0.93–1.00; casa_grande from the kitchen 0.49, and the same
+/// map turned 2.3° from its walls 0.76, a wedge of 6.1 m² on the axes). A turned box is
+/// trimmed by [`BOX_TURN_TRIM`] cells on every side: a slanting wall is a
+/// staircase of cells, and between its steps and the box's edge runs a
+/// strip of unknown beyond the wall, a cell wide down the whole side,
+/// which joined the house's own pieces through any gap (the old map turned
+/// 30° on the paper: a 4.3 m² piece untrimmed, 2.4 trimmed, 2.7 aligned).
+/// `None` without a wall.
+pub fn walls_box(grid: &Grid) -> Option<Vec<bool>> {
+    let walls: Vec<(f64, f64)> = (0..grid.rows)
+        .flat_map(|r| (0..grid.cols).map(move |c| (r, c)))
+        .filter(|&(r, c)| grid.cell(r, c) == Some(Cell::Wall))
+        .map(|(r, c)| (r as f64, c as f64))
+        .collect();
+    if walls.is_empty() {
+        return None;
+    }
+    // The walls' extent along a turn of `t`: (u0, u1, v0, v1), in cells.
+    let extent = |t: f64| {
+        let (sn, cs) = t.sin_cos();
+        walls.iter().fold((f64::MAX, f64::MIN, f64::MAX, f64::MIN), |(u0, u1, v0, v1), &(r, c)| {
+            let (u, v) = (c * cs + r * sn, r * cs - c * sn);
+            (u0.min(u), u1.max(u), v0.min(v), v1.max(v))
+        })
+    };
+    let (turn, lined) = wall_turn(&walls);
+    let (t, trim) = if lined_up(&walls, 0.0) < lined * AXES_LINED { (turn, BOX_TURN_TRIM) } else { (0.0, 0.0) };
+    let (u0, u1, v0, v1) = extent(t);
+    let (sn, cs) = t.sin_cos();
+    const EPS: f64 = 1e-6;
+    let mut inside = vec![false; grid.rows * grid.cols];
+    for r in 0..grid.rows {
+        for c in 0..grid.cols {
+            let (rf, cf) = (r as f64, c as f64);
+            let (u, v) = (cf * cs + rf * sn, rf * cs - cf * sn);
+            inside[r * grid.cols + c] =
+                u >= u0 + trim - EPS && u <= u1 - trim + EPS && v >= v0 + trim - EPS && v <= v1 - trim + EPS;
         }
     }
-    if r0 > r1 {
-        return 0.0;
+    Some(inside)
+}
+
+/// How well the wall cells line up on a grid turned by `t`: the sum of the
+/// squared counts of cells per row and per column, largest when the walls
+/// run along its rows and columns.
+fn lined_up(walls: &[(f64, f64)], t: f64) -> f64 {
+    let (sn, cs) = t.sin_cos();
+    let (us, vs): (Vec<f64>, Vec<f64>) = walls.iter().map(|&(r, c)| (c * cs + r * sn, r * cs - c * sn)).unzip();
+    let mut lined = 0.0;
+    for xs in [us, vs] {
+        let lo = xs.iter().copied().fold(f64::MAX, f64::min);
+        let mut bins = std::collections::HashMap::<i64, f64>::new();
+        for x in xs {
+            *bins.entry((x - lo).floor() as i64).or_default() += 1.0;
+        }
+        lined += bins.values().map(|n| n * n).sum::<f64>();
     }
-    let mut seen = vec![false; rows * cols];
+    lined
+}
+
+/// The turn, in [0, π/2), that lines the wall cells up best, and how well
+/// ([`lined_up`]): half a degree over the quarter circle, then a twentieth
+/// around the best.
+fn wall_turn(walls: &[(f64, f64)]) -> (f64, f64) {
+    let best = |ts: &mut dyn Iterator<Item = f64>| {
+        ts.map(|t| (lined_up(walls, t), t)).fold((f64::MIN, 0.0), |b, x| if x.0 > b.0 { x } else { b })
+    };
+    let quarter = std::f64::consts::FRAC_PI_2;
+    let coarse = best(&mut (0..180).map(|k| quarter * k as f64 / 180.0)).1;
+    let step = 0.05_f64.to_radians();
+    let (lined, turn) = best(&mut (-10..=10).map(|k| (coarse + step * k as f64).rem_euclid(quarter)));
+    (turn, lined)
+}
+
+/// The share of the best turn's lining-up the map's own axes must reach to
+/// be kept (see [`walls_box`]).
+const AXES_LINED: f64 = 0.9;
+/// Cells trimmed off every side of a turned box (see [`walls_box`]).
+const BOX_TURN_TRIM: f64 = 1.0;
+
+/// The four neighbours of a cell inside the box, as indices.
+fn box_neighbours(grid: &Grid, inside: &[bool], r: usize, c: usize) -> impl Iterator<Item = (usize, usize)> {
+    let (rows, cols) = (grid.rows as i64, grid.cols as i64);
+    [(-1i64, 0i64), (1, 0), (0, -1), (0, 1)].into_iter().filter_map(move |(dr, dc)| {
+        let (a, b) = (r as i64 + dr, c as i64 + dc);
+        (a >= 0 && b >= 0 && a < rows && b < cols && inside[a as usize * cols as usize + b as usize]).then_some((a as usize, b as usize))
+    })
+}
+
+/// A session's progress: its share of floor the map knows against the
+/// floor it knows plus the unknown still reachable from a frontier inside
+/// the map's walls ([`walls_box`]). Unknown pockets walled in on every
+/// side (the inside of a sofa, a box) are not left to explore, and are not
+/// counted.
+/// The largest piece of unknown, in m², that touches known floor within
+/// the walls' box: under a bed, inside a hole — or a room not seen yet.
+pub fn largest_unknown_piece_m2(grid: &Grid) -> f64 {
+    let cols = grid.cols;
+    let Some(inside) = walls_box(grid) else {
+        return 0.0;
+    };
+    let mut seen = vec![false; grid.rows * cols];
     let mut best = 0usize;
-    for r in r0..=r1 {
-        for c in c0..=c1 {
-            if seen[r * cols + c] || grid.cell(r, c) != Some(Cell::Unknown) {
+    for r in 0..grid.rows {
+        for c in 0..cols {
+            if !inside[r * cols + c] || seen[r * cols + c] || grid.cell(r, c) != Some(Cell::Unknown) {
                 continue;
             }
             seen[r * cols + c] = true;
             let (mut stack, mut n, mut touches) = (vec![(r, c)], 0usize, false);
             while let Some((rr, cc)) = stack.pop() {
                 n += 1;
-                for (dr, dc) in [(-1i64, 0i64), (1, 0), (0, -1), (0, 1)] {
-                    let (a, b) = (rr as i64 + dr, cc as i64 + dc);
-                    if a < r0 as i64 || b < c0 as i64 || a > r1 as i64 || b > c1 as i64 {
-                        continue;
-                    }
-                    let (a, b) = (a as usize, b as usize);
+                for (a, b) in box_neighbours(grid, &inside, rr, cc) {
                     match grid.cell(a, b) {
                         Some(Cell::Free) => touches = true,
                         Some(Cell::Unknown) if !seen[a * cols + b] => {
@@ -1156,37 +1245,24 @@ pub(crate) fn largest_unknown_piece_m2(grid: &Grid) -> f64 {
     best as f64 * grid.cell_m * grid.cell_m
 }
 
-pub(crate) fn explored_share(grid: &Grid) -> (f64, usize, usize) {
-    let (rows, cols) = (grid.rows, grid.cols);
-    let (mut r0, mut r1, mut c0, mut c1) = (rows, 0, cols, 0);
-    for r in 0..rows {
-        for c in 0..cols {
-            if grid.cell(r, c) == Some(Cell::Wall) {
-                r0 = r0.min(r); r1 = r1.max(r); c0 = c0.min(c); c1 = c1.max(c);
-            }
-        }
-    }
+pub fn explored_share(grid: &Grid) -> (f64, usize, usize) {
+    let cols = grid.cols;
     let free = grid.counts().1;
-    if r0 > r1 {
+    let Some(inside) = walls_box(grid) else {
         return (0.0, free, 0);
-    }
+    };
     // Unknown cells within the walls' box, reached from a frontier cell.
-    let mut seen = vec![false; rows * cols];
+    let mut seen = vec![false; grid.rows * cols];
     let mut stack = Vec::new();
-    for r in r0..=r1 {
-        for c in c0..=c1 {
-            if grid.cell(r, c) != Some(Cell::Free) {
+    for r in 0..grid.rows {
+        for c in 0..cols {
+            if !inside[r * cols + c] || grid.cell(r, c) != Some(Cell::Free) {
                 continue;
             }
-            for (dr, dc) in [(-1i64, 0i64), (1, 0), (0, -1), (0, 1)] {
-                let (rr, cc) = (r as i64 + dr, c as i64 + dc);
-                if rr < r0 as i64 || cc < c0 as i64 || rr > r1 as i64 || cc > c1 as i64 {
-                    continue;
-                }
-                let i = rr as usize * cols + cc as usize;
-                if grid.cell(rr as usize, cc as usize) == Some(Cell::Unknown) && !seen[i] {
-                    seen[i] = true;
-                    stack.push((rr as usize, cc as usize));
+            for (a, b) in box_neighbours(grid, &inside, r, c) {
+                if grid.cell(a, b) == Some(Cell::Unknown) && !seen[a * cols + b] {
+                    seen[a * cols + b] = true;
+                    stack.push((a, b));
                 }
             }
         }
@@ -1194,15 +1270,10 @@ pub(crate) fn explored_share(grid: &Grid) -> (f64, usize, usize) {
     let mut open = 0usize;
     while let Some((r, c)) = stack.pop() {
         open += 1;
-        for (dr, dc) in [(-1i64, 0i64), (1, 0), (0, -1), (0, 1)] {
-            let (rr, cc) = (r as i64 + dr, c as i64 + dc);
-            if rr < r0 as i64 || cc < c0 as i64 || rr > r1 as i64 || cc > c1 as i64 {
-                continue;
-            }
-            let i = rr as usize * cols + cc as usize;
-            if grid.cell(rr as usize, cc as usize) == Some(Cell::Unknown) && !seen[i] {
-                seen[i] = true;
-                stack.push((rr as usize, cc as usize));
+        for (a, b) in box_neighbours(grid, &inside, r, c) {
+            if grid.cell(a, b) == Some(Cell::Unknown) && !seen[a * cols + b] {
+                seen[a * cols + b] = true;
+                stack.push((a, b));
             }
         }
     }
@@ -2125,6 +2196,79 @@ mod tests {
         }
         let g = Grid { rows, cols, x_min: 0.0, y_min: 0.0, cell_m: 0.05, cells };
         assert!(largest_unknown_piece_m2(&g) > DONE_PIECE_M2);
+    }
+
+    /// A 6 × 4 m house of two rooms joined by a door, drawn on a 12 × 12 m
+    /// grid turned `deg` from the house: room A seen (free, a bed's unknown
+    /// footprint in it), room B seen or not (its walls seen either way),
+    /// the outer wall with a 0.6 m gap or not, and unknown outside.
+    fn house(deg: f64, b_seen: bool, gap: bool) -> Grid {
+        let (cell, n) = (0.05, 240);
+        let (sn, cs) = deg.to_radians().sin_cos();
+        let mut cells = vec![Cell::Unknown; n * n];
+        for r in 0..n {
+            for c in 0..n {
+                // The cell's centre about the grid's, turned back to the house.
+                let (x, y) = ((c as f64 + 0.5) * cell - 6.0, (r as f64 + 0.5) * cell - 6.0);
+                let (hx, hy) = (x * cs + y * sn + 3.0, -x * sn + y * cs + 2.0);
+                let w = 0.075;
+                if !(-w..=6.0 + w).contains(&hx) || !(-w..=4.0 + w).contains(&hy) {
+                    continue;
+                }
+                let outer = hx < w || hx > 6.0 - w || hy < w || hy > 4.0 - w;
+                let gap_here = gap && hy < w && (1.0..1.6).contains(&hx);
+                let door = (1.5..2.3).contains(&hy);
+                cells[r * n + c] = if outer && !gap_here || (hx - 3.5).abs() < w && !door {
+                    Cell::Wall
+                } else if outer {
+                    Cell::Unknown
+                } else if hx < 3.5 && (0.5..1.5).contains(&hx) && (2.0..3.5).contains(&hy) {
+                    Cell::Unknown
+                } else if hx < 3.5 || b_seen {
+                    Cell::Free
+                } else {
+                    Cell::Unknown
+                };
+            }
+        }
+        Grid { rows: n, cols: n, x_min: -6.0, y_min: -6.0, cell_m: cell, cells }
+    }
+
+    /// The house's progress does not depend on how the map is turned: a
+    /// map started where the duck stood is turned as the duck was, and its
+    /// grid's corners beyond the walls are not house (casa_grande from the
+    /// kitchen, 2026-10-02: 55 % and a 15.4 m² piece where the same house
+    /// on its own axes read 80 % and 2.7). An unseen room behind a door
+    /// still counts, whatever the turn; a gap in the outer wall lets in
+    /// nothing from beyond it — what lies past the walls' box is not house.
+    #[test]
+    fn the_house_reads_the_same_however_the_map_is_turned() {
+        for (b_seen, gap) in [(true, false), (true, true), (false, false), (false, true)] {
+            let (share0, _, open0) = explored_share(&house(0.0, b_seen, gap));
+            let piece0 = largest_unknown_piece_m2(&house(0.0, b_seen, gap));
+            if b_seen {
+                // Only the bed is left: 1.5 m², and the house is mapped.
+                assert!((piece0 - 1.5).abs() < 0.15 && share0 > 0.9, "aligned {share0} {piece0}");
+            } else {
+                // Room B, 2.5 × 4 m less its walls, is left: not mapped.
+                assert!(piece0 > DONE_PIECE_M2 && share0 < 0.6, "aligned {share0} {piece0}");
+            }
+            for deg in [30.0, 200.0, 287.0] {
+                let g = house(deg, b_seen, gap);
+                let (share, _, open) = explored_share(&g);
+                let piece = largest_unknown_piece_m2(&g);
+                let cell2 = g.cell_m * g.cell_m;
+                assert!((share - share0).abs() < 0.03, "{deg}° b_seen {b_seen} gap {gap}: {share} vs {share0}");
+                assert!(
+                    (open as f64 - open0 as f64).abs() * cell2 < 0.6,
+                    "{deg}° b_seen {b_seen} gap {gap}: left {} vs {} m²",
+                    open as f64 * cell2,
+                    open0 as f64 * cell2
+                );
+                assert!((piece - piece0).abs() < 0.6, "{deg}° b_seen {b_seen} gap {gap}: piece {piece} vs {piece0}");
+                assert_eq!(piece < DONE_PIECE_M2, piece0 < DONE_PIECE_M2);
+            }
+        }
     }
 
     /// One frame's "Missing" is not a hole; two frames' is. Edges of

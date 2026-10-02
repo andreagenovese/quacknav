@@ -4304,7 +4304,7 @@ nothing: it explores and asks.
       `done` (or declared by the user). Found by the stop_and_scan life
       test of 2026-10-02 (boot, "esplora da capo", go_to on the map just
       frozen, reboots elsewhere); fix after it, on a branch of its own.
-- [ ] 2026-10-02: the house's percentage and the session-end rule count
+- [x] 2026-10-02: the house's percentage and the session-end rule count
       unknown OUTSIDE the house when the map's frame is not aligned with
       it. "Esplora da capo" from the kitchen started a map at the duck's
       pose, turned ~204° from the house: after two rounds 45.2 m² of floor
@@ -4316,6 +4316,27 @@ nothing: it explores and asks.
       enclosed by the walls (drop pieces that touch the grid's border, or
       lie outside the walls' closed outline) in `largest_unknown_piece_m2`,
       `left_m2` and the percentage.
+      **Fixed** (`explore::walls_box`): the box the unknown is counted in
+      is turned to the walls — the turn that lines the wall cells up best
+      on rows and columns (half a degree, then a twentieth); the map's own
+      axes are kept while they line them up within 90 % as well (every map
+      of x24 and x26: 0.93–1.00; the map from the kitchen 0.49), and a
+      turned box is trimmed a cell a side (a slanting wall is a staircase,
+      and the strip between its steps and the box joined the house's
+      pieces through any gap). The grid's border flood was not used: an
+      outer wall with a gap, or one not seen yet, lets it into the house.
+      The map from the kitchen (`maploc/examples/dump_frame --as-navd`,
+      read by `quack-nav/examples/frontiers`): 55 % → 83 %, left 37.9 →
+      9.5 m², largest piece 15.4 → 2.2 m² (the old aligned map of the
+      same house: 80 %, 11.6, 2.7). Both maps turned 15/30/45/200/290° on
+      the paper: 82–83 %, 9.5–9.9 m², 2.2–2.4 m². The 19 maps of x24 and
+      x26 (aligned): identical to the cell. The paper twin's gate:
+      identical. What is not counted: what lies past the walls' box — a
+      gap in an outer wall lets in nothing from beyond it, and a room none
+      of whose walls are seen is outside the box, as on an aligned map
+      before. Frontiers are not affected: no frontier cell faces only
+      unknown outside the box on either map (no free cell lies outside
+      it).
 - [ ] 2026-10-02: a STOP with nothing running still sets the hold, so the
       homecoming starts nothing until the user asks for a job (f36f51b):
       make it hold only when something self-started was moving — the

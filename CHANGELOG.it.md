@@ -167,6 +167,20 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Corretto
 
+- **Una mappa ruotata rispetto alla casa non conta più l'ignoto oltre i
+  muri.** La percentuale della casa, `left_m2` e il pezzo ignoto più
+  grande della fine sessione contavano l'ignoto dentro il riquadro dei
+  muri sugli assi della mappa; una mappa iniziata dove stava la papera è
+  ruotata come la papera, e il riquadro prendeva gli angoli della griglia
+  oltre i muri, uniti alla casa da ogni varco. "Esplora da capo" dalla
+  cucina (una mappa a ~200° dalla casa) diceva 55 %, restano 37,9 m² e
+  "bloccata" su un pezzo di 15,4 m². Ora il riquadro è ruotato sui muri
+  (la rotazione che allinea meglio le celle di muro; gli assi della mappa
+  restano finché le allineano almeno al 90 %), uno ruotato perde una
+  cella per lato: la stessa mappa dice 83 %, 9,5 m², 2,2 m² (la mappa
+  allineata della casa: 80 %, 11,6, 2,7), e le due ruotate di 15–290°
+  sulla carta 82–83 %. Le mappe allineate non cambiano di una cella (le
+  19 di x24 e x26, il cancello del gemello di carta).
 - **La posa di una papera ferma non scivola più lungo un muro.** A una
   sosta, la correzione del tracciamento di ogni finestra ferma prendeva
   come prior la risposta della finestra prima, e correzioni di un

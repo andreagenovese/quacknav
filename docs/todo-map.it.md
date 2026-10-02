@@ -4615,7 +4615,7 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       stop_and_scan del 2026-10-02 (accensione, "esplora da capo", go_to
       sulla mappa appena congelata, riaccensioni altrove); da correggere
       dopo, su un branch a parte.
-- [ ] 2026-10-02: la percentuale della casa e la regola di fine sessione
+- [x] 2026-10-02: la percentuale della casa e la regola di fine sessione
       contano l'ignoto FUORI dalla casa quando il riferimento della mappa
       non è allineato con essa. "Esplora da capo" dalla cucina ha iniziato
       una mappa nella posa della papera, ruotata di ~204° rispetto alla
@@ -4628,6 +4628,28 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       muri (scartare i pezzi che toccano il bordo della griglia, o che
       stanno fuori dal contorno chiuso dei muri) in
       `largest_unknown_piece_m2`, `left_m2` e nella percentuale.
+      **Corretto** (`explore::walls_box`): il riquadro in cui si conta
+      l'ignoto è ruotato sui muri — la rotazione che allinea meglio le
+      celle di muro su righe e colonne (mezzo grado, poi un ventesimo); gli
+      assi della mappa restano finché le allineano almeno al 90 % (ogni
+      mappa di x24 e x26: 0,93–1,00; la mappa dalla cucina 0,49), e un
+      riquadro ruotato perde una cella per lato (un muro obliquo è una
+      scaletta, e la striscia fra i suoi gradini e il riquadro univa i
+      pezzi della casa attraverso ogni varco). Niente riempimento dal bordo
+      della griglia: un muro esterno con un varco, o non ancora visto, lo
+      fa entrare in casa. La mappa dalla cucina (`maploc/examples/dump_frame
+      --as-navd`, letta da `quack-nav/examples/frontiers`): 55 % → 83 %,
+      restano 37,9 → 9,5 m², pezzo più grande 15,4 → 2,2 m² (la vecchia
+      mappa allineata della stessa casa: 80 %, 11,6, 2,7). Le due mappe
+      ruotate di 15/30/45/200/290° sulla carta: 82–83 %, 9,5–9,9 m²,
+      2,2–2,4 m². Le 19 mappe di x24 e x26 (allineate): identiche alla
+      cella. Il cancello del gemello di carta: identico. Cosa non conta:
+      quello che sta oltre il riquadro dei muri — un varco in un muro
+      esterno non fa entrare niente da fuori, e una stanza di cui non si è
+      visto nessun muro resta fuori dal riquadro, come prima su una mappa
+      allineata. Le frontiere non cambiano: su nessuna delle due mappe una
+      cella di frontiera dà solo su ignoto fuori dal riquadro (nessuna
+      cella libera sta fuori).
 - [ ] 2026-10-02: uno STOP senza niente in corso imposta comunque il blocco,
       così il ritorno a casa non avvia niente finché l'utente non chiede
       un lavoro (f36f51b): farlo valere solo quando qualcosa partito da
