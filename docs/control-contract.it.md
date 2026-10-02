@@ -55,6 +55,7 @@ Che cosa usa una vista della mappa:
 | `robot.map_explore` | `{}` avvia una sessione, `{"stop": true}` la ferma, `{"complete": true}` chiude la mappa così com'è; `fresh` sostituisce la mappa e chiede `confirmed` |
 | `robot.remember_place` | `{"name"}` dove sta l'anatra; `{"name", "x", "y"}` un punto di pavimento mappato |
 | `robot.forget_place` | `{"name"}` |
+| `robot.move` | `{"vx", "vy", "vyaw", "duration_s"}` (≤ 3 s): una mossa a tempo, nessuna guardia della mappa, la guardia del dirupo del sensore di profondità sempre accesa (mosse in avanti). Risponde `{"done": true, "walked_s", "cliff_guard"}`, oppure `{"done": false, "stopped": "a drop ahead (depth sensor): its edge … m away, …", "walked_s", "cliff_guard"}` quando un buco entro 0,40 m nella sua corsia l'ha fermata (inviato uno zero esplicito). `cliff_guard`: `on`, `not covered: backing up …`, `not covered: a sidestep …`, `not judged: a turn in place …`, `off: …` |
 
 Tutte le coordinate sono della mappa dal vivo, in metri.
 

@@ -1254,13 +1254,107 @@ pub fn execute(name: &str, args: &Value, robot: &mut Robot) -> Result<Value, Str
             let params = quack_duck::body::move_params(args);
             let duration = quack_duck::body::number(args, "duration_s").clamp(0.0, quack_duck::body::MAX_MOVE_DURATION_S);
             let params = quack_duck::body::trimmed(&robot.places.gait, params);
-            quack_duck::body::timed_move_held(&mut robot.control, params, duration, None)?;
-            Ok(json!({"done": true, "walked_s": duration}))
+            guarded_move(robot, params, duration)
         }
         other => Err(format!("this is not a navigation tool: `{other}`")),
     }
 }
 
+
+/// `robot.move`'s cliff guard (2026-10-02): a drop's edge the depth
+/// sensor sees in the move's lane, nearer than this, stops the move — the
+/// beak (0.15 m from the centre), what the gait coasts after the stop and
+/// a frame's latency (about 0.08 m), and a margin. Judged as the blind
+/// leg judges (`explore::guarded`): walking frames included, a true hole
+/// (not a wall's foot), two frames agreeing when there are two.
+pub(crate) const MOVE_DROP_REACH_M: f64 = 0.40;
+/// The lane: the body's half-width (0.095 m) and the gait's sway.
+pub(crate) const MOVE_DROP_LANE_M: f64 = 0.17;
+/// The frames the guard reads: the last second's.
+const MOVE_DROP_WITHIN: Duration = Duration::from_secs(1);
+
+/// What the guard can judge of a move, before it starts.
+#[derive(Debug, Clone, PartialEq)]
+pub enum MoveCover {
+    /// Forward, along this heading (body frame, radians).
+    Ahead(f64),
+    /// Not judged, and why: the sensor looks forward and down.
+    NotCovered(&'static str),
+    /// No guard to ask.
+    Off(&'static str),
+}
+
+impl MoveCover {
+    pub fn of(cliff: Option<&crate::cliff::CliffStatus>, params: &proto::MoveParams) -> Self {
+        let Some(cliff) = cliff else {
+            return MoveCover::Off("off: the cliff guard is not enabled ([map] cliff_guard)");
+        };
+        if matches!(cliff.stream, crate::cliff::StreamState::Unavailable(_)) {
+            return MoveCover::Off("off: tofd has no depth sensor");
+        }
+        if params.vx > 0.0 {
+            return MoveCover::Ahead(params.vy.atan2(params.vx));
+        }
+        if params.vx < 0.0 {
+            MoveCover::NotCovered("not covered: backing up — the depth sensor looks forward")
+        } else if params.vy != 0.0 {
+            MoveCover::NotCovered("not covered: a sidestep — the depth sensor looks forward")
+        } else {
+            MoveCover::NotCovered("not judged: a turn in place does not advance")
+        }
+    }
+
+    pub fn word(&self) -> &'static str {
+        match self {
+            MoveCover::Ahead(_) => "on",
+            MoveCover::NotCovered(w) | MoveCover::Off(w) => w,
+        }
+    }
+}
+
+/// The drop that stops a move along `heading`, from the guard's newest
+/// frames: the nearest true hole in the lane within [`MOVE_DROP_REACH_M`].
+pub fn move_drop_ahead(cliff: &crate::cliff::CliffStatus, now: Instant, heading: f64) -> Option<crate::cliff::Drop> {
+    let frames = cliff.recent.iter().filter(|f| now.duration_since(f.at) <= MOVE_DROP_WITHIN).count();
+    if frames == 0 {
+        return None;
+    }
+    cliff.hole_in_lane_walking(now, heading, MOVE_DROP_LANE_M, MOVE_DROP_REACH_M, MOVE_DROP_WITHIN, 2.min(frames))
+}
+
+/// What the reply says of a drop that stopped a move.
+fn drop_words(d: &crate::cliff::Drop) -> String {
+    format!(
+        "a drop ahead (depth sensor): its edge {:.2}–{:.2} m away, {:.0}° {}",
+        d.edge_min_m,
+        d.range_m,
+        d.bearing.to_degrees().abs(),
+        if d.bearing >= 0.0 { "left" } else { "right" }
+    )
+}
+
+/// `robot.move`: the timed move, with the cliff guard always on. Every
+/// tick the guard's newest frames are read; a true hole in the move's lane
+/// within reach ends it (one explicit zero), whatever the pose says and
+/// whether or not there is a map — the sensor sees the hole where the duck
+/// is. Forward moves only: backing up and sidesteps are not covered.
+fn guarded_move(robot: &mut Robot, params: proto::MoveParams, duration: f64) -> Result<Value, String> {
+    let cliff = robot.places.cliff.clone();
+    let cover = MoveCover::of(cliff.as_ref().map(|c| c.snapshot()).as_ref(), &params);
+    let mut guard = || -> Option<String> {
+        let MoveCover::Ahead(heading) = cover else { return None };
+        let status = cliff.as_ref()?.snapshot();
+        move_drop_ahead(&status, Instant::now(), heading).map(|d| drop_words(&d))
+    };
+    let stopped = quack_duck::body::timed_move_guarded(&mut robot.control, params, duration, None, &mut guard)?;
+    Ok(match stopped {
+        Some((why, walked_s)) => {
+            tracing::warn!(why, walked_s = format!("{walked_s:.2}"), "robot.move: stopped early by the cliff guard");
+            json!({"done": false, "stopped": why, "walked_s": round2(walked_s), "cliff_guard": cover.word()})
+        }
+        None => json!({"done": true, "walked_s": duration, "cliff_guard": cover.word()}),
+    })
+}
 
 fn wall_margin_m() -> f64 {
     static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
@@ -2290,4 +2384,146 @@ fn map_step(robot: &mut Robot, args: &Value) -> Result<Value, String> {
         "shortened": shortened,
         "hint": hint,
     }))
+}
+
+#[cfg(test)]
+mod move_guard_tests {
+    use super::*;
+    use crate::cliff::{CliffFrame, CliffStatus, Drop, DropKind};
+    use std::io::BufRead;
+    use std::sync::{Arc, Mutex};
+
+    fn frame(drops: Vec<Drop>, moving: bool) -> CliffFrame {
+        CliffFrame {
+            seq: 1,
+            at: Instant::now(),
+            head_yaw: 0.0,
+            moving,
+            drops,
+            floors: Vec::new(),
+            obstacles: Vec::new(),
+            floor_beams: 0,
+            judged: 16,
+        }
+    }
+
+    fn hole(bearing: f64, edge_min_m: f64) -> Drop {
+        Drop { bearing, range_m: edge_min_m + 0.1, edge_min_m, floor_beyond_m: 0.0, kind: DropKind::Missing }
+    }
+
+    fn mv(vx: f64, vy: f64, vyaw: f64) -> proto::MoveParams {
+        proto::MoveParams { vx, vy, vyaw }
+    }
+
+    /// The guard judges what a forward move walks into, from walking
+    /// frames too, and nothing it does not walk toward.
+    #[test]
+    fn the_move_guard_stops_on_a_hole_in_the_lane_and_only_there() {
+        let now = Instant::now();
+        let mut s = CliffStatus::default();
+        s.absorb(frame(vec![hole(0.05, 0.30)], true));
+        s.absorb(frame(vec![hole(0.05, 0.28)], true));
+        let d = move_drop_ahead(&s, now, 0.0).expect("a hole 0.3 m ahead stops a forward move");
+        assert!((d.edge_min_m - 0.28).abs() < 1e-9);
+        assert!(drop_words(&d).starts_with("a drop ahead (depth sensor)"));
+        // Beside the lane, or past the reach: not this move's.
+        let mut s = CliffStatus::default();
+        s.absorb(frame(vec![hole(1.2, 0.30)], false));
+        s.absorb(frame(vec![hole(0.0, 0.70)], false));
+        assert!(move_drop_ahead(&s, now, 0.0).is_none());
+        // One frame alone counts when it is the only one there is; two
+        // frames disagreeing do not.
+        let mut s = CliffStatus::default();
+        s.absorb(frame(vec![hole(0.0, 0.20)], true));
+        assert!(move_drop_ahead(&s, now, 0.0).is_some());
+        s.absorb(frame(Vec::new(), true));
+        assert!(move_drop_ahead(&s, now, 0.0).is_none());
+
+        // What is covered: forward (a sidestep's lane turned with it), not
+        // backing up, not sidesteps alone, not turns in place.
+        assert_eq!(MoveCover::of(Some(&s), &mv(0.3, 0.0, 0.5)), MoveCover::Ahead(0.0));
+        assert!(matches!(MoveCover::of(Some(&s), &mv(0.3, 0.3, 0.0)), MoveCover::Ahead(h) if (h - std::f64::consts::FRAC_PI_4).abs() < 1e-9));
+        assert!(MoveCover::of(Some(&s), &mv(-0.3, 0.0, 0.0)).word().starts_with("not covered: backing up"));
+        assert!(MoveCover::of(Some(&s), &mv(0.0, 0.2, 0.0)).word().starts_with("not covered: a sidestep"));
+        assert!(MoveCover::of(Some(&s), &mv(0.0, 0.0, 1.5)).word().starts_with("not judged"));
+        assert!(MoveCover::of(None, &mv(0.3, 0.0, 0.0)).word().starts_with("off"));
+        let mut blind = CliffStatus::default();
+        blind.stream = StreamState::Unavailable("no sensor".into());
+        assert!(MoveCover::of(Some(&blind), &mv(0.3, 0.0, 0.0)).word().starts_with("off"));
+    }
+
+    /// A robotd that keeps every line it is sent.
+    fn fake_robotd() -> (tempfile::TempDir, String, Arc<Mutex<Vec<Value>>>) {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("robotd.sock").to_str().unwrap().to_string();
+        let listener = std::os::unix::net::UnixListener::bind(&path).unwrap();
+        let lines = Arc::new(Mutex::new(Vec::new()));
+        let kept = lines.clone();
+        std::thread::spawn(move || {
+            for stream in listener.incoming() {
+                let Ok(stream) = stream else { return };
+                let kept = kept.clone();
+                std::thread::spawn(move || {
+                    for line in std::io::BufReader::new(stream).lines() {
+                        let Ok(line) = line else { return };
+                        if let Ok(v) = serde_json::from_str::<Value>(&line) {
+                            kept.lock().unwrap().push(v);
+                        }
+                    }
+                });
+            }
+        });
+        (dir, path, lines)
+    }
+
+    fn sent_vx(lines: &Arc<Mutex<Vec<Value>>>) -> Vec<f64> {
+        lines.lock().unwrap().iter().filter(|v| v["method"] == "robot.move").map(|v| v["params"]["vx"].as_f64().unwrap()).collect()
+    }
+
+    /// `robot.move` toward a hole: refused before the first step when the
+    /// hole is already within reach, stopped mid-walk when the sensor sees
+    /// it on the way — an explicit zero, and the reply says why and when.
+    /// No map, no pose: the guard does not need them.
+    #[test]
+    fn robot_move_stops_at_a_drop_the_sensor_sees() {
+        let (_dir, path, lines) = fake_robotd();
+        let cliff = crate::cliff::CliffWatch::detached();
+        let mut robot = Robot::detached();
+        robot.control = Some(quack_duck::Control::connect(&path).unwrap());
+        robot.places.cliff = Some(cliff.clone());
+
+        // Open floor: the move runs its time.
+        let r = execute("robot.move", &json!({"vx": 0.3, "duration_s": 0.3}), &mut robot).unwrap();
+        assert_eq!(r["done"], true, "{r}");
+        assert_eq!(r["cliff_guard"], "on");
+
+        // The sensor sees the hole on the way, 0.2 s in.
+        let feeder = cliff.clone();
+        let t = std::thread::spawn(move || {
+            std::thread::sleep(Duration::from_millis(200));
+            feeder.push(frame(vec![hole(0.0, 0.32)], true));
+            feeder.push(frame(vec![hole(0.0, 0.31)], true));
+        });
+        let r = execute("robot.move", &json!({"vx": 0.3, "duration_s": 2.0}), &mut robot).unwrap();
+        t.join().unwrap();
+        assert_eq!(r["done"], false, "{r}");
+        assert!(r["stopped"].as_str().unwrap().starts_with("a drop ahead (depth sensor)"), "{r}");
+        let walked = r["walked_s"].as_f64().unwrap();
+        assert!((0.15..0.6).contains(&walked), "{r}");
+        std::thread::sleep(Duration::from_millis(100));
+        assert_eq!(sent_vx(&lines).last(), Some(&0.0), "the stop is an explicit zero");
+
+        // Already at the edge: not one step forward.
+        let before = sent_vx(&lines).len();
+        let r = execute("robot.move", &json!({"vx": 0.3, "duration_s": 2.0}), &mut robot).unwrap();
+        assert_eq!(r["done"], false);
+        assert_eq!(r["walked_s"], 0.0);
+        std::thread::sleep(Duration::from_millis(100));
+        assert_eq!(sent_vx(&lines)[before..], [0.0]);
+
+        // Backing away from it is the caller's: not covered, and said so.
+        let r = execute("robot.move", &json!({"vx": -0.3, "duration_s": 0.2}), &mut robot).unwrap();
+        assert_eq!(r["done"], true);
+        assert!(r["cliff_guard"].as_str().unwrap().starts_with("not covered: backing up"), "{r}");
+    }
 }

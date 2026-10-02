@@ -4134,6 +4134,35 @@ nothing: it explores and asks.
       search no more: none happened). Tests: untrusted until a job, a push
       and a sit untrusting, the relocator starting the journey only after
       the confirmation, failing or stopping with nothing started.
+- [x] 2026-10-02: **`robot.move` keeps the cliff guard, always on** (the
+      user's: a `robot.move` forward at a stair's edge walked off — it was a
+      timed blind move with no guard at all, and the voice agent's "go
+      forward" and quack-control's Advanced tab drive with it). The timed
+      loop (`quack_duck::body::timed_move_guarded`) asks a guard before the
+      first command and at every tick; `tools::guarded_move` answers from
+      the cliff guard's newest second of frames, walking ones included,
+      as the blind leg judges (`hole_in_lane_walking`: a true hole, not a
+      wall's foot, two frames agreeing when there are two): a near edge
+      within `MOVE_DROP_REACH_M` 0.40 m (beak 0.15, coast and latency
+      ~0.08, margin) in the lane `MOVE_DROP_LANE_M` 0.17 m stops it, one
+      explicit zero sent (a decision, not a keepalive). Independent of the
+      pose and of the map. Covered: forward moves, the lane turned with a
+      sidestep component; not covered: backing up, pure sidesteps (the
+      sensor looks forward and down); not judged: turns in place; `off`
+      without the guard or a sensor. The reply: `done`, `stopped`,
+      `walked_s`, `cliff_guard`. The explorer's blind legs and the
+      homecoming's pulses use `robot.move` too, so they carry it now; the
+      paper twin's `blind_move` does not model it (gate unchanged). Live,
+      casa_grande (VIEWER on), the duck facing the living room's hole from
+      1.15 m: the first 3 s walked, the second stopped after 1.71 s with
+      the trunk 0.56 m short of the rim (walking frames put the edge at
+      0.00–0.88 m: the near end unknown, so the guard stops at once), the
+      next 0.61 s, then every call refused at 0 s (standing, edge
+      0.35–0.80 m). Nine calls over 4 m of open floor: no false stop.
+      Tests: the guard's lane, reach and agreement; the coverage words;
+      `robot.move` against a fake robotd — runs on open floor, stopped
+      0.2 s in by frames fed mid-walk, refused at the edge, backing not
+      covered; the timed loop's guard and its single zero.
 - [ ] 2026-10-01: during a fast spin in place the map pose can stay still
       for up to ~1.5 s, then catch up (x22 casa_arredata: heading 93° off
       for 1.5 s with the position within 5 cm). Seen in every

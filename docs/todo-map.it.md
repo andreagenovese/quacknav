@@ -647,7 +647,7 @@ riportare zero cadute prima di chiamare qualcosa un miglioramento.
       lunga 41 min): (1) **una tappa i cui primi 30 cm giacciono sulla
       scia è giudicata con la riserva della porta** (0,20 m, non i 0,35
       del corridoio) — il corpo c'è già stato alla sua larghezza; la
-      guardia dei dislivelli e l'ostacolo visto dal sensore nella corsia
+      guardia del dirupo e l'ostacolo visto dal sensore nella corsia
       stretta hanno ancora voce. 26/30 complete, 104 rifiuti, 34 urti,
       sosta più lunga 31 min; tenuta, attiva di default. (2) L'avanzamento
       dell'arco, misurato sulla guida umana: 0,110 m/s in avanti a vyaw
@@ -717,7 +717,7 @@ riportare zero cadute prima di chiamare qualcosa un miglioramento.
       Con un drop da un lato la linea tenuta è a mezza larghezza del corpo
       e poco più dal muro (`HUG_M` 0,16), non al centro: il bordo del
       buco passa da 5 a ~18 cm fuori dalla corsia della guardia. (3) Una
-      tappa del passaggio porta `passage`, e la guardia dei dislivelli del
+      tappa del passaggio porta `passage`, e la guardia del dirupo del
       passo di mappatura, quando vede il muro a fianco del corpo, giudica
       una corsia di 0,17 m invece di 0,22 — il flag da solo non cambia
       nulla. La larghezza minima del passaggio sale a 0,50 m: a 0,43 la
@@ -4424,6 +4424,38 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       un lavoro non chiede, una spinta e una seduta che tolgono fiducia, il
       rilocalizzatore che fa partire il viaggio solo dopo la conferma, che
       fallisce o si ferma senza far partire niente.
+- [x] 2026-10-02: **`robot.move` ha la guardia del dirupo, sempre
+      accesa** (dell'utente: un `robot.move` in avanti sul bordo di una
+      scala ci cadeva — era una mossa cieca a tempo senza nessuna guardia,
+      e ci guidano il "vai avanti" dell'agente vocale e la scheda Avanzate
+      di quack-control). Il ciclo a tempo
+      (`quack_duck::body::timed_move_guarded`) chiede a una guardia prima
+      del primo comando e a ogni tick; `tools::guarded_move` risponde
+      dall'ultimo secondo di frame della guardia, anche quelli in cammino,
+      come giudica la gamba cieca (`hole_in_lane_walking`: un buco vero,
+      non il piede di un muro, due frame d'accordo quando ce ne sono due):
+      un bordo vicino entro `MOVE_DROP_REACH_M` 0,40 m (becco 0,15, inerzia
+      e latenza ~0,08, margine) nella corsia `MOVE_DROP_LANE_M` 0,17 m la
+      ferma, inviato uno zero esplicito (una decisione, non un keepalive).
+      Indipendente dalla posa e dalla mappa. Coperte: le mosse in avanti,
+      la corsia girata con la componente laterale; non coperte: la
+      retromarcia, i passi laterali puri (il sensore guarda avanti e in
+      basso); non giudicate: le rotazioni sul posto; `off` senza guardia o
+      senza sensore. La risposta: `done`, `stopped`, `walked_s`,
+      `cliff_guard`. Anche le gambe cieche dell'esploratore e gli impulsi
+      del ritorno a casa passano da `robot.move`, quindi ora ce l'hanno; il
+      `blind_move` del gemello di carta non la modella (gate invariato). Dal
+      vivo, casa_grande (VIEWER on), la papera davanti al buco del soggiorno
+      a 1,15 m: i primi 3 s camminati, la seconda fermata dopo 1,71 s col
+      tronco a 0,56 m dal bordo (i frame in cammino mettono il bordo a
+      0,00–0,88 m: l'estremo vicino ignoto, quindi la guardia ferma
+      subito), la successiva dopo 0,61 s, poi ogni chiamata rifiutata a 0 s
+      (da ferma, bordo a 0,35–0,80 m). Nove chiamate su 4 m di pavimento
+      libero: nessuno stop falso. Test: corsia, portata e accordo della
+      guardia; le parole della copertura; `robot.move` contro un robotd
+      finto — cammina sul libero, fermato a 0,2 s da frame inviati a metà,
+      rifiutato sul bordo, la retromarcia non coperta; la guardia del ciclo
+      a tempo e il suo unico zero.
 - [ ] 2026-10-01: durante una giravolta veloce sul posto la posa della
       mappa può restare ferma fino a ~1.5 s, poi recuperare (x22
       casa_arredata: angolo sbagliato di 93° per 1.5 s con la posizione

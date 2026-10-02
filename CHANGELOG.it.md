@@ -15,6 +15,25 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Aggiunto
 
+- **`robot.move` ha una guardia del dirupo, sempre accesa.** La
+  mossa a tempo con cui guidano l'agente vocale ("vai avanti") e la scheda
+  Avanzate di quack-control non aveva nessuna guardia: sul bordo di una
+  scala ci cadeva. Ora, prima del primo comando e a ogni tick, si leggono
+  i frame più recenti del sensore di profondità (anche quelli in cammino,
+  la regola della gamba cieca: un buco vero, non il piede di un muro, due
+  frame d'accordo) nella corsia della mossa (0,17 m di semilarghezza): un
+  buco col bordo vicino entro 0,40 m chiude la mossa con uno zero
+  esplicito, qualunque cosa dica la posa e con o senza mappa. La risposta
+  lo dice: `{"done": false, "stopped": "a drop ahead (depth sensor): …",
+  "walked_s": …, "cliff_guard": "on"}`; una mossa completa risponde
+  `"done": true` come prima, con `cliff_guard`. Solo in avanti — il
+  sensore guarda avanti e in basso: retromarcia e passi laterali sono
+  `"not covered"`, una rotazione sul posto `"not judged"`, senza sensore
+  `"off"`. Ci passano anche le mosse cieche dell'esploratore e del
+  ritorno a casa. Sul gemello (casa_grande): camminando verso il bordo del
+  buco, fermata col tronco a 0,56 m dal bordo e ogni altra chiamata in
+  avanti rifiutata; nove chiamate su 4 m di pavimento libero, nessuno stop
+  falso.
 - **La sosta: le lunghe pause da ferma** (maploc). Un minuto ferma senza
   un lavoro che guidi il corpo (né `go_to`, né esplorazione, né giro dei
   bordi, né ritorno a casa), il mapper si riposa: nessuna finestra viene

@@ -109,11 +109,44 @@ pub fn timed_move_held(
     duration_s: f64,
     hold: Option<(&dyn Fn() -> Option<f64>, f64, f64)>,
 ) -> Result<(), String> {
+    timed_move_guarded(control, params, duration_s, hold, &mut || None).map(|_| ())
+}
+
+/// A timed move that a guard may end early: asked before the first
+/// command and at every tick, it answers why the move must stop (a drop
+/// ahead, a stop from the user) or nothing. A stop is a decision, not a
+/// keepalive: one explicit zero is sent, so the body does not walk on for
+/// the deadman's half second (docs/study/microduck-client-pattern.md).
+/// Returns the reason and the seconds walked when the guard stopped it.
+pub fn timed_move_guarded(
+    control: &mut Option<Control>,
+    params: proto::MoveParams,
+    duration_s: f64,
+    hold: Option<(&dyn Fn() -> Option<f64>, f64, f64)>,
+    guard: &mut dyn FnMut() -> Option<String>,
+) -> Result<Option<(String, f64)>, String> {
+    run_timed(params, duration_s, hold, guard, &mut |call| notify(control, call))
+}
+
+/// The loop of [`timed_move_guarded`], over any sender (tests send to a
+/// list).
+fn run_timed(
+    params: proto::MoveParams,
+    duration_s: f64,
+    hold: Option<(&dyn Fn() -> Option<f64>, f64, f64)>,
+    guard: &mut dyn FnMut() -> Option<String>,
+    send_call: &mut dyn FnMut(&proto::Call) -> Result<(), String>,
+) -> Result<Option<(String, f64)>, String> {
     let end = Instant::now() + Duration::from_secs_f64(duration_s);
     let started = Instant::now();
     let mut yaw0: Option<f64> = None;
     let mut tap_until: Option<(Instant, f64)> = None;
     while Instant::now() < end {
+        if let Some(why) = guard() {
+            let walked_s = started.elapsed().as_secs_f64();
+            send_call(&proto::Call::RobotMove(proto::MoveParams { vx: 0.0, vy: 0.0, vyaw: 0.0 }))?;
+            return Ok(Some((why, walked_s)));
+        }
         let mut send = params;
         if let Some((yaw_now, vyaw_cmd, bias)) = hold
             && params.vx > 0.0
@@ -139,10 +172,10 @@ pub fn timed_move_held(
                 }
             }
         }
-        notify(control, &proto::Call::RobotMove(send))?;
+        send_call(&proto::Call::RobotMove(send))?;
         std::thread::sleep(MOVE_TICK);
     }
-    Ok(())
+    Ok(None)
 }
 /// The heading hold's threshold, tap length and tap size on the wire.
 pub const HOLD_THRESHOLD_RAD: f64 = 0.07;
@@ -211,5 +244,55 @@ mod tests {
         // The trim leaves a standstill alone, so a turn in place is sent as asked.
         let gait = crate::gait::GaitConfig { yaw_trim: 0.08, ..Default::default() };
         assert_eq!(trimmed(&gait, still).vyaw, TURN_IN_PLACE_RAD_S);
+    }
+
+    fn moves(sent: &[proto::Call]) -> Vec<f64> {
+        sent.iter()
+            .map(|c| match c {
+                proto::Call::RobotMove(p) => p.vx,
+                other => panic!("only moves are sent: {other:?}"),
+            })
+            .collect()
+    }
+
+    /// The guard is asked before every command: a stop ends the walk with
+    /// one explicit zero and says why and when.
+    #[test]
+    fn a_guard_ends_a_timed_move_with_one_zero() {
+        let params = proto::MoveParams { vx: 0.3, vy: 0.0, vyaw: 0.0 };
+        let mut sent = Vec::new();
+        let mut asked = 0;
+        let stopped = run_timed(params, 2.0, None, &mut || {
+            asked += 1;
+            (asked > 3).then(|| "a drop ahead".to_string())
+        }, &mut |c| {
+            sent.push(c.clone());
+            Ok(())
+        })
+        .unwrap();
+        let (why, walked_s) = stopped.expect("the guard stopped it");
+        assert_eq!(why, "a drop ahead");
+        assert!(walked_s < 0.5, "{walked_s}");
+        assert_eq!(moves(&sent), vec![0.3, 0.3, 0.3, 0.0]);
+
+        // Stopped before the first step: nothing but the zero.
+        let mut sent = Vec::new();
+        let stopped = run_timed(params, 2.0, None, &mut || Some("already at the edge".into()), &mut |c| {
+            sent.push(c.clone());
+            Ok(())
+        })
+        .unwrap();
+        assert_eq!(stopped.map(|s| s.0).as_deref(), Some("already at the edge"));
+        assert_eq!(moves(&sent), vec![0.0]);
+
+        // A quiet guard: the move runs its time and sends no zero.
+        let mut sent = Vec::new();
+        let stopped = run_timed(params, 0.2, None, &mut || None, &mut |c| {
+            sent.push(c.clone());
+            Ok(())
+        })
+        .unwrap();
+        assert!(stopped.is_none());
+        assert!(moves(&sent).iter().all(|vx| *vx == 0.3) && sent.len() >= 3, "{sent:?}");
     }
 }

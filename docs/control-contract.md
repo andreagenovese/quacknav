@@ -52,6 +52,7 @@ What a map view uses:
 | `robot.map_explore` | `{}` starts a session, `{"stop": true}` stops it, `{"complete": true}` closes the map as it is; `fresh` replaces the map and asks for `confirmed` |
 | `robot.remember_place` | `{"name"}` where the duck stands; `{"name", "x", "y"}` a point of mapped floor |
 | `robot.forget_place` | `{"name"}` |
+| `robot.move` | `{"vx", "vy", "vyaw", "duration_s"}` (≤ 3 s): a timed move, no map guard, the depth sensor's cliff guard always on (forward moves). Answers `{"done": true, "walked_s", "cliff_guard"}`, or `{"done": false, "stopped": "a drop ahead (depth sensor): its edge … m away, …", "walked_s", "cliff_guard"}` when a hole within 0.40 m in its lane ended it (one explicit zero sent). `cliff_guard`: `on`, `not covered: backing up …`, `not covered: a sidestep …`, `not judged: a turn in place …`, `off: …` |
 
 All coordinates are the live map's, in metres.
 

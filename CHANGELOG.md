@@ -13,6 +13,23 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Added
 
+- **`robot.move` keeps a cliff guard, always on.** The timed move the
+  voice agent ("go forward") and quack-control's Advanced tab drive with
+  had no guard at all: at a stair's edge it walked off. Now, before the
+  first command and at every tick, the depth sensor's newest frames
+  (walking ones too, the blind leg's rule: a true hole, not a wall's foot,
+  two frames agreeing) are read in the move's lane (0.17 m half-width):
+  a hole whose near edge is within 0.40 m ends the move with one explicit
+  zero, whatever the pose says and with or without a map. The reply says
+  so: `{"done": false, "stopped": "a drop ahead (depth sensor): …",
+  "walked_s": …, "cliff_guard": "on"}`; a complete move answers
+  `"done": true` as before, with `cliff_guard`. Forward moves only — the
+  sensor looks forward and down: backing up and sidesteps are `"not
+  covered"`, a turn in place `"not judged"`, no sensor `"off"`. The
+  explorer's and the homecoming's own blind moves go through it too. On
+  the twin (casa_grande): walking at the hole's rim, stopped with the
+  trunk 0.56 m short of it and every further forward call refused; nine
+  calls over 4 m of open floor, no false stop.
 - **Rest: long idle stands** (maploc). A minute still with no job driving
   the body (no `go_to`, exploration, rim tour, homecoming), the mapper
   rests: no window is integrated or corrects the pose, odometry alone

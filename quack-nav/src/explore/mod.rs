@@ -74,7 +74,10 @@ const NO_GO_RADIUS_M: f64 = 0.20;
 pub trait Body {
     /// `robot.map_step`: a guarded, timed walk, then a stand.
     fn step(&mut self, args: &Value) -> Result<Value, String>;
-    /// `robot.move`: a blind timed move (no guards — the caller's risk).
+    /// `robot.move`: a timed move blind to the map — no wall, book or
+    /// passage guard, the caller's risk — with only the depth sensor's
+    /// cliff guard on it (since 2026-10-02): a hole within 0.4 m in the
+    /// lane ends it early. The paper twin's is blind entirely.
     fn blind_move(&mut self, args: &Value) -> Result<Value, String>;
     /// The newest map frame, if any.
     fn frame(&self) -> Option<MapFrame>;
