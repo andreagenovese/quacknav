@@ -4163,6 +4163,29 @@ nothing: it explores and asks.
       `robot.move` against a fake robotd — runs on open floor, stopped
       0.2 s in by frames fed mid-walk, refused at the edge, backing not
       covered; the timed loop's guard and its single zero.
+- [x] 2026-10-02: **`map_step` on an uncertain pose: the sensor alone.**
+      The step checked mapped walls at the believed pose — the wall ahead,
+      the passage's sides, the wall-hug and the centring — and only
+      `tracking` gated them. Now `tools::pose_known` (tracking and not
+      `untrusted`) gates every one of them, the clearance in a refusal and
+      in the reply too: on a lost or untrusted pose they would be judged at
+      the wrong place, so they are left out, and only the depth sensor's
+      checks apply (the drop guard, the obstacle in the lane, "stand first"
+      where it has not looked). `StepPlan::sensor_only`; the reply's
+      `checks` is `"position uncertain: checks from the sensor only"` (else
+      `"map and sensor"`), with a hint. The explorer's books (`drop_on_path`)
+      are the explorer's, not the step's, and the explorer walks only on a
+      trusted pose. Tests: a mapped wall 0.25 m ahead refuses the step on a
+      trusted pose and not on an untrusted or lost one (sensor-only, not
+      steered, full length); a drop the sensor sees still refuses it, with
+      no clearance from the map; a direction not looked at still asks for a
+      stand. The paper twin's frames are always trusted: gate unchanged.
+- [ ] Later: **a sensor-versus-map consistency check on every step** —
+      what the depth sensor sees at a stand against what the map shows at
+      the believed pose (walls seen where the map has floor, floor where it
+      has walls), so a pose that is wrong but still `tracking` falls back to
+      the sensor-only checks too (`fit.rs` measures it at the explorer's
+      stands; `map_step` does not yet).
 - [ ] 2026-10-01: during a fast spin in place the map pose can stay still
       for up to ~1.5 s, then catch up (x22 casa_arredata: heading 93° off
       for 1.5 s with the position within 5 cm). Seen in every

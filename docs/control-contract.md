@@ -53,6 +53,7 @@ What a map view uses:
 | `robot.remember_place` | `{"name"}` where the duck stands; `{"name", "x", "y"}` a point of mapped floor |
 | `robot.forget_place` | `{"name"}` |
 | `robot.move` | `{"vx", "vy", "vyaw", "duration_s"}` (≤ 3 s): a timed move, no map guard, the depth sensor's cliff guard always on (forward moves). Answers `{"done": true, "walked_s", "cliff_guard"}`, or `{"done": false, "stopped": "a drop ahead (depth sensor): its edge … m away, …", "walked_s", "cliff_guard"}` when a hole within 0.40 m in its lane ended it (one explicit zero sent). `cliff_guard`: `on`, `not covered: backing up …`, `not covered: a sidestep …`, `not judged: a turn in place …`, `off: …` |
+| `robot.map_step` | `{"vx", "vy", "vyaw", "walk_s", "stop_s"}`: a guarded step, then a stand. The reply: `walked_s`, `stood_s`, `new_windows`, `tracking`, `pose`, `clearance`, `cliff`, `steered`, `shortened`, `hint`, and `checks` — `"map and sensor"`, or `"position uncertain: checks from the sensor only"` when the pose was lost or `untrusted`: the map's walls, passages and steering were left out (judged at the believed pose they would be judged at the wrong place), `clearance` is null, and only the depth sensor's checks applied |
 
 All coordinates are the live map's, in metres.
 

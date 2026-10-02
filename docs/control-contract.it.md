@@ -56,6 +56,7 @@ Che cosa usa una vista della mappa:
 | `robot.remember_place` | `{"name"}` dove sta l'anatra; `{"name", "x", "y"}` un punto di pavimento mappato |
 | `robot.forget_place` | `{"name"}` |
 | `robot.move` | `{"vx", "vy", "vyaw", "duration_s"}` (≤ 3 s): una mossa a tempo, nessuna guardia della mappa, la guardia del dirupo del sensore di profondità sempre accesa (mosse in avanti). Risponde `{"done": true, "walked_s", "cliff_guard"}`, oppure `{"done": false, "stopped": "a drop ahead (depth sensor): its edge … m away, …", "walked_s", "cliff_guard"}` quando un buco entro 0,40 m nella sua corsia l'ha fermata (inviato uno zero esplicito). `cliff_guard`: `on`, `not covered: backing up …`, `not covered: a sidestep …`, `not judged: a turn in place …`, `off: …` |
+| `robot.map_step` | `{"vx", "vy", "vyaw", "walk_s", "stop_s"}`: un passo con le guardie, poi una sosta. La risposta: `walked_s`, `stood_s`, `new_windows`, `tracking`, `pose`, `clearance`, `cliff`, `steered`, `shortened`, `hint`, e `checks` — `"map and sensor"`, oppure `"position uncertain: checks from the sensor only"` quando la posa era persa o `untrusted`: muri, passaggi e sterzate della mappa sono rimasti fuori (giudicati alla posa creduta lo sarebbero nel posto sbagliato), `clearance` è null, e valgono solo i controlli del sensore di profondità |
 
 Tutte le coordinate sono della mappa dal vivo, in metri.
 

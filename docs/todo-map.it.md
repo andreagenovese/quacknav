@@ -4456,6 +4456,30 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       finto — cammina sul libero, fermato a 0,2 s da frame inviati a metà,
       rifiutato sul bordo, la retromarcia non coperta; la guardia del ciclo
       a tempo e il suo unico zero.
+- [x] 2026-10-02: **`map_step` su una posa incerta: il solo sensore.** Il
+      passo controllava i muri mappati alla posa creduta — il muro davanti,
+      i lati del passaggio, lo scostarsi dal muro e il centrarsi — e solo
+      `tracking` li condizionava. Ora `tools::pose_known` (tracking e non
+      `untrusted`) li condiziona tutti, anche lo spazio libero in un rifiuto
+      e nella risposta: su una posa persa o non fidata sarebbero giudicati
+      nel posto sbagliato, quindi restano fuori, e valgono solo i controlli
+      del sensore di profondità (la guardia del dirupo, l'ostacolo nella
+      corsia, "fermati prima" dove non ha guardato). `StepPlan::sensor_only`;
+      il `checks` della risposta è `"position uncertain: checks from the
+      sensor only"` (altrimenti `"map and sensor"`), con un suggerimento. I
+      libri dell'esploratore (`drop_on_path`) sono dell'esploratore, non del
+      passo, e l'esploratore cammina solo su una posa fidata. Test: un muro
+      mappato a 0,25 m davanti rifiuta il passo su una posa fidata e non su
+      una non fidata o persa (solo sensore, nessuna sterzata, lunghezza
+      piena); un buco visto dal sensore lo rifiuta ancora, senza spazio
+      libero dalla mappa; una direzione non guardata chiede ancora la sosta.
+      I frame del gemello di carta sono sempre fidati: gate invariato.
+- [ ] Più avanti: **un controllo di coerenza sensore-mappa a ogni passo** —
+      quello che il sensore di profondità vede in una sosta contro quello
+      che la mappa mostra alla posa creduta (muri visti dove la mappa ha
+      pavimento, pavimento dove ha muri), così che anche una posa sbagliata
+      ma ancora `tracking` ricada sui controlli del solo sensore (`fit.rs`
+      lo misura nelle soste dell'esploratore; `map_step` non ancora).
 - [ ] 2026-10-01: durante una giravolta veloce sul posto la posa della
       mappa può restare ferma fino a ~1.5 s, poi recuperare (x22
       casa_arredata: angolo sbagliato di 93° per 1.5 s con la posizione

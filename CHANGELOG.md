@@ -30,6 +30,14 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   the twin (casa_grande): walking at the hole's rim, stopped with the
   trunk 0.56 m short of it and every further forward call refused; nine
   calls over 4 m of open floor, no false stop.
+- **`robot.map_step` on an uncertain pose judges by the sensor alone.**
+  With the pose lost or `untrusted` (moved while it rested) the map's
+  checks — the wall ahead, the passage's sides, the wall-hug, the centring,
+  the clearance in the reply — would be judged at a place the duck may not
+  be: they are left out, only the depth sensor's checks apply (the drop
+  guard, things in the way, "stand first" where it has not looked), and the
+  reply's new `checks` says `"position uncertain: checks from the sensor
+  only"` (otherwise `"map and sensor"`), `clearance` null, with a hint.
 - **Rest: long idle stands** (maploc). A minute still with no job driving
   the body (no `go_to`, exploration, rim tour, homecoming), the mapper
   rests: no window is integrated or corrects the pose, odometry alone

@@ -1029,7 +1029,9 @@ pub fn catalog() -> Vec<Value> {
     stand still so the stop reaches the map (mapping only happens while standing, with the \
     head sweeping on its own). Returns how many map windows the stop added and the free \
         distance ahead/left/right/behind, and refuses to walk into a mapped wall or toward a drop \
-        (stairs, a hole) the depth sensor has seen. To map a room, \
+        (stairs, a hole) the depth sensor has seen. When the position is lost or uncertain the \
+        map's walls are not judged (they would be at the wrong place): only the sensor's checks \
+        apply, and the reply's `checks` says \"position uncertain: checks from the sensor only\". To map a room, \
     call it repeatedly — short walks (walk_s 3 with vx 0.3 ≈ 30 cm; to turn, keep vx 0.3 and \
         add vyaw 0.7 or -0.7 for about 2 s per 90°, the duck cannot turn in place), each followed \
         by the default 6 s stand — and tell the user how it goes; \
@@ -1802,6 +1804,22 @@ pub struct StepPlan {
     pub stop_s: f64,
     pub shortened: Option<String>,
     pub steered: Option<&'static str>,
+    /// The pose was lost or untrusted: the map's walls were left out —
+    /// judged at the believed pose they would be judged at the wrong
+    /// place — and only the depth sensor's checks applied.
+    pub sensor_only: bool,
+}
+
+/// What a step's reply says when the pose could not be used.
+pub const SENSOR_ONLY: &str = "position uncertain: checks from the sensor only";
+
+/// Whether the map's word can be taken at this frame's pose: tracking,
+/// and not marked untrusted (moved while it rested). Otherwise every
+/// map-based check of a step — the walls ahead, the passage's sides, the
+/// wall-hug and the centring — would be judged at a pose the duck may not
+/// be at.
+pub fn pose_known(frame: &crate::map::MapFrame) -> bool {
+    frame.tracking && !frame.untrusted
 }
 
 /// How long a thing seen beside the body counts as a passage boundary:
@@ -1827,7 +1845,7 @@ fn passage_here(
     // Mapped walls, at the body and ahead — only with a pose the map vouches for.
     let mut near = Sides::open();
     let mut far = Sides::open();
-    if first.tracking
+    if pose_known(first)
         && let Ok(grid) = first.grid()
     {
         // A mapped wall bounds the side; open floor leaves it open; the
@@ -1955,7 +1973,7 @@ pub fn plan_step(
     let vx = quack_duck::body::clamp(quack_duck::body::number(args, "vx"), quack_duck::body::MAX_SPEED_M_S);
     if walk_s > 0.0 && vx.abs() > 0.0 {
         let heading = first.yaw + if vx < 0.0 { std::f64::consts::PI } else { 0.0 };
-        let grid = if first.tracking { first.grid().ok() } else { None };
+        let grid = if pose_known(first) { first.grid().ok() } else { None };
         let ahead = grid
             .as_ref()
             .map(|g| g.clearance(first.x, first.y, heading, crate::tools::LOOK_M));
@@ -2183,6 +2201,8 @@ pub fn plan_step(
             if drop.edge_min_m < needed && !turning_away {
                 let c = first
                     .grid()
+                    .ok()
+                    .filter(|_| pose_known(first))
                     .map(|g| crate::tools::clearance_json(&g, first.pose()))
                     .unwrap_or(Value::Null);
                 return Err(format!(
@@ -2222,7 +2242,7 @@ pub fn plan_step(
     } else if walk_s > 0.0
         && vx > 0.0
         && !hands_off
-        && first.tracking
+        && pose_known(first)
         && let Ok(grid) = first.grid()
     {
         use crate::map::Blocked;
@@ -2278,6 +2298,7 @@ pub fn plan_step(
         stop_s,
         shortened,
         steered,
+        sensor_only: !pose_known(first),
     })
 }
 
@@ -2304,7 +2325,7 @@ fn map_step(robot: &mut Robot, args: &Value) -> Result<Value, String> {
     quack_duck::body::with_robot(&mut robot.control)?;
     let cliff_now = robot.places.cliff.as_ref().map(|c| c.snapshot());
     let plan = plan_step(args, &first, cliff_now.as_ref(), &robot.places.gait, Instant::now())?;
-    let StepPlan { params, walk_s, stop_s, shortened, steered } = plan;
+    let StepPlan { params, walk_s, stop_s, shortened, steered, sensor_only } = plan;
     if walk_s > 0.0 {
         // The heading held on a walking leg that is not an arc: the
         // steering asked for (before the trim) is what the hold means to
@@ -2331,11 +2352,15 @@ fn map_step(robot: &mut Robot, args: &Value) -> Result<Value, String> {
     let after = map.snapshot();
     let last = after.latest.clone().unwrap_or(first.clone());
     let new_windows = last.windows.saturating_sub(first.windows);
+    // The map's clearance at a pose it does not vouch for would describe
+    // somewhere else: none.
     let clearance = last
         .grid()
+        .ok()
+        .filter(|_| pose_known(&last))
         .map(|g| crate::tools::clearance_json(&g, last.pose()))
         .unwrap_or(Value::Null);
-    let hug_hint = last.grid().ok().and_then(|g| {
+    let hug_hint = last.grid().ok().filter(|_| pose_known(&last)).and_then(|g| {
         use crate::map::Blocked;
         let look = crate::tools::LOOK_M;
         let l = g.clearance(last.x, last.y, last.yaw + std::f64::consts::FRAC_PI_2, look);
@@ -2354,6 +2379,10 @@ fn map_step(robot: &mut Robot, args: &Value) -> Result<Value, String> {
     });
     let hint = if last.seated {
         "the duck fell (or sat) during this step: robotd stands it back up on its own; wait, then check robot.map_status"
+    } else if sensor_only && last.untrusted {
+        "position uncertain (the duck may have been moved): this step was judged by the depth sensor alone, not by the map; robot.go_to finds the position first when asked"
+    } else if sensor_only {
+        "position uncertain: this step was judged by the depth sensor alone, not by the map; let it stand until robot.map_status says it is tracking again"
     } else if !last.tracking {
         "the duck lost its position during this step: let it stand until robot.map_status says it is tracking again"
     } else if let Some(hug) = hug_hint {
@@ -2382,6 +2411,9 @@ fn map_step(robot: &mut Robot, args: &Value) -> Result<Value, String> {
         "cliff": crate::tools::cliff_json(robot.places.cliff.as_ref(), Instant::now()),
         "steered": steered,
         "shortened": shortened,
+        // Which checks judged the step: the map's and the sensor's, or —
+        // the pose lost or untrusted — the sensor's alone.
+        "checks": if sensor_only { SENSOR_ONLY } else { "map and sensor" },
         "hint": hint,
     }))
 }
@@ -2450,6 +2482,60 @@ mod move_guard_tests {
         let mut blind = CliffStatus::default();
         blind.stream = StreamState::Unavailable("no sensor".into());
         assert!(MoveCover::of(Some(&blind), &mv(0.3, 0.0, 0.0)).word().starts_with("off"));
+    }
+
+    /// A mapped room at the believed pose (0, 0) facing +x, all floor but
+    /// a wall 0.25 m ahead; tracking and untrusted as asked.
+    fn walled(tracking: bool, untrusted: bool) -> crate::map::MapFrame {
+        let (rows, cols) = (40usize, 40usize);
+        let mut cells = vec![1u8; rows * cols];
+        for r in 0..rows {
+            for c in 25..27 {
+                cells[r * cols + c] = 2;
+            }
+        }
+        crate::map::MapFrame {
+            seq: 1, x: 0.0, y: 0.0, yaw: 0.0, tracking,
+            x_min: -1.0, y_min: -1.0, cell_m: 0.05, rows: rows as u32, cols: cols as u32,
+            cells: crate::mapd::wire::b64_encode(&cells),
+            n_submaps: 1, n_loops: 0, windows: 5, still: true, seated: false, frozen: false,
+            pose_sigma: None, resting: false, untrusted, rest_watch: None,
+        }
+    }
+
+    /// With the pose lost or untrusted the map's wall is not judged — at
+    /// the believed pose it may be anywhere — and the step says so; the
+    /// sensor's own checks still hold.
+    #[test]
+    fn an_uncertain_pose_leaves_the_map_out_of_a_step() {
+        let now = Instant::now();
+        let mut looked = CliffStatus::default();
+        looked.absorb(frame(Vec::new(), false));
+        let gait = quack_duck::gait::GaitConfig::default();
+        let step = json!({"vx": 0.3, "walk_s": 3.0, "stop_s": 0.0});
+        // Trusted: the mapped wall refuses the step.
+        let e = plan_step(&step, &walled(true, false), Some(&looked), &gait, now).err().expect("refused");
+        assert!(e.starts_with("a wall is 0.2"), "{e}");
+        // Untrusted, or not tracking: the wall is the map's, not the
+        // sensor's; the sensor looked and saw nothing.
+        for f in [walled(false, true), walled(false, false), walled(true, true)] {
+            let plan = plan_step(&step, &f, Some(&looked), &gait, now).expect("judged by the sensor alone");
+            assert!(plan.sensor_only && plan.steered.is_none());
+            assert_eq!(plan.walk_s, 3.0);
+        }
+        // The sensor still speaks: a drop ahead refuses the step.
+        let mut hole = CliffStatus::default();
+        hole.absorb(frame(vec![hole_at(0.0, 0.3)], false));
+        let e = plan_step(&step, &walled(false, true), Some(&hole), &gait, now).err().expect("a drop refuses");
+        assert!(e.starts_with("a drop — stairs or a hole —"), "{e}");
+        assert!(e.contains("clearance left null"), "no clearance from a map at the wrong place: {e}");
+        // And one it has not looked at: stand first.
+        let e = plan_step(&step, &walled(false, true), Some(&CliffStatus::default()), &gait, now).err().expect("unlooked");
+        assert!(e.contains("has not looked ahead yet"), "{e}");
+    }
+
+    fn hole_at(bearing: f64, edge_min_m: f64) -> Drop {
+        hole(bearing, edge_min_m)
     }
 
     /// A robotd that keeps every line it is sent.

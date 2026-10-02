@@ -34,6 +34,15 @@ carta, mai su una papera fisica; i dettagli sono in
   buco, fermata col tronco a 0,56 m dal bordo e ogni altra chiamata in
   avanti rifiutata; nove chiamate su 4 m di pavimento libero, nessuno stop
   falso.
+- **`robot.map_step` su una posa incerta giudica col solo sensore.** Con
+  la posa persa o `untrusted` (spostata mentre si riposava) i controlli
+  della mappa — il muro davanti, i lati del passaggio, lo scostarsi dal
+  muro, il centrarsi, lo spazio libero nella risposta — sarebbero giudicati
+  in un posto dove la papera può non essere: restano fuori, valgono solo i
+  controlli del sensore di profondità (la guardia del dirupo, le cose in
+  mezzo, "fermati prima" dove non ha guardato), e il nuovo `checks` della
+  risposta dice `"position uncertain: checks from the sensor only"`
+  (altrimenti `"map and sensor"`), `clearance` null, con un suggerimento.
 - **La sosta: le lunghe pause da ferma** (maploc). Un minuto ferma senza
   un lavoro che guidi il corpo (né `go_to`, né esplorazione, né giro dei
   bordi, né ritorno a casa), il mapper si riposa: nessuna finestra viene
