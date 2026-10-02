@@ -167,6 +167,18 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Corretto
 
+- **Una casa dichiarata completa viene congelata dopo un'accensione,
+  qualunque cosa dica `resume_explore`.** Il ritorno a casa congelava una
+  casa completa solo con `resume_explore` acceso: in `stop_and_scan` senza,
+  la papera tornava a casa su casa_grande e continuava a disegnare sulla
+  mappa su cui navigava (627 → 630 sottomappe). Ora `robot.map_load` e
+  `robot.map_adopt` congelano una casa completa appena la caricano, come
+  `localize` congela ogni mappa (la posa cercata come quando si mappa,
+  niente disegnato); la risposta porta `frozen`. Una sessione di
+  `map_explore` sotto un altro `save_as` prima la scongela; `fresh` avvia
+  una mappa nuova come prima. Sul gemello, due accensioni sulla mappa
+  completa: congelata al caricamento, 495 sottomappe per 16 minuti e due
+  go_to.
 - **Una mappa ruotata rispetto alla casa non conta più l'ignoto oltre i
   muri.** La percentuale della casa, `left_m2` e il pezzo ignoto più
   grande della fine sessione contavano l'ignoto dentro il riquadro dei

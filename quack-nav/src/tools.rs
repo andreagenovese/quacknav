@@ -1226,10 +1226,13 @@ pub fn execute(name: &str, args: &Value, robot: &mut Robot) -> Result<Value, Str
         "robot.map_list" => map_library(&robot.places.map_socket, "robot.map_list", None),
         "robot.map_load" => {
             let name = map_name(args)?;
-            let loaded = map_library(&robot.places.map_socket, "robot.map_load", Some(name.clone()))?;
+            let mut loaded = map_library(&robot.places.map_socket, "robot.map_load", Some(name.clone()))?;
             if let Some(n) = name.get("name").and_then(Value::as_str) {
                 robot.places.explore.map_named(n);
                 robot.places.map_loaded(n);
+                if let Some(frozen) = freeze_if_done(robot, n) {
+                    loaded["frozen"] = json!(frozen);
+                }
             }
             Ok(loaded)
         }
@@ -1252,10 +1255,13 @@ pub fn execute(name: &str, args: &Value, robot: &mut Robot) -> Result<Value, Str
             for k in ["x", "y", "yaw"] {
                 params[k] = json!(args.get(k).and_then(Value::as_f64).ok_or_else(|| format!("robot.map_adopt needs `{k}`"))?);
             }
-            let adopted = map_library(&robot.places.map_socket, "robot.map_adopt", Some(params))?;
+            let mut adopted = map_library(&robot.places.map_socket, "robot.map_adopt", Some(params))?;
             if let Some(n) = name.get("name").and_then(Value::as_str) {
                 robot.places.explore.map_named(n);
                 robot.places.map_loaded(n);
+                if let Some(frozen) = freeze_if_done(robot, n) {
+                    adopted["frozen"] = json!(frozen);
+                }
             }
             Ok(adopted)
         }
@@ -1676,6 +1682,14 @@ fn map_explore(robot: &mut Robot, args: &Value) -> Result<Value, String> {
         save_as: name.clone(),
         battery_min_pct: args.get("battery_min_pct").and_then(Value::as_f64).unwrap_or(25.0),
     });
+    // A session inks: a map frozen at run time (a house declared done,
+    // loaded or adopted) is thawed for it. Only another name gets here on
+    // a done house — its own is refused above — and `fresh` started a new
+    // map, which is never frozen.
+    if session.is_some() && frame.frozen && !localize_mode(robot) {
+        map_library(&robot.places.map_socket, crate::mapd::wire::METHOD_QUACK_MAP_FREEZE, Some(json!({"on": false})))?;
+        tracing::info!(map = name, "map explore: the frozen map is live again for this session");
+    }
     robot.places.explore.start(
         &robot.places.robotd_socket,
         &robot.places,
@@ -1743,6 +1757,38 @@ fn map_explore_complete(robot: &mut Robot, args: &Value) -> Result<Value, String
         "progress": progress,
         "hint": "the map is closed as it is: the duck explores it no more and navigates on it — blind where it knows the floor, guarded where it does not; a new map from nothing only if the user asks for one (robot.map_explore fresh=true)",
     }))
+}
+
+/// A house declared done is navigated, not inked: loaded or adopted, its
+/// map is frozen as `localize` freezes every map. The mapper keeps
+/// searching for the pose as when mapping (frozen only bites once the
+/// pose is confirmed) and inks nothing meanwhile, the confirming window
+/// included. Before this a power-on in `stop_and_scan` froze it only with
+/// `resume_explore` on, and the duck inked the house it navigated
+/// (casa_grande 627 → 630 submaps, 2026-10-02). `None` when the house of
+/// `name` is not done, else whether the freeze was accepted.
+pub(crate) fn freeze_if_done(robot: &Robot, name: &str) -> Option<bool> {
+    let done = robot.places.explore.status().progress.as_ref().and_then(|p| p.get("done")).and_then(Value::as_bool).unwrap_or(false);
+    if !done {
+        return None;
+    }
+    Some(match map_library(&robot.places.map_socket, crate::mapd::wire::METHOD_QUACK_MAP_FREEZE, Some(json!({"on": true}))) {
+        Ok(_) => {
+            tracing::info!(map = name, "map: the house is done; its map frozen — navigated on, inked no more");
+            true
+        }
+        Err(e) => {
+            tracing::warn!(map = name, error = %e, "map: the house is done, but its map could not be frozen");
+            false
+        }
+    })
+}
+
+/// maploc runs in `localize`: every map is frozen by the mode itself.
+fn localize_mode(robot: &Robot) -> bool {
+    robot.places.map.as_ref().is_some_and(|m| {
+        matches!(&m.snapshot().support, crate::map::MapSupport::Supported { mode: Some(mode), .. } if mode == "localize")
+    })
 }
 
 /// The name a map is to be saved or loaded under, checked here so an
@@ -2792,6 +2838,69 @@ mod move_guard_tests {
         assert!(r["stopped_own"].as_str().unwrap().contains(crate::homecoming::WHY_BOOT), "{r}");
         assert_eq!(explore.status().state, crate::explore::State::Stopped);
         assert!(explore.held());
+    }
+
+    /// A map socket that accepts every call and keeps what it was asked.
+    fn fake_map_socket() -> (tempfile::TempDir, String, Arc<Mutex<Vec<Value>>>) {
+        use std::io::Write;
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("map.sock").to_str().unwrap().to_string();
+        let listener = std::os::unix::net::UnixListener::bind(&path).unwrap();
+        let asked = Arc::new(Mutex::new(Vec::new()));
+        let kept = asked.clone();
+        std::thread::spawn(move || {
+            for stream in listener.incoming() {
+                let Ok(stream) = stream else { return };
+                let mut line = String::new();
+                if std::io::BufReader::new(&stream).read_line(&mut line).is_err() {
+                    continue;
+                }
+                if let Ok(v) = serde_json::from_str::<Value>(&line) {
+                    kept.lock().unwrap().push(v);
+                }
+                let _ = (&stream).write_all(b"{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"accepted\":true}}\n");
+            }
+        });
+        (dir, path, asked)
+    }
+
+    /// A house declared done is frozen as it is loaded or adopted — what
+    /// `localize` does to every map — and one still being explored is not
+    /// (the stop_and_scan life test, 2026-10-02: casa_grande, done, went
+    /// on being inked after a power-on, 627 → 630 submaps).
+    #[test]
+    fn a_done_house_is_frozen_when_loaded_or_adopted() {
+        let (dir, path, asked) = fake_map_socket();
+        let places_path = dir.path().join("places.json");
+        std::fs::write(
+            dir.path().join("ground.json"),
+            json!({
+                "done_house.progress": {"done": true, "declared_by_user": true, "percent": 96},
+                "open_house.progress": {"done": false, "percent": 60},
+            })
+            .to_string(),
+        )
+        .unwrap();
+        let mut robot = Robot::detached();
+        robot.places.map_socket = path;
+        robot.places.explore = crate::explore::ExploreHandle::new().with_ground(places_path.to_str().unwrap());
+        let freezes = |asked: &Arc<Mutex<Vec<Value>>>| -> Vec<Value> {
+            asked.lock().unwrap().iter().filter(|v| v["method"] == crate::mapd::wire::METHOD_QUACK_MAP_FREEZE).map(|v| v["params"]["on"].clone()).collect()
+        };
+
+        let r = execute("robot.map_load", &json!({"name": "open_house"}), &mut robot).unwrap();
+        assert!(r.get("frozen").is_none(), "{r}");
+        assert!(freezes(&asked).is_empty());
+
+        let r = execute("robot.map_load", &json!({"name": "done_house"}), &mut robot).unwrap();
+        assert_eq!(r["frozen"], true, "{r}");
+        assert_eq!(freezes(&asked), vec![json!(true)]);
+
+        let r = execute("robot.map_adopt", &json!({"name": "open_house", "x": 0.5, "y": 0.0, "yaw": 0.1}), &mut robot).unwrap();
+        assert!(r.get("frozen").is_none(), "{r}");
+        let r = execute("robot.map_adopt", &json!({"name": "done_house", "x": 0.5, "y": 0.0, "yaw": 0.1}), &mut robot).unwrap();
+        assert_eq!(r["frozen"], true, "{r}");
+        assert_eq!(freezes(&asked), vec![json!(true), json!(true)]);
     }
 
     /// A job's leg in flight ends the moment the user stops the duck: the

@@ -4295,7 +4295,7 @@ nothing: it explores and asks.
       first stop), so how they came to be is still open.
 - [ ] The stick should read `blind_move`'s answer: a step refused or cut
       short is not a bump, and it should not be retried without a stand.
-- [ ] 2026-10-02: a house declared done is not frozen after a power-on
+- [x] 2026-10-02: a house declared done is not frozen after a power-on
       in `stop_and_scan` (the duck's default): the homecoming confirms the
       pose on the saved map and navigates, but maploc keeps inking it
       (casa_grande 627 → 630 submaps, "still window integrated" while
@@ -4304,7 +4304,26 @@ nothing: it explores and asks.
       `done` (or declared by the user). Found by the stop_and_scan life
       test of 2026-10-02 (boot, "esplora da capo", go_to on the map just
       frozen, reboots elsewhere); fix after it, on a branch of its own.
-- [x] 2026-10-02: the house's percentage and the session-end rule count
+      **Fixed.** The cause: the homecoming froze a done house only inside
+      `resume_exploring`, which returned at once with `resume_explore`
+      off (the twin's default, and the test's). Now `robot.map_load` and
+      `robot.map_adopt` freeze a done house as they load it
+      (`tools::freeze_if_done`), as `localize` freezes every map: the
+      mapper still searches as when mapping (frozen bites once the pose
+      is confirmed) and inks nothing; the answer carries `frozen`. The
+      homecoming freezes it again on confirmation (idempotent), says so
+      with or without `resume_explore`, and after an adoption no longer
+      asks to explore a done house. `map_explore` on a done house is
+      refused as before (`fresh` wipes, the new map is never frozen); a
+      session under another `save_as` thaws a map frozen at run time
+      first. On the twin (casa_grande, the map from the kitchen, done,
+      stop_and_scan, HOMECOMING on, WIPE on, RESUME off), two boots: "the
+      map is frozen" at the load and again at "home", 495 submaps from the
+      load to the end (4 min and a 3.4 m go_to; 12 min and a 4.5 m go_to
+      after the reboot elsewhere), `map_explore {}` refused, one under
+      `save_as` "prova" thawed it ("live again", the journey's guards
+      back). The log still says "still window integrated" on a frozen
+      map, as in `localize`: the window is judged and counted, not inked. and the session-end rule count
       unknown OUTSIDE the house when the map's frame is not aligned with
       it. "Esplora da capo" from the kitchen started a map at the duck's
       pose, turned ~204° from the house: after two rounds 45.2 m² of floor

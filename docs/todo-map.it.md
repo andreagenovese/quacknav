@@ -4604,7 +4604,7 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
 - [ ] Il bastone dovrebbe leggere la risposta di `blind_move`: un passo
       rifiutato o accorciato non è un urto, e non va ripetuto senza una
       sosta.
-- [ ] 2026-10-02: una casa dichiarata completa non viene congelata dopo
+- [x] 2026-10-02: una casa dichiarata completa non viene congelata dopo
       un'accensione in `stop_and_scan` (il default della papera): il
       ritorno a casa conferma la posa sulla mappa salvata e naviga, ma
       maploc continua a disegnarci (casa_grande 627 → 630 sottomappe,
@@ -4615,6 +4615,27 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       stop_and_scan del 2026-10-02 (accensione, "esplora da capo", go_to
       sulla mappa appena congelata, riaccensioni altrove); da correggere
       dopo, su un branch a parte.
+      **Corretto.** La causa: il ritorno a casa congelava una casa completa
+      solo dentro `resume_exploring`, che usciva subito con `resume_explore`
+      spento (il default del gemello, e della prova). Ora `robot.map_load`
+      e `robot.map_adopt` congelano una casa completa appena la caricano
+      (`tools::freeze_if_done`), come `localize` congela ogni mappa: il
+      mapper cerca ancora come quando mappa (il congelamento morde una
+      volta confermata la posa) e non disegna niente; la risposta porta
+      `frozen`. Il ritorno a casa la ricongela alla conferma (idempotente),
+      lo dice con o senza `resume_explore`, e dopo un'adozione non chiede
+      più di esplorare una casa completa. `map_explore` su una casa
+      completa è rifiutato come prima (`fresh` cancella, la mappa nuova
+      non è mai congelata); una sessione sotto un altro `save_as` prima
+      scongela una mappa congelata a run time. Sul gemello (casa_grande, la
+      mappa dalla cucina, completa, stop_and_scan, HOMECOMING on, WIPE on,
+      RESUME off), due accensioni: "the map is frozen" al caricamento e di
+      nuovo a "home", 495 sottomappe dal caricamento alla fine (4 min e un
+      go_to di 3,4 m; 12 min e un go_to di 4,5 m dopo la riaccensione
+      altrove), `map_explore {}` rifiutato, uno sotto `save_as` "prova" la
+      scongela ("live again", tornano le guardie del viaggio). Il log dice
+      ancora "still window integrated" su una mappa congelata, come in
+      `localize`: la finestra è giudicata e contata, non disegnata.
 - [x] 2026-10-02: la percentuale della casa e la regola di fine sessione
       contano l'ignoto FUORI dalla casa quando il riferimento della mappa
       non è allineato con essa. "Esplora da capo" dalla cucina ha iniziato

@@ -152,6 +152,16 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Fixed
 
+- **A house declared done is frozen after a power-on, whatever
+  `resume_explore` says.** The homecoming froze a done house only when
+  `resume_explore` was on: in `stop_and_scan` without it, the duck came
+  home on casa_grande and went on inking the map it navigated (627 → 630
+  submaps). `robot.map_load` and `robot.map_adopt` now freeze a done house
+  as they load it, as `localize` freezes every map (the pose searched as
+  when mapping, nothing inked); their answer carries `frozen`. A
+  `map_explore` session under another `save_as` thaws it first; `fresh`
+  starts a new map as before. On the twin, two boots on the done map:
+  frozen at the load, 495 submaps throughout 16 minutes and two go_to.
 - **A map turned from the house no longer counts the unknown beyond its
   walls.** The house's percentage, `left_m2` and the session end's
   largest unknown piece counted the unknown inside the walls' box on the

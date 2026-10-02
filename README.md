@@ -89,8 +89,9 @@ that speaks the socket:
   `confirmed`; the saved map is replaced only when the new one's first
   session saves.
 - **Going places.** On a finished map the duck explores no more, even after a
-  restart: it comes home, freezes the map and navigates — blind where the map
-  knows the floor, with the guard on where it does not. `robot.go_to` a named
+  restart: it comes home, freezes the map (as it loads it, with or without
+  `resume_explore`) and navigates — blind where the map knows the floor, with
+  the guard on where it does not. `robot.go_to` a named
   place or a point; `robot.remember_place` names where it stands.
 - **When it moves on its own.** After a power-on the duck may walk by
   itself — looking for where it is on the saved map, exploring to recognise

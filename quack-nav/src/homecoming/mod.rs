@@ -419,6 +419,12 @@ fn adopt(robot: &Arc<Mutex<Robot>>, name: &str, x: f64, y: f64, yaw: f64, max_s:
         }
         tracing::warn!("homecoming: the adopted place is still unconfirmed; exploring anyway");
     }
+    // A done house is navigated, not explored: the adoption froze it.
+    let done = robot.lock().expect("robot poisoned").places.explore.status().progress.as_ref().and_then(|p| p.get("done")).and_then(Value::as_bool).unwrap_or(false);
+    if done {
+        tracing::info!(map = name, "homecoming: the house is mapped; the map frozen, navigating on it");
+        return;
+    }
     if let Err(e) = start_exploring(robot, max_s, true, WHY_ADOPTED) {
         tracing::warn!(error = %e, "homecoming: cannot pick exploring back up after adopting");
     }
@@ -429,11 +435,8 @@ fn adopt(robot: &Arc<Mutex<Robot>>, name: &str, x: f64, y: f64, yaw: f64, max_s:
 /// Progressive exploration (`resume_explore`): home on a map still being
 /// explored — the mapper mapping, not frozen — the next session starts
 /// from here: the frontiers left are where the last one stopped. A map
-/// its last session found finished is left alone.
+/// whose house is done is frozen and navigated on, `resume_explore` or not.
 fn resume_exploring(robot: &Arc<Mutex<Robot>>, cfg: &HomecomingConfig, name: &str) {
-    if !cfg.resume_explore {
-        return;
-    }
     let (frozen, done) = {
         let robot = robot.lock().expect("robot poisoned");
         let frozen = robot.places.map.as_ref().is_some_and(|m| {
@@ -449,12 +452,17 @@ fn resume_exploring(robot: &Arc<Mutex<Robot>>, cfg: &HomecomingConfig, name: &st
     if done {
         // The house is mapped: from here on the duck navigates — the map
         // frozen, journeys blind on the floor it knows and guarded where it
-        // does not — and explores no more unless asked for a new map.
-        let socket = robot.lock().expect("robot poisoned").places.map_socket.clone();
-        match tools::map_library(&socket, crate::mapd::wire::METHOD_QUACK_MAP_FREEZE, Some(json!({"on": true}))) {
-            Ok(_) => tracing::info!(map = name, "homecoming: the house is mapped; the map frozen, navigating on it"),
-            Err(e) => tracing::warn!(map = name, error = %e, "homecoming: the house is mapped, but the map could not be frozen"),
+        // does not — and explores no more unless asked for a new map. The
+        // load froze it already (`tools::freeze_if_done`); asked again, it
+        // costs nothing. With or without `resume_explore`: without, a
+        // done house went on being inked (casa_grande, 2026-10-02).
+        let frozen = tools::freeze_if_done(&robot.lock().expect("robot poisoned"), name);
+        if frozen == Some(true) {
+            tracing::info!(map = name, "homecoming: the house is mapped; the map frozen, navigating on it");
         }
+        return;
+    }
+    if !cfg.resume_explore {
         return;
     }
     let mut last = String::new();

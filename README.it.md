@@ -96,8 +96,9 @@ qualunque cosa parli il socket:
   aspetta `confirmed`; la mappa salvata viene sostituita solo quando salva la
   prima sessione della nuova.
 - **Andare nei posti.** Su una mappa finita la papera non esplora più, anche
-  dopo un riavvio: torna a casa, congela la mappa e naviga — alla cieca dove
-  la mappa conosce il pavimento, con la guardia dove non lo conosce.
+  dopo un riavvio: torna a casa, congela la mappa (appena la carica, con o
+  senza `resume_explore`) e naviga — alla cieca dove la mappa conosce il
+  pavimento, con la guardia dove non lo conosce.
   `robot.go_to` verso un posto con nome o un punto; `robot.remember_place`
   dà un nome a dove si trova.
 - **Quando si muove da sola.** Dopo un'accensione la papera può camminare
