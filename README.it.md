@@ -48,8 +48,8 @@ dell'utente agli strumenti di quack-nav e non fa navigazione.
 > spiega il movimento; solo un trasporto, una seduta o una caduta le fanno
 > cercare dov'è.
 
-Release attuale: **v0.2.0-rc1**, una release candidate validata sui gemelli —
-[note di rilascio](docs/release-notes-v0.2.0-rc1.it.md), [changelog](CHANGELOG.it.md).
+Release attuale: **v0.2.0-rc2**, una release candidate validata sui gemelli —
+[note di rilascio](docs/release-notes-v0.2.0-rc2.it.md) (rc1: [note](docs/release-notes-v0.2.0-rc1.it.md)), [changelog](CHANGELOG.it.md).
 
 ## A cosa serve
 

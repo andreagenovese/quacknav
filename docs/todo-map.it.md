@@ -4679,7 +4679,28 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       (senza camminare né correggere): quando la mappa torna d'accordo —
       la papera rimessa dov'era — la fiducia torna da sola, e il prossimo
       go_to parte subito invece di cercare. Misurare prima il rischio di
-      una fiducia sbagliata (un alias che va d'accordo).
+      una fiducia sbagliata (un alias che va d'accordo). Prova
+      (2026-10-03): dopo ~16 h ferma la posa era ancora a 1,38 m e non
+      fidata; un `go_to` verso la cucina si è rilocalizzato in 97 s (6
+      passi) ed è arrivato a 0,21 m dalla cucina vera — il rilocalizzatore
+      fa il suo lavoro; il controllo risparmierebbe la ricerca.
+- [x] 2026-10-03: **le prove della v0.2.0-rc2**, misurate sul gemello dopo
+      le modifiche qui sopra, per le note di rilascio. *Banco dei risvegli
+      in localize* (`WAKE_MODE=localize`, 2026-10-02, su 2a5a124: gli 8
+      punti di partenza di casa_grande e i 6 di casa_arredata, poi gli
+      stessi girati di 180°): 28/28 confermati giusti, nessuno sbagliato,
+      nessuno mai, mediana 87 s (75–141 s), 0,01–0,15 m dalla verità, 0
+      cadute. *x26* (il protocollo final-house su c7d352f, esplorazione da
+      zero: casa_grande quattro sessioni, casa_arredata tre): muri sulla
+      verità 98 % in entrambe (`map_vs_truth.py`), pavimento noto 96 % e
+      94 %, 0 dislivelli fantasma. *La prova della vita in stop_and_scan*
+      (2026-10-02, casa_grande, col congelamento della casa completa):
+      un'accensione sulla mappa completa salvata, "esplora da capo" dalla
+      cucina — tre turni, il terzo finito da sé, completa all'86 % —,
+      `complete`, quattro `go_to` sulla mappa appena congelata, poi due
+      riaccensioni altrove con due `go_to` ciascuna: 9/9 `go_to` arrivati
+      (0,09–0,30 m dalla meta secondo la verità), 0 cadute, 438 sottomappe
+      per tutti i giri dopo le riaccensioni.
 - [ ] 2026-10-02: uno STOP senza niente in corso imposta comunque il blocco,
       così il ritorno a casa non avvia niente finché l'utente non chiede
       un lavoro (f36f51b): farlo valere solo quando qualcosa partito da

@@ -13,6 +13,11 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ## [Unreleased]
 
+## [0.2.0-rc2] - 2026-10-03
+
+Una seconda release candidate, ancora validata solo sui gemelli. Note di
+rilascio: [docs/release-notes-v0.2.0-rc2.it.md](docs/release-notes-v0.2.0-rc2.it.md).
+
 ### Aggiunto
 
 - **`robot.move` ha una guardia del dirupo, sempre accesa.** La
@@ -28,17 +33,19 @@ carta, mai su una papera fisica; i dettagli sono in
   "walked_s": …, "cliff_guard": "on"}`; una mossa completa risponde
   `"done": true` come prima, con `cliff_guard`. Solo in avanti — il
   sensore guarda avanti e in basso: retromarcia e passi laterali sono
-  `"not covered"`, una rotazione sul posto `"not judged"`, senza sensore
-  `"off"`. La guardia è solo dei chiamanti (nav.call da un client: il
-  front end vocale, quack-control, qualunque client del socket): le gambe
-  dell'esploratore, gli impulsi e i passi del ritorno a casa e il giro dei
-  bordi si muovono con `tools::internal_move`, senza guardia come prima,
-  con le loro guardie tarate per avvicinarsi a un bordo — con la guardia
-  sempre accesa anche lì, un'esplorazione su casa_arredata (x25) si è vista
-  fermare le gambe 17 volte al buco del corridoio e si è sigillata. Sul gemello (casa_grande): camminando verso il bordo del
-  buco, fermata col tronco a 0,56 m dal bordo e ogni altra chiamata in
-  avanti rifiutata; nove chiamate su 4 m di pavimento libero, nessuno stop
-  falso.
+  `"not covered"`, una rotazione sul posto `"not judged"`, senza guardia o
+  senza sensore `"off"`. La guardia è solo dei chiamanti (nav.call da un
+  client: il front end vocale, quack-control, qualunque client del
+  socket): le gambe dell'esploratore, il giro dei bordi, i viaggi e gli
+  impulsi e le rotazioni del ritorno a casa si muovono con
+  `tools::internal_move`, senza guardia come prima, con le loro guardie
+  tarate per avvicinarsi a un bordo — con la guardia sempre accesa anche
+  lì, un'esplorazione su casa_arredata (x25) si è vista fermare le gambe
+  17 volte al buco del corridoio e si è sigillata. Sul gemello
+  (casa_grande), di fronte al buco del soggiorno da 1,15 m: fermata dopo
+  1,71 s col tronco a 0,56 m dal bordo, e ogni altra chiamata in avanti
+  rifiutata sul bordo; nove chiamate su 4 m di pavimento libero, nessuno
+  stop falso.
 - **`robot.map_step` su una posa incerta giudica col solo sensore.** Con
   la posa persa o `untrusted` (spostata mentre si riposava) i controlli
   della mappa — il muro davanti, i lati del passaggio, lo scostarsi dal
@@ -56,9 +63,10 @@ carta, mai su una papera fisica; i dettagli sono in
   segue l'odometria, fidata; solo un movimento che l'andatura non spiega
   (odometria spostata oltre 5 cm o 0,15 rad senza camminare: un
   trasporto; una seduta; una caduta) la rende `untrusted`. Sul gemello: a
-  riposo, guidata 2 m dritta tramite robotd a 50 Hz come `padd` —
-  svegliata come "motion", mai non fidata, la posa della mappa a 1 cm
-  dallo spostamento vero, le finestre della sosta successiva integrate. Il
+  riposo, guidata 16 s a 0,3 m/s tramite robotd a 50 Hz come `padd`
+  (1,17 m netti, l'andatura che sbanda) — svegliata come "motion", mai non
+  fidata, lo spostamento della posa della mappa entro 4 mm da quello vero,
+  le finestre successive integrate. Il
   teleop di Pollen scavalca la guardia del dirupo di quack-nav, e robotd
   non ne ha una: detto nella nota di sicurezza del README e chiesto a monte
   ([docs/study/upstream-asks.it.md §8](docs/study/upstream-asks.it.md)).
@@ -117,11 +125,14 @@ carta, mai su una papera fisica; i dettagli sono in
   ricerca cammina-e-guarda del ritorno a casa trova la posa
   (`quack-nav/src/relocate.rs`, `explore.state` "relocalizing"), e il
   lavoro parte quando maploc la conferma — o fallisce senza aver camminato
-  verso la meta. Sul gemello: portata a 3,3 m in un'altra stanza, trovata
-  in 70 s e arrivata a 0,02 m; un trasporto silenzioso di 0,35 m, trovata
-  in 71 s, arrivata a 0,15 m. Dettagli in
-  [docs/todo-map.it.md](docs/todo-map.it.md).
-
+  verso la meta. `untrusted` viaggia in `map.frame` e `robot.map_status`.
+  Sul gemello: portata a 3,3 m in un'altra stanza, trovata in 70 s e
+  arrivata a 0,02 m; un trasporto silenzioso di 0,35 m, trovata in 71 s,
+  arrivata a 0,15 m; dopo ~16 h ferma, la posa a 1,38 m e non fidata, un
+  `go_to` verso la cucina si è rilocalizzato in 97 s ed è arrivato a
+  0,21 m. Il banco dei risvegli in localize (`WAKE_MODE=localize`, nuovo):
+  28 risvegli su 28 confermati giusti, nessuno sbagliato, mediana 87 s.
+  Dettagli in [docs/todo-map.it.md](docs/todo-map.it.md).
 - **Luoghi da una vista della mappa**: `robot.list_places` dà di ogni luogo
   il suo `at` (l'ancora a cui va `go_to`, in metri della mappa);
   `robot.remember_place` con `x` e `y` dà un nome a un punto di pavimento
@@ -140,6 +151,18 @@ carta, mai su una papera fisica; i dettagli sono in
   leggibile da una macchina (controllata da `--check`). Il gemello legge
   anche `$STATE/knobs.env`, e `scripts/twin/twin.sh restart-navd` riavvia
   solo quack-navd.
+- **La telecamera del gemello**: con `VIEWER=on` il visore serve la
+  telecamera della testa su `$STATE/media.sock` con la chiamata di mediad,
+  `media.frame` (640×360 UYVY, ruotata di 90° come il montaggio vero), così
+  quack-control legge il gemello e la papera con un solo adattatore
+  (`scripts/twin/viewer/eye.py`).
+- **Una GIF di un `go_to` sul gemello MuJoCo** in cima al README
+  (`docs/media/go_to.gif`: casa_grande, dalla camera in fondo alla cucina,
+  riprodotta a 6×).
+- **Lo studio dell'app della mappa** ([docs/study/map-app.it.md](docs/study/map-app.it.md)):
+  un'app alla robot aspirapolvere sul canale di Pollen; deciso il
+  2026-10-01: prima una pagina locale sulla rete di casa (quack-control),
+  il resto voci TODO datate.
 
 ### Modificato
 
@@ -153,7 +176,6 @@ carta, mai su una papera fisica; i dettagli sono in
   gemello), e una sosta cominciata dopo giudicava le sue finestre contro
   il proprio inchiostro. Trenta sessioni rigiocate su mappa congelata: ATE
   medio 0,1183 -> 0,1169 m, 4 meglio e 4 peggio di oltre 5 mm.
-
 - **Fissato a daemon-v0.15.0** (API 37; prima daemon-v0.14.4, API 34):
   `duck-ipc-proto` e `kinematics` di Pollen a quel tag. Le API 35–37 sono
   aggiunte — `robot.state` porta le `velocities` misurate dei servo
@@ -164,6 +186,24 @@ carta, mai su una papera fisica; i dettagli sono in
   nessuno li legge). robotd 0.15.0 li pubblica di default (`[control]
   publish_velocity_and_load`), circa il 10–12 % di byte in più per frame
   di stato. Il gemello lo usa (`scripts/twin/README.it.md`).
+- **`robot.map_step` è rifiutato mentre corre un lavoro chiesto
+  dall'utente**, come lo era già `robot.move` (e come documentato).
+- **Il ritorno a casa non chiede più di esplorare una casa completa**
+  dopo un'adozione.
+- **Il banco dei risvegli** (`wake_bench.py`) può avviare la papera come
+  fa la navigazione: `WAKE_MODE=localize`, la mappa congelata, niente
+  esplorazione.
+- **Insegnare un luogo è rifiutato** mentre la mappa viva è sconosciuta
+  (il ritorno a casa non si è ancora assestato) e sulla mappa di ricerca
+  del ritorno a casa.
+
+### Rimosso
+
+- La generazione del registro dei luoghi e la sua regola delle meno
+  submap (un luogo diventava stantio ogni volta che robotd riportava meno
+  submap di quante mai viste), sostituite dalla discendenza della mappa
+  qui sotto; con esse `places::Place::generation` e `generation()` e
+  `observe()` del registro.
 
 ### Corretto
 
@@ -237,6 +277,47 @@ carta, mai su una papera fisica; i dettagli sono in
   delle note di rilascio, verso i file al tag (`scripts/ci/release_body.py`);
   sulla pagina della release non portavano da nessuna parte (corretti a mano
   sulla v0.2.0-rc1).
+
+### Modifiche incompatibili per chi integra
+
+- **robotd**: fissato a daemon-v0.15.0 (API 37). quack-navd gira ancora
+  su una scheda alla 0.14.4.
+- **`robot.move`** (chi chiama tramite `nav.call`): una mossa in avanti
+  ora può finire prima o essere rifiutata davanti a un dislivello —
+  `"done": false` con `stopped` e `walked_s`; ogni risposta porta
+  `cliff_guard`, e `stopped_own` quando ha fermato il movimento autonomo
+  della papera.
+- **`robot.map_step`**: su una posa persa o `untrusted` i controlli della
+  mappa restano fuori (`checks` dice quali valgono, `clearance` è null);
+  rifiutato mentre corre un lavoro chiesto dall'utente; `stopped_own` come
+  `robot.move`.
+- **`robot.go_to` / `robot.map_explore`** su una posa non fidata
+  rispondono `relocalizing: true` e partono solo quando la posa è
+  confermata; uno stop ora ferma anche il movimento autonomo della papera
+  e tiene finché non si chiede un lavoro.
+- **`robot.map_status` e `map.frame`**: nuovi campi `resting`,
+  `rest_watch`, `untrusted` (in `map.frame` `resting` e `untrusted`
+  mancano quando sono falsi); `explore.state` ha due valori nuovi,
+  `relocalizing` e `searching`; `explore` aggiunge `self_started` e
+  `stopped_by_user`. Un client che elenca gli stati deve accettarli.
+- **Luoghi**: `places.json` ora è alla versione 2; un file di versione 1
+  si migra alla prima lettura, e la v0.2.0-rc1 rifiuta un file di
+  versione 2 — tenetene una copia prima di aggiornare se potreste tornare
+  indietro. `robot.list_places` aggiunge `state` (`usable`, `pending`,
+  `other_map`, `stale`), `map`, `live_map` e `at`; il vecchio flag
+  `stale` resta, ora vero anche per `other_map`. `robot.where_am_i`
+  aggiunge `pending_places`. `robot.remember_place` accetta `x`, `y`, ed è
+  rifiutato su una mappa viva sconosciuta.
+- **`robot.map_load` / `robot.map_adopt`** congelano una casa dichiarata
+  completa appena la caricano, e la risposta porta `frozen`;
+  `robot.map_explore` su una casa così è rifiutato come prima, una
+  sessione sotto un altro `save_as` la scongela.
+- **Metodi nuovi** `nav.knobs` e `nav.restart` (non in `nav.catalog`);
+  l'unit legge `/var/lib/quack-nav/knobs.env` (`EnvironmentFile=-`, il
+  nuovo `knobs_env` della configurazione) e tiene `Restart=always` —
+  rilanciate `scripts/install-on-duck.sh` per avere l'unit nuova.
+- **API Rust**: `places::Place::generation` è `map` (una discendenza);
+  `generation()` e `observe()` del registro non ci sono più.
 
 ## [0.2.0-rc1] - 2026-10-01
 

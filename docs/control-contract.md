@@ -2,8 +2,9 @@
 
 What quack-navd offers a program that manages it — a map view, a control
 plane, a script. Written 2026-10-01 for
-quack-control (the local web page, a repository of its own, not published
-yet: the decision is in
+[quack-control](https://github.com/andreagenovese/quack-control) (the
+local web page, a repository of its own, public since 2026-10-02; the
+decision is in
 [study/map-app.md](study/map-app.md), "Decision 2026-10-01"), and for any
 other client: everything here is the daemon's sockets, nothing is
 quack-control's. Italian copy: [control-contract.it.md](control-contract.it.md).

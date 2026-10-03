@@ -2,8 +2,9 @@
 
 Che cosa offre quack-navd a un programma che lo gestisce — una vista della
 mappa, un piano di controllo, uno script. Scritto il 2026-10-01 per
-quack-control (la pagina web locale, un repository a sé, non ancora
-pubblicato: la decisione è in [study/map-app.it.md](study/map-app.it.md),
+[quack-control](https://github.com/andreagenovese/quack-control) (la
+pagina web locale, un repository a sé, pubblico dal 2026-10-02; la
+decisione è in [study/map-app.it.md](study/map-app.it.md),
 "Decisione 2026-10-01"), e per qualsiasi altro client: tutto qui sono i
 socket del demone, niente è di quack-control. Copia inglese:
 [control-contract.md](control-contract.md).

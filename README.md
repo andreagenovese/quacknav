@@ -42,8 +42,8 @@ commands to quack-nav's tools and does no navigation.
 > Driving it around by hand does not lose its position: walking explains
 > the motion; only a carry, a sit or a fall makes it look for itself.
 
-Current release: **v0.2.0-rc1**, a release candidate validated on the twins —
-[release notes](docs/release-notes-v0.2.0-rc1.md), [changelog](CHANGELOG.md).
+Current release: **v0.2.0-rc2**, a release candidate validated on the twins —
+[release notes](docs/release-notes-v0.2.0-rc2.md) (rc1: [notes](docs/release-notes-v0.2.0-rc1.md)), [changelog](CHANGELOG.md).
 
 ## What it is for
 

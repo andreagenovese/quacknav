@@ -11,6 +11,11 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ## [Unreleased]
 
+## [0.2.0-rc2] - 2026-10-03
+
+A second release candidate, still validated on the twins only. Release
+notes: [docs/release-notes-v0.2.0-rc2.md](docs/release-notes-v0.2.0-rc2.md).
+
 ### Added
 
 - **`robot.move` keeps a cliff guard, always on.** The timed move the
@@ -25,17 +30,17 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   "walked_s": …, "cliff_guard": "on"}`; a complete move answers
   `"done": true` as before, with `cliff_guard`. Forward moves only — the
   sensor looks forward and down: backing up and sidesteps are `"not
-  covered"`, a turn in place `"not judged"`, no sensor `"off"`. The
-  guard is the callers' alone (nav.call from a client: the voice front
-  end, quack-control, any socket client): the explorer's legs, the
-  homecoming's pulses and steps and the rim tour move through
-  `tools::internal_move`, unguarded as before, with their own guards
-  tuned to approach a rim — given the always-on guard too, an exploration
-  on casa_arredata (x25) had its legs stopped 17 times at the corridor's
-  hole and sealed itself in. On
-  the twin (casa_grande): walking at the hole's rim, stopped with the
-  trunk 0.56 m short of it and every further forward call refused; nine
-  calls over 4 m of open floor, no false stop.
+  covered"`, a turn in place `"not judged"`, no guard or sensor
+  `"off"`. The guard is the callers' alone (nav.call from a client: the
+  voice front end, quack-control, any socket client): the explorer's legs,
+  the rim tour, the journeys and the homecoming's pulses and turns move
+  through `tools::internal_move`, unguarded as before, with their own
+  guards tuned to approach a rim — given the always-on guard too, an
+  exploration on casa_arredata (x25) had its legs stopped 17 times at the
+  corridor's hole and sealed itself in. On the twin (casa_grande), facing
+  the living room's hole from 1.15 m: stopped after 1.71 s with the trunk
+  0.56 m short of the rim, and every further forward call refused at the
+  edge; nine calls over 4 m of open floor, no false stop.
 - **`robot.map_step` on an uncertain pose judges by the sensor alone.**
   With the pose lost or `untrusted` (moved while it rested) the map's
   checks — the wall ahead, the passage's sides, the wall-hug, the centring,
@@ -50,10 +55,10 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   as much as `robot.move` — so a drive wakes the rest as "motion" and the
   pose follows odometry, trusted; only motion the gait does not explain
   (odometry moved past 5 cm or 0.15 rad with no walking: a carry; a sit;
-  a fall) makes it `untrusted`. On the twin: resting, driven 2 m straight
-  through robotd at 50 Hz like `padd` — woke as "motion", never
-  untrusted, the map pose 1 cm from the truth's displacement, the next
-  stand's windows integrating. Pollen's teleop bypasses quack-nav's cliff
+  a fall) makes it `untrusted`. On the twin: resting, driven 16 s at
+  0.3 m/s through robotd at 50 Hz like `padd` (1.17 m net, the gait
+  veering) — woke as "motion", never untrusted, the map pose's
+  displacement within 4 mm of the truth's, the next windows integrating. Pollen's teleop bypasses quack-nav's cliff
   guard, and robotd has none: said in the README's safety note and asked
   upstream ([docs/study/upstream-asks.md §8](docs/study/upstream-asks.md)).
 - **The duck's own motion is said, and STOP stops it for good.** When
@@ -104,11 +109,14 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   homecoming's walk-and-look search finds the pose
   (`quack-nav/src/relocate.rs`, `explore.state` "relocalizing"), and the
   job starts once maploc confirms it — or fails with nothing walked
-  toward the goal. On the twin: carried 3.3 m into another room, found in
-  70 s and arrived 0.02 m off; a 0.35 m silent carry, found in 71 s,
-  arrived 0.15 m off. Details in
+  toward the goal. `untrusted` rides `map.frame` and `robot.map_status`.
+  On the twin: carried 3.3 m into another room, found in 70 s and arrived
+  0.02 m off; a 0.35 m silent carry, found in 71 s, arrived 0.15 m off;
+  after ~16 h standing, the pose 1.38 m off and untrusted, a `go_to` to the
+  kitchen relocalized in 97 s and arrived 0.21 m off. The wake bench in
+  localize (`WAKE_MODE=localize`, new): 28 of 28 wakes confirmed right,
+  none wrong, median 87 s. Details in
   [docs/todo-map.md](docs/todo-map.md).
-
 - **Places from a map view**: `robot.list_places` gives each place's `at`
   (the anchor `go_to` walks to, map metres); `robot.remember_place` with
   `x` and `y` names a point of mapped floor instead of where the duck
@@ -125,6 +133,17 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   writes `quack-nav/src/knobs.json`, the machine-readable list (checked by
   `--check`). The twin reads `$STATE/knobs.env` too, and
   `scripts/twin/twin.sh restart-navd` restarts quack-navd alone.
+- **The twin's camera**: with `VIEWER=on` the viewer serves the head camera
+  on `$STATE/media.sock` with mediad's own call, `media.frame` (640×360
+  UYVY, rotated 90° like the real mount), so quack-control reads the twin
+  and the duck with one adapter (`scripts/twin/viewer/eye.py`).
+- **A GIF of a `go_to` on the MuJoCo twin** at the top of the README
+  (`docs/media/go_to.gif`: casa_grande, the far bedroom to the kitchen,
+  played at 6×).
+- **The map app study** ([docs/study/map-app.md](docs/study/map-app.md)):
+  a robot-vacuum-style app over Pollen's channel; decided 2026-10-01: a
+  local page on the home network first (quack-control), the rest dated
+  TODO items.
 
 ### Changed
 
@@ -138,7 +157,6 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   after it judged its windows against its own ink. Thirty replayed
   sessions on a frozen map: ATE mean 0.1183 -> 0.1169 m, 4 better and 4
   worse by more than 5 mm.
-
 - **Pinned to daemon-v0.15.0** (API 37; was daemon-v0.14.4, API 34):
   Pollen's `duck-ipc-proto` and `kinematics` at that tag. API 35–37 are
   additive — `robot.state` gains the servos' measured `velocities` (rad/s)
@@ -149,6 +167,21 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   reads them yet). robotd 0.15.0 publishes them by default (`[control]
   publish_velocity_and_load`), about 10–12 % more bytes per state frame.
   The twin runs it (`scripts/twin/README.md`).
+- **`robot.map_step` is refused while a job the user asked for runs**, as
+  `robot.move` already was (and as documented).
+- **The homecoming no longer asks to explore a done house** after an
+  adoption.
+- **The wake bench** (`wake_bench.py`) can boot the duck as the
+  navigation does: `WAKE_MODE=localize`, the map frozen, no exploring.
+- **Teaching a place is refused** while the live map is unknown (the
+  homecoming has not settled) and on the homecoming's search map.
+
+### Removed
+
+- The places registry's generation and its fewer-submaps rule (a place
+  staled whenever robotd reported fewer submaps than ever seen), replaced
+  by the map lineage below; with them `places::Place::generation` and the
+  registry's `generation()` and `observe()`.
 
 ### Fixed
 
@@ -213,6 +246,43 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 - The GitHub release's text: CI makes the release notes' relative links
   absolute to the files at the tag (`scripts/ci/release_body.py`); on the
   release page they led nowhere (fixed by hand on v0.2.0-rc1).
+
+### Breaking changes for integrators
+
+- **robotd**: pinned to daemon-v0.15.0 (API 37). quack-navd still runs
+  against a board on 0.14.4.
+- **`robot.move`** (callers through `nav.call`): a forward move can now end
+  early or be refused at a drop — `"done": false` with `stopped` and
+  `walked_s`; every reply carries `cliff_guard`, and `stopped_own` when it
+  stopped the duck's own motion.
+- **`robot.map_step`**: on a lost or `untrusted` pose the map's checks are
+  left out (`checks` says which applied, `clearance` is null); refused
+  while a job the user asked for runs; `stopped_own` as `robot.move`.
+- **`robot.go_to` / `robot.map_explore`** on an untrusted pose answer
+  `relocalizing: true` and start only once the pose is confirmed; a stop
+  now also ends the duck's own motion and holds until a job is asked for.
+- **`robot.map_status` and `map.frame`**: new fields `resting`,
+  `rest_watch`, `untrusted` (in `map.frame` `resting` and `untrusted` are
+  absent when false); `explore.state` has two new values, `relocalizing`
+  and `searching`; `explore` gains `self_started` and `stopped_by_user`.
+  A client that enumerates the states must accept them.
+- **Places**: `places.json` is now version 2; a version-1 file is migrated
+  on first read, and v0.2.0-rc1 refuses a version-2 file — keep a copy
+  before upgrading if you may go back. `robot.list_places` adds `state`
+  (`usable`, `pending`, `other_map`, `stale`), `map`, `live_map` and `at`;
+  the old `stale` flag stays, now true for `other_map` as well.
+  `robot.where_am_i` adds `pending_places`. `robot.remember_place` takes
+  `x`, `y`, and is refused on an unknown live map.
+- **`robot.map_load` / `robot.map_adopt`** freeze a house declared done as
+  they load it, and their answer carries `frozen`; `robot.map_explore` on
+  such a house is refused as before, a session under another `save_as`
+  thaws it.
+- **New methods** `nav.knobs` and `nav.restart` (not in `nav.catalog`);
+  the unit reads `/var/lib/quack-nav/knobs.env` (`EnvironmentFile=-`, the
+  config's new `knobs_env`) and keeps `Restart=always` — rerun
+  `scripts/install-on-duck.sh` to get the new unit.
+- **Rust API**: `places::Place::generation` is `map` (a lineage);
+  the registry's `generation()` and `observe()` are gone.
 
 ## [0.2.0-rc1] - 2026-10-01
 

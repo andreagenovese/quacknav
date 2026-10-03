@@ -4303,7 +4303,27 @@ nothing: it explores and asks.
       correction): when the map agrees again — the duck put back where it
       was — trust comes back by itself, and the next go_to sets out at
       once instead of searching. Measure the false-trust risk (an alias
-      that agrees) before adopting it.
+      that agrees) before adopting it. Evidence (2026-10-03): after ~16 h
+      standing the pose was still 1.38 m off and untrusted; a `go_to` to
+      the kitchen relocalized in 97 s (6 steps) and arrived 0.21 m from
+      the true kitchen — the relocator does its job; the watch would spare
+      the search.
+- [x] 2026-10-03: **v0.2.0-rc2's evidence**, measured on the twin after
+      the changes above, for the release notes. *Wake bench in localize*
+      (`WAKE_MODE=localize`, 2026-10-02, on 2a5a124: casa_grande's 8
+      spawns and casa_arredata's 6, then the same turned 180°): 28/28
+      confirmed right, none wrong, none never, median 87 s (75–141 s),
+      0.01–0.15 m from the truth, 0 falls. *x26* (the final-house protocol
+      on c7d352f, explored from nothing: casa_grande four sessions,
+      casa_arredata three): walls on the truth 98 % on both
+      (`map_vs_truth.py`), floor known 96 % and 94 %, 0 phantom drops.
+      *The stop_and_scan life test* (2026-10-02, casa_grande, with the
+      done-house freeze): a boot on the saved done map, "esplora da capo"
+      from the kitchen — three rounds, the third ending on its own, done at
+      86 % —, `complete`, four `go_to` on the map just frozen, then two
+      reboots elsewhere with two `go_to` each: 9/9 `go_to` arrived
+      (0.09–0.30 m from the goal by the truth), 0 falls, 438 submaps
+      throughout the tours after the reboots.
 - [x] 2026-10-02: a house declared done is not frozen after a power-on
       in `stop_and_scan` (the duck's default): the homecoming confirms the
       pose on the saved map and navigates, but maploc keeps inking it
@@ -4332,7 +4352,8 @@ nothing: it explores and asks.
       after the reboot elsewhere), `map_explore {}` refused, one under
       `save_as` "prova" thawed it ("live again", the journey's guards
       back). The log still says "still window integrated" on a frozen
-      map, as in `localize`: the window is judged and counted, not inked. and the session-end rule count
+      map, as in `localize`: the window is judged and counted, not inked.
+- [x] 2026-10-02: the house's percentage and the session-end rule count
       unknown OUTSIDE the house when the map's frame is not aligned with
       it. "Esplora da capo" from the kitchen started a map at the duck's
       pose, turned ~204° from the house: after two rounds 45.2 m² of floor
