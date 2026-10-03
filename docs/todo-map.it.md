@@ -4671,6 +4671,15 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       allineata. Le frontiere non cambiano: su nessuna delle due mappe una
       cella di frontiera dà solo su ignoto fuori dal riquadro (nessuna
       cella libera sta fuori).
+- [ ] 2026-10-03: una posa non fidata resta tale fino a un lavoro — dopo
+      14 h ferma sul gemello (la policy di stand del simulatore ha portato
+      la papera 2,3 m da sola) la posa era a 1,38 m ed era giustamente non
+      fidata dal secondo controllo in disaccordo, e nulla l'ha più
+      giudicata. Continuare il controllo leggero anche da non fidata
+      (senza camminare né correggere): quando la mappa torna d'accordo —
+      la papera rimessa dov'era — la fiducia torna da sola, e il prossimo
+      go_to parte subito invece di cercare. Misurare prima il rischio di
+      una fiducia sbagliata (un alias che va d'accordo).
 - [ ] 2026-10-02: uno STOP senza niente in corso imposta comunque il blocco,
       così il ritorno a casa non avvia niente finché l'utente non chiede
       un lavoro (f36f51b): farlo valere solo quando qualcosa partito da

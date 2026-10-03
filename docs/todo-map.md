@@ -4295,6 +4295,15 @@ nothing: it explores and asks.
       first stop), so how they came to be is still open.
 - [ ] The stick should read `blind_move`'s answer: a step refused or cut
       short is not a bump, and it should not be retried without a stand.
+- [ ] 2026-10-03: an untrusted pose stays untrusted until a job — after
+      14 h standing on the twin (the sim's stand policy walked the duck
+      2.3 m on its own) the pose was 1.38 m off and rightly untrusted
+      since its second contradicting watch, and nothing judged it again.
+      Keep the light watch going while untrusted (no walking, no
+      correction): when the map agrees again — the duck put back where it
+      was — trust comes back by itself, and the next go_to sets out at
+      once instead of searching. Measure the false-trust risk (an alias
+      that agrees) before adopting it.
 - [x] 2026-10-02: a house declared done is not frozen after a power-on
       in `stop_and_scan` (the duck's default): the homecoming confirms the
       pose on the saved map and navigates, but maploc keeps inking it
