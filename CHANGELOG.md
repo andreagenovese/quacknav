@@ -11,6 +11,19 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ## [Unreleased]
 
+### Added
+
+- **An install package on every release.** CI packs
+  `quack-nav-<version>-aarch64-linux.tar.gz` (with its `.sha256`) beside
+  the bare binary, and a `v*` tag attaches both: the binary, the unit, the
+  service account, the example config, `install-on-duck.sh` and a
+  step-by-step `README-install.md` (and `.it.md`), so the duck installs
+  from a download, no checkout and no build (README, "Installing from a
+  release"). `scripts/package.sh <version> <binary> <outdir>` packs it
+  locally. `install-on-duck.sh` runs from the package or from a checkout,
+  takes `--dry-run` (prints every command, connects to nothing), and no
+  longer fails on macOS's bash 3.2 when `SSH_OPTS` is empty.
+
 ## [0.2.0-rc2] - 2026-10-03
 
 A second release candidate, still validated on the twins only. Release

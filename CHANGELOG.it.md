@@ -13,6 +13,20 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ## [Unreleased]
 
+### Aggiunto
+
+- **Un pacchetto d'installazione a ogni release.** La CI impacchetta
+  `quack-nav-<versione>-aarch64-linux.tar.gz` (con il suo `.sha256`)
+  accanto al binario nudo, e un tag `v*` li allega entrambi: il binario,
+  l'unità, l'utente di servizio, la configurazione d'esempio,
+  `install-on-duck.sh` e un `README-install.it.md` passo per passo (e
+  `.md`), così la papera si installa da un download, senza repository né
+  compilazione (README, "Installare da una release").
+  `scripts/package.sh <versione> <binario> <cartella>` lo impacchetta in
+  locale. `install-on-duck.sh` gira dal pacchetto o da una copia del
+  repository, accetta `--dry-run` (stampa ogni comando, non si collega) e
+  non fallisce più con il bash 3.2 di macOS quando `SSH_OPTS` è vuoto.
+
 ## [0.2.0-rc2] - 2026-10-03
 
 Una seconda release candidate, ancora validata solo sui gemelli. Note di

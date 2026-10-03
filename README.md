@@ -247,14 +247,72 @@ python3 scripts/ci/paper_twin_gate.py target/release/examples/paper_twin \
     quack-nav/examples/apartment.world.json /tmp/paper-twin
 ```
 
+### Installing from a release
+
+No checkout and no build: every release from the one after v0.2.0-rc2 on
+carries an install package, `quack-nav-<version>-aarch64-linux.tar.gz`,
+with its `.sha256` (v0.2.0-rc2 and earlier: the bare binary only). It
+holds the board's binary, the unit, the service account, the example
+config, `install-on-duck.sh` and a step-by-step `README-install.md`
+(Italian: `README-install.it.md`). The duck must be provisioned by
+microduck first (robotd, tofd, the `robot` group); your computer needs
+ssh, scp, tar and shasum.
+
+```sh
+V=0.2.0-rc3     # the release's tag without its v
+gh release download "v$V" --repo andreagenovese/quacknav \
+    --pattern "quack-nav-$V-aarch64-linux.tar.gz*"
+# or: curl -LO https://github.com/andreagenovese/quacknav/releases/download/v$V/quack-nav-$V-aarch64-linux.tar.gz
+#     (and the same URL with .sha256)
+shasum -a 256 -c "quack-nav-$V-aarch64-linux.tar.gz.sha256"   # prints OK
+tar xzf "quack-nav-$V-aarch64-linux.tar.gz" && cd "quack-nav-$V"
+./install-on-duck.sh --dry-run microduck@192.168.1.42   # optional: prints every command, connects to nothing
+./install-on-duck.sh microduck@192.168.1.42
+```
+
+The script finds its files next to itself (`bin/quack-navd`,
+`systemd/`, `quack-nav.example.toml`) and does what
+[Installing on the duck](#installing-on-the-duck) describes: binary, unit
+and account replaced, `/etc/robot/quack-nav.toml` installed only when
+there is none, the service enabled and restarted.
+
+**The config**, on the duck (`sudo nano /etc/robot/quack-nav.toml`, then
+`sudo systemctl restart quack-navd`). The example is right for a standard
+duck; what to look at on a real one:
+
+| key | in the example | when to change it |
+|---|---|---|
+| `robotd_socket` | `/run/robotd.sock` | robotd listens elsewhere |
+| `[map] tof_socket` | `/run/tofd/tof.sock` | tofd listens elsewhere (the cliff guard and the mapper read it) |
+| `[maploc] mode` | `"stop_and_scan"` | the map grows at every stop; set `"localize"` once the house is mapped (the map stays as saved, the pose is corrected against it) |
+| `[maploc] map_path` | `/var/lib/quack-nav/maploc.session` | the working session; the named maps are `maps/` beside it |
+| `[map] places_path` | `/var/lib/quack-nav/places.json` | the named places |
+| `[homecoming] enabled`, `resume_explore` | `true`, `true` | off: the duck does nothing on its own at boot, nor explores on after a charge |
+| `socket` | `/run/quack-nav/nav.sock` | where quacksat and quack-control find quack-navd |
+
+Paths must stay under `/var/lib/quack-nav/` or `/run/quack-nav/`: the unit
+lets the daemon write nowhere else. A key the daemon does not know stops
+it with a message naming the key (`journalctl -u quack-navd`). Every key
+and its default: `quack-nav/src/config.rs`.
+
+**Checking it**: `systemctl status quack-navd`, `journalctl -u quack-navd
+-f`, and the `nc -U` call under [Installing on the duck](#installing-on-the-duck).
+**Upgrading**: the newer release's package, verified and unpacked, its
+`./install-on-duck.sh` the same way; the config, the maps and the places
+stay. **Uninstalling**: the commands under
+[Installing on the duck](#installing-on-the-duck).
+
 ### Building for the duck
 
 No build needed: CI cross-builds `quack-navd` for the board on every push
-(the `aarch64` job's artifact `quack-navd-aarch64-linux`, with its
-sha256), and every `v*` tag attaches it to the
+(the `aarch64` job's artifact `quack-navd-aarch64-linux`: the bare binary
+and the install package, each with its sha256, packed by
+`scripts/package.sh <version> <binary> <outdir>`), and every `v*` tag
+attaches them to the
 [GitHub release](https://github.com/andreagenovese/quacknav/releases)
-(`quack-navd-aarch64-linux`, to copy to `/usr/local/bin/quack-navd`). To
-build it yourself:
+([Installing from a release](#installing-from-a-release); the bare
+`quack-navd-aarch64-linux` stays, to copy to `/usr/local/bin/quack-navd`).
+To build it yourself:
 
 The duck's board is a Radxa Zero 3 (RK3566, aarch64) running Armbian
 26.2.x with the Debian 13 (Trixie) userland, glibc 2.41. An Apple-silicon
@@ -330,7 +388,11 @@ installs the binary, the unit and the account, installs the config only if
 old `/var/lib/quacksat/places.json` when `/var/lib/quack-nav/` has none,
 and enables and restarts the service, printing every command it runs. Run
 again, it is the upgrade. `SSH_OPTS="-p 2222"` passes options to ssh and
-scp. By hand, the same:
+scp; `--dry-run` prints every command, the script it would run on the duck
+included, and connects to nothing; a second argument installs another
+binary (a path from where you run it). From a checkout it takes the files
+from the repository, from an unpacked release package the ones next to it
+(it looks for `bin/quack-navd` beside itself). By hand, the same:
 
 ```sh
 # on the dev machine
@@ -376,8 +438,10 @@ sudo systemctl daemon-reload
 The script, the unit and the uninstall were run in a Debian 13 arm64
 container booted with systemd, with sshd, a `radxa` sudoer and a `robot`
 group (`systemd-analyze verify` passes; the sockets come up 0660
-`quacknav:robot`; `nc -U` gets an answer from a user in `robot`). Not yet on
-a real board.
+`quacknav:robot`; `nc -U` gets an answer from a user in `robot`), from a
+checkout and, since 2026-10-03, from an unpacked package with no checkout
+(install, upgrade, the old places copied, uninstall). Not yet on a real
+board.
 
 ## Control from a browser
 

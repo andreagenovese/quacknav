@@ -259,14 +259,75 @@ python3 scripts/ci/paper_twin_gate.py target/release/examples/paper_twin \
     quack-nav/examples/apartment.world.json /tmp/paper-twin
 ```
 
+### Installare da una release
+
+Niente copia del repository e niente compilazione: ogni release dopo la
+v0.2.0-rc2 porta un pacchetto d'installazione,
+`quack-nav-<versione>-aarch64-linux.tar.gz`, con il suo `.sha256` (la
+v0.2.0-rc2 e le precedenti: solo il binario nudo). Contiene il binario per
+la scheda, l'unità, l'utente di servizio, la configurazione d'esempio,
+`install-on-duck.sh` e un `README-install.it.md` passo per passo (inglese:
+`README-install.md`). La papera dev'essere già preparata da microduck
+(robotd, tofd, il gruppo `robot`); al tuo computer servono ssh, scp, tar e
+shasum.
+
+```sh
+V=0.2.0-rc3     # il tag della release senza la v
+gh release download "v$V" --repo andreagenovese/quacknav \
+    --pattern "quack-nav-$V-aarch64-linux.tar.gz*"
+# oppure: curl -LO https://github.com/andreagenovese/quacknav/releases/download/v$V/quack-nav-$V-aarch64-linux.tar.gz
+#         (e lo stesso URL con .sha256)
+shasum -a 256 -c "quack-nav-$V-aarch64-linux.tar.gz.sha256"   # stampa OK
+tar xzf "quack-nav-$V-aarch64-linux.tar.gz" && cd "quack-nav-$V"
+./install-on-duck.sh --dry-run microduck@192.168.1.42   # facoltativo: stampa ogni comando, non si collega
+./install-on-duck.sh microduck@192.168.1.42
+```
+
+Lo script trova i suoi file accanto a sé (`bin/quack-navd`, `systemd/`,
+`quack-nav.example.toml`) e fa ciò che descrive
+[Installare sulla papera](#installare-sulla-papera): binario, unità e
+utente sostituiti, `/etc/robot/quack-nav.toml` installato solo se non c'è,
+il servizio abilitato e riavviato.
+
+**La configurazione**, sulla papera (`sudo nano /etc/robot/quack-nav.toml`,
+poi `sudo systemctl restart quack-navd`). L'esempio va bene per una papera
+standard; cosa guardare su una vera:
+
+| chiave | nell'esempio | quando cambiarla |
+|---|---|---|
+| `robotd_socket` | `/run/robotd.sock` | robotd ascolta altrove |
+| `[map] tof_socket` | `/run/tofd/tof.sock` | tofd ascolta altrove (lo leggono la guardia dei dislivelli e il mappatore) |
+| `[maploc] mode` | `"stop_and_scan"` | la mappa cresce a ogni sosta; `"localize"` quando la casa è mappata (la mappa resta com'è salvata, la posa si corregge su di essa) |
+| `[maploc] map_path` | `/var/lib/quack-nav/maploc.session` | la sessione di lavoro; le mappe con un nome sono in `maps/` accanto |
+| `[map] places_path` | `/var/lib/quack-nav/places.json` | i luoghi con un nome |
+| `[homecoming] enabled`, `resume_explore` | `true`, `true` | spenti: la papera non fa nulla da sé all'avvio, né riprende a esplorare dopo una ricarica |
+| `socket` | `/run/quack-nav/nav.sock` | dove quacksat e quack-control trovano quack-navd |
+
+I percorsi devono restare sotto `/var/lib/quack-nav/` o `/run/quack-nav/`:
+l'unità non lascia scrivere il demone altrove. Una chiave che il demone non
+conosce lo ferma con un messaggio che la nomina (`journalctl -u
+quack-navd`). Tutte le chiavi e i loro predefiniti:
+`quack-nav/src/config.rs`.
+
+**Controllarlo**: `systemctl status quack-navd`, `journalctl -u quack-navd
+-f`, e la chiamata `nc -U` sotto
+[Installare sulla papera](#installare-sulla-papera). **Aggiornare**: il
+pacchetto della release più nuova, verificato e scompattato, il suo
+`./install-on-duck.sh` allo stesso modo; configurazione, mappe e luoghi
+restano. **Disinstallare**: i comandi sotto
+[Installare sulla papera](#installare-sulla-papera).
+
 ### Compilare per la papera
 
 Non serve compilare: la CI compila `quack-navd` per la scheda a ogni push
-(l'artifact `quack-navd-aarch64-linux` del job `aarch64`, con il suo
-sha256), e ogni tag `v*` lo allega alla
+(l'artifact `quack-navd-aarch64-linux` del job `aarch64`: il binario nudo e
+il pacchetto d'installazione, ciascuno con il suo sha256, impacchettato da
+`scripts/package.sh <versione> <binario> <cartella>`), e ogni tag `v*` li
+allega alla
 [release su GitHub](https://github.com/andreagenovese/quacknav/releases)
-(`quack-navd-aarch64-linux`, da copiare in `/usr/local/bin/quack-navd`). Per
-compilarlo da sé:
+([Installare da una release](#installare-da-una-release); resta il binario
+nudo `quack-navd-aarch64-linux`, da copiare in `/usr/local/bin/quack-navd`).
+Per compilarlo da sé:
 
 La scheda della papera è una Radxa Zero 3 (RK3566, aarch64) con Armbian
 26.2.x e l'userland di Debian 13 (Trixie), glibc 2.41. Un Mac con Apple
@@ -345,7 +406,12 @@ binario, l'unità e l'utente, installa la configurazione solo se
 vecchio `/var/lib/quacksat/places.json` se `/var/lib/quack-nav/` non ne ha
 uno, e abilita e riavvia il servizio, stampando ogni comando che esegue.
 Rilanciato, è l'aggiornamento. `SSH_OPTS="-p 2222"` passa opzioni a ssh e
-scp. A mano, lo stesso:
+scp; `--dry-run` stampa ogni comando, compreso lo script che lancerebbe
+sulla papera, e non si collega a niente; un secondo argomento installa un
+altro binario (un percorso da dove lo si lancia). Da una copia del
+repository prende i file dal repository, da un pacchetto di release
+scompattato quelli accanto a sé (cerca `bin/quack-navd` vicino a sé). A
+mano, lo stesso:
 
 ```sh
 # sulla macchina di sviluppo
@@ -392,8 +458,10 @@ sudo systemctl daemon-reload
 Lo script, l'unità e la disinstallazione sono stati provati in un container
 Debian 13 arm64 avviato con systemd, con sshd, un utente `radxa` con sudo e
 un gruppo `robot` (`systemd-analyze verify` passa; i socket nascono 0660
-`quacknav:robot`; `nc -U` riceve una risposta da un utente di `robot`).
-Non ancora su una scheda vera.
+`quacknav:robot`; `nc -U` riceve una risposta da un utente di `robot`), da
+una copia del repository e, dal 2026-10-03, da un pacchetto scompattato
+senza repository (installazione, aggiornamento, vecchi luoghi copiati,
+disinstallazione). Non ancora su una scheda vera.
 
 ## Il controllo da un browser
 

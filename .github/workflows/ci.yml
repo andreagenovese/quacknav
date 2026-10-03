@@ -40,8 +40,9 @@ jobs:
 
   # quack-navd for the duck's board (Radxa Zero 3, RK3566, aarch64 Linux),
   # built the way scripts/cross-build.sh builds it: cargo-zigbuild, glibc
-  # floor 2.31. Every push leaves it as an artifact; a v* tag also attaches
-  # it to the GitHub release (the `release` job below).
+  # floor 2.31. Every push leaves it as an artifact, bare and as the install
+  # package; a v* tag also attaches both to the GitHub release (the
+  # `release` job below).
   aarch64:
     runs-on: ubuntu-latest
     steps:
@@ -78,14 +79,30 @@ jobs:
           cp "$bin" dist/quack-navd-aarch64-linux
           (cd dist && sha256sum quack-navd-aarch64-linux > quack-navd-aarch64-linux.sha256)
 
+      # The install package (scripts/package.sh): the binary with the unit,
+      # the account, the example config, install-on-duck.sh and the install
+      # README, so a release installs without a checkout. A tag names it
+      # after itself (v0.2.0-rc2 -> 0.2.0-rc2); any other push after
+      # Cargo.toml's version and the commit.
+      - name: Package
+        run: |
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            version="${GITHUB_REF_NAME#v}"
+          else
+            version="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)-dev.${GITHUB_SHA::7}"
+          fi
+          scripts/package.sh "$version" target/aarch64-unknown-linux-gnu/release/quack-navd dist
+          tar tzvf dist/quack-nav-"$version"-aarch64-linux.tar.gz
+
       - uses: actions/upload-artifact@v4
         with:
           name: quack-navd-aarch64-linux
           path: dist/
 
-  # A v* tag: the board's binary and its checksum on the GitHub release,
-  # once the tests and the build have passed. A tag with -rc in it is a
-  # prerelease.
+  # A v* tag: the install package, the board's bare binary (kept for
+  # whoever fetched it before the package) and their checksums on the
+  # GitHub release, once the tests and the build have passed. A tag with
+  # -rc in it is a prerelease.
   release:
     if: startsWith(github.ref, 'refs/tags/v')
     needs: [test, aarch64]
