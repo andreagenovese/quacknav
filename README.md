@@ -249,9 +249,10 @@ python3 scripts/ci/paper_twin_gate.py target/release/examples/paper_twin \
 
 ### Installing from a release
 
-No checkout and no build: every release from the one after v0.2.0-rc2 on
-carries an install package, `quack-nav-<version>-aarch64-linux.tar.gz`,
-with its `.sha256` (v0.2.0-rc2 and earlier: the bare binary only). It
+No checkout and no build: every release from v0.2.0-rc2 on carries an
+install package, `quack-nav-<version>-aarch64-linux.tar.gz`, with its
+`.sha256` (v0.2.0-rc2's was added to it afterwards, around its own
+binary; v0.2.0-rc1: the bare binary only). It
 holds the board's binary, the unit, the service account, the example
 config, `install-on-duck.sh` and a step-by-step `README-install.md`
 (Italian: `README-install.it.md`). The duck must be provisioned by
@@ -259,7 +260,7 @@ microduck first (robotd, tofd, the `robot` group); your computer needs
 ssh, scp, tar and shasum.
 
 ```sh
-V=0.2.0-rc3     # the release's tag without its v
+V=0.2.0-rc2     # the release's tag without its v
 gh release download "v$V" --repo andreagenovese/quacknav \
     --pattern "quack-nav-$V-aarch64-linux.tar.gz*"
 # or: curl -LO https://github.com/andreagenovese/quacknav/releases/download/v$V/quack-nav-$V-aarch64-linux.tar.gz
