@@ -545,3 +545,7 @@ validato sul gemello sul branch `microduck-015` (quattro sessioni per
 casa, nessuna regressione). Le sue aggiunte sono facoltative sul filo,
 quindi lo stesso `quack-navd` gira anche su una scheda ancora alla
 daemon-v0.14.4.
+
+La prima sessione sulla papera vera — sicurezza, installazione, misure,
+prove a fasi e cosa riportare per il banco — è una checklist:
+[docs/first-duck-session.it.md](docs/first-duck-session.it.md).

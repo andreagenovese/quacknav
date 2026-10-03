@@ -4421,6 +4421,13 @@ nothing: it explores and asks.
       (the 3 s local memory, "the planner keeps off it from now on" after
       repeated stalls), or does a removed chair keep closing a door?
       A person walking by: still "a wall that moves".
+- [ ] 2026-10-03: the first session on the physical duck, by the
+      checklist [first-duck-session.md](first-duck-session.md): safety,
+      install of the three release packages, CPU, memory, temperature and
+      rates on the RK3566, staged tests (sensors, moves and the cliff guard
+      at a safe edge, one room mapped, homecoming at taped marks, go_to,
+      rest and a kidnap, voice, STOP), and the recordings brought back for
+      `maploc`'s `evaluate` against the tape.
 
 ## 3. `go_to` (done in quack-nav, no upstream RPC)
 - [x] ~~Follow upstream for a `robot.goto`-style RPC~~ — not needed: the

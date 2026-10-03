@@ -4738,6 +4738,14 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       planner lo evita d'ora in poi" dopo blocchi ripetuti), o una sedia
       tolta continua a chiudere una porta? Una persona che passa: ancora
       "un muro che si muove".
+- [ ] 2026-10-03: la prima sessione sulla papera vera, secondo la
+      checklist [first-duck-session.it.md](first-duck-session.it.md):
+      sicurezza, installazione dei tre pacchetti di release, CPU, memoria,
+      temperatura e frequenze sull'RK3566, prove a fasi (sensori, movimenti
+      e la guardia del dirupo su un bordo sicuro, una stanza mappata,
+      ritorno a casa su segni di nastro, go_to, riposo e un rapimento, voce,
+      STOP), e le registrazioni riportate per l'`evaluate` di `maploc`
+      contro il metro.
 
 ## 3. `go_to` (fatto in quack-nav, senza RPC upstream)
 - [x] ~~Seguire upstream per un RPC tipo `robot.goto`~~ — non serve:

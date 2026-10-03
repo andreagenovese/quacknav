@@ -181,4 +181,5 @@ systemd container, not yet on a board. The MuJoCo twin is in
 
 A first session on the real duck: the stack running on the RK3566 against
 the released robotd, with the guards on and someone beside it, its numbers
-written down beside the twin's.
+written down beside the twin's. The checklist for that session:
+[first-duck-session.md](first-duck-session.md).

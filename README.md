@@ -520,3 +520,7 @@ arrives in December 2026. Two ways to run it:
 validated on the twin on the branch `microduck-015` (four sessions per
 house, no regression). Its additions are optional on the wire, so the
 same `quack-navd` runs against a board still on daemon-v0.14.4.
+
+The first session on the physical duck — safety, install, measurements,
+staged tests and what to bring back for the bench — is a checklist:
+[docs/first-duck-session.md](docs/first-duck-session.md).

@@ -195,4 +195,5 @@ MuJoCo è in [scripts/twin/README.it.md](../scripts/twin/README.it.md).
 
 Una prima sessione sulla papera vera: lo stack che gira sull'RK3566 sopra il
 robotd rilasciato, con le guardie accese e qualcuno accanto, e i suoi numeri
-scritti accanto a quelli del gemello.
+scritti accanto a quelli del gemello. La checklist di quella sessione:
+[first-duck-session.it.md](first-duck-session.it.md).
