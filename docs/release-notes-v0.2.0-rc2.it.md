@@ -181,9 +181,11 @@ MuJoCo è in [scripts/twin/README.it.md](../scripts/twin/README.it.md).
   simulatore la fa girare di circa 0,1°/s e scivolare (8,5 cm in nove
   minuti) con un comando nullo; se lo faccia la papera vera non è misurato,
   e i numeri della sosta qui sopra lo includono.
-- **quacksat non parla da sé**: gli arrivi si dicono solo se chiesti, e il
+- ~~**quacksat non parla da sé**: gli arrivi si dicono solo se chiesti, e il
   movimento autonomo della papera non viene annunciato (quack-navd non ha
-  un canale per spingerlo).
+  un canale per spingerlo).~~ Da quacksat v0.1.0-rc1 (2026-10-03) lo fa:
+  quacksat segue `robot.map_status` e dice com'è finito un viaggio e
+  quando la papera si muove da sola (`[announce]`).
 - **La CPU sull'RK3566 non è misurata**, come il passo delle celle e
   l'estensione della mappa sull'hardware.
 - Ancora aperti dalla rc1: la posa può fermarsi ~1,5 s nelle virate

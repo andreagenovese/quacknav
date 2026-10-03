@@ -168,9 +168,11 @@ systemd container, not yet on a board. The MuJoCo twin is in
   it about 0.1°/s and slides it (8.5 cm in nine minutes) with a zero command;
   whether the real duck does is unmeasured, and the rest numbers above
   include it.
-- **quacksat does not speak on its own**: arrivals are reported only when
+- ~~**quacksat does not speak on its own**: arrivals are reported only when
   asked, and the duck's own motion is not announced (quack-navd has no
-  channel to push it).
+  channel to push it).~~ Since quacksat v0.1.0-rc1 (2026-10-03) it does:
+  quacksat follows `robot.map_status` and says how a journey ended and
+  when the duck moves on its own (`[announce]`).
 - **CPU on the RK3566 is unmeasured**, as are cell pitch and map extent on
   hardware.
 - Still open from rc1: the pose can stall for ~1.5 s in fast spins, slow
