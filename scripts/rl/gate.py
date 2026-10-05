@@ -40,7 +40,7 @@ def main():
     test = rep["test"]
     stick = row(test, "stick")
     new = row(test, "pilot")
-    old = row(test, "old-pilot") if args.old else None
+    old = (row(test, "old-pilot") or next((r for r in test if r["family"] == "ALL" and r["brain"].endswith("/pilot")), None)) if args.old else None
     if rep.get("reckless_falls"):
         sys.exit(f"the shields let a reckless brain fall {rep['reckless_falls']} times on the calibrated simulator: nothing flies until that is fixed")
     lines = [f"stick: {stick['arrived']}/{stick['n']} arrived, {stick['fell']} falls",

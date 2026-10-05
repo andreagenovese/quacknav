@@ -67,7 +67,14 @@ fn main() -> anyhow::Result<()> {
             && let Some(p) = args.get(i + 1)
         {
             let pilot = Pilot::load(std::path::Path::new(p))?;
-            let name = std::path::Path::new(p).file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_else(|| p.clone());
+            let path = std::path::Path::new(p);
+            let mut name = path.file_stem().map(|s| s.to_string_lossy().to_string()).unwrap_or_else(|| p.clone());
+            // Two pilots of the same name: their directories tell them apart.
+            if who.iter().any(|w: &Who| w.name() == name)
+                && let Some(dir) = path.parent().and_then(|d| d.file_name())
+            {
+                name = format!("{}/{name}", dir.to_string_lossy());
+            }
             who.push(Who::Pilot(name, Arc::new(pilot)));
         }
     }

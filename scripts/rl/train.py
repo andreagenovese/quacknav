@@ -99,7 +99,7 @@ def cmd_bc(args):
 
 def cmd_ppo(args):
     net, meta0 = P.load(args.init)
-    env = P.VecEnv(args.envs, seed=args.seed, level=3, calib=args.calib, spread=args.spread)
+    env = P.VecEnv(args.envs, seed=args.seed, level=3, calib=args.calib, spread=args.spread, focus=args.focus)
     opt = torch.optim.Adam(net.parameters(), lr=args.lr)
     tally = P.Tally()
     best = None
@@ -192,6 +192,7 @@ def main():
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--calib")
     ap.add_argument("--spread", default="wide")
+    ap.add_argument("--focus", help="ppo: half the journeys from these families (comma-separated)")
     ap.add_argument("--hidden", type=int, default=256)
     ap.add_argument("--iters", type=int, default=8)
     ap.add_argument("--steps", type=int, default=None)

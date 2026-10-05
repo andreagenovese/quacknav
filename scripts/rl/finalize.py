@@ -73,7 +73,8 @@ def main():
         json.dump(report, f, indent=1)
     with open(os.path.join(args.run, "report.md"), "w") as f:
         f.write(f"# Pilot report: {args.run}\n\n")
-        f.write(f"Checkpoint: update {meta.get('update')} of {meta.get('stage')}, calibration {args.calib or 'the paper twin\\'s defaults'}.\n\n")
+        calib = args.calib or "the paper twin's defaults"
+        f.write(f"Checkpoint: update {meta.get('update')} of {meta.get('stage')}, calibration {calib}.\n\n")
         f.write(f"Parity: {check.stdout.strip()}; ONNX: largest logit difference {onnx_err:.2e}.\n\n")
         f.write(f"## Test bench (seeds from 200000, {args.seeds} per family)\n\n```\n{text}```\n\n")
         f.write(f"## Shields: reckless brains ({args.reckless_seeds} per family)\n\nFalls: **{reckless_falls}**.\n\n```\n{rtext}```\n")

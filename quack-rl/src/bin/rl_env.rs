@@ -18,6 +18,7 @@
 //!   for the journeys that start from now); `b'Q'` to quit.
 //!
 //!     rl_env --envs 64 [--seed 1] [--level 0] [--calib FILE] [--spread wide|calibrated|none]
+//!            [--focus doorway,mixed]   (half the journeys from these families)
 
 use std::io::{BufWriter, Read, Write};
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -118,12 +119,13 @@ fn main() -> anyhow::Result<()> {
         Some("calibrated") => Spread::calibrated(),
         _ => Spread::default(),
     };
+    let focus: Vec<String> = opt("--focus").map(|f| f.split(',').map(str::to_string).collect()).unwrap_or_default();
     let (tx, rx) = channel::<Msg>();
     let mut action_tx: Vec<Sender<u8>> = Vec::new();
     for env in 0..n {
         let (atx, arx) = channel::<u8>();
         action_tx.push(atx);
-        let (tx, level, calib, spread) = (tx.clone(), level.clone(), calib.clone(), spread.clone());
+        let (tx, level, calib, spread, focus) = (tx.clone(), level.clone(), calib.clone(), spread.clone(), focus.clone());
         std::thread::spawn(move || {
             let arx = Arc::new(Mutex::new(arx));
             let mut carry = Carry::default();
@@ -133,7 +135,8 @@ fn main() -> anyhow::Result<()> {
                 let ep_seed = seed.wrapping_mul(0x1000_0000) + (k * n as u64 + env as u64);
                 k += 1;
                 let lv = level.load(Ordering::Relaxed);
-                let s = generate(ep_seed, lv, None);
+                let fam = (!focus.is_empty() && rng.chance(0.5)).then(|| focus[rng.pick(focus.len())].clone());
+                let s = generate(ep_seed, lv, fam.as_deref());
                 let family = FAMILIES.iter().position(|f| *f == s.family).unwrap_or(0) as u8;
                 let c = calib.sample(&spread, &mut rng);
                 let mut j = Journey::new(s, c, ep_seed);

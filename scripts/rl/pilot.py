@@ -24,8 +24,10 @@ def binary(name):
 
 
 class VecEnv:
-    def __init__(self, envs, seed=1, level=0, calib=None, spread="wide"):
+    def __init__(self, envs, seed=1, level=0, calib=None, spread="wide", focus=None):
         args = [binary("rl_env"), "--envs", str(envs), "--seed", str(seed), "--level", str(level), "--spread", spread]
+        if focus:
+            args += ["--focus", focus]
         if calib:
             args += ["--calib", calib]
         self.p = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=0)

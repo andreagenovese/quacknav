@@ -1417,6 +1417,8 @@ pub struct Job {
     /// The pilot's moves in a row the shields refused; at
     /// `PILOT_REFUSED_TO_STICK` the stick takes the leg.
     pilot_refused: u32,
+    /// The pilot's forward steps in a row that barely moved the body.
+    pilot_scuffs: u32,
     /// Walls looked at from near, and how many (see `close_look.rs`).
     looked: Vec<(f64, f64)>,
     close_looks: u32,
@@ -1561,6 +1563,7 @@ impl Job {
             pilot_last: None,
             pilot_moved_m: 0.0,
             pilot_refused: 0,
+            pilot_scuffs: 0,
             looked: Vec::new(),
             close_looks: 0,
             last_close_look: None,

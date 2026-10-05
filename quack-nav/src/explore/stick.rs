@@ -290,22 +290,32 @@ impl Job {
         // guard alone (quack-rl, 2026-10-05). Unknown far from any drop is
         // floor nothing looked at (a dark rug, under a chair): refused
         // there, a patch across a corridor held the pilot for good.
-        // ... and no pushing on: two legs that did not move the body, and
-        // something ahead (the sensor's lane, or the map's wall at the
-        // nose), a step only scuffs along it — on the bench, sideways into
-        // an unbooked hole against the wall, which the wall hid from the
-        // sensor (quack-rl, stairwell 100035, 2026-10-05).
-        let pushing = action.forward()
-            && self.stick_stalls >= PUSH_STALLS
-            && (cliff
+        // ... and no pushing on: something at the beak, or two legs that
+        // did not move the body (or barely: scuffs) with something ahead
+        // (the sensor's lane, or the map's wall at the nose) — a step only
+        // slides along it, on the bench sideways into an unbooked hole
+        // against the wall, which the wall hid from the sensor (quack-rl,
+        // stairwells 100035 and 300059, 2026-10-05/06).
+        let ahead_within = |m: f64| {
+            cliff
                 .as_ref()
-                .and_then(|c| c.obstacle_in_lane_walking(now, 0.0, BLIND_DROP_LANE_M, PUSH_AHEAD_M, std::time::Duration::from_millis(1200), 1))
+                .and_then(|c| c.obstacle_in_lane_walking(now, 0.0, BLIND_DROP_LANE_M, m, std::time::Duration::from_millis(1200), 1))
                 .is_some()
-                || [-0.09, 0.0, 0.09].iter().any(|side| {
-                    let (c, s) = (pose.2.cos(), pose.2.sin());
-                    let a = 0.11 + PUSH_AHEAD_M / 2.0;
-                    matches!(grid.at(pose.0 + a * c - side * s, pose.1 + a * s + side * c), Some(Cell::Wall))
-                }));
+        };
+        let wall_at_nose = [-0.09, 0.0, 0.09].iter().any(|side| {
+            let (c, s) = (pose.2.cos(), pose.2.sin());
+            let a = 0.11 + PUSH_AHEAD_M / 2.0;
+            matches!(grid.at(pose.0 + a * c - side * s, pose.1 + a * s + side * c), Some(Cell::Wall))
+        });
+        // A step that moves the body less than this fraction of a step is
+        // a scuff: the body pushing, sliding along what it meets (a
+        // centimetre and a half a leg, along the wall into the hole: the
+        // bench's stairwell 300059, 2026-10-06).
+        let scuffing = self.pilot_last.is_some_and(Action::forward) && self.pilot_moved_m < SCUFF_FRACTION * GAIT_M_PER_S * STEP_S;
+        self.pilot_scuffs = if scuffing { self.pilot_scuffs + 1 } else { 0 };
+        let pushing = action.forward()
+            && (ahead_within(TOUCH_M)
+                || ((self.stick_stalls >= PUSH_STALLS || self.pilot_scuffs >= PUSH_STALLS) && (ahead_within(PUSH_AHEAD_M) || wall_at_nose)));
         let step_refused = guarded.is_none()
             && action.forward()
             && (pushing || action.timed().is_some_and(|(vx, vyaw, secs)| {
@@ -314,6 +324,20 @@ impl Job {
                 self.drop_on_path(pose, &leg).is_some() || step_into_unknown(&grid, pose, vx, vyaw, secs, &drops)
             }));
         let what = if back_refused || step_refused {
+            // What stops it goes on the books, as the stick's bump does —
+            // seen, not pushed into: the route re-planned goes round it (a
+            // doorway half closed by a box, on the bench, held the pilot
+            // where the stick bumped, booked and took the other door).
+            if pushing
+                && let Some(o) = cliff.as_ref().and_then(|c| c.obstacle_in_lane_walking(now, 0.0, BLIND_DROP_LANE_M, PUSH_AHEAD_M, std::time::Duration::from_millis(1200), 1))
+            {
+                let a = pose.2 + o.bearing;
+                let at = (pose.0 + (o.range_m + OBSTACLE_RADIUS_M) * a.cos(), pose.1 + (o.range_m + OBSTACLE_RADIUS_M) * a.sin());
+                if !self.local.iter().any(|(q, _)| dist2(*q, at) < LOCAL_DEDUP_M) {
+                    self.remember_local(at, OBSTACLE_RADIUS_M);
+                    tracing::info!(at = ?pose, booked = ?at, "map explore: pilot: what stops it goes on the books");
+                }
+            }
             let _ = stand(robot, WAIT_S);
             let why = if back_refused {
                 "no known floor behind"
@@ -407,6 +431,11 @@ pub(super) const PILOT_REFUSED_TO_STICK: u32 = 2;
 /// something ahead within [`PUSH_AHEAD_M`] is refused.
 const PUSH_STALLS: u32 = 2;
 const PUSH_AHEAD_M: f64 = 0.25;
+/// Something this near in the lane is at the beak (the front is 0.11 m
+/// from the centre): no step into it, whatever came before.
+const TOUCH_M: f64 = 0.15;
+/// A forward step that moved the body less than this fraction of a step.
+const SCUFF_FRACTION: f64 = 0.4;
 
 /// Unknown this near a drop on the books is the hole's (see
 /// [`step_into_unknown`]).
