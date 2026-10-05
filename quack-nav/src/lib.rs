@@ -1,6 +1,6 @@
 //! quack-nav: where the Microduck is, and how it gets somewhere else.
 //!
-//! Ten pieces (and their [`config`]), none of them about voice:
+//! Eleven pieces (and their [`config`]), none of them about voice:
 //!
 //! - [`map`] — the `robot.map` client: robotd's on-board `maploc` publishes
 //!   a pose and an occupancy grid once a second; this keeps the newest one
@@ -23,6 +23,9 @@
 //! - [`homecoming`] — waking up in a house the duck has mapped before.
 //! - [`knobs`] — the knobs a control plane may set: `nav.knobs` lists
 //!   them (`knobs.json`, generated) and writes their env file.
+//! - [`rlnav`] — the pilot: a learned policy for the stick's legs, its
+//!   observation (one function for the simulator and the duck) and the
+//!   trace the simulator is calibrated on.
 //! - [`mapd`] — the mapper itself (`maploc`), hosted in `quack-navd` when
 //!   robotd does not host it, served in robotd's `robot.map*` dialect.
 //!
@@ -43,6 +46,7 @@ pub mod mapd;
 pub mod passage;
 pub mod places;
 pub mod relocate;
+pub mod rlnav;
 pub mod sockets;
 pub mod tools;
 

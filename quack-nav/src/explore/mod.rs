@@ -1399,6 +1399,12 @@ pub struct Job {
     stick_books: bool,
     /// Where the stick's hole guard last saw a hole (see `Job::travel`).
     stick_hole_at: Option<(f64, f64)>,
+    /// The learned pilot that flies the stick's legs, when one is loaded
+    /// (`QK_RL_POLICY`, see `crate::rlnav`), its last move and how far
+    /// that move took the body.
+    pilot: Option<Arc<dyn crate::rlnav::Brain>>,
+    pilot_last: Option<crate::rlnav::Action>,
+    pilot_moved_m: f64,
     /// Walls looked at from near, and how many (see `close_look.rs`).
     looked: Vec<(f64, f64)>,
     close_looks: u32,
@@ -1539,6 +1545,9 @@ impl Job {
             stick_careful: false,
             stick_books: false,
             stick_hole_at: None,
+            pilot: crate::rlnav::from_env(),
+            pilot_last: None,
+            pilot_moved_m: 0.0,
             looked: Vec::new(),
             close_looks: 0,
             last_close_look: None,

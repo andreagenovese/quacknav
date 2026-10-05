@@ -4,3 +4,8 @@
 /.claude/
 /skills-lock.json
 __pycache__/
+
+# The pilot's training (scripts/rl): the venv and the runs.
+scripts/rl/.venv/
+/rl-runs/
+/target-dev/

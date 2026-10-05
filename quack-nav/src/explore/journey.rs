@@ -96,6 +96,14 @@ impl Job {
         self
     }
 
+    /// The pilot to fly the stick's legs with, in place of the one
+    /// `QK_RL_POLICY` names (`None`: the stick) — for the benches that set
+    /// it per run.
+    pub fn with_pilot(mut self, pilot: Option<Arc<dyn crate::rlnav::Brain>>) -> Self {
+        self.pilot = pilot;
+        self
+    }
+
     /// The stand after a turn in place or an alignment.
     pub(super) fn turn_stand_s(&self) -> f64 {
         LEG_STOP_S

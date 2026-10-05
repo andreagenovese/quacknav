@@ -448,6 +448,28 @@
    "doc": "`QK_RIM_TOUR=0`: no rounds of the holes."
   },
   {
+   "name": "QK_RL_POLICY",
+   "group": "QK",
+   "read_as": "a value",
+   "type": "text",
+   "default": null,
+   "where": [
+    "quack-nav/src/rlnav/mod.rs"
+   ],
+   "doc": "`QK_RL_POLICY`: the pilot file (docs/rl-pilot.md) that flies the stick's legs;"
+  },
+  {
+   "name": "QK_RL_TRACE",
+   "group": "QK",
+   "read_as": "a value",
+   "type": "text",
+   "default": null,
+   "where": [
+    "quack-nav/src/rlnav/trace.rs"
+   ],
+   "doc": "`QK_RL_TRACE`: what the duck did and saw, leg by leg, for the calibration (`quack-rl`'s `rl_calib`, docs/rl-pilot.md)."
+  },
+  {
    "name": "QK_SPIN_WATCH",
    "group": "QK",
    "read_as": "on unless 0",

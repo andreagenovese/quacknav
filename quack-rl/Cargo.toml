@@ -1,0 +1,18 @@
+[package]
+name = "quack-rl"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "The pilot's training ground: simulated journeys through generated houses (what the map does not know on the way), the trainer's environment, the benches, and the calibration of the simulator on the duck's own traces"
+publish = false
+
+[dependencies]
+anyhow.workspace = true
+quack-nav = { path = "../quack-nav" }
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true

@@ -302,6 +302,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "quack-rl"
+version = "0.2.0-rc2"
+dependencies = [
+ "anyhow",
+ "quack-nav",
+ "serde",
+ "serde_json",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "quick-error"
 version = "1.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

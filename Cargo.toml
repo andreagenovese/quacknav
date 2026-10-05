@@ -4,6 +4,7 @@ members = [
     "maploc",
     "quack-duck",
     "quack-nav",
+    "quack-rl",
 ]
 
 [workspace.package]

@@ -181,6 +181,8 @@ def collect():
                     if not e["doc"]:
                         e["doc"] = comment_above(lines, line) or comment_naming(lines, name)
     for dp, dn, fn in os.walk(os.path.join(ROOT, "scripts")):
+        # A virtualenv's packages (scripts/rl/.venv) are not the twin's.
+        dn[:] = [d for d in dn if not d.startswith(".")]
         dn[:] = [d for d in dn if d != "__pycache__"]
         for f in sorted(fn):
             if not f.endswith(".py") or f == "knobs.py":
