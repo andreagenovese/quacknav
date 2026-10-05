@@ -120,7 +120,7 @@ impl Places {
             map,
             registry,
             cliff,
-            explore: crate::explore::ExploreHandle::new().with_ground(&config.places_path),
+            explore: crate::explore::ExploreHandle::new().with_ground(&config.places_path).with_oracle_book(),
             robotd_socket: robotd_socket.to_owned(),
             map_socket: map_socket.to_owned(),
             map_config: config.clone(),

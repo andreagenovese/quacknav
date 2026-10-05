@@ -7,8 +7,8 @@ with the oracle drawing the house's truth as a mapper would
 (`QK_ORACLE_AS_MAPPED`: holes and the inside of furniture unknown) and the
 true pose — so what the scene has and the truth has not (casa_ingombra's
 bag, basket, box, chair legs, toy) is what the map does not know — the true
-holes' rims on the books, and `QK_RL_TRACE` recording every leg; the pilot
-arm with `QK_RL_POLICY`. Then `ROUNDS` tours of the truth's goals, each a
+holes' rims on the books (`QK_ORACLE_BOOK`), and `QK_RL_TRACE` recording
+every leg; the pilot arm with `QK_RL_POLICY`. Then `ROUNDS` tours of the truth's goals, each a
 `robot.go_to`, judged on the simulator's trunk: arrived within 0.4 m, the
 time, a fall (the trunk under 7 cm, or the journey's own word).
 
@@ -67,21 +67,7 @@ def say(out, text):
         f.write(text + "\n")
 
 
-def rims(holes):
-    pts = []
-    for x0, x1, y0, y1 in holes:
-        x = x0
-        while x <= x1 + 1e-9:
-            pts += [[round(x, 3), y0, 0.10], [round(x, 3), y1, 0.10]]
-            x += 0.1
-        y = y0 + 0.1
-        while y < y1:
-            pts += [[x0, round(y, 3), 0.10], [x1, round(y, 3), 0.10]]
-            y += 0.1
-    return pts
-
-
-def arm(out, name, house, pilot, rounds):
+def arm(out, name, house, pilot, rounds, only=None):
     d = os.path.join(out, name)
     os.makedirs(os.path.join(d, "traces"), exist_ok=True)
     subprocess.run([TWIN, "down"], capture_output=True)
@@ -93,7 +79,8 @@ def arm(out, name, house, pilot, rounds):
     os.makedirs(STATE, exist_ok=True)
     truth = json.load(open(f"{HOUSES}/{house}.truth.json"))
     knobs = [f"QK_ORACLE_WALLS={HOUSES}/{house}.toml", f"QK_ORACLE_HOLES={HOUSES}/{house}.truth.json",
-             "QK_ORACLE_AS_MAPPED=1", f"QK_ORACLE_POSE=127.0.0.1:{PORT}", f"QK_RL_TRACE={d}/traces"]
+             "QK_ORACLE_AS_MAPPED=1", f"QK_ORACLE_BOOK={HOUSES}/{house}.truth.json", f"QK_ORACLE_POSE=127.0.0.1:{PORT}",
+             f"QK_RL_TRACE={d}/traces"]
     if pilot:
         knobs.append(f"QK_RL_POLICY={pilot}")
     with open(f"{STATE}/knobs.env", "w") as f:
@@ -105,22 +92,18 @@ def arm(out, name, house, pilot, rounds):
     time.sleep(3)
     subprocess.run([TWIN, "enable"], env=env, capture_output=True)
     time.sleep(20)
-    # The true rims on the books: a map saved under a name, its ground
-    # book written, the map loaded by that name (`map_named`).
-    for _ in range(30):
-        r = nav("robot.map_save", {"name": "oracle"})
-        if isinstance(r, dict) and "message" not in r and not r.get("error"):
-            break
-        time.sleep(5)
-    g = json.load(open(f"{STATE}/ground.json")) if os.path.exists(f"{STATE}/ground.json") else {}
-    g["oracle"] = rims(truth["holes"])
-    json.dump(g, open(f"{STATE}/ground.json", "w"))
-    say(out, f"[{name}] map_load: {json.dumps(nav('robot.map_load', {'name': 'oracle'}, timeout=60))[:160]}")
     time.sleep(5)
     rows = []
     fell = False
     for rnd in range(rounds):
         for goal, (gx, gy) in truth["goals"].items():
+            if only and goal not in only:
+                continue
+            # The mapper vouches for the pose first (a loaded map relocalizes;
+            # standing is what it needs), as final_house.py's tour waits.
+            tw = time.time()
+            while time.time() - tw < 180 and not (nav("robot.map_status") or {}).get("tracking"):
+                time.sleep(3)
             t0 = time.time()
             r = nav("robot.go_to", {"x": gx, "y": gy, "max_s": 300})
             if not isinstance(r, dict) or "message" in r or r.get("error") or r.get("started") is not True:
@@ -166,12 +149,13 @@ def main():
     ap.add_argument("--house", default="casa_ingombra")
     ap.add_argument("--rounds", type=int, default=2)
     ap.add_argument("--arms", default="stick,pilot")
+    ap.add_argument("--goals", help="only these of the truth's goals, comma-separated")
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
     pilot = os.path.abspath(args.pilot)
     res = {}
     for a in args.arms.split(","):
-        res[a] = arm(args.out, a, args.house, pilot if a == "pilot" else None, args.rounds)
+        res[a] = arm(args.out, a, args.house, pilot if a == "pilot" else None, args.rounds, args.goals.split(",") if args.goals else None)
     with open(os.path.join(args.out, "summary.md"), "w") as f:
         f.write(f"# Twin A/B on {args.house}: the stick and the pilot\n\n| arm | journeys | arrived | fell | mean s (arrived) | refused |\n|---|---|---|---|---|---|\n")
         for a, rows in res.items():

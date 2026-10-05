@@ -520,6 +520,15 @@ impl ExploreHandle {
         Self::default()
     }
 
+    /// The oracle's book (`QK_ORACLE_BOOK`, the twin only): the true rims
+    /// on the books from the start.
+    pub fn with_oracle_book(self) -> Self {
+        if let Some(drops) = crate::oracle::book(DROP_RADIUS_M) {
+            self.update(|s| s.local = drops);
+        }
+        self
+    }
+
     /// Keep the ground book beside the places registry: `ground.json`.
     pub fn with_ground(self, places_path: &str) -> Self {
         let path = std::path::Path::new(places_path).with_file_name("ground.json");

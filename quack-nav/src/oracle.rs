@@ -14,6 +14,9 @@
 //!   The drop book is the protocol's to give (a book of the true rims).
 //! - `QK_ORACLE_POSE=<host:port>`: the pose the navigation reads is the
 //!   simulator's trunk, read as `poseerr.py` reads it, at 20 Hz.
+//! - `QK_ORACLE_BOOK=<truth.json>`: the true holes' rims on the books at
+//!   start, every 10 cm (what a ground book holds for a mapped house), for
+//!   the journeys on the oracle's map (`scripts/rl/twin_ab.py`).
 //! - `QK_ORACLE_AS_MAPPED=1`: the truth drawn as a mapper draws a house —
 //!   the holes unknown (no floor ever seen there) instead of wall, and the
 //!   inside of each box of the truth's `boxes` unknown past a 5 cm band
@@ -75,6 +78,31 @@ pub fn read_holes(path: &str) -> anyhow::Result<Vec<(f64, f64, f64, f64)>> {
                 .collect()
         })
         .unwrap_or_default())
+}
+
+/// `QK_ORACLE_BOOK`: the true holes' rims every 10 cm, as drops for the
+/// books (radius `drop_r`), when the knob names a truth json.
+pub fn book(drop_r: f64) -> Option<Vec<((f64, f64), f64)>> {
+    let path = std::env::var("QK_ORACLE_BOOK").ok()?;
+    let holes = read_holes(&path).map_err(|e| tracing::warn!(error = %e, "oracle: no book")).ok()?;
+    let mut pts = Vec::new();
+    for (x0, x1, y0, y1) in holes {
+        let (x0, x1, y0, y1) = (x0.min(x1), x0.max(x1), y0.min(y1), y0.max(y1));
+        let mut x = x0;
+        while x <= x1 + 1e-9 {
+            pts.push(((x, y0), drop_r));
+            pts.push(((x, y1), drop_r));
+            x += 0.1;
+        }
+        let mut y = y0 + 0.1;
+        while y < y1 {
+            pts.push(((x0, y), drop_r));
+            pts.push(((x1, y), drop_r));
+            y += 0.1;
+        }
+    }
+    tracing::info!(drops = pts.len(), "oracle: the true rims on the books");
+    Some(pts)
 }
 
 /// The boxes of a truth json (`[name, x0, x1, y0, y1, h]`), in metres.
