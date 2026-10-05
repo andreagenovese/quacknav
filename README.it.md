@@ -190,6 +190,21 @@ cargo run --release --example paper_twin -- \
 dx,dy` sposta il frame della mappa dal mondo (quel che un errore di posa
 vero fa a un passaggio).
 
+## Il pilota (sperimentale, branch `rl-nav`)
+
+Una piccola rete che sceglie le mosse dello stick dalla rotta davanti,
+dall'ultimo secondo del sensore di profondità e dalla mappa attorno al
+corpo, addestrata su centinaia di migliaia di viaggi simulati in case
+generate con ciò che la mappa non sa lungo la strada (cose posate dopo,
+animali e piedi che attraversano, porte socchiuse, passaggi accanto a una
+buca), con scudi perché nessuna mossa che chiede porti la papera oltre un
+bordo che conosce o all'indietro alla cieca; spento finché `QK_RL_POLICY`
+non nomina il suo file. Con esso, una taratura: `QK_RL_TRACE` registra i
+passi della papera, e `scripts/rl/calibrate.sh` adatta il simulatore a
+essi, riaddestra, e fa volare il pilota nuovo solo se lì batte lo stick.
+Tutto — il progetto, gli scudi, i numeri, i limiti:
+[docs/rl-pilot.it.md](docs/rl-pilot.it.md).
+
 ## Farlo girare
 
 Rust 1.89 o più recente; la prima compilazione scarica da GitHub i crate

@@ -9,7 +9,7 @@
 //!
 //! The pipe, little-endian:
 //!
-//! - out, once: `u32 N, u32 OBS_DIM, u32 N_ACTIONS`;
+//! - out, once: `u32 N, u32 OBS_DIM, u32 N_ACTIONS, u32 OBS_VERSION`;
 //! - out, every step: `f32 obs[N][OBS_DIM]`, `f32 reward[N]`, `u8 done[N]`,
 //!   `u8 expert[N]` (the teacher's move, for imitation), `u8 outcome[N]`
 //!   (of the journey that just ended: 1 arrived, 2 arrived off, 3 fell,
@@ -177,6 +177,7 @@ fn main() -> anyhow::Result<()> {
     out.write_all(&(n as u32).to_le_bytes())?;
     out.write_all(&(OBS_DIM as u32).to_le_bytes())?;
     out.write_all(&(N_ACTIONS as u32).to_le_bytes())?;
+    out.write_all(&quack_nav::rlnav::OBS_VERSION.to_le_bytes())?;
     out.flush()?;
     let mut stdin = std::io::stdin().lock();
     let mut slots: Vec<Option<Msg>> = (0..n).map(|_| None).collect();

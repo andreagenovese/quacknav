@@ -29,7 +29,7 @@ class VecEnv:
         if calib:
             args += ["--calib", calib]
         self.p = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, bufsize=0)
-        self.n, self.obs_dim, self.n_actions = struct.unpack("<III", self._read(12))
+        self.n, self.obs_dim, self.n_actions, self.obs_version = struct.unpack("<IIII", self._read(16))
         self.last = self._recv()
 
     def _read(self, k):
@@ -130,9 +130,6 @@ class Tally:
         return f"{n} journeys: arrived {100 * arr:.1f} %, fell {fell} | " + " ".join(per)
 
 
-OBS_VERSION = 1
-
-
 def export_json(net, path, meta, probe=None):
     """The actor as quack_nav::rlnav::PilotFile: what quack-navd loads
     (`QK_RL_POLICY`). `probe`: a few observations whose logits go along, for
@@ -155,7 +152,7 @@ def export_json(net, path, meta, probe=None):
         meta["probe"] = {"obs": np.asarray(probe, dtype=float).tolist(), "logits": lg.astype(float).tolist()}
     out = {
         "format": "quack-pilot",
-        "obs_version": OBS_VERSION,
+        "obs_version": int(meta["obs_version"]),
         "obs_dim": int(net.mean.numel()),
         "n_actions": int(linears[-1].out_features),
         "obs_mean": net.mean.cpu().numpy().astype(float).tolist(),

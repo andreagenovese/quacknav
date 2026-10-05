@@ -510,6 +510,27 @@ seen, found again with no wrong pose, arrives.
 
 **Twin**: 0.15 s, 3 cm. **Pass**: stops within a step, every time.
 
+### i. (the `rl-nav` build only) Traces for the pilot's calibration
+
+Only with a quack-navd built from the experimental branch `rl-nav`
+([rl-pilot.md](rl-pilot.md)); rc2 does not read these knobs. No pilot
+flies here: the stick drives, and its legs are recorded.
+
+```sh
+echo 'QK_RL_TRACE=/var/lib/quack-nav/rl-traces' | sudo tee -a /var/lib/quack-nav/knobs.env
+sudo systemctl restart quack-navd
+journalctl -u quack-navd -b | grep 'rl trace: recording'
+```
+
+- [ ] Twenty minutes of `go_to` between the marks of §4e (both turning
+      directions, a doorway, a passage beside the safe edge of §4b with
+      its rim on the books).
+- [ ] `ls -la /var/lib/quack-nav/rl-traces/`: a `trace-*.jsonl` growing.
+
+The state tarball of §5 carries them; on the laptop
+`scripts/rl/calibrate.sh calib-out rl-runs/r2 rl-traces/*.jsonl` fits the
+simulator to them, retrains the pilot and says whether it may fly.
+
 ## 5. Bring it back, replay it here
 
 On the duck, at the end (and before any power-off you care about — the
@@ -518,7 +539,7 @@ journal is in RAM):
 ```sh
 journalctl -o short-iso -u quack-navd -u quack-control -u quacksat -u robotd -u tofd -u mediad -b > ~/qn/journal-boot.log
 robotctl health --json > ~/qn/health.json; robotctl version > ~/qn/version.txt
-sudo tar czf ~/qn/var-lib-quack-nav.tgz -C /var/lib quack-nav     # places.json, ground.json, maploc.session, maps/, recordings/
+sudo tar czf ~/qn/var-lib-quack-nav.tgz -C /var/lib quack-nav     # places.json, ground.json, maploc.session, maps/, recordings/, rl-traces/
 sudo cp /etc/robot/quack-nav.toml /etc/robot/quack-control.toml ~/qn/   # not quacksat.toml: it holds keys
 sudo chown -R "$USER" ~/qn
 ```

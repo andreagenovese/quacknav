@@ -89,7 +89,7 @@ def cmd_bc(args):
                 acc += (lg.argmax(-1) == Yt[idx]).float().sum().item()
         log(args.out, f"bc it {it} beta {beta:.2f}: {n} samples, loss {tot / n:.3f}, agree {100 * acc / n:.1f} %, {time.time() - t0:.0f} s | driving: {tally.summary(last=400)}")
     env.close()
-    meta = {"stage": "bc", "iters": args.iters, "samples": int(len(data_y) * env.n), "calib": args.calib, "spread": args.spread}
+    meta = {"obs_version": env.obs_version, "stage": "bc", "iters": args.iters, "samples": int(len(data_y) * env.n), "calib": args.calib, "spread": args.spread}
     P.save(net, os.path.join(args.out, "bc.pt"), meta)
     probe = np.concatenate(data_o)[:: max(1, len(data_o) * env.n // 4)][:4]
     P.export_json(net, os.path.join(args.out, "bc.json"), meta, probe=probe)

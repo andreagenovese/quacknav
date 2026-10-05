@@ -32,7 +32,7 @@ use crate::frontier::ExtraWall;
 use crate::map::{Cell, Grid};
 
 /// The observation's layout; a pilot trained on another refuses to load.
-pub const OBS_VERSION: u32 = 1;
+pub const OBS_VERSION: u32 = 2;
 
 /// The leg's moves. Steps are the stick's own (vx 0.3 for 0.6 s, a yaw
 /// that curves it), five of them from hard right to hard left; turns are
@@ -129,7 +129,7 @@ pub const LOCAL_N: usize = 16;
 pub const LOCAL_CELL_M: f64 = 0.1;
 pub const LOCAL_BEHIND_M: f64 = 0.4;
 
-pub const OBS_DIM: usize = ROUTE_AHEAD_M.len() * 2 + 3 + SECTORS * 2 * 2 + LOCAL_N * LOCAL_N + N_ACTIONS + 2;
+pub const OBS_DIM: usize = ROUTE_AHEAD_M.len() * 2 + 3 + SECTORS * 2 * 2 + LOCAL_N * LOCAL_N + N_ACTIONS + 3;
 
 /// What the pilot reads, borrowed from whoever drives: the map's pose, the
 /// map, the books (drops and bumps, as the planner sees them), the route
@@ -142,7 +142,10 @@ pub struct ObsInput<'a> {
     pub goal: (f64, f64),
     pub cliff: Option<&'a CliffStatus>,
     pub now: Instant,
+    /// Its last move as it chose it (walked or refused).
     pub last: Option<Action>,
+    /// Its moves in a row the shields refused (see `explore/stick.rs`).
+    pub refused: u32,
     /// Legs in a row that did not move the body.
     pub stalls: u32,
     /// How far the last leg moved the body, metres (odometry's or the map's).
@@ -278,6 +281,7 @@ pub fn observe(input: &ObsInput) -> Vec<f32> {
     obs.extend_from_slice(&onehot);
     obs.push((f64::from(input.stalls) / 3.0).min(1.0) as f32);
     obs.push((input.moved_m / 0.1).clamp(0.0, 1.5) as f32);
+    obs.push((f64::from(input.refused) / 2.0).min(1.0) as f32);
     debug_assert_eq!(obs.len(), OBS_DIM);
     obs
 }
@@ -457,6 +461,7 @@ mod tests {
             cliff: Some(&cliff),
             now,
             last: Some(Action::TurnLeft),
+            refused: 0,
             stalls: 1,
             moved_m: 0.05,
         });

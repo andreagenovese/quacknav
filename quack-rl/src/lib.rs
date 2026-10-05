@@ -12,12 +12,14 @@
 //! - [`field`] — the true distance to the goal, for the reward and the
 //!   expert; [`expert`] — the teacher that sees the truth.
 //! - [`episode`] — one journey: a scenario, a body, a brain; the reward.
+//! - [`brains`] — reckless brains, for the shields.
 //!
 //! Binaries: `rl_env` (the trainer's environment, over a pipe), `rl_eval`
 //! (the bench: the stick against a pilot, scenario by scenario, through the
 //! real loop) and `rl_calib` (the simulator fitted to the duck's traces).
 
 pub mod body;
+pub mod brains;
 pub mod calib;
 pub mod episode;
 pub mod expert;

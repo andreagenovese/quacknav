@@ -29,23 +29,6 @@ enum Who {
     Reckless(String),
 }
 
-/// A brain that never thinks: the shields must hold whatever it asks.
-struct Reckless {
-    kind: String,
-    rng: Mutex<quack_rl::Rng>,
-}
-
-impl Brain for Reckless {
-    fn act(&self, _obs: &[f32]) -> quack_nav::rlnav::Action {
-        use quack_nav::rlnav::{Action, N_ACTIONS};
-        match self.kind.as_str() {
-            "back" => Action::Back,
-            "straight" => Action::Step(0),
-            _ => Action::from_index(self.rng.lock().unwrap().pick(N_ACTIONS)),
-        }
-    }
-}
-
 impl Who {
     fn name(&self) -> String {
         match self {
@@ -120,7 +103,7 @@ fn main() -> anyhow::Result<()> {
                         Who::Stick => None,
                         Who::Expert => Some(Arc::new(ExpertBrain::new(j.body.clone(), j.teach.clone()))),
                         Who::Pilot(_, p) => Some(p.clone() as Arc<dyn Brain>),
-                        Who::Reckless(k) => Some(Arc::new(Reckless { kind: k.clone(), rng: Mutex::new(quack_rl::Rng::new(seed)) }) as Arc<dyn Brain>),
+                        Who::Reckless(k) => Some(Arc::new(quack_rl::brains::Reckless::new(k, seed)) as Arc<dyn Brain>),
                     };
                     let r = j.run(brain);
                     results.lock().unwrap().push((w.name(), r));

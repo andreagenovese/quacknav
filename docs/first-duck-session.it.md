@@ -532,6 +532,27 @@ al peggio; portata per 3,3 m e girata di 86°: ritrovata in 70 s, arrivata a
 
 **Gemello**: 0,15 s, 3 cm. **Passa**: si ferma entro un passo, ogni volta.
 
+### i. (solo la build `rl-nav`) Tracce per la taratura del pilota
+
+Solo con un quack-navd compilato dal branch sperimentale `rl-nav`
+([rl-pilot.it.md](rl-pilot.it.md)); la rc2 non legge queste manopole.
+Qui non vola nessun pilota: guida lo stick, e i suoi passi vengono registrati.
+
+```sh
+echo 'QK_RL_TRACE=/var/lib/quack-nav/rl-traces' | sudo tee -a /var/lib/quack-nav/knobs.env
+sudo systemctl restart quack-navd
+journalctl -u quack-navd -b | grep 'rl trace: recording'
+```
+
+- [ ] Venti minuti di `go_to` tra i segni del §4e (rotazioni da entrambi i
+      lati, una porta, un passaggio accanto al bordo sicuro del §4b con il
+      suo bordo sul libro).
+- [ ] `ls -la /var/lib/quack-nav/rl-traces/`: un `trace-*.jsonl` che cresce.
+
+L'archivio dello stato del §5 le porta con sé; sul portatile
+`scripts/rl/calibrate.sh calib-out rl-runs/r2 rl-traces/*.jsonl` adatta il
+simulatore a esse, riaddestra il pilota e dice se può volare.
+
 ## 5. Riportarlo a casa, rigiocarlo qui
 
 Sulla papera, alla fine (e prima di ogni spegnimento che conta — il
@@ -540,7 +561,7 @@ journal sta in RAM):
 ```sh
 journalctl -o short-iso -u quack-navd -u quack-control -u quacksat -u robotd -u tofd -u mediad -b > ~/qn/journal-boot.log
 robotctl health --json > ~/qn/health.json; robotctl version > ~/qn/version.txt
-sudo tar czf ~/qn/var-lib-quack-nav.tgz -C /var/lib quack-nav     # places.json, ground.json, maploc.session, maps/, recordings/
+sudo tar czf ~/qn/var-lib-quack-nav.tgz -C /var/lib quack-nav     # places.json, ground.json, maploc.session, maps/, recordings/, rl-traces/
 sudo cp /etc/robot/quack-nav.toml /etc/robot/quack-control.toml ~/qn/   # non quacksat.toml: contiene chiavi
 sudo chown -R "$USER" ~/qn
 ```

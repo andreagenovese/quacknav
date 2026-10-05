@@ -14,6 +14,11 @@
 //!   The drop book is the protocol's to give (a book of the true rims).
 //! - `QK_ORACLE_POSE=<host:port>`: the pose the navigation reads is the
 //!   simulator's trunk, read as `poseerr.py` reads it, at 20 Hz.
+//! - `QK_ORACLE_AS_MAPPED=1`: the truth drawn as a mapper draws a house —
+//!   the holes unknown (no floor ever seen there) instead of wall, and the
+//!   inside of each box of the truth's `boxes` unknown past a 5 cm band
+//!   (nothing sees inside furniture) — what the pilot (`crate::rlnav`)
+//!   reads on a saved map.
 //!
 //! maploc runs as ever beneath: the homecoming, the tracking flag and the
 //! tools' own guards are the real ones. Only what the explorer's `Body`
@@ -72,9 +77,31 @@ pub fn read_holes(path: &str) -> anyhow::Result<Vec<(f64, f64, f64, f64)>> {
         .unwrap_or_default())
 }
 
+/// The boxes of a truth json (`[name, x0, x1, y0, y1, h]`), in metres.
+pub fn read_boxes(path: &str) -> anyhow::Result<Vec<(f64, f64, f64, f64)>> {
+    let v: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(path)?)?;
+    Ok(v.get("boxes")
+        .and_then(|h| h.as_array())
+        .map(|a| {
+            a.iter()
+                .filter_map(|b| {
+                    let b = b.as_array()?;
+                    Some((b.get(1)?.as_f64()?, b.get(2)?.as_f64()?, b.get(3)?.as_f64()?, b.get(4)?.as_f64()?))
+                })
+                .collect()
+        })
+        .unwrap_or_default())
+}
+
 /// Draw the house: free inside the walls' extent, each segment a line of
 /// wall cells (sampled at a quarter cell), each hole's cells wall.
 pub fn draw(walls: &[(f64, f64, f64, f64)], holes: &[(f64, f64, f64, f64)]) -> DrawnMap {
+    draw_as(walls, holes, &[], false)
+}
+
+/// [`draw`], or as a mapper draws it (`as_mapped`): the holes unknown, and
+/// `boxes`' insides unknown past a 5 cm band.
+pub fn draw_as(walls: &[(f64, f64, f64, f64)], holes: &[(f64, f64, f64, f64)], boxes: &[(f64, f64, f64, f64)], as_mapped: bool) -> DrawnMap {
     let xs = walls.iter().flat_map(|w| [w.0, w.2]);
     let ys = walls.iter().flat_map(|w| [w.1, w.3]);
     let (x_lo, x_hi) = xs.fold((f64::INFINITY, f64::NEG_INFINITY), |(a, b), v| (a.min(v), b.max(v)));
@@ -105,15 +132,29 @@ pub fn draw(walls: &[(f64, f64, f64, f64)], holes: &[(f64, f64, f64, f64)]) -> D
             mark(x1 + t * (x2 - x1), y1 + t * (y2 - y1));
         }
     }
-    for &(x0, x1, y0, y1) in holes {
-        let mut x = x0.min(x1);
-        while x <= x0.max(x1) {
-            let mut y = y0.min(y1);
-            while y <= y0.max(y1) {
-                mark(x, y);
-                y += CELL_M / 2.0;
+    if !as_mapped {
+        for &(x0, x1, y0, y1) in holes {
+            let mut x = x0.min(x1);
+            while x <= x0.max(x1) {
+                let mut y = y0.min(y1);
+                while y <= y0.max(y1) {
+                    mark(x, y);
+                    y += CELL_M / 2.0;
+                }
+                x += CELL_M / 2.0;
             }
-            x += CELL_M / 2.0;
+        }
+        return DrawnMap { x_min, y_min, rows, cols, cells };
+    }
+    const BAND_M: f64 = 0.05;
+    for r in 0..rows {
+        for c in 0..cols {
+            let (x, y) = (x_min + (c as f64 + 0.5) * CELL_M, y_min + (r as f64 + 0.5) * CELL_M);
+            let in_hole = holes.iter().any(|&(x0, x1, y0, y1)| x >= x0.min(x1) && x <= x0.max(x1) && y >= y0.min(y1) && y <= y0.max(y1));
+            let inside = boxes.iter().any(|&(x0, x1, y0, y1)| x > x0 + BAND_M && x < x1 - BAND_M && y > y0 + BAND_M && y < y1 - BAND_M);
+            if in_hole || (inside && cells[r * cols + c] != 2) {
+                cells[r * cols + c] = 0;
+            }
         }
     }
     DrawnMap { x_min, y_min, rows, cols, cells }
@@ -158,7 +199,9 @@ pub fn oracle() -> Option<&'static Oracle> {
         let map = walls.and_then(|w| {
             let segs = read_walls(&w).map_err(|e| tracing::warn!(error = %e, "oracle: no walls")).ok()?;
             let hs = holes.as_deref().map(|h| read_holes(h).unwrap_or_default()).unwrap_or_default();
-            let m = draw(&segs, &hs);
+            let as_mapped = std::env::var("QK_ORACLE_AS_MAPPED").is_ok_and(|v| v == "1");
+            let boxes = if as_mapped { holes.as_deref().map(|h| read_boxes(h).unwrap_or_default()).unwrap_or_default() } else { Vec::new() };
+            let m = draw_as(&segs, &hs, &boxes, as_mapped);
             tracing::info!(segments = segs.len(), holes = hs.len(), rows = m.rows, cols = m.cols, "oracle: the map drawn from the truth");
             let enc = b64(&m.cells);
             Some((m, enc))

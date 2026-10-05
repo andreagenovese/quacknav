@@ -13,6 +13,19 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Added
 
+- **The pilot** (experimental, branch `rl-nav`; docs/rl-pilot.md): a
+  learned policy for the stick's legs (`QK_RL_POLICY`), the observation
+  shared by the simulator and the duck (`quack_nav::rlnav`), shields over
+  it (the hole guard, no blind back-off, no step across a drop or the
+  unknown beside one, no pushing on, the stick after two refusals); the
+  `quack-rl` crate (generated scenarios through quack-navd's own journey
+  loop, the expert, `rl_env`, `rl_eval` with reckless brains, `rl_calib`,
+  `rl_pilot_check`) and `scripts/rl` (DAgger, PPO, finalize, gate,
+  calibrate). `QK_RL_TRACE` records legs and stands for the calibration.
+  The oracle's `QK_ORACLE_AS_MAPPED` draws the truth as a mapper would;
+  `gen.py` writes `casa_ingombra` (casa_arredata and things put down since).
+  Unset, nothing changes: the paper twin's gate is the same to the decimal.
+
 - **An install package on every release.** CI packs
   `quack-nav-<version>-aarch64-linux.tar.gz` (with its `.sha256`) beside
   the bare binary, and a `v*` tag attaches both: the binary, the unit, the

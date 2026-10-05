@@ -176,6 +176,20 @@ cargo run --release --example paper_twin -- \
 dx,dy` offsets the map's frame from the world (what a real pose error
 does to a passage).
 
+## The pilot (experimental, branch `rl-nav`)
+
+A small network that picks the stick's moves from the route ahead, the
+depth sensor's last second and the map around the body, trained on
+hundreds of thousands of simulated journeys through generated houses with
+what the map does not know on the way (things put down since, pets and
+feet crossing, half-closed doors, passages beside a hole), shielded so
+that no move it asks for can take the duck over a rim it knows or backward
+blind; off unless `QK_RL_POLICY` names its file. With it, a calibration:
+`QK_RL_TRACE` records the duck's legs, and `scripts/rl/calibrate.sh` fits
+the simulator to them, retrains, and lets the new pilot fly only if it
+beats the stick there. Everything — the design, the shields, the numbers,
+the limits: [docs/rl-pilot.md](docs/rl-pilot.md).
+
 ## Running it
 
 Rust 1.89 or newer; the first build fetches Pollen's `duck-ipc-proto` and

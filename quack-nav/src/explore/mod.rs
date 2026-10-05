@@ -1405,6 +1405,9 @@ pub struct Job {
     pilot: Option<Arc<dyn crate::rlnav::Brain>>,
     pilot_last: Option<crate::rlnav::Action>,
     pilot_moved_m: f64,
+    /// The pilot's moves in a row the shields refused; at
+    /// `PILOT_REFUSED_TO_STICK` the stick takes the leg.
+    pilot_refused: u32,
     /// Walls looked at from near, and how many (see `close_look.rs`).
     looked: Vec<(f64, f64)>,
     close_looks: u32,
@@ -1548,6 +1551,7 @@ impl Job {
             pilot: crate::rlnav::from_env(),
             pilot_last: None,
             pilot_moved_m: 0.0,
+            pilot_refused: 0,
             looked: Vec::new(),
             close_looks: 0,
             last_close_look: None,

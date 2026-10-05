@@ -141,7 +141,16 @@ impl Job {
         }
         let before = crate::rlnav::trace::tracer().map(|_| crate::rlnav::trace::Snapshot::take(&*robot));
         let what;
-        if let Some(pilot) = self.pilot.clone() {
+        // The pilot flies the leg, unless the shields refused its last
+        // moves: then the stick takes this one (a refused move leaves the
+        // body where it was, and a pilot that asks again what was refused
+        // stands for good — the bench's first shielded pilot, 2026-10-06).
+        let pilot = self.pilot.clone().filter(|_| self.pilot_refused < PILOT_REFUSED_TO_STICK);
+        if self.pilot.is_some() && pilot.is_none() {
+            self.pilot_refused = 0;
+            tracing::info!(at = ?(x, y, yaw), "map explore: pilot: refused twice; the stick takes the leg");
+        }
+        if let Some(pilot) = pilot {
             what = self.pilot_move(handle, robot, (x, y, yaw), f, &*pilot, guard_margin);
         } else if err.abs() > turn_first || self.stick_stalls >= STALLS_TURN {
             // A pure turn in place: yaw past the gait's dead zone, about
@@ -261,6 +270,7 @@ impl Job {
             cliff: cliff.as_ref(),
             now,
             last: self.pilot_last,
+            refused: self.pilot_refused,
             stalls: self.stick_stalls,
             moved_m: self.pilot_moved_m,
         });
@@ -305,7 +315,6 @@ impl Job {
             }));
         let what = if back_refused || step_refused {
             let _ = stand(robot, WAIT_S);
-            self.pilot_last = Some(Action::Wait);
             let why = if back_refused {
                 "no known floor behind"
             } else if pushing {
@@ -317,7 +326,6 @@ impl Job {
         } else if let Some(d) = guarded {
             let mut w = self.turn_from_hole(robot, pose, d, "shield");
             w["proposed"] = json!(action.name());
-            self.pilot_last = Some(if d.bearing > 0.0 { Action::TurnRight } else { Action::TurnLeft });
             w
         } else {
             match action {
@@ -340,9 +348,9 @@ impl Job {
                 }
             }
         };
-        if guarded.is_none() && !back_refused && !step_refused {
-            self.pilot_last = Some(action);
-        }
+        let refused = guarded.is_some() || back_refused || step_refused;
+        self.pilot_last = Some(action);
+        self.pilot_refused = if refused { self.pilot_refused + 1 } else { 0 };
         let odom1 = odom_pose(&*robot).map(|p| (p.0, p.1)).or_else(|| robot.frame().map(|fr| (fr.x, fr.y))).unwrap_or(odom0);
         self.pilot_moved_m = dist2(odom0, odom1);
         tracing::info!(at = ?pose, act = action.name(), shield = guarded.is_some() || back_refused || step_refused, moved_m = format!("{:.3}", self.pilot_moved_m), "map explore: pilot");
@@ -390,6 +398,10 @@ impl Job {
         }
     }
 }
+
+/// The pilot's moves in a row the shields refused before the stick takes
+/// a leg.
+pub(super) const PILOT_REFUSED_TO_STICK: u32 = 2;
 
 /// The pilot's legs that did not move the body before a step against
 /// something ahead within [`PUSH_AHEAD_M`] is refused.

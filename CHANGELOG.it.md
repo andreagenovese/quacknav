@@ -15,6 +15,20 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Aggiunto
 
+- **Il pilota** (sperimentale, branch `rl-nav`; docs/rl-pilot.it.md): una
+  policy appresa per i passi dello stick (`QK_RL_POLICY`), l'osservazione
+  condivisa da simulatore e papera (`quack_nav::rlnav`), scudi sopra di
+  essa (la guardia dei buchi, niente retromarcia alla cieca, nessun passo
+  attraverso un drop o l'ignoto accanto, non insistere, lo stick dopo due
+  rifiuti); il crate `quack-rl` (scenari generati attraverso il ciclo di
+  viaggio di quack-navd, l'esperto, `rl_env`, `rl_eval` con i cervelli
+  spericolati, `rl_calib`, `rl_pilot_check`) e `scripts/rl` (DAgger, PPO,
+  finalize, gate, calibrate). `QK_RL_TRACE` registra passi e soste per la
+  taratura. `QK_ORACLE_AS_MAPPED` dell'oracolo disegna la verità come la
+  disegnerebbe un mapper; `gen.py` scrive `casa_ingombra` (casa_arredata e
+  cose posate dopo). Senza pilota non cambia nulla: la soglia del gemello di
+  carta è la stessa al decimale.
+
 - **Un pacchetto d'installazione a ogni release.** La CI impacchetta
   `quack-nav-<versione>-aarch64-linux.tar.gz` (con il suo `.sha256`)
   accanto al binario nudo, e un tag `v*` li allega entrambi: il binario,

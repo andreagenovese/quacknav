@@ -35,6 +35,7 @@ Every knob needs that restart: the environment is read at the process's start.
 | `QK_INFLATE_M` | number (default 0.12) | `quack-nav/src/frontier.rs` | The inflation the planner runs with: 0.12, a little over the body's half-width, 0.10 (`QK_INFLATE_M`). |
 | `QK_LANE_HALF_M` | number (default 0.16) | `quack-nav/src/explore/mod.rs` |  |
 | `QK_NO_GUARDS` | 1 on, 0 off, else the caller's default | `quack-nav/src/explore/journey.rs` | `QK_NO_GUARDS`: every leg, kick and pulse goes through `robot.move`, blind, and the route check is off — the planner alone (the frozen map, the books, the margins) brings the duck home. |
+| `QK_ORACLE_AS_MAPPED` | on only if 1 | `quack-nav/src/oracle.rs` | `QK_ORACLE_AS_MAPPED=1`: the truth drawn as a mapper draws a house — the holes unknown (no floor ever seen there) instead of wall, and the inside of each box of the truth's `boxes` unknown past a 5 cm band (nothing sees … |
 | `QK_ORACLE_HOLES` | a value | `quack-nav/src/oracle.rs` | `QK_ORACLE_HOLES=<truth.json>`: its `holes` (`[x0, x1, y0, y1]`, metres) drawn into that map as wall — the planner keeps off them. |
 | `QK_ORACLE_POSE` | a value | `quack-nav/src/oracle.rs` | `QK_ORACLE_POSE=<host:port>`: the pose the navigation reads is the simulator's trunk, read as `poseerr.py` reads it, at 20 Hz. |
 | `QK_ORACLE_WALLS` | a value | `quack-nav/src/oracle.rs` | `QK_ORACLE_WALLS=<walls.toml>`: the map the navigation plans on is drawn from the truth's wall segments (centimetres, the MuJoCo world frame, as `scripts/twin/houses/*.toml` hold them): every cell inside the house free, … |
@@ -101,7 +102,7 @@ Every knob needs that restart: the environment is read at the process's start.
 | `MAP_SESSION` | a path, or a value | `quack-nav/examples/drop_replay.rs`, `maploc/examples/evaluate.rs`, `maploc/examples/trajectory.rs` | `MAP_SESSION` / `MAP_LOAD_AT_S` as `maploc`'s `trajectory` example: the saved map the session resumed on, loaded when the daemon loaded it. |
 | `MAX_T` | number (default f32::INFINITY) | `maploc/examples/evaluate.rs` |  |
 | `MICRODUCK` | a value (script) | `scripts/twin/houses/run_house.py` |  |
-| `MICRODUCK_RL` | a value (script) | `scripts/twin/houses/run_house.py` |  |
+| `MICRODUCK_RL` | a value (script) | `scripts/twin/houses/run_house.py`, `scripts/rl/twin_ab.py` |  |
 | `MICRODUCK_START` | a value (script) | `scripts/twin/viewer/maploc_overlay.py` |  |
 | `MIN_RES_DEG` | number (default 1.5) | `maploc/examples/submap_fit.rs` |  |
 | `MIN_RES_M` | number (default 0.03) | `maploc/examples/submap_fit.rs` |  |
@@ -111,6 +112,7 @@ Every knob needs that restart: the environment is read at the process's start.
 | `OTHER_HOUSE` | a value | `maploc/examples/wake_match.rs` |  |
 | `OUT_SESSION` | a path, or a value | `maploc/examples/evaluate.rs` | `OUT_SESSION=<file>`: the map this replay built, saved the way the robot saves one — so a bench run and a live run are scored by the same tools (quacksat's mapquality.py, dump_frame). |
 | `POLICY_DIR` | a value (script) | `scripts/twin/houses/run_house.py` |  |
+| `PORT` | a value (script) | `scripts/rl/twin_ab.py` |  |
 | `POSEERR_DT` | a value (script) | `scripts/twin/houses/poseerr.py` |  |
 | `PROPTEST_CASES` | number (default 256) | `quack-nav/tests/route_properties.rs` | `PROPTEST_CASES=5000` for a long hunt. |
 | `QN_REPO` | a value (script) | `scripts/twin/houses/run_house.py` |  |
@@ -123,6 +125,7 @@ Every knob needs that restart: the environment is read at the process's start.
 | `ROUNDS_ONLY` | a value (script) | `scripts/twin/houses/final_house.py` |  |
 | `SAVE_SESSION` | a path, or a value | `maploc/examples/trajectory.rs` | `SAVE_SESSION=<file>`: the map the replay built, saved as the live daemon saves it — for `dump_frame` and `map_vs_truth.py`. |
 | `SLANT` | number (unset: none) | `maploc/examples/submap_fit.rs` | `SLANT=x0,x1,y0,y1`: how many of this submap's wall cells fall in that box. |
+| `STATE` | a value (script) | `scripts/rl/twin_ab.py` |  |
 | `TRACK` | 1 on, else off; unset: mapper_cfg.tracking.enabled | `maploc/examples/evaluate.rs` |  |
 | `TRACK_COND` | number (default mapper_cfg.tracking.min_conditioning) | `maploc/examples/evaluate.rs` |  |
 | `TRACK_IMPROVE` | number (default mapper_cfg.tracking.min_improvement) | `maploc/examples/evaluate.rs` |  |
@@ -138,6 +141,7 @@ Every knob needs that restart: the environment is read at the process's start.
 | `UNC_XY` | number (default u.xy_var_per_m.sqrt()) | `maploc/examples/trajectory.rs` |  |
 | `UNC_YAW_M` | number (default u.yaw_var_per_m.sqrt()) | `maploc/examples/trajectory.rs` |  |
 | `UNC_YAW_RAD` | number (default u.yaw_var_per_rad.sqrt()) | `maploc/examples/trajectory.rs` |  |
+| `VIEWER` | a value (script) | `scripts/rl/twin_ab.py` |  |
 | `WAKE_MODE` | a value (script) | `scripts/twin/houses/wake_bench.py` |  |
 | `WAKE_SPAWNS` | a value (script) | `scripts/twin/houses/wake_bench.py` |  |
 | `WAKE_TURN` | a value (script) | `scripts/twin/houses/wake_bench.py` |  |
