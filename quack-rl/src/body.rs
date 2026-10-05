@@ -53,6 +53,9 @@ pub struct Sim {
     pub y: f64,
     pub yaw: f64,
     pub fell: bool,
+    /// The fall was a tip-over against something, not a hole.
+    pub tipped: bool,
+    contact_free: bool,
     pub bumps: u32,
     pub mover_bumps: u32,
     pub path_m: f64,
@@ -113,6 +116,8 @@ impl Sim {
             y: s.start.1,
             yaw: crate::wrap(s.start.2),
             fell: false,
+            tipped: false,
+            contact_free: true,
             bumps: 0,
             mover_bumps: 0,
             path_m: 0.0,
@@ -176,13 +181,21 @@ impl Sim {
         let r = self.calib.body_r;
         let (dx, dy) = (v * dt * self.yaw.cos(), v * dt * self.yaw.sin());
         let mut to = (self.x + dx, self.y + dy);
+        let mut tip = false;
         if v.abs() > 1e-9 {
             let blocked = |p: (f64, f64)| self.world.static_collides(p.0, p.1, r) || self.world.mover_collides(p.0, p.1, r).is_some();
             if blocked(to) {
+                // Once per move (`walk` counts one bump a move): the duck
+                // may tip over against what it met.
+                let first = self.contact_free;
+                self.contact_free = false;
                 if self.world.mover_collides(to.0, to.1, r).is_some() {
                     self.mover_bumps += 1;
                     self.since.mover_bumps += 1;
+                    tip = first && self.rng.chance(self.calib.mover_fall_p);
                 } else {
+                    let post = self.world.posts.iter().any(|p| dist(to, (p.x, p.y)) < r + p.r);
+                    tip = first && self.rng.chance(if post { self.calib.post_fall_p } else { self.calib.bump_fall_p });
                     tracing::debug!(at = ?(self.x, self.y, self.yaw), v, w, clear = self.world.static_clearance(self.x, self.y) - r, "sim: bump");
                     self.bumps += 1;
                     self.since.bumps += 1;
@@ -192,6 +205,9 @@ impl Sim {
                 let best = slides.iter().filter(|p| !blocked(**p)).max_by(|a, b| dist(**a, (self.x, self.y)).total_cmp(&dist(**b, (self.x, self.y))));
                 to = best.copied().unwrap_or((self.x, self.y));
             }
+        }
+        if tip {
+            self.tip_over();
         }
         let ds = dist(to, (self.x, self.y));
         let dyaw = w * dt;
@@ -263,6 +279,7 @@ impl Sim {
         let n = (secs / DT).ceil().max(1.0);
         let dt = secs / n;
         let (b0, m0, sb0, sm0) = (self.bumps, self.mover_bumps, self.since.bumps, self.since.mover_bumps);
+        self.contact_free = true;
         for _ in 0..n as usize {
             let (v, w) = if vx > 0.05 {
                 (c.speed_at_03 * vx / 0.3 * speed_k, c.yaw_per_unit * vyaw * pulse_gain + if vyaw.abs() < 0.1 { c.straight_veer } else { 0.0 })
@@ -313,6 +330,17 @@ impl Sim {
             let k = self.calib.stand_keep;
             self.err = (self.err.0 * k, self.err.1 * k, self.err.2 * k);
             self.publish_map();
+        }
+    }
+
+    /// Down against something: the run ends as a fall's does.
+    fn tip_over(&mut self) {
+        if !self.fell {
+            self.fell = true;
+            self.tipped = true;
+            if let Some(h) = &self.handle {
+                h.request_stop();
+            }
         }
     }
 

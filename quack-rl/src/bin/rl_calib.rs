@@ -228,6 +228,7 @@ fn main() -> anyhow::Result<()> {
     let mut stands: Vec<StandRec> = Vec::new();
     let mut frame_dts: Vec<f64> = Vec::new();
     let mut events = 0usize;
+    let mut falls = 0usize;
     let mut chain = 0usize;
     for f in &files {
         let text = std::fs::read_to_string(f)?;
@@ -244,6 +245,10 @@ fn main() -> anyhow::Result<()> {
                         cur_map = Some(maps.len() - 1);
                         chain += 1;
                     }
+                }
+                Some("fall") => {
+                    falls += 1;
+                    chain += 1;
                 }
                 Some(kind @ ("leg" | "stand")) => {
                     events += 1;
@@ -417,6 +422,24 @@ fn main() -> anyhow::Result<()> {
     c.phantom_any_p = fit.set("phantom_any_p", prior.phantom_any_p, Some((pany, floor_beams + phantoms, 0.0)), "drops on known floor (0.3 m of floor all round) per floor row judged, at the stands");
     fit.set("phantom_p", prior.phantom_p, None, "low furniture's phantoms are not told apart from the others in a trace: prior kept");
     fit.set("tof_low_walk_m", prior.tof_low_walk_m, None, "not identifiable from the traces: prior kept");
+    // --- falls per bump: a bump is a forward step that moved the body
+    // less than 40 % of a step with something within 0.25 m ahead.
+    let bumps = legs
+        .iter()
+        .filter(|l| l.act.starts_with("step") && l.vx > 0.05 && l.near_ahead < 0.25)
+        .filter(|l| (l.pose1.0 - l.pose0.0).hypot(l.pose1.1 - l.pose0.1) < 0.4 * c.speed_at_03 * l.secs * l.vx / 0.3)
+        .count();
+    if bumps >= 20 {
+        // No fall in n bumps: under 1/(2n) as the estimate (half the rule
+        // of three's bound would be too sure).
+        let p = if falls > 0 { falls as f64 / bumps as f64 } else { 0.5 / bumps as f64 };
+        let ratio = prior.post_fall_p / prior.bump_fall_p.max(1e-9);
+        c.bump_fall_p = fit.set("bump_fall_p", prior.bump_fall_p, Some((p, bumps, 0.0)), &format!("{falls} falls in {bumps} bumps (forward steps that barely moved with something within 0.25 m ahead)"));
+        c.post_fall_p = (c.bump_fall_p * ratio).min(0.5);
+        fit.rows.insert("post_fall_p", json!({"prior": prior.post_fall_p, "value": c.post_fall_p, "n": bumps, "fitted": true, "how": "bump_fall_p × the prior's ratio of posts to boxes (a trace does not tell what was met)"}));
+    } else {
+        fit.set("bump_fall_p", prior.bump_fall_p, Some((f64::NAN, bumps, 0.0)), &format!("{falls} falls in {bumps} bumps"));
+    }
     // --- the replay: every step leg through the gait, prior against fit.
     let replay = |cal: &Calib| -> (f64, f64, usize) {
         let (mut ed, mut ey, mut n) = (0.0, 0.0, 0usize);
@@ -438,7 +461,7 @@ fn main() -> anyhow::Result<()> {
         "prior": prior,
         "fit": fit.rows,
         "replay": {"legs": n, "prior_rmse_m": pd, "fit_rmse_m": fd, "prior_rmse_yaw_rad": py, "fit_rmse_yaw_rad": fy},
-        "traces": files, "events": events, "legs": legs.len(), "stands": stands.len(), "maps": maps.len(),
+        "traces": files, "events": events, "falls": falls, "legs": legs.len(), "stands": stands.len(), "maps": maps.len(),
     });
     std::fs::write(out_dir.join("calib.json"), serde_json::to_string_pretty(&out)?)?;
     let mut md = String::new();

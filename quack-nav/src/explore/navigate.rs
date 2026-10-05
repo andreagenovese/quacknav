@@ -104,7 +104,14 @@ impl Job {
                 robot.sleep(WAIT);
                 continue;
             };
+            let was_down = self.fell.is_some();
             self.note_fall(robot, &frame);
+            if frame.seated
+                && !was_down
+                && let Some(t) = crate::rlnav::trace::tracer()
+            {
+                t.fall(&*robot);
+            }
             if journey {
                 self.journey_policy(robot, handle);
             }

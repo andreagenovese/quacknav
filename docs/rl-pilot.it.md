@@ -135,7 +135,7 @@ pilota su di esso, e lo fa volare solo se batte lo stick su quel simulatore:
    stick; con un pilota caricato si registrano anche retromarce e attese).
    Venti minuti di viaggi danno centinaia di passi.
 2. **Prendere le tracce**: `scp 'microduck@<papera>:/var/lib/quack-nav/rl-traces/*.jsonl' traces/`.
-3. **Tarare**: `scripts/rl/calibrate.sh calib-out rl-runs/r2 traces/*.jsonl`.
+3. **Tarare**: `scripts/rl/calibrate.sh calib-out quack-rl/pilots/v2-r3 traces/*.jsonl`.
    - `rl_calib` misura, numero per numero, contro il valore di partenza:
      velocità, deriva del passo dritto, guadagno e dispersione
      dell'impulso, rotazioni sul posto per lato, retromarcia; la frequenza

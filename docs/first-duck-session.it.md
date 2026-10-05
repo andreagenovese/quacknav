@@ -550,7 +550,7 @@ journalctl -u quack-navd -b | grep 'rl trace: recording'
 - [ ] `ls -la /var/lib/quack-nav/rl-traces/`: un `trace-*.jsonl` che cresce.
 
 L'archivio dello stato del §5 le porta con sé; sul portatile
-`scripts/rl/calibrate.sh calib-out rl-runs/r2 rl-traces/*.jsonl` adatta il
+`scripts/rl/calibrate.sh calib-out quack-rl/pilots/v2-r3 rl-traces/*.jsonl` adatta il
 simulatore a esse, riaddestra il pilota e dice se può volare.
 
 ## 5. Riportarlo a casa, rigiocarlo qui

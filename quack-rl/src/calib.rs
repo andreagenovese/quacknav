@@ -51,6 +51,14 @@ pub struct Calib {
     pub map_period_s: f64,
     // --- the body
     pub body_r: f64,
+    /// A move that meets a box (a wall, furniture), a thin post (a chair's
+    /// or a table's leg) or something moving tips the duck over this often:
+    /// on the MuJoCo twin the stick fell against a bag and the pilot against
+    /// a chair's legs (casa_ingombra, 2026-10-06). `rl_calib` counts falls
+    /// per bump in the traces.
+    pub bump_fall_p: f64,
+    pub post_fall_p: f64,
+    pub mover_fall_p: f64,
     // --- the depth sensor
     pub tof_hz: f64,
     pub tof_range_max: f64,
@@ -88,6 +96,9 @@ impl Default for Calib {
             map_period_s: 0.05,
             stand_keep: 0.5,
             body_r: 0.11,
+            bump_fall_p: 0.01,
+            post_fall_p: 0.1,
+            mover_fall_p: 0.05,
             tof_hz: 15.0,
             tof_range_max: 2.2,
             tof_range_sd: 0.02,

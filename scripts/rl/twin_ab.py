@@ -87,14 +87,17 @@ def arm(out, name, house, pilot, rounds, only=None):
         f.write("\n".join(knobs) + "\n")
     scene = os.path.join(os.environ["MICRODUCK_RL"], "src/mjlab_microduck/robot/microduck", f"scene_{house}.xml")
     env = dict(os.environ, SCENE=scene, VIEWER=os.environ.get("VIEWER", "on"), HOMECOMING="off", WIPE="on", MAPLOC_MODE="stop_and_scan")
-    up = subprocess.run([TWIN, "up"], env=env, capture_output=True, text=True)
-    say(out, f"[{name}] {up.stdout.strip().splitlines()[0] if up.stdout else up.stderr.strip()[:200]}")
-    time.sleep(3)
-    subprocess.run([TWIN, "enable"], env=env, capture_output=True)
-    time.sleep(20)
-    time.sleep(5)
+
+    def boot():
+        subprocess.run([TWIN, "down"], capture_output=True)
+        up = subprocess.run([TWIN, "up"], env=env, capture_output=True, text=True)
+        say(out, f"[{name}] {up.stdout.strip().splitlines()[0] if up.stdout else up.stderr.strip()[:200]}")
+        time.sleep(3)
+        subprocess.run([TWIN, "enable"], env=env, capture_output=True)
+        time.sleep(25)
+
+    boot()
     rows = []
-    fell = False
     for rnd in range(rounds):
         for goal, (gx, gy) in truth["goals"].items():
             if only and goal not in only:
@@ -131,10 +134,12 @@ def arm(out, name, house, pilot, rounds, only=None):
                 f.write(json.dumps(row) + "\n")
             say(out, f"[{name}] r{rnd} {goal}: {'ARRIVED' if row['arrived'] else 'not arrived'} in {row['secs']:.0f} s, {err:.2f} m off, legs {row['legs']}{' FELL' if down else ''} — {e.get('reason')}")
             if down:
-                fell = True
-                break
-        if fell:
-            break
+                # A fall ends the journey, not the arm: the twin boots
+                # again at home and the tour goes on (a fall is counted).
+                for f in ("navd.log",):
+                    if os.path.exists(f"{STATE}/{f}"):
+                        shutil.copy(f"{STATE}/{f}", os.path.join(d, f"navd-fall-{rnd}-{goal}.log"))
+                boot()
     for f in ("navd.log", "robotd.log", "body.log"):
         if os.path.exists(f"{STATE}/{f}"):
             shutil.copy(f"{STATE}/{f}", os.path.join(d, f))

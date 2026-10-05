@@ -1891,9 +1891,16 @@ fn go_to(robot: &mut Robot, args: &Value) -> Result<Value, String> {
     let Some(frame) = snapshot.latest.clone() else {
         return Err("no map yet: robotd is unreachable or has not sent a map frame".into());
     };
+    // The oracle (the twin only): its map and, while fresh, its pose.
+    let oracle = crate::oracle::oracle();
+    let vouched = oracle.is_some_and(|o| o.pose_fresh()) && !frame.seated;
+    let frame = match oracle {
+        Some(o) => o.apply(frame),
+        None => frame,
+    };
     // Moved while it rested, maybe anywhere: found first (see `relocate`).
-    let untrusted = frame.untrusted && !frame.seated;
-    if snapshot.trusted_pose().is_none() && !untrusted {
+    let untrusted = frame.untrusted && !frame.seated && !vouched;
+    if snapshot.trusted_pose().is_none() && !untrusted && !vouched {
         return Err(if frame.seated {
             "the duck is seated or fallen: stand it up first (sit_toggle)".into()
         } else {

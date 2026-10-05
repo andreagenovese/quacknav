@@ -118,6 +118,11 @@ impl Body for Robot {
         })
     }
     fn pose_trusted(&self) -> bool {
+        // The oracle's true pose (the twin only) is trusted while fresh,
+        // unless the duck is down.
+        if crate::oracle::oracle().is_some_and(|o| o.pose_fresh()) {
+            return self.places.map.as_ref().is_some_and(|m| !m.snapshot().latest.as_ref().is_some_and(|f| f.seated));
+        }
         self.places.map.as_ref().is_some_and(|m| m.snapshot().trusted_pose().is_some())
     }
     fn frozen_map(&self) -> bool {

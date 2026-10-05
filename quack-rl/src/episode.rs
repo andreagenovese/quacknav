@@ -53,6 +53,8 @@ pub struct EpisodeResult {
     pub mover_bumps: u32,
     pub min_hole_m: f64,
     pub min_static_m: f64,
+    /// A fall against something (not into a hole).
+    pub tipped: bool,
     pub truth_err_m: f64,
     pub legs: u32,
 }
@@ -125,6 +127,7 @@ impl Journey {
             mover_bumps: sim.mover_bumps,
             min_hole_m: sim.min_hole_m,
             min_static_m: sim.min_static_m,
+            tipped: sim.tipped,
             truth_err_m,
             legs: handle.status().legs,
         }

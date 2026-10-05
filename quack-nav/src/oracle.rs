@@ -287,6 +287,12 @@ fn pose_loop(addr: &str, slot: &Mutex<Option<((f64, f64, f64), Instant)>>) {
 impl Oracle {
     /// The frame as the navigation should see it: the drawn map, the true
     /// pose — whichever of them the oracle holds.
+    /// Whether the true pose is there and fresh: the oracle vouches for
+    /// it, whatever the mapper beneath says of its own.
+    pub fn pose_fresh(&self) -> bool {
+        self.pose.as_ref().is_some_and(|slot| slot.lock().expect("oracle pose poisoned").is_some_and(|(_, at)| at.elapsed() < POSE_STALE))
+    }
+
     pub fn apply(&self, mut frame: MapFrame) -> MapFrame {
         if let Some((m, enc)) = &self.map {
             frame.x_min = m.x_min as f32;
@@ -303,6 +309,7 @@ impl Oracle {
             frame.x = x;
             frame.y = y;
             frame.yaw = yaw;
+            frame.tracking = true;
         }
         frame
     }

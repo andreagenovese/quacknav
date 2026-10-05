@@ -127,6 +127,13 @@ impl Tracer {
         }
     }
 
+    /// The duck down (seated or fallen) during a journey: once per fall,
+    /// for the calibration's falls per bump.
+    pub fn fall(&self, robot: &dyn Body) {
+        let now = robot.now();
+        self.line(&json!({"k": "fall", "t": self.t(now), "pose": triple(robot.frame().map(|f| f.pose()))}));
+    }
+
     /// One event from `before` to now: `kind` is `leg` or `stand`, `what`
     /// the command and who chose it.
     pub fn event(&self, robot: &dyn Body, kind: &str, before: Snapshot, what: Value) {
