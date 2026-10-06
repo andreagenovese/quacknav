@@ -27,7 +27,8 @@ import subprocess
 import time
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-TWIN = os.path.join(REPO, "scripts", "twin", "twin.sh")
+# The twin (and so the quack-navd binary) of another checkout: TWIN_REPO.
+TWIN = os.path.join(os.environ.get("TWIN_REPO", REPO), "scripts", "twin", "twin.sh")
 HOUSES = os.path.join(REPO, "scripts", "twin", "houses")
 STATE = os.environ.get("STATE", "/tmp/quack-twin")
 PORT = int(os.environ.get("PORT", "7872"))
@@ -67,7 +68,7 @@ def say(out, text):
         f.write(text + "\n")
 
 
-def arm(out, name, house, pilot, rounds, only=None, book=True):
+def arm(out, name, house, pilot, rounds, only=None, book=True, main_oracle=False):
     d = os.path.join(out, name)
     os.makedirs(os.path.join(d, "traces"), exist_ok=True)
     subprocess.run([TWIN, "down"], capture_output=True)
@@ -79,9 +80,12 @@ def arm(out, name, house, pilot, rounds, only=None, book=True):
     os.makedirs(STATE, exist_ok=True)
     truth = json.load(open(f"{HOUSES}/{house}.truth.json"))
     knobs = [f"QK_ORACLE_WALLS={HOUSES}/{house}.toml", f"QK_ORACLE_HOLES={HOUSES}/{house}.truth.json",
-             "QK_ORACLE_AS_MAPPED=1", f"QK_ORACLE_POSE=127.0.0.1:{PORT}", f"QK_RL_TRACE={d}/traces"]
-    if book:
-        knobs.append(f"QK_ORACLE_BOOK={HOUSES}/{house}.truth.json")
+             f"QK_ORACLE_POSE=127.0.0.1:{PORT}"]
+    # main's oracle knows walls, holes (drawn as walls) and the pose only.
+    if not main_oracle:
+        knobs += ["QK_ORACLE_AS_MAPPED=1", f"QK_RL_TRACE={d}/traces"]
+        if book:
+            knobs.append(f"QK_ORACLE_BOOK={HOUSES}/{house}.truth.json")
     if pilot:
         knobs.append(f"QK_RL_POLICY={pilot}")
     with open(f"{STATE}/knobs.env", "w") as f:
@@ -167,6 +171,7 @@ def main():
     ap.add_argument("--house", default="casa_ingombra")
     ap.add_argument("--rounds", type=int, default=2)
     ap.add_argument("--arms", default="stick,pilot")
+    ap.add_argument("--main-oracle", action="store_true", help="only main's oracle knobs (walls, holes as walls, pose)")
     ap.add_argument("--no-book", action="store_true", help="no true rims on the books: the holes unbooked, the guard alone")
     ap.add_argument("--goals", help="only these of the truth's goals, comma-separated")
     args = ap.parse_args()
@@ -174,7 +179,7 @@ def main():
     pilot = os.path.abspath(args.pilot)
     res = {}
     for a in args.arms.split(","):
-        res[a] = arm(args.out, a, args.house, pilot if a == "pilot" else None, args.rounds, args.goals.split(",") if args.goals else None, not args.no_book)
+        res[a] = arm(args.out, a, args.house, pilot if a == "pilot" else None, args.rounds, args.goals.split(",") if args.goals else None, not args.no_book, args.main_oracle)
     with open(os.path.join(args.out, "summary.md"), "w") as f:
         f.write(f"# Twin A/B on {args.house}: the stick and the pilot\n\n| arm | journeys | arrived | fell | mean s (arrived) | refused |\n|---|---|---|---|---|---|\n")
         for a, rows in res.items():
