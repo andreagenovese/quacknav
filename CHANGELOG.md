@@ -37,6 +37,18 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   takes `--dry-run` (prints every command, connects to nothing), and no
   longer fails on macOS's bash 3.2 when `SSH_OPTS` is empty.
 
+### Fixed
+
+- **The cliff guard took a stairwell against a wall for a low box's
+  edge.** A drop was dismissed when an obstacle stood at its bearing
+  within 0.25 m (the guard) or 0.35 m (the books' hole-or-box test): the
+  wall just past a hole read as the box whose edge the drop would be, and
+  a step went in. An obstacle now explains a drop only when it stands no
+  farther than the drop + 5 cm (`cliff::EDGE_BEYOND_M`); a box's edge reads
+  missing floor past its face, a hole before a wall before it. Found by
+  the pilot's reckless brains on the MuJoCo-calibrated simulator (branch
+  `rl-nav`); the paper twin's gate is unchanged (53.2 %, 30/30).
+
 ## [0.2.0-rc2] - 2026-10-03
 
 A second release candidate, still validated on the twins only. Release

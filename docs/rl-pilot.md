@@ -11,7 +11,9 @@ sees now: the route ahead, the depth sensor's last 1.4 s, the map and the
 books around the body. It was trained on hundreds of thousands of
 simulated journeys through generated houses with what the map does not
 know on the way — things put down since, pets and feet crossing, doorways
-half closed, passages beside a hole, low furniture, a map a little off.
+half closed, passages beside a hole, low furniture, a map a little off —
+and calibrated, as the duck will calibrate it, on recorded traces (here the
+MuJoCo twin's).
 
 Nothing else changes: the route is the planner's, the books are the
 books, the stands for the mapper are the stick's, and the **shields** sit
@@ -23,26 +25,31 @@ before (the paper twin's gate gives the same numbers to the decimal).
 | knob | what |
 |---|---|
 | `QK_RL_POLICY=/var/lib/quack-nav/pilot.json` | the pilot file; unset, the stick. A file that does not load (another observation version, a broken file) is said in the log and the stick drives |
-| `QK_RL_TRACE=/var/lib/quack-nav/rl-traces` | every leg and stand recorded for the calibration (below), one JSONL file per start of quack-navd |
+| `QK_RL_TRACE=/var/lib/quack-nav/rl-traces` | every leg, stand and fall recorded for the calibration (below), one JSONL file per start of quack-navd |
 
 Both go in `/var/lib/quack-nav/knobs.env` (quack-control's knobs page
 writes it) and take effect at the next `systemctl restart quack-navd`.
-The network is a 327 → 256 → 256 → 9 MLP evaluated in plain Rust
-(`quack_nav::rlnav::Pilot`), about 150 k multiply-adds a leg: well under a
-millisecond on the board's Cortex-A55. The same network is exported as
-ONNX (`pilot.onnx`) for anyone who wants to look at it with other tools;
-quack-navd reads the JSON.
+The pilot to start from is `quack-rl/pilots/v3-r6/pilot.json` (trained on
+the simulator's default numbers); `quack-rl/pilots/v3-r6-mujoco/` is the
+same pilot calibrated on the MuJoCo twin's traces, the dress rehearsal of
+what the duck's traces will do. The network is a 351 → 256 → 256 → 9 MLP
+evaluated in plain Rust (`quack_nav::rlnav::Pilot`), about 160 k
+multiply-adds a leg: well under a millisecond on the board's Cortex-A55.
+The same network is exported as ONNX (`pilot.onnx`); quack-navd reads the
+JSON. `rl_pilot_check` proves the Rust arithmetic gives the trainer's
+logits (largest difference 2·10⁻⁶).
 
 ## What it reads, what it does
 
 The observation (`quack_nav::rlnav::observe`, one function for the
-simulator and the duck, version 2, 327 values):
+simulator and the duck, version 3, 351 values):
 
 - the route 0.2, 0.4, 0.7 and 1.0 m ahead, and the goal, in the body's frame;
 - the depth sensor's memory in 12 bearing sectors across ±1.2 rad (the
-  walking frames and the stand's sweep): the nearest obstacle and the
-  nearest drop per sector, in the last 0.7 s and in the 0.7 s before (what
-  moves shows as a change);
+  walking frames and the stand's sweep), per sector the nearest return,
+  the second nearest (a lone return is often nothing; a thing is seen by
+  several zones and frames) and the nearest drop, in the last 0.7 s and in
+  the 0.7 s before (what moves shows as a change);
 - the map around the body, 16 × 16 cells of 10 cm from 0.4 m behind to
   1.2 m ahead, with the books on it (free 0, unknown 0.5, wall or drop 1);
 - its own last move, how many in a row the shields refused, how many legs
@@ -60,29 +67,36 @@ alike, so the network learned with them:
 
 1. **The hole guard** (the stick's own): a forward step with a true hole
    in its lane is not walked; the body turns from it and the rim goes on
-   the books.
-2. **No blind back-off**: backing only onto floor the map knows, or a wall
-   (a bump, not a fall), off the books' drops. The first pilot backed into
-   an unbooked stairwell, turning and backing by turns beside it.
+   the books. Fixed on this branch for everyone, the stick included: it
+   took a drop with an obstacle just behind it for a low box's edge, so a
+   stairwell against a wall was let through. An obstacle now explains a
+   drop only when it stands no farther than the drop (+5 cm); the paper
+   twin's gate is unchanged.
+2. **No blind back-off**: backing only onto free floor the map knows, off
+   the books' drops (the first pilot backed into an unbooked stairwell;
+   a back-off into a wall can tip the duck over).
 3. **No step across a drop**: the step played through the gait model must
    not cross a drop on the books, nor the map's unknown within 0.35 m of
-   one (a hole is never mapped as floor). Unknown far from any drop is
-   floor nothing looked at — refused there, a patch across a corridor held
-   the pilot for good.
-4. **No pushing on**: after two legs that did not move the body, no step
-   while something is ahead (the sensor's lane within 0.25 m, or the map's
-   wall at the nose) — on the bench, a body scuffing along a wall slid
-   sideways into an unbooked hole the wall hid from the sensor.
-5. **The stick takes over**: after two refused moves in a row, the stick
-   flies that leg. A deterministic pilot that asks again for what was
-   refused would stand for good.
+   one. Unknown far from any drop is floor nothing looked at — refused
+   there, a patch across a corridor held the pilot for good.
+4. **No pushing on**: no step into something at the beak (0.15 m), and,
+   after two legs that did not move the body or barely did (scuffs), none
+   while something is ahead within 0.25 m. "Something" is seen in at least
+   half of the last 0.6 s of frames (three at least): one frame's word
+   stopped every step once the sensor was realistic. What stops the pilot
+   goes on the books, as the stick's bump does, without the bump.
+5. **The stick takes over**: after two refused moves in a row, or four
+   turns in place in a row, the stick flies that leg. A deterministic
+   policy can ask again for what was refused, or settle in turning one way
+   and back; with the stick under it, it cannot get stuck worse than the stick.
 
 **Reckless brains** check them: a "pilot" that only ever backs, one that
 only steps straight, one that picks at random, journey after journey in the
-generated houses. None may fall (`rl_eval --reckless random|back|straight`;
-`finalize.py` and `gate.py` refuse a pilot otherwise). Before shields 2-4,
-the straight one fell 8 times in 40 beside the stairwells; after, none in
-2,100 journeys.
+generated houses, with the default numbers and with the MuJoCo-calibrated
+ones. None may fall into a hole (`rl_eval --reckless random|back|straight`,
+the `hole` column; `cargo test` runs a small version; `finalize.py` and
+`gate.py` refuse a pilot otherwise). Each of shields 2-4 and the guard's
+fix came from a fall these brains found. Since: none in 3,760 journeys.
 
 ## The training ground (`quack-rl`)
 
@@ -96,10 +110,16 @@ the straight one fell 8 times in 40 beside the stairwells; after, none in
   [`Calib`](../quack-rl/src/calib.rs): forward speed per vx, the yaw per
   unit, the veer of a straight step, the short pulse's random gain, the
   dead zone of the turn in place and its rate each way, the back-off;
-  odometry and the map's pose drifting, the map's pose corrected at the
-  stands and published every 50 ms (`map.pose`); the depth sensor at
-  15 Hz, 8 × 8, with range noise, bias, dropouts, low things lost while
-  walking, phantom drops; a bump slides along a face.
+  odometry and the map's pose drifting, the pose corrected at the stands
+  and published every 50 ms (`map.pose`); a bump slides along a face and
+  may **tip the duck over** (per bump against a box, a thin post, a
+  mover).
+- **The sensor** (`world.rs`) answers zone by zone, 8 × 8, as the real one:
+  each row looks down at the floor 0.25-2.0 m ahead from 0.25 m up, and
+  meets a thing of height H at D when its floor distance d has
+  d ≥ D ≥ d (1 − H / 0.25) — a wall answers in many zones, a low box in one
+  or two, a hole where the floor should be is a drop. Range noise and bias,
+  dropouts (near and beyond 1.4 m), lone spurious returns, phantom drops.
 - **The loop is quack-navd's own.** Every training journey runs
   `Job::to_goal` — the route, the books, the stands, the shields — on the
   simulated body; the brain on the stick's legs answers from the learner
@@ -107,12 +127,13 @@ the straight one fell 8 times in 40 beside the stairwells; after, none in
 - **The expert** (`expert.rs`) sees the truth: the world's distance field,
   dearer near the rims and the furniture, and the movers. It drives first.
 
-**Training** (`scripts/rl/train.py`): behaviour cloning with DAgger (the
-expert drives, then the pilot drives more and more while the expert labels
-what it met), then PPO on the reward — progress down the true way, time,
-bumps, the shields' refusals, the rim's nearness; +3 arrived, −10 fell —
-with the expert's labels kept as a fading auxiliary loss. 256 journeys at
-once, about 30,000 legs a second on a 12-core Mac.
+**Training** (`scripts/rl/train.py`): behaviour cloning with DAgger (ten
+iterations: the expert drives, then the pilot drives more and more while
+the expert labels what it met), then PPO on the reward — progress down the
+true way, time, bumps, the shields' refusals, a little per turn, the rim's
+nearness; +3 arrived, −10 fell or tipped — with the expert's labels kept as
+an auxiliary loss that fades to a floor. 256 journeys at once, about
+10,000 legs a second on a 12-core Mac: 600 updates in about 35 minutes.
 
 **Benches** (`rl_eval`): generated scenarios never used in training, the
 stick, the expert and the pilot through quack-navd's own loop; the
@@ -123,7 +144,7 @@ checkpoint is chosen on seeds from 100000 and reported on seeds from
 
 What the simulator assumes comes from MuJoCo; the duck will differ. The
 tool fits the simulator to the duck's own traces, retrains the pilot on
-it, and lets it fly only if it beats the stick on that simulator:
+it, and lets it fly only if it beats the stick there:
 
 1. **Record.** On the duck, `QK_RL_TRACE=/var/lib/quack-nav/rl-traces`
    and drive journeys as usual (`go_to` between marks: the stick's legs
@@ -134,43 +155,92 @@ it, and lets it fly only if it beats the stick on that simulator:
    - `rl_calib` measures, number by number, against the prior: forward
      speed, the straight step's veer, the pulse's gain and spread, the
      turns in place each way, the back-off; the depth sensor's rate, its
-     range bias and noise against the map at the stands, its dropouts, its
-     phantom drops on known floor; odometry's drift where it stands out of
-     the map pose's noise. What the traces cannot tell keeps its prior,
-     and `calib.md` says so. It then replays every recorded leg through
-     the gait model with the prior and with the fit and reports both errors.
+     range bias and noise against the map at the stands, its far
+     dropouts, its phantom drops on known floor; its lone spurious returns
+     (a return well short of the map that comes back at the same point of
+     the world a second later is a thing the map lacks, not noise); falls
+     per bump (the trace records falls); odometry's drift where it stands
+     out of the map pose's noise. What the traces cannot tell keeps its
+     prior, and `calib.md` says so. It then replays every recorded leg
+     through the gait model with the prior and with the fit.
    - the pilot trains on (PPO, 150 updates) in the simulator with the
      fitted numbers, varied narrowly around them;
    - `finalize.py` benches the new pilot, the old one and the stick on the
      calibrated simulator, and the reckless brains;
-   - `gate.py`: the new pilot flies only with no fall, at least the
-     stick's arrivals, and no more than 2 points under the old pilot. It
-     prints the `scp`/`install` lines; otherwise it says what flies
-     meanwhile (the old pilot if it passes, else the stick).
+   - `gate.py`: the new pilot flies only with no fall into a hole, no more
+     tip-overs than the stick, at least the stick's arrivals, and no more
+     than 2 points under the old pilot. It prints the `scp`/`install`
+     lines; otherwise it says what flies meanwhile.
 
-Checked on synthetic traces (a simulator with deliberately wrong numbers
-standing in for the duck): the fit recovered the forward speed (0.098
-against 0.095), the veer (0.040 against 0.040), the pulse's gain and
-spread (1.12 / 0.30 against 1.1 / 0.3), the turns each way (0.70 / 1.15
-against 0.70 / 1.15 rad/s), the back-off (0.063 against 0.06), the
-sensor's rate (12.0 Hz) and its phantoms (0.008 against 0.01); the range
-noise and dropouts come out as upper bounds (0.045 against 0.035, 0.076
-against 0.06: the map's cells and the stand's pose add their own);
-odometry's drift was below the map pose's noise, so the prior was kept and
-the report says so. The replay's yaw error halved (0.102 → 0.055 rad).
+`scripts/rl/test_calib.sh` checks the tool end to end: a simulated duck
+with deliberately wrong numbers drives with traces on, and the fit must
+find them (speed 0.097 against 0.095, veer 0.040 against 0.040, pulse gain
+1.11 against 1.1, turns 0.70 / 1.15 against 0.70 / 1.15 rad/s, back-off,
+sensor rate, range bias 0.019 against 0.020; the replay's yaw error falls
+from 0.121 to 0.043 rad).
+
+### The dress rehearsal: the MuJoCo twin as the duck
+
+`scripts/rl/twin_ab.py` runs the stick and a pilot on the twin in
+`casa_ingombra` — casa_arredata plus a bag and a basket in the corridor, a
+box narrowing the living room's door, a chair's legs in the kitchen, a toy
+on the way to the bedroom, in the scene and not in the map: the oracle
+draws the truth as a mapper would (`QK_ORACLE_AS_MAPPED`), the true rims
+on the books (`QK_ORACLE_BOOK`) and the true pose, so what is measured is
+the navigation. Its traces went through `calibrate.sh` as the duck's will.
+What the twin taught, each found in its traces and now in the simulator:
+
+- **Bumps tip the duck over.** The stick fell against the bag and against
+  the toy, the first pilot against the chair's legs: in MuJoCo a bump is
+  not only a stop.
+- **The sensor is 8 × 8 and honest.** It returns a zone per row: 29-38
+  returns a frame where the first simulator gave ~3. Returns well short of
+  the map came in bursts — 93 % of them within 0.5 m of an unmapped thing;
+  the sensor's own lone noise is 0.04 % of zones. Beyond 1.4 m it loses
+  38 % of its returns. A pilot trained on the clean sensor took every
+  near return for a wall and turned on the spot.
+- **The gait curves more**: a short curving pulse turns 1.34 × what the
+  model gave (spread 0.60), the turns in place 0.85 / 0.96 rad/s, the
+  steps 0.122 m/s at vx 0.3, the sensor's ranges 7 cm short (it sits ahead
+  of the trunk).
+
+The calibration (`quack-rl/pilots/v3-r6-mujoco/calib.md`) fitted those
+numbers; the pilot retrained on them passed the gate.
 
 ## Results
 
-See [Results](#results-1) below, filled from `rl-runs/*/report.md`.
+**Generated houses, the default numbers** (pilot v3-r6, test seeds from
+200000, 60 per family, quack-navd's own loop):
+
+| | arrived | into a hole | tipped over | mean s | bumps a journey |
+|---|---|---|---|---|---|
+| expert (sees the truth) | 94.3 % | 0 | 1 | 73 | 0.5 |
+| **pilot** | **91.4 %** | **0** | **7** | 75 | **1.2** |
+| stick | 80.0 % | 0 | 72 | 78 | 12.6 |
+
+Per family the pilot leads the stick in clutter (85 against 62 %),
+doorways (83 / 65), mixed houses (75 / 60), low furniture (100 / 90),
+corners (97 / 92) and movers (100 / 97); in the stairwells both are near
+the top (100 / 95). Its losses are timeouts, not falls.
+
+**Generated houses, the MuJoCo-calibrated numbers** (the gate's bench):
+the calibrated pilot 96.2 % (1 tip-over), the uncalibrated one 90.0 %,
+the stick 82.4 % (59 tip-overs), the expert 98.3 %.
+
+### The twin A/B
+
+TWIN_RESULTS
 
 ## Limits
 
-- Measured on simulators only: the generated houses, the paper twin's
-  model, the MuJoCo twin. The duck has not run it.
+- Measured on simulators only: the generated houses and the MuJoCo twin.
+  The duck has not run it.
 - The walking policy is Pollen's and unchanged: stepping over things is
   not the pilot's to learn (it would mean retraining the gait with the
   terrain in its observation).
 - Dynamic obstacles exist in the generated houses, not on the MuJoCo twin.
+- Falls per bump are rare events: the twin gave one in about 130 bumps;
+  the duck's traces will say its own, slowly.
 - The pilot is a reactive policy with 1.4 s of sensor memory: it does not
   remember a thing it saw and turned away from a minute ago; the books do
   (bumps and drops), the planner routes round them.

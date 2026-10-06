@@ -41,6 +41,20 @@ carta, mai su una papera fisica; i dettagli sono in
   repository, accetta `--dry-run` (stampa ogni comando, non si collega) e
   non fallisce più con il bash 3.2 di macOS quando `SSH_OPTS` è vuoto.
 
+### Corretto
+
+- **La guardia dei dislivelli prendeva una tromba delle scale addossata a
+  un muro per il bordo di una scatola bassa.** Un dislivello veniva
+  scartato se un ostacolo stava alla sua direzione entro 0,25 m (la
+  guardia) o 0,35 m (il test buca-o-scatola del libro): il muro subito
+  oltre la buca passava per la scatola di cui il dislivello sarebbe stato
+  il bordo, e un passo ci entrava. Ora un ostacolo spiega un dislivello
+  solo se non è più lontano di esso + 5 cm (`cliff::EDGE_BEYOND_M`); il
+  bordo di una scatola legge pavimento mancante oltre la sua faccia, una
+  buca davanti a un muro prima. Trovato dai cervelli spericolati del
+  pilota sul simulatore tarato su MuJoCo (branch `rl-nav`); la soglia del
+  gemello di carta non cambia (53,2 %, 30/30).
+
 ## [0.2.0-rc2] - 2026-10-03
 
 Una seconda release candidate, ancora validata solo sui gemelli. Note di
