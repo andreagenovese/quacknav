@@ -67,7 +67,7 @@ fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt().with_env_filter("quack_nav=info").with_ansi(false).with_writer(move || w.clone()).init();
     let s = generate(seed, level, family.as_deref());
     let mut runs = Vec::new();
-    for (name, brain, explore) in [("pilota", Some(pilot.clone()), false), ("stick", None, false), ("esplorazione", None, true)] {
+    for (name, brain, explore) in [("pilot", Some(pilot.clone()), false), ("stick", None, false), ("exploration", None, true)] {
         buf.0.lock().unwrap().clear();
         let mut j = Journey::new(s.clone(), calib.clone(), seed);
         j.exploration_travel = explore;

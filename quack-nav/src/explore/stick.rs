@@ -162,6 +162,13 @@ impl Job {
             self.remember_local(at, OBSTACLE_RADIUS_M);
             tracing::info!(at = ?(x, y, yaw), booked = ?at, seen = seen.is_some(), "map explore: stick: bumped; what the nose met goes on the books");
         }
+        // ... and, better, before the bump: something the depth sensor sees
+        // in the lane within `SEEN_AHEAD_M`, frame after frame, where the
+        // map has free floor, is a thing the map does not have: it goes on
+        // the books now and the route is planned round it, a few
+        // centimetres before the nose would have met it (the user's eye on
+        // the MuJoCo twin, 2026-10-06: "it bumps, then corrects").
+        self.book_seen_ahead(&*robot, (x, y, yaw));
         let before = crate::rlnav::trace::tracer().map(|_| crate::rlnav::trace::Snapshot::take(&*robot));
         let what;
         // The pilot flies the leg, unless the shields refused its last
@@ -532,3 +539,37 @@ fn seen_in_lane(c: &crate::cliff::CliffStatus, now: Instant, reach: f64) -> bool
 }
 
 const SEEN_WITHIN: std::time::Duration = std::time::Duration::from_millis(600);
+
+/// Something seen in the lane this near is booked before the bump.
+const SEEN_AHEAD_M: f64 = 0.30;
+
+impl Job {
+    /// Book what the sensor keeps seeing in the lane within
+    /// [`SEEN_AHEAD_M`] where the map has free floor (see `stick_leg`).
+    fn book_seen_ahead(&mut self, robot: &dyn Body, (x, y, yaw): (f64, f64, f64)) {
+        let Some(c) = robot.cliff() else { return };
+        let now = robot.now();
+        if !seen_in_lane(&c, now, SEEN_AHEAD_M) {
+            return;
+        }
+        let Some(o) = c.obstacle_in_lane_walking(now, 0.0, BLIND_DROP_LANE_M, SEEN_AHEAD_M, SEEN_WITHIN, 3) else { return };
+        let Some(grid) = robot.frame().and_then(|f| f.grid().ok()) else { return };
+        let a = yaw + o.bearing;
+        let face = (x + o.range_m * a.cos(), y + o.range_m * a.sin());
+        // The map has it already (a wall, the map's furniture): the route
+        // keeps off it as it is.
+        let mapped = [0.0, 0.05, 0.1].iter().any(|d| {
+            let p = (face.0 + d * a.cos(), face.1 + d * a.sin());
+            !matches!(grid.at(p.0, p.1), Some(Cell::Free))
+        });
+        if mapped {
+            return;
+        }
+        let at = (x + (o.range_m + OBSTACLE_RADIUS_M) * a.cos(), y + (o.range_m + OBSTACLE_RADIUS_M) * a.sin());
+        if self.local.iter().any(|(q, _)| dist2(*q, at) < LOCAL_DEDUP_M) {
+            return;
+        }
+        self.remember_local(at, OBSTACLE_RADIUS_M);
+        tracing::info!(at = ?(x, y, yaw), booked = ?at, range_m = format!("{:.2}", o.range_m), "map explore: seen ahead before the bump: on the books");
+    }
+}
