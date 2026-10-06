@@ -229,7 +229,22 @@ the stick 82.4 % (59 tip-overs), the expert 98.3 %.
 
 ### The twin A/B
 
-TWIN_RESULTS
+On the MuJoCo twin, `casa_ingombra`, two tours of its six goals each
+(`twin_ab.py`, the oracle's map and pose, the viewer on), the pilot
+calibrated on the twin's traces (`v3-r6-mujoco`) against the stick:
+
+| | arrived | fell | mean s (arrived) |
+|---|---|---|---|
+| **pilot** | **11 / 12** | 0 | **116** |
+| stick | 9 / 12 | 0 | 138 |
+
+The pilot's one miss was the bath in the second tour (the time budget);
+the stick missed the kitchen in the first tour and the bath and home in
+the second. Twelve journeys an arm is a small sample: in an earlier tour
+of the same house the stick tipped over once in twelve (against the toy),
+and the first, uncalibrated pilot — trained on a clean sensor — reached 3
+goals of 5, turning on the spot by unmapped things. That pilot's traces are
+what the calibration learned from.
 
 ## Limits
 

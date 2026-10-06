@@ -1,0 +1,33 @@
+[stick] up: body 70366 tofd 70396 robotd 70410 quack-navd 70420
+[stick] r0 kitchen: not arrived in 301 s, 2.61 m off, legs 234 — time budget of 300 s spent
+[stick] r0 living: ARRIVED in 87 s, 0.15 m off, legs 21 — arrived at (1.40, 1.20)
+[stick] r0 bedroom: ARRIVED in 280 s, 0.15 m off, legs 206 — arrived at (-2.10, -1.10)
+[stick] r0 office: ARRIVED in 115 s, 0.17 m off, legs 74 — arrived at (-0.60, -1.30)
+[stick] r0 bath: ARRIVED in 127 s, 0.25 m off, legs 78 — arrived at (3.30, -1.20)
+[stick] r0 home: ARRIVED in 115 s, 0.16 m off, legs 44 — arrived at (0.00, 0.00)
+[stick] r1 kitchen: ARRIVED in 121 s, 0.14 m off, legs 83 — arrived at (-2.90, 1.90)
+[stick] r1 living: ARRIVED in 78 s, 0.16 m off, legs 55 — arrived at (1.40, 1.20)
+[stick] r1 bedroom: ARRIVED in 181 s, 0.14 m off, legs 126 — arrived at (-2.10, -1.10)
+[stick] r1 office: ARRIVED in 136 s, 0.15 m off, legs 78 — arrived at (-0.60, -1.30)
+[stick] r1 bath: not arrived in 302 s, 3.84 m off, legs 199 — time budget of 300 s spent
+[stick] r1 home: not arrived in 305 s, 0.63 m off, legs 111 — time budget of 300 s spent
+[pilot] up: body 86328 tofd 86350 robotd 86360 quack-navd 86366
+[pilot] r0 kitchen: ARRIVED in 160 s, 0.17 m off, legs 110 — arrived at (-2.90, 1.90)
+[pilot] r0 living: ARRIVED in 78 s, 0.19 m off, legs 52 — arrived at (1.40, 1.20)
+[pilot] r0 bedroom: ARRIVED in 190 s, 0.19 m off, legs 112 — arrived at (-2.10, -1.10)
+[pilot] r0 office: ARRIVED in 108 s, 0.22 m off, legs 69 — arrived at (-0.60, -1.30)
+[pilot] r0 bath: ARRIVED in 196 s, 0.15 m off, legs 136 — arrived at (3.30, -1.20)
+[pilot] r0 home: ARRIVED in 78 s, 0.18 m off, legs 52 — arrived at (0.00, 0.00)
+[pilot] r1 kitchen: ARRIVED in 124 s, 0.23 m off, legs 58 — arrived at (-2.90, 1.90)
+[pilot] r1 living: ARRIVED in 90 s, 0.18 m off, legs 60 — arrived at (1.40, 1.20)
+[pilot] r1 bedroom: ARRIVED in 112 s, 0.12 m off, legs 80 — arrived at (-2.10, -1.10)
+[pilot] r1 office: ARRIVED in 121 s, 0.13 m off, legs 82 — arrived at (-0.60, -1.30)
+[pilot] r1 bath: not arrived in 314 s, 3.81 m off, legs 181 — time budget of 300 s spent
+[pilot] r1 home: ARRIVED in 24 s, 0.12 m off, legs 15 — arrived at (0.00, 0.00)
+# Twin A/B on casa_ingombra: the stick and the pilot
+
+| arm | journeys | arrived | fell | mean s (arrived) | refused |
+|---|---|---|---|---|---|
+| stick | 12 | 9 | 0 | 138 | 0 |
+| pilot | 12 | 11 | 0 | 116 | 0 |
+

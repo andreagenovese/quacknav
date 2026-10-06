@@ -242,7 +242,22 @@ pilota tarato 96,2 % (1 ribaltamento), quello non tarato 90,0 %, lo stick
 
 ### L'A/B sul gemello
 
-TWIN_RESULTS
+Sul gemello MuJoCo, `casa_ingombra`, due giri delle sue sei mete per
+braccio (`twin_ab.py`, mappa e posa dell'oracolo, viewer acceso), il
+pilota tarato sulle tracce del gemello (`v3-r6-mujoco`) contro lo stick:
+
+| | arrivi | cadute | s medi (arrivi) |
+|---|---|---|---|
+| **pilota** | **11 / 12** | 0 | **116** |
+| stick | 9 / 12 | 0 | 138 |
+
+L'unico mancato del pilota è il bagno nel secondo giro (tempo scaduto); lo
+stick ha mancato la cucina nel primo giro, il bagno e il ritorno a casa nel
+secondo. Dodici viaggi per braccio sono un campione piccolo: in un giro
+precedente della stessa casa lo stick si era ribaltato una volta su dodici
+(contro il giocattolo), e il primo pilota non tarato — addestrato su un
+sensore pulito — era arrivato a 3 mete su 5, girando sul posto accanto alle
+cose non mappate. Le tracce di quel pilota sono ciò da cui la taratura ha imparato.
 
 ## Limiti
 
