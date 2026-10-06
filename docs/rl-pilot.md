@@ -81,12 +81,10 @@ The pilot proposes, the shields dispose — on the duck and in training
 alike, so the network learned with them:
 
 1. **The hole guard** (the stick's own): a forward step with a true hole
-   in its lane is not walked; the body turns from it and the rim goes on
-   the books. Fixed on this branch for everyone, the stick included: it
-   took a drop with an obstacle just behind it for a low box's edge, so a
-   stairwell against a wall was let through. An obstacle now explains a
-   drop only when it stands no farther than the drop (+5 cm); the paper
-   twin's gate is unchanged.
+   in its lane is not walked; the duck faces the rim, stands 2 s, books it
+   and turns from it, and Dijkstra plans round it (before 2026-10-06 a
+   hole seen walking on a journey was never booked, and the duck was sent
+   back the same way).
 2. **No blind back-off**: backing only onto free floor the map knows, off
    the books' drops (the first pilot backed into an unbooked stairwell;
    a back-off into a wall can tip the duck over).
@@ -221,6 +219,28 @@ What the twin taught, each found in its traces and now in the simulator:
 
 The calibration (`quack-rl/pilots/v3-r6-mujoco/calib.md`) fitted those
 numbers; the pilot retrained on them passed the gate.
+
+## What the duck meets goes on the books
+
+Watching the stick and the pilot on the MuJoCo twin (2026-10-06) showed
+the journey's weak link: the duck met things — a hole, a box put down
+since the map — and Dijkstra was never told, so it sent the duck back the
+same way, again and again. For every journey, with or without the pilot:
+
+- a hole the guard sees and the books lack is **faced and booked** after
+  a 2 s stand (walking frames never reached the books);
+- something the sensor keeps seeing in the lane within **0.30 m**, where
+  the map has free floor, is **booked before the bump**;
+- a leg that moved the body less than 40 % of a step counts as a stall
+  (a body pushing on a box slides along it), and a bump is booked **where
+  the sensor sees the thing**, not 15 cm ahead of the nose;
+- before "no way", **one more plan at the tightest margins** the body
+  allows (drops at their own 0.10 m, walls at its half-width): if the duck
+  can pass, it passes, the hole guard watching every step.
+
+On the quack-rl bench (420 journeys) the stick went from 79.0 % to 95.7 %
+arrived, tip-overs from 73 to 9, bumps a journey from 12.6 to about 2.
+These are the changes meant for `main`; the pilot stays experimental.
 
 ## Results
 

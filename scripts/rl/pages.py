@@ -143,11 +143,15 @@ flowchart TD
   G5 --> G6{route still good? under 30 s old, books unchanged, off it under 0.40 m}
   G6 -- yes --> G9
   G6 -- no --> G7[[Dijkstra: map + books + lanes]]
-  G7 -- no way --> G8[forget near bumps, never drops · after 3: fail] --> G2
+  G7 -- no way --> GT[[once more at the tightest: drops at 0.10 m, walls at the body's half-width]]
+  GT -- a route --> G9
+  GT -- no way --> G8[forget near bumps, never drops · after 3: fail] --> G2
   G7 -- a route --> G9{pilot loaded and not stuck?}
   G9 -- no --> S0{3 legs that did not move the body, or barely: scuffs?}
   S0 -- yes --> SB[book the obstacle where the sensor sees it, else at the nose] --> S2
-  S0 -- no --> S1{route over 0.6 rad off the nose?}
+  S0 -- no --> SA{something seen in the lane within 0.30 m, where the map has floor?}
+  SA -- yes --> SAB[book it before the bump] --> G7
+  SA -- no --> S1{route over 0.6 rad off the nose?}
   S1 -- yes --> S2[turn in place, closed on odometry]
   S1 -- no --> GUARD
   G9 -- yes --> P1[[observe: route, 1.4 s of depth frames, 1.6 m of map, last moves → MLP → one of 9 moves]]
@@ -158,7 +162,7 @@ flowchart TD
   P2 -- 2 refusals or 4 turns in a row --> S0
   P2 -- yes --> GUARD
   GUARD{a true hole in the step's lane?}
-  GUARD -- yes --> GH[1.5 s stand · the hole goes on the books · turn away] --> G7
+  GUARD -- yes --> GH[face the rim · 2 s stand · the hole goes on the books · turn away] --> G7
   GUARD -- no --> GS[walk: a 0.6 s step, a turn, a back-off or a wait]
   S2 --> G13
   PR --> G13
@@ -169,12 +173,12 @@ flowchart TD
   classDef model stroke:#2f6f8f,stroke-width:2px;
   classDef shield stroke:#a3392b,stroke-width:2px;
   classDef endn stroke:#2f7d4f,stroke-width:2px;
-  class G7,P1 model;
+  class G7,GT,P1 model;
   class P2,PR,PB,GUARD,GH shield;
   class GOK,GEND0,GEND1,G0 endn;
 </pre></div>
-  <div class="facts"><code>GOAL_ARRIVE 0.25 m</code><code>KEEP_ROUTE 30 s</code><code>STAND_EVERY 0.4 m</code><code>TURN_FIRST 0.6 rad</code><code>STALLS 3 (scuff: under 40 % of a step)</code><code>BOOK_STAND 1.5 s</code><code>pilot → stick: 2 refusals or 4 turns</code></div>
-  <p class="note">The two links back to Dijkstra — a hole the guard sees, an obstacle the stick pushed against — are the fixes of 2026-10-06. Before them, on a go_to, a hole seen while walking never reached the books (they take drops from standing frames, and only the exploration stood first), and a body sliding along a box was never "stalled"; Dijkstra sent the duck back the same way, 31 times at casa_ingombra's stairwell on the MuJoCo twin.</p>
+  <div class="facts"><code>GOAL_ARRIVE 0.25 m</code><code>KEEP_ROUTE 30 s</code><code>STAND_EVERY 0.4 m</code><code>TURN_FIRST 0.6 rad</code><code>STALLS 3 (scuff: under 40 % of a step)</code><code>BOOK_STAND 2 s, facing the rim</code><code>tight replan: drops 0.10 m, walls 0.10 m</code><code>pilot → stick: 2 refusals or 4 turns</code></div>
+  <p class="note">The links back to Dijkstra — a hole the guard sees, a thing seen in the lane before the bump, an obstacle pushed against — and the last plan at the tightest margins are the fixes of 2026-10-06: if the duck can pass, it passes. Before them, on a go_to, a hole seen while walking never reached the books (they take drops from standing frames, and only the exploration stood first), and a body sliding along a box was never "stalled"; Dijkstra sent the duck back the same way, 31 times at casa_ingombra's stairwell on the MuJoCo twin.</p>
  </section>
 </div>
 """

@@ -13,6 +13,18 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Added
 
+- **What the duck meets goes on the books, so Dijkstra plans round it**
+  (branch `rl-nav`, for every journey with or without the pilot): a hole
+  the guard sees is faced and booked after a 2 s stand (on a journey it
+  used to be seen walking and never booked: 31 turns at a stairwell on the
+  MuJoCo twin); something the sensor keeps seeing in the lane within
+  0.30 m where the map has floor is booked before the bump; a leg that
+  barely moved the body counts as a stall, and a bump is booked where the
+  sensor sees the thing; and before "no way", one more plan at the
+  tightest margins the body allows. On the quack-rl bench the stick goes
+  from 79.0 % to 95.7 % arrived, tip-overs 73 -> 9 in 420 journeys; the
+  paper twin's gate is unchanged.
+
 - **The pilot** (experimental, branch `rl-nav`; docs/rl-pilot.md): a
   learned policy for the stick's legs (`QK_RL_POLICY`), the observation
   shared by the simulator and the duck (`quack_nav::rlnav`), shields over
@@ -36,18 +48,6 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   locally. `install-on-duck.sh` runs from the package or from a checkout,
   takes `--dry-run` (prints every command, connects to nothing), and no
   longer fails on macOS's bash 3.2 when `SSH_OPTS` is empty.
-
-### Fixed
-
-- **The cliff guard took a stairwell against a wall for a low box's
-  edge.** A drop was dismissed when an obstacle stood at its bearing
-  within 0.25 m (the guard) or 0.35 m (the books' hole-or-box test): the
-  wall just past a hole read as the box whose edge the drop would be, and
-  a step went in. An obstacle now explains a drop only when it stands no
-  farther than the drop + 5 cm (`cliff::EDGE_BEYOND_M`); a box's edge reads
-  missing floor past its face, a hole before a wall before it. Found by
-  the pilot's reckless brains on the MuJoCo-calibrated simulator (branch
-  `rl-nav`); the paper twin's gate is unchanged (53.2 %, 30/30).
 
 ## [0.2.0-rc2] - 2026-10-03
 

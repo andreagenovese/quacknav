@@ -84,12 +84,10 @@ Il pilota propone, gli scudi dispongono — sulla papera e in addestramento,
 quindi la rete ha imparato con loro:
 
 1. **La guardia dei buchi** (quella dello stick): un passo avanti con un
-   buco vero nella sua corsia non si cammina; il corpo si gira e il bordo
-   va sul libro. Corretta su questo branch per tutti, stick compreso:
-   prendeva un dislivello con un ostacolo subito dietro per il bordo di una
-   scatola bassa, quindi lasciava passare una tromba delle scale addossata
-   a un muro. Ora un ostacolo spiega un dislivello solo se non è più
-   lontano di esso (+5 cm); la soglia del gemello di carta non cambia.
+   buco vero nella sua corsia non si cammina; la papera guarda il bordo di
+   fronte, sta ferma 2 s, lo registra e si gira, e Dijkstra ripianifica
+   attorno (prima del 2026-10-06 una buca vista camminando in un viaggio
+   non andava mai sul libro, e la papera veniva rimandata per la stessa strada).
 2. **Niente retromarcia alla cieca**: indietro solo su pavimento libero
    che la mappa conosce, lontano dai drop del libro (il primo pilota è
    finito all'indietro in una tromba delle scale non registrata; una
@@ -234,6 +232,31 @@ insegnato il gemello, trovato nelle sue tracce e ora nel simulatore:
 
 La taratura (`quack-rl/pilots/v3-r6-mujoco/calib.md`) ha stimato quei
 numeri; il pilota riaddestrato su di essi ha passato il gate.
+
+## Ciò che la papera incontra va sul libro
+
+Guardare lo stick e il pilota sul gemello MuJoCo (2026-10-06) ha mostrato
+l'anello debole del viaggio: la papera incontrava qualcosa — una buca, una
+scatola posata dopo la mappa — e Dijkstra non ne veniva mai a sapere, così
+la rimandava per la stessa strada, di nuovo e di nuovo. Per ogni viaggio,
+con o senza pilota:
+
+- una buca vista dalla guardia e assente dal libro viene **guardata di
+  fronte e registrata** dopo una sosta di 2 s (i frame in cammino non
+  arrivavano mai al libro);
+- qualcosa che il sensore continua a vedere nella corsia entro **0,30 m**,
+  dove la mappa ha pavimento libero, va **sul libro prima dell'urto**;
+- un passo che ha mosso il corpo meno del 40 % di un passo conta come
+  fermo (un corpo che spinge una scatola ci scivola lungo), e l'urto si
+  registra **dove il sensore vede la cosa**, non 15 cm davanti al becco;
+- prima di "nessuna strada", **un ultimo piano con i margini più
+  stretti** che il corpo permette (drop al loro 0,10 m, muri alla sua
+  mezza larghezza): se la papera ci passa, passa, con la guardia dei buchi
+  su ogni passo.
+
+Sul banco quack-rl (420 viaggi) lo stick è passato dal 79,0 % al 95,7 % di
+arrivi, i ribaltamenti da 73 a 9, gli urti a viaggio da 12,6 a circa 2.
+Sono queste le modifiche pensate per `main`; il pilota resta sperimentale.
 
 ## Risultati
 

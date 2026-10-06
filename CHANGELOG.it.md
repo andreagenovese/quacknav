@@ -15,6 +15,19 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Aggiunto
 
+- **Ciò che la papera incontra va sul libro, e Dijkstra ci ripianifica
+  attorno** (branch `rl-nav`, per ogni viaggio con o senza pilota): una
+  buca vista dalla guardia viene guardata di fronte e registrata dopo una
+  sosta di 2 s (in un viaggio era vista camminando e mai registrata: 31
+  giri davanti a una tromba delle scale sul gemello MuJoCo); qualcosa che
+  il sensore continua a vedere nella corsia entro 0,30 m dove la mappa ha
+  pavimento va sul libro prima dell'urto; un passo che ha mosso appena il
+  corpo conta come fermo, e l'urto si registra dove il sensore vede la
+  cosa; e prima di "nessuna strada", un ultimo piano con i margini più
+  stretti che il corpo permette. Sul banco quack-rl lo stick passa dal
+  79,0 % al 95,7 % di arrivi, ribaltamenti da 73 a 9 su 420 viaggi; la
+  soglia del gemello di carta non cambia.
+
 - **Il pilota** (sperimentale, branch `rl-nav`; docs/rl-pilot.it.md): una
   policy appresa per i passi dello stick (`QK_RL_POLICY`), l'osservazione
   condivisa da simulatore e papera (`quack_nav::rlnav`), scudi sopra di
@@ -40,20 +53,6 @@ carta, mai su una papera fisica; i dettagli sono in
   locale. `install-on-duck.sh` gira dal pacchetto o da una copia del
   repository, accetta `--dry-run` (stampa ogni comando, non si collega) e
   non fallisce più con il bash 3.2 di macOS quando `SSH_OPTS` è vuoto.
-
-### Corretto
-
-- **La guardia dei dislivelli prendeva una tromba delle scale addossata a
-  un muro per il bordo di una scatola bassa.** Un dislivello veniva
-  scartato se un ostacolo stava alla sua direzione entro 0,25 m (la
-  guardia) o 0,35 m (il test buca-o-scatola del libro): il muro subito
-  oltre la buca passava per la scatola di cui il dislivello sarebbe stato
-  il bordo, e un passo ci entrava. Ora un ostacolo spiega un dislivello
-  solo se non è più lontano di esso + 5 cm (`cliff::EDGE_BEYOND_M`); il
-  bordo di una scatola legge pavimento mancante oltre la sua faccia, una
-  buca davanti a un muro prima. Trovato dai cervelli spericolati del
-  pilota sul simulatore tarato su MuJoCo (branch `rl-nav`); la soglia del
-  gemello di carta non cambia (53,2 %, 30/30).
 
 ## [0.2.0-rc2] - 2026-10-03
 
