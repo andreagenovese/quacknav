@@ -249,7 +249,9 @@ con o senza pilota:
 - un passo che ha mosso il corpo meno del 40 % di un passo conta come
   fermo (un corpo che spinge una scatola ci scivola lungo), e l'urto si
   registra **dove il sensore vede la cosa**, non 15 cm davanti al becco;
-- prima di "nessuna strada", **un ultimo piano con i margini più
+- prima di "nessuna strada" in un viaggio (non negli spostamenti
+  dell'esplorazione, che tengono i loro margini accanto ai bordi che stanno
+  ancora disegnando), **un ultimo piano con i margini più
   stretti** che il corpo permette (drop al loro 0,10 m, muri alla sua
   mezza larghezza): se la papera ci passa, passa, con la guardia dei buchi
   su ogni passo.

@@ -234,7 +234,9 @@ same way, again and again. For every journey, with or without the pilot:
 - a leg that moved the body less than 40 % of a step counts as a stall
   (a body pushing on a box slides along it), and a bump is booked **where
   the sensor sees the thing**, not 15 cm ahead of the nose;
-- before "no way", **one more plan at the tightest margins** the body
+- before "no way" on a journey (not on the exploration's travel, which
+  keeps its margins beside rims it is still drawing), **one more plan at
+  the tightest margins** the body
   allows (drops at their own 0.10 m, walls at its half-width): if the duck
   can pass, it passes, the hole guard watching every step.
 

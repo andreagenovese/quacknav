@@ -226,7 +226,12 @@ impl Job {
                     // every step. casa_ingombra's 0.49 m passage beside the
                     // stairwell, its rim booked, closed at the 0.20 m drop
                     // margin of a live map (MuJoCo twin, 2026-10-06).
+                    // Journeys only: the exploration keeps its margins beside
+                    // rims it is still drawing.
                     let planned = path_to_both(&grid, x, y, goal, &walls, inflate_m(), &lanes).or_else(|| {
+                        if !journey {
+                            return None;
+                        }
                         let tight = self.planner_walls_tight();
                         let found = path_to_both(&grid, x, y, goal, &tight, SQUEEZE_INFLATE_M, &lanes);
                         if found.is_some() {
