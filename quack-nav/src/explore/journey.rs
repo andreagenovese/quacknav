@@ -96,6 +96,15 @@ impl Job {
         self
     }
 
+    /// Walk to the goal as the exploration travels to a frontier — the
+    /// stick careful beside the rims, the exploration's stands, the books
+    /// written at every stand — instead of as a journey: for the benches
+    /// that compare the two (`quack-rl`'s `rl_trace`).
+    pub fn as_exploration_travel(mut self) -> Self {
+        self.exploration_travel = true;
+        self
+    }
+
     /// The pilot to fly the stick's legs with, in place of the one
     /// `QK_RL_POLICY` names (`None`: the stick) — for the benches that set
     /// it per run.

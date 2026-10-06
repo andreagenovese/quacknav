@@ -123,10 +123,6 @@ pub struct Obstacle {
 /// around the head's yaw.
 pub const HALF_FOV_RAD: f64 = 0.39;
 
-/// An obstacle explains a drop at its bearing (a box's edge) only when it
-/// stands no farther than the drop and this.
-pub const EDGE_BEYOND_M: f64 = 0.05;
-
 /// What one depth frame said.
 #[derive(Debug, Clone)]
 pub struct CliffFrame {
@@ -553,16 +549,7 @@ impl CliffStatus {
                     a.cos() > 0.0 && d.range_m * a.sin().abs() <= half_width && d.edge_min_m < reach
                 })
                 .filter(|d| {
-                    // A box's edge, not a hole: the box stands at the drop's
-                    // bearing and no farther than the drop (its floor rows
-                    // read missing floor past its face). An obstacle beyond
-                    // the drop is the wall behind a hole — a stairwell
-                    // against a wall, which this rule took for a box and
-                    // let a body step into (quack-rl, stairwell 300038,
-                    // 2026-10-06).
-                    !f.obstacles
-                        .iter()
-                        .any(|o| wrap(o.bearing - d.bearing).abs() < 0.2 && (o.range_m - d.range_m).abs() < 0.25 && o.range_m <= d.range_m + EDGE_BEYOND_M)
+                    !f.obstacles.iter().any(|o| wrap(o.bearing - d.bearing).abs() < 0.2 && (o.range_m - d.range_m).abs() < 0.25)
                 })
                 .min_by(|a, b| a.edge_min_m.total_cmp(&b.edge_min_m));
             if let Some(d) = nearest {

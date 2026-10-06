@@ -62,7 +62,7 @@ impl Job {
             return (State::Failed, "a journey with no goal".into());
         };
         let deadline = self.started + Duration::from_secs_f64(self.max_s);
-        self.travel(handle, robot, goal, deadline, true)
+        self.travel(handle, robot, goal, deadline, !self.exploration_travel)
     }
 
     /// Walk to `goal` by `deadline` (see the module): `Done` "arrived at",

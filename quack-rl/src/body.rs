@@ -82,6 +82,10 @@ pub struct Sim {
     seq: u64,
     head: f64,
     pub since: Since,
+    /// What a bench draws: the true track (t, x, y, yaw) every 0.2 s, and
+    /// the contacts (t, kind, x, y).
+    pub track: Vec<(f64, f64, f64, f64)>,
+    pub contacts: Vec<(f64, &'static str, f64, f64)>,
     /// Ends the journey at a fall or past the deadline.
     pub handle: Option<ExploreHandle>,
     pub deadline_s: f64,
@@ -140,6 +144,8 @@ impl Sim {
             seq: 0,
             head: 0.0,
             since: Since::default(),
+            track: Vec::new(),
+            contacts: Vec::new(),
             handle: None,
             deadline_s: f64::INFINITY,
         };
@@ -206,8 +212,15 @@ impl Sim {
                 to = best.copied().unwrap_or((self.x, self.y));
             }
         }
+        if !moved {
+            let kind = if self.world.mover_collides(self.x + dx, self.y + dy, r).is_some() { "mover" } else { "bump" };
+            if self.contacts.last().is_none_or(|c| self.t - c.0 > 0.5) {
+                self.contacts.push((self.t, kind, self.x, self.y));
+            }
+        }
         if tip {
             self.tip_over();
+            self.contacts.push((self.t, "tip", self.x, self.y));
         }
         let ds = dist(to, (self.x, self.y));
         let dyaw = w * dt;
@@ -230,7 +243,11 @@ impl Sim {
         self.err.0 += exy * g4;
         self.err.1 += exy * g5;
         self.err.2 += eyaw * g6;
+        if self.track.last().is_none_or(|p| self.t - p.0 >= 0.2) {
+            self.track.push((self.t, self.x, self.y, self.yaw));
+        }
         if !self.fell && self.world.in_hole(self.x, self.y) {
+            self.contacts.push((self.t, "hole", self.x, self.y));
             self.fell = true;
             if let Some(h) = &self.handle {
                 h.request_stop();

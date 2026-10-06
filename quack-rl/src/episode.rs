@@ -67,6 +67,11 @@ pub struct Journey {
     pub teach: Arc<Field>,
     pub budget_s: f64,
     pub route_m: f64,
+    /// After the run: the books and the last route (map frame).
+    pub books: Vec<((f64, f64), f64)>,
+    pub route: Vec<(f64, f64)>,
+    /// Walk as the exploration travels (`Job::as_exploration_travel`).
+    pub exploration_travel: bool,
 }
 
 impl Journey {
@@ -79,7 +84,7 @@ impl Journey {
         // (the stick makes ~0.1 m/s with its stands), 400 s at most.
         let budget_s = (60.0 + 40.0 * route_m).min(400.0);
         let sim = Sim::new(&scenario, calib, seed);
-        Self { scenario, body: SimBody::new(sim), geo, teach, budget_s, route_m }
+        Self { scenario, body: SimBody::new(sim), geo, teach, budget_s, route_m, books: Vec::new(), route: Vec::new(), exploration_travel: false }
     }
 
     /// The journey, start to end, with `brain` on the stick's legs (`None`:
@@ -95,8 +100,14 @@ impl Journey {
         let goal_map = (s.goal.0 + s.bias.0, s.goal.1 + s.bias.1);
         let books = s.world.books(s.bias);
         let mut job = Job::to_goal(goal_map, self.budget_s, self.body.now()).with_books(books).with_pilot(brain);
+        if self.exploration_travel {
+            job = job.as_exploration_travel();
+        }
         let mut body = self.body.clone();
         let (state, reason) = job.run(&handle, &mut body);
+        let st = handle.status();
+        self.books = st.local.clone();
+        self.route = st.route.clone();
         let sim = self.body.lock();
         let truth_err_m = dist((sim.x, sim.y), s.goal);
         let outcome = if sim.fell {

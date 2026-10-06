@@ -38,6 +38,8 @@ const DROP_GUARD_MARGIN_M: f64 = 0.15;
 const KNOWN_RIM_M: f64 = 0.30;
 /// Where a bump is booked: this far ahead of the body's centre.
 const BUMP_AHEAD_M: f64 = 0.15;
+/// A bump is booked where the sensor sees something in the lane this near.
+const BUMP_SEEN_M: f64 = 0.35;
 /// A stand for the mapper every this far walked, and after a turn of this.
 const STAND_EVERY_M: f64 = 0.4;
 const STAND_AFTER_TURN_RAD: f64 = 0.5;
@@ -123,21 +125,42 @@ impl Job {
         // wall under the beak, and a curving step against it pushes for
         // ever (the paper twin, 2026-09-28: 878 steps on one spot, 8 cm
         // from the west wall). Three of them: turn in place instead.
-        let stalled = self.stick_last.is_some_and(|p| dist2(p, (x, y)) < STALL_M);
+        // A leg that did not move the body — or, after a step, barely did:
+        // pushing against something the body slides along its face a few
+        // centimetres a step, and "under a centimetre" never counted it
+        // (casa_ingombra's doorway on the bench, 2026-10-06: 35 bumps
+        // against a box the map did not have, one booked).
+        let moved = self.stick_last.map(|p| dist2(p, (x, y)));
+        let stalled = moved.is_some_and(|m| m < STALL_M || (self.stick_last_step && m < SCUFF_FRACTION * GAIT_M_PER_S * STEP_S));
         self.stick_stalls = if stalled { self.stick_stalls + 1 } else { 0 };
         self.stick_last = Some((x, y));
-        // ... and what it pushed against goes on the books, at the nose:
-        // the map says free, the body says not — a low box the map does
-        // not hold, or a wall where the pose's error puts it (house2's
-        // office door, MuJoCo 2026-09-28: the pose 0.2 m off, the body
-        // against the wall beside the doorway for the whole budget, six
-        // rounds in six). The route re-planned from here goes round it.
+        self.stick_last_step = false;
+        // ... and what it pushed against goes on the books: the map says
+        // free, the body says not — a low box the map does not hold, or a
+        // wall where the pose's error puts it (house2's office door, MuJoCo
+        // 2026-09-28: the pose 0.2 m off, the body against the wall beside
+        // the doorway for the whole budget, six rounds in six). Where the
+        // depth sensor sees it in the lane, there; else at the nose. A
+        // point booked "at the nose" of a body sliding along a box's face
+        // fell past the box's corner, and the route went on through the
+        // box (the bench's doorway, 2026-10-06). The route re-planned from
+        // here goes round it.
         // The pilot keeps counting past three (it reads the count): booked
         // once, at the third.
         if self.stick_stalls >= STALLS_TURN && (self.pilot.is_none() || self.stick_stalls == STALLS_TURN) {
-            let nose = (x + BUMP_AHEAD_M * yaw.cos(), y + BUMP_AHEAD_M * yaw.sin());
-            self.remember_local(nose, OBSTACLE_RADIUS_M);
-            tracing::info!(at = ?(x, y, yaw), booked = ?nose, "map explore: stick: bumped; what the nose met goes on the books");
+            let seen = robot
+                .cliff()
+                .and_then(|c| c.obstacle_in_lane_walking(robot.now(), 0.0, BLIND_DROP_LANE_M, BUMP_SEEN_M, std::time::Duration::from_millis(1200), 1));
+            let at = match seen {
+                Some(o) => {
+                    let a = yaw + o.bearing;
+                    let r = o.range_m + OBSTACLE_RADIUS_M;
+                    (x + r * a.cos(), y + r * a.sin())
+                }
+                None => (x + BUMP_AHEAD_M * yaw.cos(), y + BUMP_AHEAD_M * yaw.sin()),
+            };
+            self.remember_local(at, OBSTACLE_RADIUS_M);
+            tracing::info!(at = ?(x, y, yaw), booked = ?at, seen = seen.is_some(), "map explore: stick: bumped; what the nose met goes on the books");
         }
         let before = crate::rlnav::trace::tracer().map(|_| crate::rlnav::trace::Snapshot::take(&*robot));
         let what;
@@ -182,6 +205,7 @@ impl Job {
         } else {
             let vyaw = (YAW_GAIN * err).clamp(-0.7, 0.7);
             let _ = robot.blind_move(&json!({"vx": 0.3, "vyaw": vyaw, "duration_s": STEP_S}));
+            self.stick_last_step = true;
             handle.update(|s| s.legs += 1);
             tracing::info!(at = ?(x, y, yaw), look = ?look, err_deg = format!("{:.0}", err.to_degrees()), vyaw, "map explore: stick: step");
             what = json!({"src": "stick", "act": "step", "vx": 0.3, "vyaw": vyaw, "secs": STEP_S});
@@ -237,14 +261,15 @@ impl Job {
         let known = self.local.iter().any(|(p, r)| *r >= DROP_RADIUS_M && dist2(*p, seen_at) < KNOWN_RIM_M);
         if !known {
             // The books take a drop only from frames seen standing
-            // (`record_drops`), and the step just walked leaves none:
-            // on the exploration's travel, where the books are still
-            // being written, a stand first. Without it house2's
-            // stairwell rim was seen ten times and booked none, and the
-            // route ran 4 cm from it (MuJoCo, 2026-09-29).
-            if self.stick_books {
-                let _ = stand(robot, BOOK_STAND_S);
-            }
+            // (`record_drops`), and the step just walked leaves none: a
+            // stand first, so the rim goes on the books and the route is
+            // planned round it. Without it house2's stairwell rim was seen
+            // ten times and booked none, and the route ran 4 cm from it
+            // (MuJoCo, 2026-09-29); and on a journey — where the stand was
+            // the exploration's only — casa_ingombra's unbooked stairwell
+            // turned the duck away 31 times while Dijkstra sent it back
+            // the same way, until the budget ran out (2026-10-06).
+            let _ = stand(robot, BOOK_STAND_S);
             self.record_drops(robot);
         }
         let vyaw = -quack_duck::body::TURN_IN_PLACE_RAD_S * d.bearing.signum();
@@ -371,6 +396,7 @@ impl Job {
                     let (vx, vyaw, secs) = action.timed().unwrap_or((0.0, 0.0, 0.0));
                     let _ = robot.blind_move(&json!({"vx": vx, "vyaw": vyaw, "duration_s": secs}));
                     if action.forward() {
+                        self.stick_last_step = true;
                         handle.update(|s| s.legs += 1);
                     }
                     json!({"src": "pilot", "act": action.name(), "vx": vx, "vyaw": vyaw, "secs": secs})

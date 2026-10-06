@@ -146,12 +146,9 @@ impl Job {
     /// is. Everything the depth guard refuses is unchanged: safety does
     /// not depend on this judgement.
     pub(super) fn is_true_hole(frame: &crate::cliff::CliffFrame, d: &crate::cliff::Drop) -> bool {
-        // ... and no farther than the drop: a wall just past a hole is the
-        // hole's far side, not a box (see `cliff::EDGE_BEYOND_M`).
         !frame.obstacles.iter().any(|o| {
             wrap(o.bearing - d.bearing).abs() < EDGE_BEARING_RAD
                 && (o.range_m - d.range_m).abs() < EDGE_RANGE_M
-                && o.range_m <= d.range_m + crate::cliff::EDGE_BEYOND_M
         })
     }
 

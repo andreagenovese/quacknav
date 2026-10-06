@@ -1401,6 +1401,8 @@ pub struct Job {
     /// The stick's last pose, and its steps in a row that did not move it.
     stick_last: Option<(f64, f64)>,
     stick_stalls: u32,
+    /// The last leg was a forward step (a scuff counts as a stall after one).
+    stick_last_step: bool,
     /// Odometry walked since the stick's last stand, and where it was.
     stick_since_stand: f64,
     stick_odom_at: Option<(f64, f64)>,
@@ -1426,6 +1428,8 @@ pub struct Job {
     pilot_scuffs: u32,
     /// The pilot's turns in place in a row.
     pilot_turns: u32,
+    /// A goal walked as the exploration's travel (see `as_exploration_travel`).
+    exploration_travel: bool,
     /// Walls looked at from near, and how many (see `close_look.rs`).
     looked: Vec<(f64, f64)>,
     close_looks: u32,
@@ -1560,6 +1564,7 @@ impl Job {
             stick_steps: 0,
             stick_last: None,
             stick_stalls: 0,
+            stick_last_step: false,
             stick_since_stand: 0.0,
             stick_odom_at: None,
             stick_stand_s: STICK_STAND_S,
@@ -1572,6 +1577,7 @@ impl Job {
             pilot_refused: 0,
             pilot_scuffs: 0,
             pilot_turns: 0,
+            exploration_travel: false,
             looked: Vec::new(),
             close_looks: 0,
             last_close_look: None,
