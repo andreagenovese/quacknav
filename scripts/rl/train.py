@@ -108,7 +108,7 @@ def cmd_ppo(args):
     meta = dict(meta0, stage="ppo", init=args.init, calib=args.calib, spread=args.spread)
     for u in range(args.updates):
         t0 = time.time()
-        bc_coef = args.bc0 * max(0.0, 1.0 - u / max(1, args.bc_decay))
+        bc_coef = max(args.bc_floor, args.bc0 * max(0.0, 1.0 - u / max(1, args.bc_decay)))
         frac = 1.0 - u / args.updates
         for g in opt.param_groups:
             g["lr"] = args.lr * max(0.1, frac)
@@ -173,8 +173,8 @@ def cmd_ppo(args):
         if (u + 1) % args.eval_every == 0 or u == args.updates - 1:
             P.save(net, os.path.join(args.out, "last.pt"), dict(meta, update=u))
             path, row, text = bench(net, args.out, "last", args, dict(meta, update=u), probe=O[0, :4])
-            score = (row["fell"] == 0, row["arrived"], -row["mean_secs_arrived"])
-            log(args.out, f"bench at {u}: arrived {row['arrived']}/{row['n']}, fell {row['fell']}, off {row['arrived_off']}, timeout {row['timeout']}, failed {row['failed']}, secs {row['mean_secs_arrived']:.1f}, bumps {row['bumps_per_ep']:.2f}")
+            score = (row.get("fell_hole", row["fell"]) == 0, row["arrived"] - 2 * row.get("tipped", 0), -row["mean_secs_arrived"])
+            log(args.out, f"bench at {u}: arrived {row['arrived']}/{row['n']}, fell {row['fell']} (holes {row.get('fell_hole')}, tipped {row.get('tipped')}), off {row['arrived_off']}, timeout {row['timeout']}, failed {row['failed']}, secs {row['mean_secs_arrived']:.1f}, bumps {row['bumps_per_ep']:.2f}")
             if best is None or score > best[0]:
                 best = (score, u)
                 P.save(net, os.path.join(args.out, "best.pt"), dict(meta, update=u, bench=row))
@@ -205,6 +205,7 @@ def main():
     ap.add_argument("--ent", type=float, default=0.005)
     ap.add_argument("--bc0", type=float, default=0.5)
     ap.add_argument("--bc-decay", type=int, default=150)
+    ap.add_argument("--bc-floor", type=float, default=0.0, help="ppo: the expert's labels never weigh less than this")
     ap.add_argument("--eval-every", type=int, default=10)
     ap.add_argument("--eval-seeds", type=int, default=30)
     args = ap.parse_args()

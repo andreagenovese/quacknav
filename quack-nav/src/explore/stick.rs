@@ -145,10 +145,14 @@ impl Job {
         // moves: then the stick takes this one (a refused move leaves the
         // body where it was, and a pilot that asks again what was refused
         // stands for good — the bench's first shielded pilot, 2026-10-06).
-        let pilot = self.pilot.clone().filter(|_| self.pilot_refused < PILOT_REFUSED_TO_STICK);
+        // ... and when it only turns: a policy can settle in turning one way
+        // and back (the bench's first pilot with the twin's noisy sensor
+        // turned 319 times in one journey, 2026-10-06).
+        let pilot = self.pilot.clone().filter(|_| self.pilot_refused < PILOT_REFUSED_TO_STICK && self.pilot_turns < PILOT_TURNS_TO_STICK);
         if self.pilot.is_some() && pilot.is_none() {
+            tracing::info!(at = ?(x, y, yaw), refused = self.pilot_refused, turns = self.pilot_turns, "map explore: pilot: refused twice, or only turning; the stick takes the leg");
             self.pilot_refused = 0;
-            tracing::info!(at = ?(x, y, yaw), "map explore: pilot: refused twice; the stick takes the leg");
+            self.pilot_turns = 0;
         }
         if let Some(pilot) = pilot {
             what = self.pilot_move(handle, robot, (x, y, yaw), f, &*pilot, guard_margin);
@@ -296,12 +300,12 @@ impl Job {
         // slides along it, on the bench sideways into an unbooked hole
         // against the wall, which the wall hid from the sensor (quack-rl,
         // stairwells 100035 and 300059, 2026-10-05/06).
-        let ahead_within = |m: f64| {
-            cliff
-                .as_ref()
-                .and_then(|c| c.obstacle_in_lane_walking(now, 0.0, BLIND_DROP_LANE_M, m, std::time::Duration::from_millis(1200), 1))
-                .is_some()
-        };
+        // Something in the lane within `m`, seen in at least half of the
+        // last 0.6 s of frames (three at least): a thing is seen frame
+        // after frame, a spurious near return is not — the MuJoCo twin's
+        // sensor returns a fifth of its zones short, and a single frame's
+        // word stopped every step.
+        let ahead_within = |m: f64| cliff.as_ref().is_some_and(|c| seen_in_lane(c, now, m));
         let wall_at_nose = [-0.09, 0.0, 0.09].iter().any(|side| {
             let (c, s) = (pose.2.cos(), pose.2.sin());
             let a = 0.11 + PUSH_AHEAD_M / 2.0;
@@ -329,7 +333,8 @@ impl Job {
             // doorway half closed by a box, on the bench, held the pilot
             // where the stick bumped, booked and took the other door).
             if pushing
-                && let Some(o) = cliff.as_ref().and_then(|c| c.obstacle_in_lane_walking(now, 0.0, BLIND_DROP_LANE_M, PUSH_AHEAD_M, std::time::Duration::from_millis(1200), 1))
+                && ahead_within(PUSH_AHEAD_M)
+                && let Some(o) = cliff.as_ref().and_then(|c| c.obstacle_in_lane_walking(now, 0.0, BLIND_DROP_LANE_M, PUSH_AHEAD_M, std::time::Duration::from_millis(600), 3))
             {
                 let a = pose.2 + o.bearing;
                 let at = (pose.0 + (o.range_m + OBSTACLE_RADIUS_M) * a.cos(), pose.1 + (o.range_m + OBSTACLE_RADIUS_M) * a.sin());
@@ -373,6 +378,7 @@ impl Job {
             }
         };
         let refused = guarded.is_some() || back_refused || step_refused;
+        self.pilot_turns = if matches!(action, Action::TurnLeft | Action::TurnRight) { self.pilot_turns + 1 } else { 0 };
         self.pilot_last = Some(action);
         self.pilot_refused = if refused { self.pilot_refused + 1 } else { 0 };
         let odom1 = odom_pose(&*robot).map(|p| (p.0, p.1)).or_else(|| robot.frame().map(|fr| (fr.x, fr.y))).unwrap_or(odom0);
@@ -381,10 +387,12 @@ impl Job {
         what
     }
 
-    /// Whether the floor behind the body is the map's known floor (or a
-    /// wall: a bump, not a fall), off the drops on the books: from the
-    /// body's rear edge back as far as a back-off and a margin reach,
-    /// across its width.
+    /// Whether the floor behind the body is the map's known floor, off the
+    /// drops on the books: from the body's rear edge back as far as a
+    /// back-off and a margin reach, across its width. Not a wall either: a
+    /// bump can tip the duck over (twice on the MuJoCo twin, 2026-10-06),
+    /// and a back-off into one is no use; refused twice, the stick takes
+    /// the leg.
     fn back_is_safe(&self, grid: &crate::map::Grid, (x, y, yaw): (f64, f64, f64)) -> bool {
         const REAR_M: f64 = 0.11;
         const REACH_M: f64 = 0.18;
@@ -393,7 +401,7 @@ impl Job {
         while d <= REAR_M + REACH_M + 1e-9 {
             for side in [-0.1, 0.0, 0.1] {
                 let p = (x - d * c - side * s, y - d * s + side * c);
-                if !matches!(grid.at(p.0, p.1), Some(Cell::Free) | Some(Cell::Wall)) {
+                if !matches!(grid.at(p.0, p.1), Some(Cell::Free)) {
                     return false;
                 }
                 if self.local.iter().any(|(q, r)| *r >= DROP_RADIUS_M && dist2(*q, p) < r + 0.05) {
@@ -426,6 +434,8 @@ impl Job {
 /// The pilot's moves in a row the shields refused before the stick takes
 /// a leg.
 pub(super) const PILOT_REFUSED_TO_STICK: u32 = 2;
+/// The pilot's turns in place in a row before the stick takes a leg.
+pub(super) const PILOT_TURNS_TO_STICK: u32 = 4;
 
 /// The pilot's legs that did not move the body before a step against
 /// something ahead within [`PUSH_AHEAD_M`] is refused.
@@ -475,3 +485,24 @@ fn step_into_unknown(grid: &crate::map::Grid, (x, y, yaw): (f64, f64, f64), vx: 
     }
     false
 }
+
+/// Whether something stands in the body's lane within `reach`, in at least
+/// half of the frames of the last [`SEEN_WITHIN`] and in three of them.
+fn seen_in_lane(c: &crate::cliff::CliffStatus, now: Instant, reach: f64) -> bool {
+    let frames: Vec<&crate::cliff::CliffFrame> = c.recent.iter().filter(|f| now.saturating_duration_since(f.at) <= SEEN_WITHIN).collect();
+    if frames.len() < 3 {
+        return false;
+    }
+    let hit = frames
+        .iter()
+        .filter(|f| {
+            f.obstacles.iter().any(|o| {
+                let (along, across) = (o.range_m * o.bearing.cos(), o.range_m * o.bearing.sin());
+                along > 0.0 && along <= reach && across.abs() <= BLIND_DROP_LANE_M
+            })
+        })
+        .count();
+    hit >= 3 && 2 * hit >= frames.len()
+}
+
+const SEEN_WITHIN: std::time::Duration = std::time::Duration::from_millis(600);

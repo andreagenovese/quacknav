@@ -23,6 +23,8 @@ pub const COLS: usize = 8;
 pub const COL_FOV: f64 = 0.78;
 /// Floor distances the eight rows look at, metres ahead (head 0.25 m up).
 pub const ROW_FLOOR_M: [f64; 8] = [0.25, 0.32, 0.42, 0.55, 0.75, 1.0, 1.4, 2.0];
+/// The sensor's height above the floor (the rows' floor distances assume it).
+pub const HEAD_H: f64 = 0.25;
 /// The map's cells, as the duck's.
 pub const CELL: f64 = 0.05;
 /// A low box's floor rows read a drop up to this far past its face.
@@ -157,6 +159,13 @@ pub struct Mover {
     /// Seconds left standing still (stop-and-go), or before turning.
     pub timer: f64,
     pub still: bool,
+    /// How tall it stands (a cat 0.25, a foot and leg well over the head).
+    #[serde(default = "mover_height")]
+    pub height: f64,
+}
+
+fn mover_height() -> f64 {
+    0.3
 }
 
 /// How the map draws the house: real maps ink what the rays met — a band
@@ -262,6 +271,32 @@ impl World {
         (best, which)
     }
 
+    /// Everything a ray meets within `max`, nearest first: (distance,
+    /// height, what).
+    pub fn ray_all(&self, x: f64, y: f64, a: f64, max: f64) -> Vec<(f64, f64, Hit)> {
+        let (dx, dy) = (a.cos(), a.sin());
+        let mut out = Vec::new();
+        for (i, b) in self.rects.iter().enumerate() {
+            if b.present
+                && let Some(t) = b.ray(x, y, dx, dy, max)
+            {
+                out.push((t, b.height, Hit::Rect(i)));
+            }
+        }
+        for (i, p) in self.posts.iter().enumerate() {
+            if let Some(t) = ray_circle(x, y, dx, dy, p.x, p.y, p.r, max) {
+                out.push((t, p.height, Hit::Post(i)));
+            }
+        }
+        for (i, m) in self.movers.iter().enumerate() {
+            if let Some(t) = ray_circle(x, y, dx, dy, m.x, m.y, m.r, max) {
+                out.push((t, m.height, Hit::Mover(i)));
+            }
+        }
+        out.sort_by(|a, b| a.0.total_cmp(&b.0));
+        out
+    }
+
     /// The movers' next `dt`: they keep off the walls, the holes and the
     /// duck at `duck` (radius `duck_r`) — a pet does not walk into a duck,
     /// it stops or goes round; a duck walking into it is the duck's bump.
@@ -311,8 +346,14 @@ impl World {
     }
 
     /// One depth frame from the body at (x, y, yaw), the head at
-    /// `head_yaw`: obstacles per column, drops where the floor rows find a
-    /// hole or a phantom, the floor rows that met the floor.
+    /// `head_yaw`: the sensor's 8 × 8 zones, each row looking down at the
+    /// floor `ROW_FLOOR_M` ahead from `HEAD_H` up. A zone returns an
+    /// obstacle where its beam meets something before the floor — a thing
+    /// of height H at distance D is met by the rows whose floor distance d
+    /// has d ≥ D ≥ d (1 − H / HEAD_H), so a wall answers in every row that
+    /// reaches it, a low box in one or two — and the floor otherwise, where
+    /// a hole is a drop. Spurious near returns (the crosstalk and the feet
+    /// the twin's sensor shows), noise, bias and dropouts per [`Calib`].
     #[allow(clippy::too_many_arguments)]
     pub fn sense(&self, (x, y, yaw): (f64, f64, f64), head_yaw: f64, walking: bool, calib: &Calib, rng: &mut Rng, seq: u64, at: Instant) -> CliffFrame {
         let mut obstacles = Vec::new();
@@ -322,43 +363,56 @@ impl World {
         for c in 0..COLS {
             let bearing = head_yaw + COL_FOV * ((c as f64 + 0.5) / COLS as f64 - 0.5);
             let a = yaw + bearing;
-            let (hit, which) = self.ray(x, y, a, calib.tof_range_max, low_m);
-            if hit < calib.tof_range_max && !rng.chance(calib.tof_dropout) {
-                let r = (hit + calib.tof_range_bias + calib.tof_range_sd * rng.gauss()).max(0.02);
-                if r < calib.tof_range_max {
-                    obstacles.push(Obstacle { bearing, range_m: r });
-                }
-            }
-            // A low box just past the beak: its floor rows read a drop now
-            // and then (the paper twin's phantom, MuJoCo run 70).
-            let low = matches!(which, Some(Hit::Rect(i)) if self.rects[i].low);
+            let hits = self.ray_all(x, y, a, calib.tof_range_max);
             let mut edge: Option<(f64, f64)> = None;
+            let mut beyond: Option<f64> = None;
+            let mut floor_rows = Vec::new();
             for (r, d) in ROW_FLOOR_M.iter().copied().enumerate() {
                 let prev = if r == 0 { 0.0 } else { ROW_FLOOR_M[r - 1] };
-                if low && d > hit && d <= hit + PHANTOM_DEPTH_M && rng.chance(calib.phantom_p) {
-                    drops.push(Drop { bearing, range_m: d, edge_min_m: prev, floor_beyond_m: 0.0, kind: DropKind::Deep });
+                let met = hits.iter().find(|(t, h, _)| *t <= d && *h >= low_m && *t >= d * (1.0 - h / HEAD_H));
+                if let Some((t, _, what)) = met {
+                    if !rng.chance(if *t > 1.4 { calib.tof_dropout_far } else { calib.tof_dropout }) {
+                        let range = (t + calib.tof_range_bias + calib.tof_range_sd * rng.gauss()).max(0.02);
+                        if range < calib.tof_range_max {
+                            obstacles.push(Obstacle { bearing, range_m: range });
+                        }
+                    }
+                    // A low box just past the beak: its floor rows read a
+                    // drop now and then (the paper twin's phantom).
+                    if matches!(what, Hit::Rect(i) if self.rects[*i].low) && d > *t && d <= t + PHANTOM_DEPTH_M && rng.chance(calib.phantom_p) {
+                        drops.push(Drop { bearing, range_m: d, edge_min_m: prev, floor_beyond_m: 0.0, kind: DropKind::Deep });
+                    }
+                    continue;
                 }
-                if d > hit {
-                    break;
-                }
+                // The floor, or a hole where the floor should be.
                 if self.in_hole(x + d * a.cos(), y + d * a.sin()) {
-                    edge = Some((d, prev));
-                    break;
+                    if edge.is_none() {
+                        edge = Some((d, floor_rows.last().copied().unwrap_or(0.0)));
+                    }
+                } else {
+                    if edge.is_some() && beyond.is_none() {
+                        beyond = Some(d);
+                    }
+                    if edge.is_none() && rng.chance(calib.phantom_any_p) {
+                        drops.push(Drop { bearing, range_m: d, edge_min_m: prev, floor_beyond_m: 0.0, kind: DropKind::Deep });
+                    }
+                    floor_rows.push(d);
+                    floors.push((bearing, d));
                 }
-                if rng.chance(calib.phantom_any_p) {
-                    drops.push(Drop { bearing, range_m: d, edge_min_m: prev, floor_beyond_m: 0.0, kind: DropKind::Deep });
-                    break;
-                }
-                floors.push((bearing, d));
             }
             if let Some((range_m, edge_min_m)) = edge {
-                let floor_beyond_m = ROW_FLOOR_M
-                    .iter()
-                    .copied()
-                    .filter(|d| *d > range_m && *d <= hit)
-                    .find(|d| !self.in_hole(x + d * a.cos(), y + d * a.sin()))
-                    .unwrap_or(0.0);
-                drops.push(Drop { bearing, range_m, edge_min_m, floor_beyond_m, kind: DropKind::Missing });
+                drops.push(Drop { bearing, range_m, edge_min_m, floor_beyond_m: beyond.unwrap_or(0.0), kind: DropKind::Missing });
+            }
+        }
+        // Spurious near returns, zone by zone.
+        if calib.spur_p > 0.0 {
+            for z in 0..COLS * ROW_FLOOR_M.len() {
+                if rng.chance(calib.spur_p) {
+                    let c = z % COLS;
+                    let bearing = head_yaw + COL_FOV * ((c as f64 + 0.5) / COLS as f64 - 0.5);
+                    let range = (calib.spur_median_m * (calib.spur_sigma * rng.gauss()).exp()).clamp(0.1, calib.tof_range_max - 0.01);
+                    obstacles.push(Obstacle { bearing, range_m: range });
+                }
             }
         }
         CliffFrame { moving: walking, seq, at, head_yaw, drops, floors, obstacles, floor_beams: 40, judged: 64 }
@@ -427,7 +481,7 @@ mod tests {
         assert!((w.ray(0.0, 0.0, 0.0, 2.2, 0.0).0 - 1.0).abs() < 1e-9);
         w.posts.push(Post { x: 0.5, y: 0.0, r: 0.03, height: 0.7, mapped: false });
         assert!((w.ray(0.0, 0.0, 0.0, 2.2, 0.0).0 - 0.47).abs() < 1e-9);
-        w.movers.push(Mover { x: 0.3, y: 0.0, r: 0.1, heading: 0.0, speed: 0.0, kind: MoverKind::Wanderer, timer: 1.0, still: true });
+        w.movers.push(Mover { x: 0.3, y: 0.0, r: 0.1, heading: 0.0, speed: 0.0, kind: MoverKind::Wanderer, timer: 1.0, still: true, height: 0.3 });
         assert!((w.ray(0.0, 0.0, 0.0, 2.2, 0.0).0 - 0.2).abs() < 1e-9);
         // Low things are lost while walking.
         w.movers.clear();

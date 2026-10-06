@@ -135,7 +135,8 @@ fn movers(w: &mut World, rng: &mut Rng, a: (f64, f64), b: (f64, f64), n: usize) 
         if x - r < bx0 || x + r > bx1 || y - r < by0 || y + r > by1 {
             continue;
         }
-        w.movers.push(Mover { x, y, r, heading, speed, kind, timer: rng.range(0.5, 3.0), still: kind == MoverKind::StopGo && rng.chance(0.5) });
+        let height = if kind == MoverKind::StopGo { 1.0 } else { rng.range(0.15, 0.4) };
+        w.movers.push(Mover { x, y, r, heading, speed, kind, timer: rng.range(0.5, 3.0), still: kind == MoverKind::StopGo && rng.chance(0.5), height });
     }
 }
 

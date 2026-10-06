@@ -39,7 +39,9 @@ mod tests {
     use crate::scenarios::generate;
 
     /// The shields hold: beside stairwells (booked or not, the map off or
-    /// not) and in the mixed houses, no reckless brain falls.
+    /// not) and in the mixed houses, no reckless brain falls into a hole
+    /// (tipping over against something is the contact's risk, counted
+    /// apart: `tipped`).
     #[test]
     fn no_reckless_brain_falls() {
         for fam in ["stairwell", "mixed"] {
@@ -48,7 +50,7 @@ mod tests {
                     let s = generate(500_000 + seed, 3, Some(fam));
                     let mut j = Journey::new(s, Calib::default(), seed);
                     let r = j.run(Some(Arc::new(Reckless::new(kind, seed))));
-                    assert_ne!(r.outcome, Outcome::Fell, "{kind} fell: {fam} seed {}", 500_000 + seed);
+                    assert!(r.outcome != Outcome::Fell || r.tipped, "{kind} fell into a hole: {fam} seed {}", 500_000 + seed);
                 }
             }
         }

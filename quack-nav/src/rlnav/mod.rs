@@ -32,7 +32,7 @@ use crate::frontier::ExtraWall;
 use crate::map::{Cell, Grid};
 
 /// The observation's layout; a pilot trained on another refuses to load.
-pub const OBS_VERSION: u32 = 2;
+pub const OBS_VERSION: u32 = 3;
 
 /// The leg's moves. Steps are the stick's own (vx 0.3 for 0.6 s, a yaw
 /// that curves it), five of them from hard right to hard left; turns are
@@ -129,7 +129,7 @@ pub const LOCAL_N: usize = 16;
 pub const LOCAL_CELL_M: f64 = 0.1;
 pub const LOCAL_BEHIND_M: f64 = 0.4;
 
-pub const OBS_DIM: usize = ROUTE_AHEAD_M.len() * 2 + 3 + SECTORS * 2 * 2 + LOCAL_N * LOCAL_N + N_ACTIONS + 3;
+pub const OBS_DIM: usize = ROUTE_AHEAD_M.len() * 2 + 3 + SECTORS * 3 * 2 + LOCAL_N * LOCAL_N + N_ACTIONS + 3;
 
 /// What the pilot reads, borrowed from whoever drives: the map's pose, the
 /// map, the books (drops and bumps, as the planner sees them), the route
@@ -218,9 +218,14 @@ pub fn observe(input: &ObsInput) -> Vec<f32> {
     obs.push((gx * k / 2.0) as f32);
     obs.push((gy * k / 2.0) as f32);
     obs.push((gd.min(4.0) / 4.0) as f32);
-    // The sensor's memory: nearest obstacle and nearest drop per sector,
-    // per slice; 1 where nothing was seen.
-    let mut sens = [[1.0f32; SECTORS * 2]; 2];
+    // The sensor's memory, per sector and slice: the nearest obstacle,
+    // the second nearest (a lone return is often nothing: the twin's
+    // sensor returns a fifth of its zones short, a tenth of those within
+    // 0.15 m — a thing seen is seen by several zones and frames), and the
+    // nearest drop; 1 where nothing was seen.
+    let mut first = [[1.0f32; SECTORS]; 2];
+    let mut second = [[1.0f32; SECTORS]; 2];
+    let mut drop = [[1.0f32; SECTORS]; 2];
     if let Some(cliff) = input.cliff {
         for f in &cliff.recent {
             let age = input.now.saturating_duration_since(f.at).as_secs_f64();
@@ -234,20 +239,28 @@ pub fn observe(input: &ObsInput) -> Vec<f32> {
             for o in &f.obstacles {
                 if let Some(s) = sector_of(o.bearing) {
                     let v = (o.range_m / RANGE_NORM_M).clamp(0.0, 1.0) as f32;
-                    sens[slice][s] = sens[slice][s].min(v);
+                    if v < first[slice][s] {
+                        second[slice][s] = first[slice][s];
+                        first[slice][s] = v;
+                    } else if v < second[slice][s] {
+                        second[slice][s] = v;
+                    }
                 }
             }
             for d in &f.drops {
                 if let Some(s) = sector_of(d.bearing) {
                     let r = if d.edge_min_m > 0.0 { d.edge_min_m } else { d.range_m * 0.5 };
                     let v = (r / RANGE_NORM_M).clamp(0.0, 1.0) as f32;
-                    sens[slice][SECTORS + s] = sens[slice][SECTORS + s].min(v);
+                    drop[slice][s] = drop[slice][s].min(v);
                 }
             }
         }
     }
-    obs.extend_from_slice(&sens[0]);
-    obs.extend_from_slice(&sens[1]);
+    for slice in 0..2 {
+        obs.extend_from_slice(&first[slice]);
+        obs.extend_from_slice(&second[slice]);
+        obs.extend_from_slice(&drop[slice]);
+    }
     // The map around the body, the books on it: each 0.1 m cell the worst
     // of the four 5 cm cells under it.
     let near: Vec<&ExtraWall> = input
@@ -468,12 +481,14 @@ mod tests {
         assert_eq!(obs.len(), OBS_DIM);
         // Facing +y, the route along +x is to the right: negative ego y.
         assert!(obs[0] < 0.05 && obs[1] < -0.15);
-        // The obstacle dead ahead, in the newest slice's middle sectors.
+        // The obstacle dead ahead, in the newest slice's middle sectors;
+        // alone, so no second.
         let base = 8 + 3;
         assert!((obs[base + SECTORS / 2] - (0.55 / 2.2) as f32).abs() < 1e-4);
+        assert_eq!(obs[base + SECTORS + SECTORS / 2], 1.0);
         // The wall row at y = 0.50-0.55 is 0.5 ahead: the local map's row
         // at 0.5 + 0.4.
-        let local = base + SECTORS * 4;
+        let local = base + SECTORS * 6;
         let i = ((0.5 + LOCAL_BEHIND_M) / LOCAL_CELL_M) as usize;
         assert_eq!(obs[local + i * LOCAL_N + LOCAL_N / 2], 1.0);
         // The book behind the body (y = -0.5, facing +y: 0.5 behind) is

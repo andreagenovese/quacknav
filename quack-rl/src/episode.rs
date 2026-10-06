@@ -148,6 +148,9 @@ pub const R_BUMP: f64 = 0.3;
 pub const R_MOVER_BUMP: f64 = 0.5;
 pub const R_SHIELD: f64 = 0.3;
 pub const R_RIM: f64 = 0.5;
+/// A turn in place costs a little beyond its time: turning is never
+/// "safe" for nothing (a pilot settled in turning one way and back).
+pub const R_TURN: f64 = 0.03;
 pub const RIM_NEAR_M: f64 = 0.15;
 
 impl Reward {
@@ -166,6 +169,9 @@ impl Reward {
         r -= R_BUMP * f64::from(since.bumps.min(3)) + R_MOVER_BUMP * f64::from(since.mover_bumps.min(3));
         if last.is_some_and(Action::forward) && since.walked_forward_s == 0.0 && since.bumps == 0 && since.mover_bumps == 0 {
             r -= R_SHIELD;
+        }
+        if matches!(last, Some(Action::TurnLeft) | Some(Action::TurnRight)) {
+            r -= R_TURN;
         }
         // A back-off the shield refused (nothing known behind): it stood.
         if last == Some(Action::Back) && since.walked_back_s == 0.0 {

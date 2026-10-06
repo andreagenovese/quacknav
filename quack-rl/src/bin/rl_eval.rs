@@ -125,7 +125,7 @@ fn main() -> anyhow::Result<()> {
         table.entry((r.family.clone(), w.clone())).or_default().push(r);
         table.entry(("ALL".into(), w.clone())).or_default().push(r);
     }
-    println!("{:<10} {:<14} {:>4} {:>7} {:>5} {:>5} {:>5} {:>5} {:>7} {:>6} {:>6} {:>7}", "family", "brain", "n", "arrive%", "fell", "off", "tout", "fail", "secs", "bumps", "mbump", "rim_m");
+    println!("{:<10} {:<14} {:>4} {:>7} {:>5} {:>5} {:>5} {:>5} {:>5} {:>7} {:>6} {:>6} {:>7}", "family", "brain", "n", "arrive%", "hole", "tip", "off", "tout", "fail", "secs", "bumps", "mbump", "rim_m");
     let mut summary = Vec::new();
     for ((fam, w), rs) in &table {
         let n = rs.len() as f64;
@@ -135,11 +135,14 @@ fn main() -> anyhow::Result<()> {
         let bumps = rs.iter().map(|r| f64::from(r.bumps)).sum::<f64>() / n;
         let mbumps = rs.iter().map(|r| f64::from(r.mover_bumps)).sum::<f64>() / n;
         let rim = rs.iter().map(|r| r.min_hole_m).filter(|v| v.is_finite()).fold(f64::INFINITY, f64::min);
+        let tipped = rs.iter().filter(|r| r.outcome == Outcome::Fell && r.tipped).count();
+        let holes = count(Outcome::Fell) - tipped;
         println!(
-            "{fam:<10} {w:<14} {:>4} {:>7.1} {:>5} {:>5} {:>5} {:>5} {:>7.1} {:>6.2} {:>6.2} {:>7.3}",
+            "{fam:<10} {w:<14} {:>4} {:>7.1} {:>5} {:>5} {:>5} {:>5} {:>5} {:>7.1} {:>6.2} {:>6.2} {:>7.3}",
             rs.len(),
             100.0 * arrived.len() as f64 / n,
-            count(Outcome::Fell),
+            holes,
+            tipped,
             count(Outcome::ArrivedOff),
             count(Outcome::Timeout),
             count(Outcome::Failed),
@@ -148,7 +151,7 @@ fn main() -> anyhow::Result<()> {
             mbumps,
             if rim.is_finite() { rim } else { -1.0 }
         );
-        summary.push(json!({"family": fam, "brain": w, "n": rs.len(), "arrived": arrived.len(), "fell": count(Outcome::Fell),
+        summary.push(json!({"family": fam, "brain": w, "n": rs.len(), "arrived": arrived.len(), "fell": count(Outcome::Fell), "fell_hole": holes, "tipped": tipped,
             "arrived_off": count(Outcome::ArrivedOff), "timeout": count(Outcome::Timeout), "failed": count(Outcome::Failed),
             "mean_secs_arrived": secs, "bumps_per_ep": bumps, "mover_bumps_per_ep": mbumps, "min_rim_m": if rim.is_finite() { rim } else { -1.0 }}));
     }

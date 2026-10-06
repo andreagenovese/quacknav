@@ -64,8 +64,10 @@ pub struct Calib {
     pub tof_range_max: f64,
     pub tof_range_sd: f64,
     pub tof_range_bias: f64,
-    /// A beam that should see something and does not.
+    /// A beam that should see something and does not; beyond 1.4 m, where
+    /// the twin's sensor lost 38 % of its far returns, `tof_dropout_far`.
     pub tof_dropout: f64,
+    pub tof_dropout_far: f64,
     /// Things lower than this are lost by the floor threshold while
     /// walking (README: "under ~9 cm the floor threshold loses it").
     pub tof_low_walk_m: f64,
@@ -73,6 +75,14 @@ pub struct Calib {
     pub phantom_p: f64,
     /// A drop where the floor is, per frame, anywhere (a reflection).
     pub phantom_any_p: f64,
+    /// A spurious near return, per zone and frame, at a distance drawn
+    /// log-normal around `spur_median_m` (σ `spur_sigma` in log). On the
+    /// MuJoCo twin 17-28 % of the returns came more than 0.3 m short of the
+    /// map, but 93 % of those within 0.5 m of a thing the map did not have
+    /// (2026-10-06): the sensor's own noise is far rarer.
+    pub spur_p: f64,
+    pub spur_median_m: f64,
+    pub spur_sigma: f64,
 }
 
 impl Default for Calib {
@@ -96,17 +106,23 @@ impl Default for Calib {
             map_period_s: 0.05,
             stand_keep: 0.5,
             body_r: 0.11,
-            bump_fall_p: 0.01,
-            post_fall_p: 0.1,
-            mover_fall_p: 0.05,
+            // The twin: one fall in ~130 bumps (the stick's, casa_ingombra);
+            // a chair's legs dearer, as the pilot fell there.
+            bump_fall_p: 0.006,
+            post_fall_p: 0.03,
+            mover_fall_p: 0.02,
             tof_hz: 15.0,
             tof_range_max: 2.2,
             tof_range_sd: 0.02,
             tof_range_bias: 0.0,
             tof_dropout: 0.02,
+            tof_dropout_far: 0.2,
             tof_low_walk_m: 0.09,
             phantom_p: 0.10,
             phantom_any_p: 0.002,
+            spur_p: 0.005,
+            spur_median_m: 0.45,
+            spur_sigma: 0.8,
         }
     }
 }
@@ -155,6 +171,8 @@ impl Calib {
     /// A draw around these numbers.
     pub fn sample(&self, s: &Spread, rng: &mut Rng) -> Self {
         let mut c = self.clone();
+        let far = 2.0 * rng.next() - 1.0;
+        c.tof_dropout_far = (c.tof_dropout_far * (1.0 + 0.5 * s.tof_noise.min(1.0) * far)).clamp(0.0, 0.9);
         let mut rel = |v: &mut f64, k: f64| *v *= 1.0 + k * (2.0 * rng.next() - 1.0);
         rel(&mut c.speed_at_03, s.gait);
         rel(&mut c.yaw_per_unit, s.gait);
@@ -169,6 +187,8 @@ impl Calib {
         rel(&mut c.tof_range_sd, s.tof_noise);
         rel(&mut c.tof_dropout, s.tof_noise);
         rel(&mut c.phantom_any_p, s.tof_noise);
+        rel(&mut c.spur_p, s.tof_noise);
+        rel(&mut c.spur_median_m, s.gait);
         c.straight_veer += s.veer_abs * (2.0 * rng.next() - 1.0);
         c.tof_range_bias += s.tof_bias_abs * (2.0 * rng.next() - 1.0);
         c.stand_keep = (c.stand_keep * (1.0 + 0.5 * s.odom.min(1.0) * (2.0 * rng.next() - 1.0))).clamp(0.05, 0.95);

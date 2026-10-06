@@ -1424,6 +1424,8 @@ pub struct Job {
     pilot_refused: u32,
     /// The pilot's forward steps in a row that barely moved the body.
     pilot_scuffs: u32,
+    /// The pilot's turns in place in a row.
+    pilot_turns: u32,
     /// Walls looked at from near, and how many (see `close_look.rs`).
     looked: Vec<(f64, f64)>,
     close_looks: u32,
@@ -1569,6 +1571,7 @@ impl Job {
             pilot_moved_m: 0.0,
             pilot_refused: 0,
             pilot_scuffs: 0,
+            pilot_turns: 0,
             looked: Vec::new(),
             close_looks: 0,
             last_close_look: None,

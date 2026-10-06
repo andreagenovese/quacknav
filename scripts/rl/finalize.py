@@ -67,7 +67,9 @@ def main():
     print(text)
     rtext, rsummary = P.evaluate(None, seeds=args.reckless_seeds, seed0=300000, calib=args.calib, extra=["--reckless", "random", "--reckless", "back", "--reckless", "straight"])
     print(rtext)
-    reckless_falls = sum(r["fell"] for r in rsummary if r["family"] == "ALL")
+    # The shields' business is the holes; tipping over against something
+    # is the contact's risk, reported but not the shields' to hold.
+    reckless_falls = sum(r.get("fell_hole", r["fell"]) for r in rsummary if r["family"] == "ALL")
     report = {"run": args.run, "meta": meta, "calib": args.calib, "test": summary, "reckless": rsummary, "reckless_falls": reckless_falls, "onnx_max_diff": onnx_err, "parity": check.stdout.strip()}
     with open(os.path.join(args.run, "report.json"), "w") as f:
         json.dump(report, f, indent=1)
@@ -77,10 +79,10 @@ def main():
         f.write(f"Checkpoint: update {meta.get('update')} of {meta.get('stage')}, calibration {calib}.\n\n")
         f.write(f"Parity: {check.stdout.strip()}; ONNX: largest logit difference {onnx_err:.2e}.\n\n")
         f.write(f"## Test bench (seeds from 200000, {args.seeds} per family)\n\n```\n{text}```\n\n")
-        f.write(f"## Shields: reckless brains ({args.reckless_seeds} per family)\n\nFalls: **{reckless_falls}**.\n\n```\n{rtext}```\n")
+        f.write(f"## Shields: reckless brains ({args.reckless_seeds} per family)\n\nFalls into a hole: **{reckless_falls}** (`hole`; `tip` is tipping over against something).\n\n```\n{rtext}```\n")
     print(f"report: {os.path.join(args.run, 'report.md')}")
     if reckless_falls:
-        sys.exit("a reckless brain fell: the shields do not hold")
+        sys.exit("a reckless brain fell into a hole: the shields do not hold")
 
 
 if __name__ == "__main__":

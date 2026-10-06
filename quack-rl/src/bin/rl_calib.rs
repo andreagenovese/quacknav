@@ -64,6 +64,22 @@ impl MapGrid {
         None
     }
 
+    /// Along a ray: the first wall within `max` (`Some(d)`), the floor free
+    /// all the way to `max` (`Some(max)`), or `None` where it leaves the
+    /// known floor first.
+    fn ray_or_max(&self, x: f64, y: f64, a: f64, max: f64) -> Option<f64> {
+        let mut d = 0.05;
+        while d <= max {
+            match self.at(x + d * a.cos(), y + d * a.sin()) {
+                Some(2) => return Some(d + self.cell / 2.0),
+                Some(1) => {}
+                _ => return None,
+            }
+            d += 0.01;
+        }
+        Some(max)
+    }
+
     /// Whether (x, y) is known floor with known floor all round within `r`.
     fn floor_around(&self, x: f64, y: f64, r: f64) -> bool {
         let k = (r / self.cell).ceil() as i64;
@@ -383,23 +399,44 @@ fn main() -> anyhow::Result<()> {
     c.tof_hz = fit.set("tof_hz", prior.tof_hz, Some((hz, frame_dts.len(), 0.0)), "1 / the median gap between frames");
     let mut residuals = Vec::new();
     let (mut expected_cols, mut seen_cols, mut phantoms, mut floor_beams) = (0usize, 0usize, 0usize, 0usize);
+    // (range, world point, time) of every return well short of the map.
+    let (mut shorts, mut stand_frames): (Vec<(f64, (f64, f64), f64)>, usize) = (Vec::new(), 0usize);
     for s in &stands {
         let Some(m) = s.map.and_then(|i| maps.get(i)) else { continue };
         let (x, y, yaw) = s.pose1;
         for f in &s.frames {
             let head = f["head"].as_f64().unwrap_or(0.0);
             let obs: Vec<(f64, f64)> = f["obs"].as_array().into_iter().flatten().filter_map(|o| Some((o.get(0)?.as_f64()?, o.get(1)?.as_f64()?))).collect();
+            stand_frames += 1;
+            // Returns well short of what the map has along their bearing:
+            // the sensor's spurious near returns (and whatever stands
+            // there unmapped — counted with them, the cautious side).
+            let ft = f["t"].as_f64().unwrap_or(0.0);
+            for (ob, r) in &obs {
+                if let Some(e) = m.ray_or_max(x, y, yaw + ob, 2.2)
+                    && *r < e - 0.3
+                {
+                    shorts.push((*r, (x + r * (yaw + ob).cos(), y + r * (yaw + ob).sin()), ft));
+                }
+            }
             for col in 0..COLS {
                 let b = head + COL_FOV * ((col as f64 + 0.5) / COLS as f64 - 0.5);
                 // The face is inside the first wall cell: half a cell on.
-                let Some(exp) = m.ray(x, y, yaw + b, 1.8).map(|d| d + m.cell / 2.0) else { continue };
-                expected_cols += 1;
-                if let Some((_, r)) = obs.iter().find(|(ob, _)| (ob - b).abs() < 0.03) {
-                    seen_cols += 1;
-                    let res = r - exp;
-                    if res.abs() < 0.3 {
-                        residuals.push(res);
+                let Some(exp) = m.ray(x, y, yaw + b, 1.95).map(|d| d + m.cell / 2.0) else { continue };
+                let seen = obs.iter().filter(|(ob, _)| (ob - b).abs() < 0.03).map(|(_, r)| *r).min_by(f64::total_cmp);
+                // A wall 1.4-1.95 m off is met by one row only (the one
+                // looking at the floor 2 m ahead): there a column without
+                // its return is one zone's dropout.
+                if exp > 1.4 {
+                    expected_cols += 1;
+                    if seen.is_some_and(|r| (r - exp).abs() < 0.3) {
+                        seen_cols += 1;
                     }
+                }
+                if let Some(r) = seen
+                    && (r - exp).abs() < 0.3
+                {
+                    residuals.push(r - exp);
                 }
             }
             floor_beams += f["floors"].as_u64().unwrap_or(0) as usize;
@@ -417,9 +454,49 @@ fn main() -> anyhow::Result<()> {
     c.tof_range_bias = fit.set("tof_range_bias", prior.tof_range_bias, Some((bias, residuals.len(), sd)), "median of (range − the map's ray) at the stands, inliers within 0.3 m");
     c.tof_range_sd = fit.set("tof_range_sd", prior.tof_range_sd, Some((sd, residuals.len(), 0.0)), "their spread (MAD)");
     let dropout = if expected_cols > 0 { 1.0 - seen_cols as f64 / expected_cols as f64 } else { f64::NAN };
-    c.tof_dropout = fit.set("tof_dropout", prior.tof_dropout, Some((dropout, expected_cols, 0.0)), "columns whose ray meets a mapped wall within 1.8 m with no return at its bearing");
+    fit.set("tof_dropout", prior.tof_dropout, None, "near (under 1.4 m) several rows meet a wall and a column's silence says little of one zone: prior kept");
+    c.tof_dropout_far = fit.set("tof_dropout_far", prior.tof_dropout_far, Some((dropout, expected_cols, 0.0)), "columns whose ray meets a mapped wall 1.4-1.95 m off (one row reaches it) with no return there");
     let pany = if floor_beams + phantoms > 0 { phantoms as f64 / (floor_beams + phantoms) as f64 } else { f64::NAN };
     c.phantom_any_p = fit.set("phantom_any_p", prior.phantom_any_p, Some((pany, floor_beams + phantoms, 0.0)), "drops on known floor (0.3 m of floor all round) per floor row judged, at the stands");
+    // A short return that comes back at the same point of the world more
+    // than a second apart is a thing the map does not have (a bag, a
+    // chair's legs: on the twin 93 % of the near returns came within 0.5 m
+    // of casa_ingombra's unmapped things); one that does not is the
+    // sensor's own noise — the spurious returns the simulator draws.
+    let lone: Vec<f64> = {
+        let cell = 0.12;
+        let key = |p: (f64, f64)| ((p.0 / cell).floor() as i64, (p.1 / cell).floor() as i64);
+        let mut grid: std::collections::HashMap<(i64, i64), Vec<usize>> = std::collections::HashMap::new();
+        for (i, (_, p, _)) in shorts.iter().enumerate() {
+            grid.entry(key(*p)).or_default().push(i);
+        }
+        shorts
+            .iter()
+            .filter(|(_, p, t)| {
+                let (kx, ky) = key(*p);
+                !(-1..=1).any(|dx| {
+                    (-1..=1).any(|dy| {
+                        grid.get(&(kx + dx, ky + dy)).is_some_and(|v| v.iter().any(|j| (shorts[*j].2 - t).abs() > 1.0 && quack_rl::dist(shorts[*j].1, *p) < cell))
+                    })
+                })
+            })
+            .map(|(r, _, _)| *r)
+            .collect()
+    };
+    fit.rows.insert("short_returns", json!({"prior": 0.0, "value": shorts.len(), "n": shorts.len(), "fitted": false, "how": format!("returns more than 0.3 m short of the map at the stands: {} of them, {} lone (noise), the rest things the map does not have", shorts.len(), lone.len())}));
+    let shorts = lone;
+    if stand_frames > 0 && shorts.len() >= MIN_N {
+        let zones = (stand_frames * COLS * 8) as f64;
+        let mut sh = shorts.clone();
+        let med = median(&mut sh);
+        let q = |p: f64| sh[((sh.len() - 1) as f64 * p) as usize];
+        let sigma = ((q(0.84).max(1e-3)).ln() - (q(0.16).max(1e-3)).ln()) / 2.0;
+        c.spur_p = fit.set("spur_p", prior.spur_p, Some((shorts.len() as f64 / zones, shorts.len(), 0.0)), "lone returns more than 0.3 m short of the map's ray (not back at that point of the world a second later), per zone and frame at the stands");
+        c.spur_median_m = fit.set("spur_median_m", prior.spur_median_m, Some((med, shorts.len(), 0.0)), "their median distance");
+        c.spur_sigma = fit.set("spur_sigma", prior.spur_sigma, Some((sigma, shorts.len(), 0.0)), "their spread, in log (half the 16-84 % span)");
+    } else {
+        fit.set("spur_p", prior.spur_p, Some((f64::NAN, shorts.len(), 0.0)), "returns well short of the map at the stands");
+    }
     fit.set("phantom_p", prior.phantom_p, None, "low furniture's phantoms are not told apart from the others in a trace: prior kept");
     fit.set("tof_low_walk_m", prior.tof_low_walk_m, None, "not identifiable from the traces: prior kept");
     // --- falls per bump: a bump is a forward step that moved the body

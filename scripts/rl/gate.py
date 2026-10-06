@@ -20,8 +20,10 @@ def row(summary, brain):
 
 def passes(r, stick, margin_to=None):
     why = []
-    if r["fell"]:
-        why.append(f"{r['fell']} falls")
+    if r.get("fell_hole", r["fell"]):
+        why.append(f"{r.get('fell_hole', r['fell'])} falls into a hole")
+    if r.get("tipped", 0) > stick.get("tipped", 0):
+        why.append(f"{r['tipped']} tip-overs against the stick's {stick.get('tipped', 0)}")
     if r["arrived"] < stick["arrived"]:
         why.append(f"{r['arrived']} arrivals against the stick's {stick['arrived']}")
     if margin_to is not None and r["arrived"] < margin_to["arrived"] - 0.02 * r["n"]:
