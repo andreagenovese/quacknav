@@ -238,8 +238,10 @@ numeri; il pilota riaddestrato su di essi ha passato il gate.
 Guardare lo stick e il pilota sul gemello MuJoCo (2026-10-06) ha mostrato
 l'anello debole del viaggio: la papera incontrava qualcosa — una buca, una
 scatola posata dopo la mappa — e Dijkstra non ne veniva mai a sapere, così
-la rimandava per la stessa strada, di nuovo e di nuovo. Per ogni viaggio,
-con o senza pilota:
+la rimandava per la stessa strada, di nuovo e di nuovo. Per ogni viaggio
+(`go_to`), con o senza pilota — gli spostamenti dell'esplorazione tengono
+le regole con cui sono stati misurati, dopo un A/B sul protocollo di
+release (sotto):
 
 - una buca vista dalla guardia e assente dal libro viene **guardata di
   fronte e registrata** dopo una sosta di 2 s (i frame in cammino non
@@ -258,7 +260,13 @@ con o senza pilota:
 
 Sul banco quack-rl (420 viaggi) lo stick è passato dal 79,0 % al 95,7 % di
 arrivi, i ribaltamenti da 73 a 9, gli urti a viaggio da 12,6 a circa 2.
-Sono queste le modifiche pensate per `main`; il pilota resta sperimentale.
+Sul protocollo di release, stesso giorno e stesso robotd, tre case (house2,
+casa_libera, casa_arredata): go_to 51/51 contro 45/51 di main, homecoming
+9/9 per entrambi, copertura dell'esplorazione uguale. Con queste regole
+anche negli spostamenti dell'esplorazione, una sessione su undici si è
+ribaltata contro la gamba di una scrivania (main: nessuna su dodici),
+quindi l'esplorazione tiene quelle di main. Sono queste le modifiche
+pensate per `main`; il pilota resta sperimentale.
 
 ## Risultati
 

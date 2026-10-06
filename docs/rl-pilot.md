@@ -225,7 +225,9 @@ numbers; the pilot retrained on them passed the gate.
 Watching the stick and the pilot on the MuJoCo twin (2026-10-06) showed
 the journey's weak link: the duck met things — a hole, a box put down
 since the map — and Dijkstra was never told, so it sent the duck back the
-same way, again and again. For every journey, with or without the pilot:
+same way, again and again. For every journey (`go_to`), with or without
+the pilot — the exploration's travel keeps the rules it was measured with,
+after an A/B on the release protocol (below):
 
 - a hole the guard sees and the books lack is **faced and booked** after
   a 2 s stand (walking frames never reached the books);
@@ -242,6 +244,11 @@ same way, again and again. For every journey, with or without the pilot:
 
 On the quack-rl bench (420 journeys) the stick went from 79.0 % to 95.7 %
 arrived, tip-overs from 73 to 9, bumps a journey from 12.6 to about 2.
+On the release protocol, the same day and the same robotd, three houses
+(house2, casa_libera, casa_arredata): go_to 51/51 against main's 45/51,
+homecoming 9/9 for both, exploration's coverage alike. With these rules
+on the exploration's travel too, one session in eleven tipped over against
+a desk's leg (main: none in twelve), so the exploration keeps main's.
 These are the changes meant for `main`; the pilot stays experimental.
 
 ## Results

@@ -62,6 +62,8 @@ const CAREFUL_GUARD_MARGIN_M: f64 = 0.25;
 /// The stand before a hole the guard saw goes on the books: long enough for
 /// the two still frames the vote asks for.
 const BOOK_STAND_S: f64 = 2.0;
+/// The exploration's travel's stand before a hole goes on the books.
+const EXPLORE_BOOK_STAND_S: f64 = 1.5;
 /// A hole seen further off the nose than this is faced before it is booked.
 const FACE_RIM_RAD: f64 = 0.15;
 /// The yaw asked per radian of heading error, as the gait turns 0.65 of
@@ -133,7 +135,11 @@ impl Job {
         // (casa_ingombra's doorway on the bench, 2026-10-06: 35 bumps
         // against a box the map did not have, one booked).
         let moved = self.stick_last.map(|p| dist2(p, (x, y)));
-        let stalled = moved.is_some_and(|m| m < STALL_M || (self.stick_last_step && m < SCUFF_FRACTION * GAIT_M_PER_S * STEP_S));
+        // The journey's rules (2026-10-06); the exploration's travel keeps
+        // its own, measured over its sessions — a scuff counts there as a
+        // move, a bump is booked at the nose, nothing seen ahead is booked.
+        let journey = !self.stick_books;
+        let stalled = moved.is_some_and(|m| m < STALL_M || (journey && self.stick_last_step && m < SCUFF_FRACTION * GAIT_M_PER_S * STEP_S));
         self.stick_stalls = if stalled { self.stick_stalls + 1 } else { 0 };
         self.stick_last = Some((x, y));
         self.stick_last_step = false;
@@ -152,6 +158,7 @@ impl Job {
         if self.stick_stalls >= STALLS_TURN && (self.pilot.is_none() || self.stick_stalls == STALLS_TURN) {
             let seen = robot
                 .cliff()
+                .filter(|_| journey)
                 .and_then(|c| c.obstacle_in_lane_walking(robot.now(), 0.0, BLIND_DROP_LANE_M, BUMP_SEEN_M, std::time::Duration::from_millis(1200), 1));
             let at = match seen {
                 Some(o) => {
@@ -170,7 +177,9 @@ impl Job {
         // the books now and the route is planned round it, a few
         // centimetres before the nose would have met it (the user's eye on
         // the MuJoCo twin, 2026-10-06: "it bumps, then corrects").
-        self.book_seen_ahead(&*robot, (x, y, yaw));
+        if journey {
+            self.book_seen_ahead(&*robot, (x, y, yaw));
+        }
         let before = crate::rlnav::trace::tracer().map(|_| crate::rlnav::trace::Snapshot::take(&*robot));
         let what;
         // The pilot flies the leg, unless the shields refused its last
@@ -283,10 +292,16 @@ impl Job {
             // centimetres off; seen head-on from a stand (the head sweeping
             // across it) it is booked where it is, and a passage beside it
             // stays the width it has.
-            if d.bearing.abs() > FACE_RIM_RAD {
-                let _ = self.stick_turn(robot, d.bearing.signum(), d.bearing.abs());
+            // (The exploration's travel stands as it always has, without the
+            // turn: its sessions were measured that way.)
+            if self.stick_books {
+                let _ = stand(robot, EXPLORE_BOOK_STAND_S);
+            } else {
+                if d.bearing.abs() > FACE_RIM_RAD {
+                    let _ = self.stick_turn(robot, d.bearing.signum(), d.bearing.abs());
+                }
+                let _ = stand(robot, BOOK_STAND_S);
             }
-            let _ = stand(robot, BOOK_STAND_S);
             self.record_drops(robot);
         }
         let vyaw = -quack_duck::body::TURN_IN_PLACE_RAD_S * d.bearing.signum();
