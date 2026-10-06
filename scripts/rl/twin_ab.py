@@ -67,7 +67,7 @@ def say(out, text):
         f.write(text + "\n")
 
 
-def arm(out, name, house, pilot, rounds, only=None):
+def arm(out, name, house, pilot, rounds, only=None, book=True):
     d = os.path.join(out, name)
     os.makedirs(os.path.join(d, "traces"), exist_ok=True)
     subprocess.run([TWIN, "down"], capture_output=True)
@@ -79,8 +79,9 @@ def arm(out, name, house, pilot, rounds, only=None):
     os.makedirs(STATE, exist_ok=True)
     truth = json.load(open(f"{HOUSES}/{house}.truth.json"))
     knobs = [f"QK_ORACLE_WALLS={HOUSES}/{house}.toml", f"QK_ORACLE_HOLES={HOUSES}/{house}.truth.json",
-             "QK_ORACLE_AS_MAPPED=1", f"QK_ORACLE_BOOK={HOUSES}/{house}.truth.json", f"QK_ORACLE_POSE=127.0.0.1:{PORT}",
-             f"QK_RL_TRACE={d}/traces"]
+             "QK_ORACLE_AS_MAPPED=1", f"QK_ORACLE_POSE=127.0.0.1:{PORT}", f"QK_RL_TRACE={d}/traces"]
+    if book:
+        knobs.append(f"QK_ORACLE_BOOK={HOUSES}/{house}.truth.json")
     if pilot:
         knobs.append(f"QK_RL_POLICY={pilot}")
     with open(f"{STATE}/knobs.env", "w") as f:
@@ -88,8 +89,20 @@ def arm(out, name, house, pilot, rounds, only=None):
     scene = os.path.join(os.environ["MICRODUCK_RL"], "src/mjlab_microduck/robot/microduck", f"scene_{house}.xml")
     env = dict(os.environ, SCENE=scene, VIEWER=os.environ.get("VIEWER", "on"), HOMECOMING="off", WIPE="on", MAPLOC_MODE="stop_and_scan")
 
+    def port_busy():
+        c = socket.socket()
+        c.settimeout(0.3)
+        busy = c.connect_ex(("127.0.0.1", PORT)) == 0
+        c.close()
+        return busy
+
     def boot():
         subprocess.run([TWIN, "down"], capture_output=True)
+        # The simulator lets its port go a few seconds after it is told
+        # to stop: `up` refuses a busy port (a reboot after a fall did).
+        t = time.time()
+        while port_busy() and time.time() - t < 60:
+            time.sleep(1)
         up = subprocess.run([TWIN, "up"], env=env, capture_output=True, text=True)
         say(out, f"[{name}] {up.stdout.strip().splitlines()[0] if up.stdout else up.stderr.strip()[:200]}")
         time.sleep(3)
@@ -154,13 +167,14 @@ def main():
     ap.add_argument("--house", default="casa_ingombra")
     ap.add_argument("--rounds", type=int, default=2)
     ap.add_argument("--arms", default="stick,pilot")
+    ap.add_argument("--no-book", action="store_true", help="no true rims on the books: the holes unbooked, the guard alone")
     ap.add_argument("--goals", help="only these of the truth's goals, comma-separated")
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
     pilot = os.path.abspath(args.pilot)
     res = {}
     for a in args.arms.split(","):
-        res[a] = arm(args.out, a, args.house, pilot if a == "pilot" else None, args.rounds, args.goals.split(",") if args.goals else None)
+        res[a] = arm(args.out, a, args.house, pilot if a == "pilot" else None, args.rounds, args.goals.split(",") if args.goals else None, not args.no_book)
     with open(os.path.join(args.out, "summary.md"), "w") as f:
         f.write(f"# Twin A/B on {args.house}: the stick and the pilot\n\n| arm | journeys | arrived | fell | mean s (arrived) | refused |\n|---|---|---|---|---|---|\n")
         for a, rows in res.items():
