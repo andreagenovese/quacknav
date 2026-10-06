@@ -45,10 +45,12 @@ def main():
     old = (row(test, "old-pilot") or next((r for r in test if r["family"] == "ALL" and r["brain"].endswith("/pilot")), None)) if args.old else None
     if rep.get("reckless_falls"):
         sys.exit(f"the shields let a reckless brain fall {rep['reckless_falls']} times on the calibrated simulator: nothing flies until that is fixed")
-    lines = [f"stick: {stick['arrived']}/{stick['n']} arrived, {stick['fell']} falls",
-             f"new pilot: {new['arrived']}/{new['n']} arrived, {new['fell']} falls"]
+    def line(name, r):
+        return f"{name}: {r['arrived']}/{r['n']} arrived, {r.get('fell_hole', r['fell'])} into a hole, {r.get('tipped', 0)} tipped over"
+
+    lines = [line("stick", stick), line("new pilot", new)]
     if old:
-        lines.append(f"old pilot: {old['arrived']}/{old['n']} arrived, {old['fell']} falls")
+        lines.append(line("old pilot", old))
     print("\n".join(lines))
     why = passes(new, stick, old)
     if not why:

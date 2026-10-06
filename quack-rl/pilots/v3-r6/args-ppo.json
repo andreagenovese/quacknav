@@ -1,13 +1,14 @@
 {
  "cmd": "ppo",
- "out": "rl-runs/r2",
- "init": "rl-runs/r2/bc.pt",
+ "out": "rl-runs/r6",
+ "init": "rl-runs/r6/bc.pt",
  "envs": 256,
  "seed": 1,
  "calib": null,
  "spread": "wide",
+ "focus": null,
  "hidden": 256,
- "iters": 8,
+ "iters": 10,
  "steps": null,
  "epochs": null,
  "sample": false,
@@ -17,7 +18,8 @@
  "clip": 0.2,
  "ent": 0.005,
  "bc0": 0.5,
- "bc_decay": 150,
+ "bc_decay": 400,
+ "bc_floor": 0.05,
  "eval_every": 20,
  "eval_seeds": 60
 }

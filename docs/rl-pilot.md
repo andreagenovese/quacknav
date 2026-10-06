@@ -130,7 +130,7 @@ it, and lets it fly only if it beats the stick on that simulator:
    are enough; with a pilot loaded, its back-offs and waits are traced
    too). Twenty minutes of journeys give hundreds of legs.
 2. **Fetch** `scp 'microduck@<duck>:/var/lib/quack-nav/rl-traces/*.jsonl' traces/`.
-3. **Calibrate**: `scripts/rl/calibrate.sh calib-out quack-rl/pilots/v2-r3 traces/*.jsonl`.
+3. **Calibrate**: `scripts/rl/calibrate.sh calib-out quack-rl/pilots/v3-r6 traces/*.jsonl`.
    - `rl_calib` measures, number by number, against the prior: forward
      speed, the straight step's veer, the pulse's gain and spread, the
      turns in place each way, the back-off; the depth sensor's rate, its

@@ -528,7 +528,7 @@ journalctl -u quack-navd -b | grep 'rl trace: recording'
 - [ ] `ls -la /var/lib/quack-nav/rl-traces/`: a `trace-*.jsonl` growing.
 
 The state tarball of §5 carries them; on the laptop
-`scripts/rl/calibrate.sh calib-out quack-rl/pilots/v2-r3 rl-traces/*.jsonl` fits the
+`scripts/rl/calibrate.sh calib-out quack-rl/pilots/v3-r6 rl-traces/*.jsonl` fits the
 simulator to them, retrains the pilot and says whether it may fly.
 
 ## 5. Bring it back, replay it here
