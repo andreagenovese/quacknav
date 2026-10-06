@@ -20,6 +20,22 @@ per il mapper sono quelle dello stick, e gli **scudi** stanno sopra il
 pilota (sotto). Senza pilota, quack-navd guida con lo stick esattamente come
 prima (la soglia del gemello di carta dà gli stessi numeri al decimale).
 
+## Pagine
+
+Due pagine disegnano ciò che questo documento dice, generate da
+`scripts/rl/pages.py` dalle corse del codice stesso (si aprono nel browser;
+sono in inglese):
+
+- [navigation-flow.html](pages/navigation-flow.html) — come decide la
+  papera, dall'accensione all'arrivo: homecoming, esplorazione, go_to con
+  lo stick o il pilota, gli scudi, e ciò che va sul libro.
+- [three-ways.html](pages/three-ways.html) — uno scenario generato
+  percorso dal pilota, dallo stick e dallo spostamento dell'esplorazione
+  (`rl_trace`), rigiocato sulla pianta.
+
+Per rigenerarle: `target/release/rl_trace --seed S --family F --pilot P --out t.json`
+per ogni scenario, poi `python3 scripts/rl/pages.py t1.json t2.json ...`.
+
 ## Sulla papera
 
 | manopola | cosa |

@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How the duck decides</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{
+ --bg:#f4f5f1; --surface:#ffffff; --fg:#1d2420; --muted:#5c6660; --line:#d6dbd4;
+ --wall:#3b423e; --furn:#9aa39c; --unm:#d9822b; --hole:#141816; --floor:#fbfcf9;
+ --pilot:#1f7a8c; --stick:#b0402f; --expl:#6a4fb3; --accent:#c77d12; --model:#2f6f8f; --ok:#2f7d4f;
+ --display:"Fraunces",Georgia,serif; --body:"Source Sans 3","Segoe UI",system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+ --bg:#121614; --surface:#1a1f1c; --fg:#e5ebe6; --muted:#a0aba4; --line:#303833;
+ --wall:#c9d1cb; --furn:#59625c; --unm:#e8963e; --hole:#000000; --floor:#1e2420;
+ --pilot:#4fb6c9; --stick:#e0715f; --expl:#a58ef0; --accent:#e8a33c; --model:#6fb3d4; --ok:#6cc28f; color-scheme:dark}}
+:root[data-theme="dark"]{
+ --bg:#121614; --surface:#1a1f1c; --fg:#e5ebe6; --muted:#a0aba4; --line:#303833;
+ --wall:#c9d1cb; --furn:#59625c; --unm:#e8963e; --hole:#000000; --floor:#1e2420;
+ --pilot:#4fb6c9; --stick:#e0715f; --expl:#a58ef0; --accent:#e8a33c; --model:#6fb3d4; --ok:#6cc28f; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font:16px/1.55 var(--body);margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:28px 56px;display:grid;gap:24px}
+h1,h2{font-family:var(--display);font-weight:600;margin:0;text-wrap:balance}
+h1{font-size:clamp(1.8rem,4vw,2.5rem);line-height:1.15} h2{font-size:1.45rem}
+p{margin:0;max-width:72ch} .lead{color:var(--muted)}
+code{font-family:var(--mono);font-size:.88em}
+.note{font-size:.92rem;color:var(--muted);border-left:3px solid var(--accent);padding:6px 12px;background:var(--surface)}
+
+.kicker{font:600 .75rem/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.models{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.model{border:1px solid var(--line);border-left:3px solid var(--model);padding:12px 14px;background:var(--surface);display:grid;gap:4px;min-width:0}
+.model b{font-family:var(--mono);font-size:.85rem;color:var(--model)}
+.model span{font-size:.92rem;color:var(--muted)}
+.part{display:grid;gap:14px}
+.diagram{background:var(--surface);border:1px solid var(--line);padding:16px;overflow-x:auto}
+.diagram pre.mermaid{margin:0;min-width:640px;background:transparent}
+.facts{display:flex;flex-wrap:wrap;gap:8px}
+.facts code{font-size:.82rem;padding:3px 8px;border:1px solid var(--line);background:var(--surface)}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+ <header style="display:grid;gap:10px">
+  <div class="kicker">quack-navd · branch rl-nav</div>
+  <h1>How the duck decides</h1>
+  <p class="lead">From power-on to arrival: waking up in a known house (homecoming), mapping by frontiers (exploration), and walking to a point (<code>go_to</code>) with the stick or the learned pilot. Diamonds are decisions; blue nodes are the models consulted; red nodes are the shields. Thresholds are the code's.</p>
+ </header>
+ <section class="models">
+  <div class="model"><b>maploc</b><span>5 cm occupancy map and pose: a frame a second, the pose every 50 ms. Says whether the pose is trusted, whether the duck is seated or down.</span></div>
+  <div class="model"><b>cliff guard</b><span>The 8 × 8 depth sensor at 15 Hz projected on the floor: obstacles in the lane, drops (holes), odometry.</span></div>
+  <div class="model"><b>Dijkstra planner</b><span>Costmap from the map + the books + walked lanes; walls inflated by 0.12 m, unknown three times dearer than known floor.</span></div>
+  <div class="model"><b>the books</b><span>What the duck met that the map does not have: drops (r 0.10 m) and obstacles (r 0.05 m). Dijkstra treats them as walls.</span></div>
+  <div class="model"><b>pilot MLP</b><span>Only with <code>QK_RL_POLICY</code>: 351 values in, one of 9 moves out. It picks the step, never the route.</span></div>
+  <div class="model"><b>gait model</b><span>0.12 m/s at vx 0.3, 0.65 rad/s per unit of yaw: where a step will take the body.</span></div>
+ </section>
+ <section class="part">
+  <h2>1 · Homecoming, at power-on</h2>
+  <p>The duck is usually switched on somewhere else in the house: it first tries to recognise a saved map, then decides whether to navigate or go on exploring.</p>
+  <div class="diagram"><pre class="mermaid">
+flowchart TD
+  H0([power-on]) --> H1[wait 15 s]
+  H1 --> H2{any saved map?}
+  H2 -- no --> HEND1([nothing to come home to: stand down])
+  H2 -- yes --> H3[load the newest]
+  H3 --> H4[[walk and look: 6 s stands, quarter turns, legs toward free space]]
+  H4 --> H5{pose confirmed within 60 s?}
+  H5 -- yes --> H16[take the map back]
+  H5 -- no --> H6{map frozen, or resume_explore?}
+  H6 -- yes --> H7[[search three times longer]]
+  H7 -- found --> H16
+  H7 -- not found --> HEND2([stand down: the duck does not know where it is])
+  H6 -- no --> H9[a fresh map]
+  H9 --> H10[explore, up to 30 min]
+  H10 --> H11[[every 60 s: map_match against the saved maps]]
+  H11 --> H12{score ≤ 0.16, margin and overlap ok?}
+  H12 -- no --> H11
+  H12 -- yes --> H13{3 answers agreeing within 0.30 m?}
+  H13 -- no --> H11
+  H13 -- yes --> H14[adopt the saved map, confirm the pose]
+  H14 --> H15{was the house already complete?}
+  H15 -- yes --> HNAV([frozen map: ready for go_to])
+  H15 -- no --> X0
+  H16 --> H17{frozen or complete?}
+  H17 -- yes --> HNAV
+  H17 -- no, resume_explore --> X0([explore on · part 2])
+  classDef model stroke:#2f6f8f,stroke-width:2px;
+  classDef endn stroke:#2f7d4f,stroke-width:2px;
+  class HEND1,HEND2,HNAV,X0 endn;
+  class H11 model;
+</pre></div>
+  <div class="facts"><code>start_delay 15 s</code><code>boot_search 60 s</code><code>recognize_every 60 s</code><code>adopt_max_score 0.16</code><code>adopt_asks 3</code><code>explore_max 1800 s</code></div>
+ </section>
+ <section class="part">
+  <h2>2 · Exploration</h2>
+  <p>A loop that picks the cheapest frontier between known and unknown floor, travels there on the go_to loop (part 3), stands to look and writes the books, until only slivers are left.</p>
+  <div class="diagram"><pre class="mermaid">
+flowchart TD
+  X0([map_explore]) --> XA{pose trusted?}
+  XA -- no, the duck was moved --> XR[[relocalise, up to 240 s]] --> XA
+  XA -- yes --> X2{stop, budget, or battery under 25 %?}
+  X2 -- yes --> XE([save the session and its progress])
+  X2 -- no --> X3{pose believable?}
+  X3 -- no --> X4[3 s stand · lost over 180 s: fail] --> X2
+  X3 -- yes --> X5{pose jumped, or map and sensor disagree?}
+  X5 -- yes --> X6[settling stands, or a 360° panorama] --> X2
+  X5 -- no --> X8[every 180 s back on known floor, to close the loop]
+  X8 --> X9[[frontiers on the map + books · planner]]
+  X9 --> X10{a frontier of 20 cells or more?}
+  X10 -- no, 12 passes with nothing new --> XE
+  X10 -- yes --> X11{pick: the cheapest not refused}
+  X11 -- none --> X12[unsealing ladder: forget refusals and far bumps, never drops] --> X2
+  X11 -- one --> X13{within 0.30 m of it?}
+  X13 -- yes --> X14[6 s stand: the map grows, drops go on the books · an unnamed area: ask where we are] --> X2
+  X13 -- no --> X15[[travel to the frontier · part 3, budget 60 + 30 s/m, max 300 s]]
+  X15 -- failed --> X16[frontier refused] --> X2
+  X15 -- ok --> X2
+  classDef model stroke:#2f6f8f,stroke-width:2px;
+  classDef endn stroke:#2f7d4f,stroke-width:2px;
+  class XE,X0 endn;
+  class X9,XR model;
+</pre></div>
+  <div class="facts"><code>LOST_PATIENCE 180 s</code><code>BIG_FRONTIER 20 cells</code><code>SLIVER_PATIENCE 12</code><code>ARRIVE 0.30 m</code><code>FRONTIER_STOP 6 s</code><code>STUCK_MAX 3</code></div>
+ </section>
+ <section class="part">
+  <h2>3 · go_to: the journey, leg by leg</h2>
+  <p>Dijkstra owns the route, on the map and the books; it is replanned from the pose at every leg, or kept while fresh and the books are unchanged. The stick or the pilot only picks the leg's move. Whatever the duck meets that the map does not have — a hole the guard sees, a thing it pushed against or the sensor sees in the lane — goes on the books, and the next plan goes round it.</p>
+  <div class="diagram"><pre class="mermaid">
+flowchart TD
+  G0([robot.go_to]) --> G0a{a map, a trusted pose, a way there?}
+  G0a -- no --> GEND0([refused, with the reason])
+  G0a -- yes --> G2{stop, time budget, or battery?}
+  G2 -- yes --> GEND1([end])
+  G2 -- no --> G3{pose trusted?}
+  G3 -- no --> G3b[6 s stand · over 180 s: fail] --> G2
+  G3 -- yes --> G4{within 0.25 m of the goal?}
+  G4 -- yes --> G4b[6 s stand and check again] --> GOK([arrived])
+  G4 -- no --> G5[pose stands: every 20 s or 1.5 m, and when something is in the lane within 0.5 m]
+  G5 --> G6{route still good? under 30 s old, books unchanged, off it under 0.40 m}
+  G6 -- yes --> G9
+  G6 -- no --> G7[[Dijkstra: map + books + lanes]]
+  G7 -- no way --> G8[forget near bumps, never drops · after 3: fail] --> G2
+  G7 -- a route --> G9{pilot loaded and not stuck?}
+  G9 -- no --> S0{3 legs that did not move the body, or barely: scuffs?}
+  S0 -- yes --> SB[book the obstacle where the sensor sees it, else at the nose] --> S2
+  S0 -- no --> S1{route over 0.6 rad off the nose?}
+  S1 -- yes --> S2[turn in place, closed on odometry]
+  S1 -- no --> GUARD
+  G9 -- yes --> P1[[observe: route, 1.4 s of depth frames, 1.6 m of map, last moves → MLP → one of 9 moves]]
+  P1 --> P2{allowed by the shields?}
+  P2 -- back-off toward unknown or a drop --> PR[refused: 0.6 s stand]
+  P2 -- step into something, or pushing on --> PB[refused: the obstacle goes on the books]
+  P2 -- step across a booked drop --> PR
+  P2 -- 2 refusals or 4 turns in a row --> S0
+  P2 -- yes --> GUARD
+  GUARD{a true hole in the step's lane?}
+  GUARD -- yes --> GH[1.5 s stand · the hole goes on the books · turn away] --> G7
+  GUARD -- no --> GS[walk: a 0.6 s step, a turn, a back-off or a wait]
+  S2 --> G13
+  PR --> G13
+  PB --> G7
+  SB --> G7
+  GS --> G13[every 0.4 m walked: a 2 s stand for the mapper]
+  G13 --> G2
+  classDef model stroke:#2f6f8f,stroke-width:2px;
+  classDef shield stroke:#a3392b,stroke-width:2px;
+  classDef endn stroke:#2f7d4f,stroke-width:2px;
+  class G7,P1 model;
+  class P2,PR,PB,GUARD,GH shield;
+  class GOK,GEND0,GEND1,G0 endn;
+</pre></div>
+  <div class="facts"><code>GOAL_ARRIVE 0.25 m</code><code>KEEP_ROUTE 30 s</code><code>STAND_EVERY 0.4 m</code><code>TURN_FIRST 0.6 rad</code><code>STALLS 3 (scuff: under 40 % of a step)</code><code>BOOK_STAND 1.5 s</code><code>pilot → stick: 2 refusals or 4 turns</code></div>
+  <p class="note">The two links back to Dijkstra — a hole the guard sees, an obstacle the stick pushed against — are the fixes of 2026-10-06. Before them, on a go_to, a hole seen while walking never reached the books (they take drops from standing frames, and only the exploration stood first), and a body sliding along a box was never "stalled"; Dijkstra sent the duck back the same way, 31 times at casa_ingombra's stairwell on the MuJoCo twin.</p>
+ </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"></script>
+<script>mermaid.initialize({startOnLoad:true, theme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'default'});</script>
+</body>
+</html>
