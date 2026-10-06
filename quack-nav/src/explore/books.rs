@@ -118,6 +118,18 @@ impl Job {
             .collect()
     }
 
+    /// The planner's walls at their tightest: drops at their own radius
+    /// ([`DROP_RADIUS_M`]) instead of the policy's planning margin — for a
+    /// last plan before "no way" (see `Job::travel`): a passage the body
+    /// fits through is walked, the hole guard watching every step.
+    pub(super) fn planner_walls_tight(&self) -> Vec<ExtraWall> {
+        self.local
+            .iter()
+            .map(|(p, r)| (*p, r.min(DROP_RADIUS_M)))
+            .chain(self.no_go.iter().map(|p| (*p, NO_GO_RADIUS_M)))
+            .collect()
+    }
+
     /// The first drop on the books that the body would cross on `leg`,
     /// played from `pose` through the gait model (0.12 m/s at vx 0.3,
     /// 0.65 rad/s per unit of yaw), if any.

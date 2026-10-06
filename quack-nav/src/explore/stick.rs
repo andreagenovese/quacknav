@@ -61,7 +61,9 @@ const CAREFUL_STAND_EVERY_M: f64 = 0.2;
 const CAREFUL_GUARD_MARGIN_M: f64 = 0.25;
 /// The stand before a hole the guard saw goes on the books: long enough for
 /// the two still frames the vote asks for.
-const BOOK_STAND_S: f64 = 1.5;
+const BOOK_STAND_S: f64 = 2.0;
+/// A hole seen further off the nose than this is faced before it is booked.
+const FACE_RIM_RAD: f64 = 0.15;
 /// The yaw asked per radian of heading error, as the gait turns 0.65 of
 /// it a second: the error closed over about the step.
 const YAW_GAIN: f64 = 1.0 / (0.65 * STEP_S);
@@ -276,6 +278,14 @@ impl Job {
             // the exploration's only — casa_ingombra's unbooked stairwell
             // turned the duck away 31 times while Dijkstra sent it back
             // the same way, until the budget ran out (2026-10-06).
+            // ... facing it: a rim glimpsed walking, at the edge of the
+            // sensor's field, is booked where its rays land, a few
+            // centimetres off; seen head-on from a stand (the head sweeping
+            // across it) it is booked where it is, and a passage beside it
+            // stays the width it has.
+            if d.bearing.abs() > FACE_RIM_RAD {
+                let _ = self.stick_turn(robot, d.bearing.signum(), d.bearing.abs());
+            }
             let _ = stand(robot, BOOK_STAND_S);
             self.record_drops(robot);
         }

@@ -218,7 +218,23 @@ impl Job {
             let (raw, path, at) = match kept {
                 Some(k) => k,
                 None => {
-                    let Some((raw, path)) = path_to_both(&grid, x, y, goal, &walls, inflate_m(), &lanes) else {
+                    // No way with the usual margins: once more at the tightest
+                    // the body allows (drops at their own radius, walls at
+                    // the body's half-width) before anything is forgotten. A
+                    // passage the duck fits through is walked — the user's
+                    // rule: if it can pass, it must — with the hole guard on
+                    // every step. casa_ingombra's 0.49 m passage beside the
+                    // stairwell, its rim booked, closed at the 0.20 m drop
+                    // margin of a live map (MuJoCo twin, 2026-10-06).
+                    let planned = path_to_both(&grid, x, y, goal, &walls, inflate_m(), &lanes).or_else(|| {
+                        let tight = self.planner_walls_tight();
+                        let found = path_to_both(&grid, x, y, goal, &tight, SQUEEZE_INFLATE_M, &lanes);
+                        if found.is_some() {
+                            tracing::info!(at = ?(x, y), "map explore: no way with the usual margins; through at the tightest the body allows");
+                        }
+                        found
+                    });
+                    let Some((raw, path)) = planned else {
                         // No way from here: what the body booked itself
                         // around it is forgotten — a bump booked in a
                         // doorway can close it — wider each time; a drop
