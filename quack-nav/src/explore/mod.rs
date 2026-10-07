@@ -1405,6 +1405,10 @@ pub struct Job {
     /// with the nose against something (see `stick_leg`).
     stick_last_step: bool,
     stick_touches: u32,
+    /// The coast of a turn in place, learned on the journey's turns, and
+    /// the last turn's map yaw before it, its sign and odometry's word.
+    stick_coast: f64,
+    stick_turn_probe: Option<(f64, f64, f64)>,
     /// Odometry walked since the stick's last stand, and where it was.
     stick_since_stand: f64,
     stick_odom_at: Option<(f64, f64)>,
@@ -1568,6 +1572,8 @@ impl Job {
             stick_stalls: 0,
             stick_last_step: false,
             stick_touches: 0,
+            stick_coast: stick::COAST_PRIOR_RAD,
+            stick_turn_probe: None,
             stick_since_stand: 0.0,
             stick_odom_at: None,
             stick_stand_s: STICK_STAND_S,

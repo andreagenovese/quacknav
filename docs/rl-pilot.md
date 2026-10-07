@@ -254,6 +254,9 @@ tip-overs 35 (clutter 14, mixed 12), bumps 6.9 a journey; the pilot v3-r6
 90.2 %, tip-overs 10. With the prudent booking ahead back (main's,
 2026-10-07, after its own A/B on the twin: 48/48 for both, no fall against
 main's one): the stick 94.3 %, tip-overs 16; the pilot 94.0 %, tip-overs 4.
+With main's learned turn coast (2026-10-07): the stick 93.3 %, tip-overs
+20; the pilot 94.3 %, tip-overs 6 — the bench's gait does not coast, so
+the prior's 17° makes its turns a little short there.
 On the release protocol, the same day and the same robotd, three houses
 (house2, casa_libera, casa_arredata): go_to 51/51 against main's 45/51,
 homecoming 9/9 for both, exploration's coverage alike. With these rules

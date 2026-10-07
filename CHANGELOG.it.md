@@ -67,6 +67,12 @@ carta, mai su una papera fisica; i dettagli sono in
   libro entro 0.5 m. Sotto il tavolino di apartment il corpo spingeva sul
   bordo per minuti mentre la posa scivolava di 0.3 m (gemello MuJoCo). Il
   log del passo porta l'ostacolo nella corsia (`ahead`) e l'odometria.
+- **In un viaggio, una svolta sul posto si ferma prima dello slancio che
+  impara**: il yaw della mappa al passo successivo dice quanto è andata
+  davvero l'ultima svolta (35–44° oltre l'odometria sul gemello MuJoCo).
+  A/B sul gemello contro main: 48/48 entrambi, casa_ingombra 11/12 contro
+  10/12, nessuna caduta da nessuna parte, viaggi più veloci del 9–22 %,
+  metà delle svolte e 5 oscillazioni invece di 232.
 - **In un viaggio, ciò che il sensore continua a vedere davanti va sul
   libro prima dell'urto**: entro 0.30 m nella corsia, dove la mappa ha
   pavimento libero, nessun muro della mappa entro 0.15 m e nessun drop sul

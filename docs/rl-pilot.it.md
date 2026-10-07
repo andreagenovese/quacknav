@@ -272,7 +272,10 @@ docs/results.it.md, "Sporgenze e angoli dei vani scala"): lo stick
 pilota v3-r6 90,2 %, ribaltamenti 10. Con il libro in anticipo prudente di
 nuovo (di main, 2026-10-07, dopo il suo A/B sul gemello: 48/48 per
 entrambi, nessuna caduta contro una di main): lo stick 94,3 %,
-ribaltamenti 16; il pilota 94,0 %, ribaltamenti 4.
+ribaltamenti 16; il pilota 94,0 %, ribaltamenti 4. Con lo slancio delle
+svolte imparato di main (2026-10-07): lo stick 93,3 %, ribaltamenti 20; il
+pilota 94,3 %, ribaltamenti 6: l'andatura del banco non ha slancio, quindi
+i 17° iniziali lì fanno svolte un po' corte.
 Sul protocollo di release, stesso giorno e stesso robotd, tre case (house2,
 casa_libera, casa_arredata): go_to 51/51 contro 45/51 di main, homecoming
 9/9 per entrambi, copertura dell'esplorazione uguale. Con queste regole
