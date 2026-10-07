@@ -24,6 +24,24 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   takes `--dry-run` (prints every command, connects to nothing), and no
   longer fails on macOS's bash 3.2 when `SSH_OPTS` is empty.
 
+### Changed
+
+- **On a journey, the nose against something the map does not have is a
+  stall.** Two forward steps in a row with the depth sensor seeing
+  something in the body's lane within 0.15 m (most of the last 0.6 s'
+  frames): the stick turns 20° at least and books what it saw, unless a
+  map wall is within 0.15 m of it or a booked drop within 0.5 m. Under
+  apartment's coffee table the body had pushed on the edge for minutes
+  while the pose slid 0.3 m (MuJoCo twin). The step log carries the lane
+  obstacle (`ahead`) and odometry.
+- **A walked lane yields to a booked drop within 0.20 m** (was 0.12):
+  casa_arredata's bath route kept 9–12 cm from the stairwell's unbooked
+  north-east corner, where the twin's duck fell twice; now 16 cm, no leg
+  of the saved tours longer or closed. `QK_LANE_YIELD_M` to measure;
+  `route_on_map` reports the nearest true hole (`TRUTH_HOLES`) and prints
+  the route (`ROUTE_POINTS=1`). See docs/results.md, "Overhangs and
+  stairwell corners".
+
 ## [0.2.0-rc2] - 2026-10-03
 
 A second release candidate, still validated on the twins only. Release

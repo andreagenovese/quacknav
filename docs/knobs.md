@@ -34,6 +34,7 @@ Every knob needs that restart: the environment is read at the process's start.
 | `QK_GUARD_ARC_FULL` | on only if 1 | `quack-duck/src/body.rs` | Turning costs little forward speed: 0.110 m/s at vyaw 0.7 against 0.121 straight, measured on the human drive (2026-09-07). |
 | `QK_INFLATE_M` | number (default 0.12) | `quack-nav/src/frontier.rs` | The inflation the planner runs with: 0.12, a little over the body's half-width, 0.10 (`QK_INFLATE_M`). |
 | `QK_LANE_HALF_M` | number (default 0.16) | `quack-nav/src/explore/mod.rs` |  |
+| `QK_LANE_YIELD_M` | number (default 0.20) | `quack-nav/src/frontier.rs` | `QK_LANE_YIELD_M`: [`LANE_YIELDS_TO_DROP_M`] for an experiment. |
 | `QK_NO_GUARDS` | 1 on, 0 off, else the caller's default | `quack-nav/src/explore/journey.rs` | `QK_NO_GUARDS`: every leg, kick and pulse goes through `robot.move`, blind, and the route check is off — the planner alone (the frozen map, the books, the margins) brings the duck home. |
 | `QK_ORACLE_HOLES` | a value | `quack-nav/src/oracle.rs` | `QK_ORACLE_HOLES=<truth.json>`: its `holes` (`[x0, x1, y0, y1]`, metres) drawn into that map as wall — the planner keeps off them. |
 | `QK_ORACLE_POSE` | a value | `quack-nav/src/oracle.rs` | `QK_ORACLE_POSE=<host:port>`: the pose the navigation reads is the simulator's trunk, read as `poseerr.py` reads it, at 20 Hz. |
@@ -119,6 +120,7 @@ Every knob needs that restart: the environment is read at the process's start.
 | `RELOC_DEBUG` | set = on (any value) | `maploc/src/mapper.rs`, `maploc/src/relocalize.rs` |  |
 | `REPLAY_HEAD_DT_MS` | number (unset: none) | `maploc/src/bench.rs` | `REPLAY_HEAD_DT_MS=<ms>`: each depth frame takes the head's pose from the robot-state sample nearest its own time plus this, instead of the last sample before it — to measure what the pairing of the head with the frames … |
 | `ROUNDS_ONLY` | a value (script) | `scripts/twin/houses/final_house.py` |  |
+| `ROUTE_POINTS` | set = on (any value) | `quack-nav/examples/route_on_map.rs` | with `TRUTH_HOLES=<truth.json>` (the twin's truth) also to a true hole, and with `ROUTE_POINTS=1` the route. |
 | `SAVE_SESSION` | a path, or a value | `maploc/examples/trajectory.rs` | `SAVE_SESSION=<file>`: the map the replay built, saved as the live daemon saves it — for `dump_frame` and `map_vs_truth.py`. |
 | `SLANT` | number (unset: none) | `maploc/examples/submap_fit.rs` | `SLANT=x0,x1,y0,y1`: how many of this submap's wall cells fall in that box. |
 | `TRACK` | 1 on, else off; unset: mapper_cfg.tracking.enabled | `maploc/examples/evaluate.rs` |  |
@@ -129,6 +131,7 @@ Every knob needs that restart: the environment is read at the process's start.
 | `TRACK_MAX_AFTER` | number (default mapper_cfg.tracking.max_residual_after_m) | `maploc/examples/evaluate.rs` |  |
 | `TRACK_MIN_BEFORE` | number (default mapper_cfg.tracking.min_residual_before_m) | `maploc/examples/evaluate.rs` |  |
 | `TRACK_PRIOR_XY` | number (default mapper_cfg.tracking.prior_sigma_xy) | `maploc/examples/evaluate.rs` |  |
+| `TRUTH_HOLES` | a value | `quack-nav/examples/route_on_map.rs` | with `TRUTH_HOLES=<truth.json>` (the twin's truth) also to a true hole, and with `ROUTE_POINTS=1` the route. |
 | `TWIN_WORK` | a value (script) | `scripts/twin/houses/aggregate.py`, `scripts/twin/houses/final_house.py`, `scripts/twin/houses/modes_test.py` … |  |
 | `UNC_BEAMS` | number (default u.independent_beams) | `maploc/examples/trajectory.rs` |  |
 | `UNC_FLOOR` | number (default u.match_floor_m) | `maploc/examples/trajectory.rs` |  |

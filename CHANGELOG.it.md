@@ -27,6 +27,25 @@ carta, mai su una papera fisica; i dettagli sono in
   repository, accetta `--dry-run` (stampa ogni comando, non si collega) e
   non fallisce più con il bash 3.2 di macOS quando `SSH_OPTS` è vuoto.
 
+### Modificato
+
+- **In un viaggio, il naso contro qualcosa che la mappa non ha è uno
+  stallo.** Due passi avanti di fila con il sensore di profondità che vede
+  qualcosa nella corsia del corpo entro 0.15 m (nella maggior parte dei
+  frame degli ultimi 0.6 s): lo stick gira di almeno 20° e registra ciò che
+  ha visto, a meno che un muro della mappa sia entro 0.15 m o un drop sul
+  libro entro 0.5 m. Sotto il tavolino di apartment il corpo spingeva sul
+  bordo per minuti mentre la posa scivolava di 0.3 m (gemello MuJoCo). Il
+  log del passo porta l'ostacolo nella corsia (`ahead`) e l'odometria.
+- **Una corsia percorsa cede a un drop sul libro entro 0.20 m** (era
+  0.12): il percorso del bagno di casa_arredata passava a 9–12 cm
+  dall'angolo nord-est non registrato del vano scala, dove la papera del
+  gemello è caduta due volte; ora 16 cm, nessuna tappa dei giri salvati
+  più lunga o chiusa. `QK_LANE_YIELD_M` per misurare; `route_on_map`
+  riporta il buco vero più vicino (`TRUTH_HOLES`) e stampa il percorso
+  (`ROUTE_POINTS=1`). Vedi docs/results.it.md, "Sporgenze e angoli dei
+  vani scala".
+
 ## [0.2.0-rc2] - 2026-10-03
 
 Una seconda release candidate, ancora validata solo sui gemelli. Note di

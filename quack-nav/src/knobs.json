@@ -380,6 +380,17 @@
    "doc": ""
   },
   {
+   "name": "QK_LANE_YIELD_M",
+   "group": "QK",
+   "read_as": "number (default 0.20)",
+   "type": "number",
+   "default": "0.20",
+   "where": [
+    "quack-nav/src/frontier.rs"
+   ],
+   "doc": "`QK_LANE_YIELD_M`: [`LANE_YIELDS_TO_DROP_M`] for an experiment."
+  },
+  {
    "name": "QK_NO_GUARDS",
    "group": "QK",
    "read_as": "1 on, 0 off, else the caller's default",

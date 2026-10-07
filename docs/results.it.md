@@ -296,6 +296,53 @@ cambiano.
   (3.2–3.3 cm di residuo da 0.05 a 1 rad/s; 3.46 cm sull'1 % di frame
   oltre). `main` è fissato a quella dal 2026-10-01.
 
+### Sporgenze e angoli dei vani scala (2026-10-07)
+
+Sul gemello MuJoCo, giri di viaggi sui libri di un'esplorazione precedente
+(`final_house.py`, `ROUNDS_ONLY=1`), con `main` congelato come controllo
+sulle stesse mappe.
+
+- **Il naso contro qualcosa che la mappa non ha** (d942590). Sotto il
+  tavolino del soggiorno di apartment (il piano a 0.14–0.22 m dal
+  pavimento, la testa a 0.25 m) la mappa ha pavimento libero; il corpo
+  spingeva sul bordo del tavolo per minuti, scivolando qualche centimetro
+  a passo, così lo stallo "sotto il centimetro" non scattava mai, e la
+  posa scivolava con lui: 0.32 m di errore dopo tre minuti in un giro, poi
+  la papera è finita nel buco. Il log del passo ora porta cosa vede il
+  sensore di profondità nella corsia (`ahead`): il bordo a 0.10 m in 7–9
+  frame su 8 per una quarantina di passi. In un viaggio, due passi avanti
+  di fila con qualcosa nella corsia entro 0.15 m nella maggior parte dei
+  frame degli ultimi 0.6 s sono uno stallo: una svolta di almeno 20°, e
+  ciò che si è visto va sul libro, a meno che un muro della mappa sia
+  entro 0.15 m o un drop sul libro entro 0.5 m (l'esplorazione tiene le
+  sue regole). Quattro giri per casa: è scattata una volta per giro in
+  apartment, al tavolino (24 viaggi su 24 arrivati), mai in
+  casa_arredata, e 15 volte in casa_ingombra (11 su 11, `main` 4 su 5).
+- **Una corsia percorsa cede a un drop sul libro entro 0.20 m** (1eb83ba,
+  era 0.12). Il vano scala di casa_arredata aveva il bordo nord sul libro
+  fino a x 2.45 e niente all'angolo nord-est; le corsie percorse lì
+  tenevano il percorso del bagno a 9–12 cm dal buco vero (`route_on_map`
+  con `TRUTH_HOLES`), e la papera è caduta su quell'angolo in due giri,
+  con 9–11 cm d'errore di posa. A 0.20 il percorso tiene 16 cm (21 cm sul
+  libro dell'altra esplorazione); nessuna tappa dei giri salvati di
+  apartment, casa_arredata e casa_libera si è allungata o chiusa.
+  Riempire i vuoti fra i punti del bordo non è servito: la corda passa
+  dentro il buco, non attorno al suo angolo.
+- **Provato e non tenuto: il go_to registra ciò che incontra** (branch
+  `journey-books`). Registrare ciò che il sensore vede davanti prima
+  dell'urto, uno stallo "scuff" (un passo che ha fatto meno del 40 % di un
+  passo), guardare di fronte un buco prima di registrarlo e un ultimo piano
+  ai margini più stretti: contro i 47 viaggi su 48 di `main` e nessuna
+  caduta in quattro giri per casa, 18 su 24 con 3 cadute, poi 23 su 24 con
+  1, poi 20 su 24 con 1. Registrare l'immagine spostata di un muro della
+  mappa spingeva il percorso verso un vano scala; lo scuff contava come
+  urto un passo su pavimento libero.
+- **Rumore del gemello.** Due cadute della stessa verifica sono arrivate a
+  0.1 s l'una dall'altra in due gemelli separati, entrambi i simulatori
+  rallentati da 49 a 27–29 tick d'odometria al secondo nei cinque secondi
+  prima: il computer, non la papera. Da ora le verifiche girano due
+  gemelli alla volta.
+
 ## Limiti noti
 
 - **Un bordo registrato dove lo metteva la posa.** Circa un drop su 50 finisce

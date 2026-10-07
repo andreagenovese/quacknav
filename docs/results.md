@@ -287,6 +287,49 @@ unchanged.
   of residual from 0.05 to 1 rad/s; 3.46 cm on the 1 % of frames above).
   `main` is pinned to it since 2026-10-01.
 
+### Overhangs and stairwell corners (2026-10-07)
+
+On the MuJoCo twin, rounds of journeys on the books of an earlier
+exploration (`final_house.py`, `ROUNDS_ONLY=1`), the frozen `main` as the
+control on the same maps.
+
+- **The nose against something the map does not have** (d942590). Under
+  apartment's coffee table (its top 0.14–0.22 m above the floor, the head
+  at 0.25 m) the map has free floor; the body pushed on the table's edge
+  for minutes, sliding a few centimetres a step, so the "under a
+  centimetre" stall never counted, and the pose slid with it — 0.32 m off
+  after three minutes in one round, then the duck walked into the hole
+  with it. The step log now carries what the depth sensor sees in the lane
+  (`ahead`): the edge at 0.10 m in 7–9 of 8 frames for some 40 steps. On a
+  journey, two forward steps in a row with something in the lane within
+  0.15 m in most of the last 0.6 s' frames are a stall: a turn of 20° at
+  least, and what was seen goes on the books unless a map wall is within
+  0.15 m of it or a booked drop within 0.5 m (the exploration keeps its
+  rules). Four rounds a house: it fired once a round in apartment, at the
+  table (24 of 24 journeys arrived), never in casa_arredata, and 15 times
+  in casa_ingombra (11 of 11, `main` 4 of 5).
+- **A walked lane yields to a booked drop within 0.20 m** (1eb83ba, was
+  0.12). casa_arredata's stairwell had its north rim booked to x 2.45 and
+  nothing at its north-east corner; the lanes walked there kept the bath
+  route 9–12 cm from the true hole (`route_on_map` with `TRUTH_HOLES`), and
+  the duck fell at that corner in two rounds, with 9–11 cm of pose error.
+  At 0.20 the route keeps 16 cm (21 cm on the other run's book); no leg of
+  the saved tours of apartment, casa_arredata or casa_libera grew or
+  closed. Filling the gaps between booked rim points did nothing there:
+  the chord runs inside the hole, not round its corner.
+- **Tried and not kept: go_to books what it meets** (branch
+  `journey-books`). Booking what the sensor sees ahead before the bump, a
+  "scuff" stall (a step that moved under 40 % of a step), facing a hole
+  before booking it and a last plan at the tightest margins: against
+  `main`'s 47 of 48 journeys and no fall in four rounds a house, 18 of 24
+  with 3 falls, then 23 of 24 with 1, then 20 of 24 with 1. A booking of
+  a map wall's offset image pushed the route toward a stairwell; the
+  scuff counted a step on open floor as a bump.
+- **Twin noise.** Two falls of one verification came within 0.1 s of each
+  other in two separate twins, both simulators slowed from 49 to 27–29
+  odometry ticks a second the five seconds before: the host, not the duck.
+  Verifications run two twins at a time from now on.
+
 ## Known limits
 
 - **A rim booked where the pose had it.** About 1 in 50 drops lands 20–35 cm
