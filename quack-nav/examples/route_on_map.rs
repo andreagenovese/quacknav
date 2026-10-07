@@ -14,7 +14,8 @@
 //! book (the `<name>` list of [x, y, r] and `<name>.lanes`). Drops are
 //! planned at the blind journey's radius, 0.12 m, as `planner_walls` has
 //! them. Prints one line per leg of the tour, and the route's nearest
-//! approach to a booked rim.
+//! approach to a booked rim; with `TRUTH_HOLES=<truth.json>` (the
+//! twin's truth) also to a true hole, and with `ROUTE_POINTS=1` the route.
 
 use quack_nav::frontier::{inflate_m, path_to};
 use quack_nav::map::MapFrame;
@@ -57,7 +58,17 @@ fn main() -> anyhow::Result<()> {
                     .iter()
                     .flat_map(|p| drops.iter().filter(|(_, r)| *r >= 0.10).map(move |(d, r)| (d.0 - p.0).hypot(d.1 - p.1) - r))
                     .fold(f64::INFINITY, f64::min);
-                println!("{from:?} -> {to:?}: {metres:.2} m, nearest rim {rim:.2} m, {} points", path.len());
+                let truth = std::env::var("TRUTH_HOLES").ok().and_then(|f| quack_nav::oracle::read_holes(&f).ok()).unwrap_or_default();
+                let hole = path
+                    .iter()
+                    .flat_map(|p| truth.iter().map(move |(x0, x1, y0, y1)| (x0 - p.0).max(p.0 - x1).max(0.0).hypot((y0 - p.1).max(p.1 - y1).max(0.0))))
+                    .fold(f64::INFINITY, f64::min);
+                println!("{from:?} -> {to:?}: {metres:.2} m, nearest rim {rim:.2} m, nearest true hole {hole:.2} m, {} points", path.len());
+                if std::env::var("ROUTE_POINTS").is_ok() {
+                    for p in &path {
+                        println!("  {:.2} {:.2}", p.0, p.1);
+                    }
+                }
             }
             None => println!("{from:?} -> {to:?}: no way"),
         }
