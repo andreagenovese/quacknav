@@ -53,7 +53,7 @@ FLOW_BODY = r"""
  <section class="models">
   <div class="model"><b>maploc</b><span>5 cm occupancy map and pose: a frame a second, the pose every 50 ms. Says whether the pose is trusted, whether the duck is seated or down.</span></div>
   <div class="model"><b>cliff guard</b><span>The 8 × 8 depth sensor at 15 Hz projected on the floor: obstacles in the lane, drops (holes), odometry.</span></div>
-  <div class="model"><b>Dijkstra planner</b><span>Costmap from the map + the books + walked lanes; walls inflated by 0.12 m, unknown three times dearer than known floor.</span></div>
+  <div class="model"><b>Dijkstra planner</b><span>Costmap from the map + the books + walked lanes; walls inflated by 0.12 m, unknown three times dearer than known floor; a walked lane yields to a booked drop within 0.20 m.</span></div>
   <div class="model"><b>the books</b><span>What the duck met that the map does not have: drops (r 0.10 m) and obstacles (r 0.05 m). Dijkstra treats them as walls.</span></div>
   <div class="model"><b>pilot MLP</b><span>Only with <code>QK_RL_POLICY</code>: 351 values in, one of 9 moves out. It picks the step, never the route.</span></div>
   <div class="model"><b>gait model</b><span>0.12 m/s at vx 0.3, 0.65 rad/s per unit of yaw: where a step will take the body.</span></div>
@@ -177,8 +177,8 @@ flowchart TD
   class P2,PR,PB,GUARD,GH shield;
   class GOK,GEND0,GEND1,G0 endn;
 </pre></div>
-  <div class="facts"><code>GOAL_ARRIVE 0.25 m</code><code>KEEP_ROUTE 30 s</code><code>STAND_EVERY 0.4 m</code><code>TURN_FIRST 0.6 rad</code><code>STALLS 3, or TOUCH 0.15 m × 2 steps</code><code>BOOK_STAND 2 s, facing the rim</code><code>tight replan: drops 0.10 m, walls 0.10 m</code><code>pilot → stick: 2 refusals or 4 turns</code></div>
-  <p class="note">The links back to Dijkstra — a hole the guard sees, a thing seen in the lane before the bump, an obstacle at the beak — and the last plan at the tightest margins are the fixes of 2026-10-06/07: if the duck can pass, it passes. Before them, on a go_to, a hole seen while walking never reached the books (they take drops from standing frames, and only the exploration stood first), and a body sliding along a box was never "stalled"; Dijkstra sent the duck back the same way, 31 times at casa_ingombra's stairwell on the MuJoCo twin.</p>
+  <div class="facts"><code>GOAL_ARRIVE 0.25 m</code><code>KEEP_ROUTE 30 s</code><code>STAND_EVERY 0.4 m</code><code>TURN_FIRST 0.6 rad</code><code>STALLS 3, or TOUCH 0.15 m × 2 steps</code><code>SEEN_AHEAD 0.30 m (no wall within 0.15 m, no drop within 0.5 m)</code><code>BOOK_STAND 2 s, facing the rim</code><code>tight replan: drops 0.10 m, walls 0.10 m</code><code>pilot → stick: 2 refusals or 4 turns</code></div>
+  <p class="note">The links back to Dijkstra — a hole the guard sees, a thing seen in the lane before the bump, an obstacle at the beak — and the last plan at the tightest margins are the fixes of 2026-10-06/07: if the duck can pass, it passes. The touch stall and the prudent booking ahead passed the MuJoCo twin's A/B against <code>main</code> (2026-10-07: no fall, no arrival lost) and are on <code>main</code> too. Before them, on a go_to, a hole seen while walking never reached the books (they take drops from standing frames, and only the exploration stood first), and a body sliding along a box was never "stalled"; Dijkstra sent the duck back the same way, 31 times at casa_ingombra's stairwell on the MuJoCo twin.</p>
  </section>
 </div>
 """
