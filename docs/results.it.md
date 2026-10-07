@@ -343,6 +343,28 @@ sulle stesse mappe.
   apartment è g2 attraverso il tavolino, la sua caduta in casa_ingombra
   sulla strada per lo studio.
 
+- **Sul libro prima dell'urto, in modo prudente** (branch `seen-ahead`,
+  2026-10-07). In un viaggio, qualcosa che il sensore di profondità
+  continua a vedere nella corsia entro 0.30 m (in almeno metà dei frame
+  degli ultimi 0.6 s, tre almeno) va sul libro dove la mappa ha pavimento
+  libero, nessun muro della mappa entro 0.15 m e nessun drop sul libro
+  entro 0.5 m; lo stallo "scuff" che la prima volta era venuto con lei
+  resta fuori. Sul banco quack-rl (420 viaggi) lo stick è passato
+  dall'89.8 % al 94.3 % di arrivi, ribaltamenti 35 -> 16; il pilota v3-r6
+  dal 90.2 % al 94.0 %, 10 -> 4. Lo stesso A/B di sopra contro `main`
+  (2e3979e):
+
+  | | apartment | casa_arredata | casa_ingombra | cadute | s medi (apartment / arredata / ingombra) |
+  |---|---|---|---|---|---|
+  | `main` | 24 / 24 | 24 / 24 | 9 / 12 | 1 | 113 / 104 / 90 |
+  | `seen-ahead` | 24 / 24 | 24 / 24 | 9 / 12 | 0 | 111 / 101 / 122 |
+
+  Ha registrato 5–13 cose per giro in apartment, 33 nei due giri di
+  casa_ingombra, nessuna in casa_arredata; la caduta di `main` è stata una
+  svolta sul posto nel corridoio di apartment, senza buchi vicino. In
+  casa_ingombra i viaggi sono stati più lunghi, attorno a ciò che era sul
+  libro.
+
 - **Provato e non tenuto: il go_to registra ciò che incontra** (branch
   `journey-books`). Registrare ciò che il sensore vede davanti prima
   dell'urto, uno stallo "scuff" (un passo che ha fatto meno del 40 % di un

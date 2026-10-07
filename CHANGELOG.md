@@ -18,13 +18,13 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   the guard sees is faced and booked after a 2 s stand (on a journey it
   used to be seen walking and never booked: 31 turns at a stairwell on the
   MuJoCo twin); and before "no way", one more plan at the tightest
-  margins the body allows. (Booking what is seen ahead before the bump and
-  a "scuff" stall were here too: on the twin's A/B against `main` they cost
-  arrivals and falls, and main's touch stall replaces them, 2026-10-07.) On the quack-rl bench (420 journeys)
+  margins the body allows. (A "scuff" stall and an unfiltered booking ahead
+  were here too: on the twin's A/B against `main` they cost arrivals and
+  falls; main's touch stall and prudent booking ahead replace them,
+  2026-10-07.) On the quack-rl bench (420 journeys)
   the stick went from 79.0 % to 95.7 % arrived with all of them, and is at
-  89.8 % with main's rules in their place (tip-overs 73 -> 9 -> 35, most in
-  the clutter families): the bench and the MuJoCo twin disagree on
-  booking ahead, and the twin decides. The paper twin's gate is unchanged.
+  89.8 % with main's touch stall in their place, 94.3 % with main's
+  prudent booking ahead back (tip-overs 73 -> 9 -> 35 -> 16). The paper twin's gate is unchanged.
 
 - **The pilot** (experimental, branch `rl-nav`; docs/rl-pilot.md): a
   learned policy for the stick's legs (`QK_RL_POLICY`), the observation
@@ -60,6 +60,11 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   apartment's coffee table the body had pushed on the edge for minutes
   while the pose slid 0.3 m (MuJoCo twin). The step log carries the lane
   obstacle (`ahead`) and odometry.
+- **On a journey, what the sensor keeps seeing ahead is booked before
+  the bump**: within 0.30 m in the lane, where the map has free floor, no
+  map wall within 0.15 m and no booked drop within 0.5 m. MuJoCo twin A/B
+  against main: 48/48 and casa_ingombra 9/12 for both, falls 0 against 1;
+  quack-rl bench: the stick 89.8 -> 94.3 %. See docs/results.md.
 - **A walked lane yields to a booked drop within 0.20 m** (was 0.12):
   casa_arredata's bath route kept 9–12 cm from the stairwell's unbooked
   north-east corner, where the twin's duck fell twice; now 16 cm, no leg

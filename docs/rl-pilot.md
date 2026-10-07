@@ -234,8 +234,11 @@ after an A/B on the release protocol (below):
 - two forward steps in a row with something in the lane **within
   0.15 m** (most of the last 0.6 s of frames) are a stall: the stick turns
   and books it, unless a map wall or a booked drop is near (main's touch
-  stall, 2026-10-07; booking what is seen ahead at 0.30 m and the 40 %
-  "scuff" stall were tried here and lost the twin's A/B against `main`);
+  stall, 2026-10-07; the 40 % "scuff" stall was tried here and lost the
+  twin's A/B against `main`);
+- something the sensor keeps seeing in the lane within **0.30 m**, where
+  the map has free floor, no map wall within 0.15 m and no booked drop
+  within 0.5 m, is **booked before the bump** (main's, 2026-10-07);
 - before "no way" on a journey (not on the exploration's travel, which
   keeps its margins beside rims it is still drawing), **one more plan at
   the tightest margins** the body
@@ -248,8 +251,9 @@ with the booking ahead and the scuff. With main's touch stall in their
 place (2026-10-07, after the twin's A/B against `main` in
 docs/results.md, "Overhangs and stairwell corners"): the stick 89.8 %,
 tip-overs 35 (clutter 14, mixed 12), bumps 6.9 a journey; the pilot v3-r6
-90.2 %, tip-overs 10. The bench rewards booking ahead, the MuJoCo twin did
-not; the twin is the closer to the duck.
+90.2 %, tip-overs 10. With the prudent booking ahead back (main's,
+2026-10-07, after its own A/B on the twin: 48/48 for both, no fall against
+main's one): the stick 94.3 %, tip-overs 16; the pilot 94.0 %, tip-overs 4.
 On the release protocol, the same day and the same robotd, three houses
 (house2, casa_libera, casa_arredata): go_to 51/51 against main's 45/51,
 homecoming 9/9 for both, exploration's coverage alike. With these rules

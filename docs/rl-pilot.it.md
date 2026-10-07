@@ -249,9 +249,13 @@ release (sotto):
 - due passi avanti di fila con qualcosa nella corsia **entro 0,15 m**
   (nella maggior parte dei frame degli ultimi 0,6 s) sono uno stallo: lo
   stick gira e lo registra, a meno che vicino ci sia un muro della mappa o
-  un drop sul libro (lo stallo del tocco di main, 2026-10-07; registrare
-  ciò che si vede davanti a 0,30 m e lo stallo "scuff" al 40 % sono stati
-  provati qui e hanno perso l'A/B del gemello contro `main`);
+  un drop sul libro (lo stallo del tocco di main, 2026-10-07; lo stallo
+  "scuff" al 40 % è stato provato qui e ha perso l'A/B del gemello contro
+  `main`);
+- qualcosa che il sensore continua a vedere nella corsia entro **0,30 m**,
+  dove la mappa ha pavimento libero, nessun muro della mappa entro 0,15 m
+  e nessun drop sul libro entro 0,5 m, va **sul libro prima dell'urto**
+  (di main, 2026-10-07);
 - prima di "nessuna strada" in un viaggio (non negli spostamenti
   dell'esplorazione, che tengono i loro margini accanto ai bordi che stanno
   ancora disegnando), **un ultimo piano con i margini più
@@ -265,8 +269,10 @@ con il libro in anticipo e lo scuff. Con lo stallo del tocco di main al
 loro posto (2026-10-07, dopo l'A/B del gemello contro `main` in
 docs/results.it.md, "Sporgenze e angoli dei vani scala"): lo stick
 89,8 %, ribaltamenti 35 (clutter 14, mixed 12), 6,9 urti a viaggio; il
-pilota v3-r6 90,2 %, ribaltamenti 10. Il banco premia il libro in
-anticipo, il gemello MuJoCo no; il gemello è il più vicino alla papera.
+pilota v3-r6 90,2 %, ribaltamenti 10. Con il libro in anticipo prudente di
+nuovo (di main, 2026-10-07, dopo il suo A/B sul gemello: 48/48 per
+entrambi, nessuna caduta contro una di main): lo stick 94,3 %,
+ribaltamenti 16; il pilota 94,0 %, ribaltamenti 4.
 Sul protocollo di release, stesso giorno e stesso robotd, tre case (house2,
 casa_libera, casa_arredata): go_to 51/51 contro 45/51 di main, homecoming
 9/9 per entrambi, copertura dell'esplorazione uguale. Con queste regole

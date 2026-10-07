@@ -21,13 +21,14 @@ carta, mai su una papera fisica; i dettagli sono in
   sosta di 2 s (in un viaggio era vista camminando e mai registrata: 31
   giri davanti a una tromba delle scale sul gemello MuJoCo); e prima di
   "nessuna strada", un ultimo piano con i margini più stretti che il corpo
-  permette. (Qui c'erano anche il libro di ciò che si vede prima dell'urto
-  e lo stallo "scuff": nell'A/B del gemello contro `main` costavano arrivi
-  e cadute, e lo stallo del tocco di main li sostituisce, 2026-10-07.) Sul banco quack-rl (420 viaggi) lo
+  permette. (Qui c'erano anche lo stallo "scuff" e un libro in anticipo
+  senza filtri: nell'A/B del gemello contro `main` costavano arrivi e
+  cadute; lo stallo del tocco e il libro in anticipo prudente di main li
+  sostituiscono, 2026-10-07.) Sul banco quack-rl (420 viaggi) lo
   stick era passato dal 79,0 % al 95,7 % di arrivi con tutte, ed è
-  all'89,8 % con le regole di main al loro posto (ribaltamenti 73 -> 9 ->
-  35, quasi tutti nelle famiglie col disordine): banco e gemello MuJoCo non
-  sono d'accordo sul registrare in anticipo, e decide il gemello. La soglia
+  all'89,8 % con lo stallo del tocco di main al loro posto, al 94,3 % con
+  il libro in anticipo prudente di main di nuovo (ribaltamenti 73 -> 9 ->
+  35 -> 16). La soglia
   del gemello di carta non cambia.
 
 - **Il pilota** (sperimentale, branch `rl-nav`; docs/rl-pilot.it.md): una
@@ -66,6 +67,12 @@ carta, mai su una papera fisica; i dettagli sono in
   libro entro 0.5 m. Sotto il tavolino di apartment il corpo spingeva sul
   bordo per minuti mentre la posa scivolava di 0.3 m (gemello MuJoCo). Il
   log del passo porta l'ostacolo nella corsia (`ahead`) e l'odometria.
+- **In un viaggio, ciò che il sensore continua a vedere davanti va sul
+  libro prima dell'urto**: entro 0.30 m nella corsia, dove la mappa ha
+  pavimento libero, nessun muro della mappa entro 0.15 m e nessun drop sul
+  libro entro 0.5 m. A/B sul gemello MuJoCo contro main: 48/48 e
+  casa_ingombra 9/12 per entrambi, cadute 0 contro 1; banco quack-rl: lo
+  stick 89.8 -> 94.3 %. Vedi docs/results.it.md.
 - **Una corsia percorsa cede a un drop sul libro entro 0.20 m** (era
   0.12): il percorso del bagno di casa_arredata passava a 9–12 cm
   dall'angolo nord-est non registrato del vano scala, dove la papera del
