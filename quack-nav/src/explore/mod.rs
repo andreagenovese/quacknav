@@ -1387,6 +1387,10 @@ pub struct Job {
     /// The stick's last pose, and its steps in a row that did not move it.
     stick_last: Option<(f64, f64)>,
     stick_stalls: u32,
+    /// The last leg was a forward step, and the steps in a row that ended
+    /// with the nose against something (see `stick_leg`).
+    stick_last_step: bool,
+    stick_touches: u32,
     /// Odometry walked since the stick's last stand, and where it was.
     stick_since_stand: f64,
     stick_odom_at: Option<(f64, f64)>,
@@ -1533,6 +1537,8 @@ impl Job {
             stick_steps: 0,
             stick_last: None,
             stick_stalls: 0,
+            stick_last_step: false,
+            stick_touches: 0,
             stick_since_stand: 0.0,
             stick_odom_at: None,
             stick_stand_s: STICK_STAND_S,

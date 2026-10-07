@@ -32,6 +32,18 @@ const STEP_S: f64 = 0.6;
 /// row, and the body turns in place to the route instead.
 const STALL_M: f64 = 0.01;
 const STALLS_TURN: u32 = 3;
+/// On a journey: something in the body's lane this near, in most of the
+/// last [`TOUCH_WITHIN`]'s frames, is the nose against it ...
+const TOUCH_M: f64 = 0.15;
+const TOUCH_WITHIN: std::time::Duration = std::time::Duration::from_millis(600);
+/// ... and after this many forward steps in a row, a stall.
+const TOUCHES_TURN: u32 = 2;
+/// What the nose met is not booked when a map wall is this near it (the
+/// map has it, give or take the pose: a point booked beside a wall pushes
+/// the route away from it, toward whatever is on the other side) ...
+const TOUCH_WALL_NEAR_M: f64 = 0.15;
+/// ... nor this near a booked drop: the way past the hole keeps its width.
+const TOUCH_DROP_NEAR_M: f64 = 0.50;
 /// The sensor's hole guard: a true hole within the step's reach and this.
 const DROP_GUARD_MARGIN_M: f64 = 0.15;
 /// A hole seen this near a booked rim point is that rim: not booked again.
@@ -126,13 +138,37 @@ impl Job {
         let stalled = self.stick_last.is_some_and(|p| dist2(p, (x, y)) < STALL_M);
         self.stick_stalls = if stalled { self.stick_stalls + 1 } else { 0 };
         self.stick_last = Some((x, y));
+        // ... and, on a journey, a nose against something is a stall too,
+        // however far the pose says the body went: under a low table the
+        // body pushes on its edge and slides along it a few centimetres a
+        // step, never the centimetre the rule above asks, while the pose
+        // slides with it (apartment's coffee table, MuJoCo 2026-10-07: the
+        // sensor saw the edge at 0.10 m for 40 steps; another round, the
+        // pose 0.3 m off after three minutes of it, then the hole). The
+        // sensor's word, two steps in a row: turn, and book what it saw.
+        let touch = if self.stick_books || !self.stick_last_step { None } else { robot.cliff().and_then(|c| touching(&c, robot.now())) };
+        self.stick_touches = if touch.is_some() { self.stick_touches + 1 } else { 0 };
+        self.stick_last_step = false;
+        let mut booked_touch = false;
+        if let (Some(o), true) = (touch, self.stick_touches >= TOUCHES_TURN) {
+            self.stick_touches = 0;
+            self.stick_stalls = STALLS_TURN;
+            booked_touch = true;
+            let a = yaw + o.bearing;
+            let at = (x + (o.range_m + OBSTACLE_RADIUS_M) * a.cos(), y + (o.range_m + OBSTACLE_RADIUS_M) * a.sin());
+            let book = self.touch_bookable(&*robot, (x + o.range_m * a.cos(), y + o.range_m * a.sin()), at);
+            if book {
+                self.remember_local(at, OBSTACLE_RADIUS_M);
+            }
+            tracing::info!(at = ?(x, y, yaw), seen = ?at, range_m = format!("{:.2}", o.range_m), booked = book, "map explore: stick: the nose against something the map does not have; turning");
+        }
         // ... and what it pushed against goes on the books, at the nose:
         // the map says free, the body says not — a low box the map does
         // not hold, or a wall where the pose's error puts it (house2's
         // office door, MuJoCo 2026-09-28: the pose 0.2 m off, the body
         // against the wall beside the doorway for the whole budget, six
         // rounds in six). The route re-planned from here goes round it.
-        if self.stick_stalls >= STALLS_TURN {
+        if self.stick_stalls >= STALLS_TURN && !booked_touch {
             let nose = (x + BUMP_AHEAD_M * yaw.cos(), y + BUMP_AHEAD_M * yaw.sin());
             self.remember_local(nose, OBSTACLE_RADIUS_M);
             tracing::info!(at = ?(x, y, yaw), booked = ?nose, "map explore: stick: bumped; what the nose met goes on the books");
@@ -145,7 +181,7 @@ impl Job {
             // (the oracle's run, MuJoCo 2026-09-28) — a turn read off it
             // overshoots, and the next step is aimed wrong.
             self.stick_stalls = 0;
-            let want = if stalled { err.abs().max(0.35) } else { err.abs() };
+            let want = if stalled || booked_touch { err.abs().max(0.35) } else { err.abs() };
             let turned = self.stick_turn(robot, err.signum(), want);
             tracing::info!(at = ?(x, y, yaw), look = ?look, err_deg = format!("{:.0}", err.to_degrees()), turned_deg = format!("{:.0}", turned.to_degrees()), "map explore: stick: turn");
             // ... and a stand after it: the mapper corrects the pose at the
@@ -190,8 +226,15 @@ impl Job {
         } else {
             let vyaw = (YAW_GAIN * err).clamp(-0.7, 0.7);
             let _ = robot.blind_move(&json!({"vx": 0.3, "vyaw": vyaw, "duration_s": STEP_S}));
+            self.stick_last_step = true;
             handle.update(|s| s.legs += 1);
-            tracing::info!(at = ?(x, y, yaw), look = ?look, err_deg = format!("{:.0}", err.to_degrees()), vyaw, "map explore: stick: step");
+            let ahead = robot.cliff().and_then(|c| {
+                let now = robot.now();
+                let frames = c.recent.iter().filter(|f| now.saturating_duration_since(f.at) <= std::time::Duration::from_millis(600)).count();
+                c.obstacle_in_lane_walking(now, 0.0, BLIND_DROP_LANE_M, 0.6, std::time::Duration::from_millis(600), 1).map(|o| (o.range_m, frames))
+            });
+            let odom = odom_pose(&*robot);
+            tracing::info!(at = ?(x, y, yaw), look = ?look, err_deg = format!("{:.0}", err.to_degrees()), vyaw, ahead = ?ahead.map(|(r, n)| (format!("{r:.2}"), n)), odom = ?odom.map(|(a, b, _)| (format!("{a:.3}"), format!("{b:.3}"))), "map explore: stick: step");
         }
         self.stick_steps += 1;
         // A stand every [`STAND_EVERY_M`] walked, by odometry: at every sixth
@@ -215,5 +258,91 @@ impl Job {
             }
         }
         None
+    }
+}
+
+/// The nearest thing in the body's lane within [`TOUCH_M`], when most of
+/// the frames of the last [`TOUCH_WITHIN`] (three at least) see one there.
+fn touching(c: &crate::cliff::CliffStatus, now: Instant) -> Option<crate::cliff::Obstacle> {
+    let frames: Vec<&crate::cliff::CliffFrame> = c.recent.iter().filter(|f| now.saturating_duration_since(f.at) <= TOUCH_WITHIN).collect();
+    let hits: Vec<crate::cliff::Obstacle> = frames
+        .iter()
+        .filter_map(|f| {
+            f.obstacles
+                .iter()
+                .filter(|o| {
+                    let (along, across) = (o.range_m * o.bearing.cos(), o.range_m * o.bearing.sin());
+                    along > 0.0 && along <= TOUCH_M && across.abs() <= BLIND_DROP_LANE_M
+                })
+                .min_by(|a, b| a.range_m.total_cmp(&b.range_m))
+                .copied()
+        })
+        .collect();
+    if hits.len() < 3 || 2 * hits.len() <= frames.len() {
+        return None;
+    }
+    hits.into_iter().min_by(|a, b| a.range_m.total_cmp(&b.range_m))
+}
+
+impl Job {
+    /// Whether what the nose met at `face` (booked at `at`) goes on the
+    /// books: not when the map has a wall near it, nor beside a booked drop.
+    fn touch_bookable(&self, robot: &dyn Body, face: (f64, f64), at: (f64, f64)) -> bool {
+        if self.local.iter().any(|(q, r)| *r >= DROP_RADIUS_M && dist2(*q, at) < TOUCH_DROP_NEAR_M) {
+            return false;
+        }
+        if self.local.iter().any(|(q, _)| dist2(*q, at) < LOCAL_DEDUP_M) {
+            return false;
+        }
+        let Some(grid) = robot.frame().and_then(|f| f.grid().ok()) else { return false };
+        !(0..=8).any(|i| {
+            let (d, b) = if i == 0 { (0.0, 0.0) } else { (TOUCH_WALL_NEAR_M, f64::from(i) * std::f64::consts::FRAC_PI_4) };
+            matches!(grid.at(face.0 + d * b.cos(), face.1 + d * b.sin()), Some(Cell::Wall))
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cliff::{CliffFrame, CliffStatus, Obstacle};
+
+    fn frames(now: Instant, hits: &[Option<(f64, f64)>]) -> CliffStatus {
+        let recent = hits
+            .iter()
+            .enumerate()
+            .map(|(i, h)| CliffFrame {
+                seq: i as u64,
+                at: now - std::time::Duration::from_millis(60 * (hits.len() - i) as u64),
+                head_yaw: 0.0,
+                moving: true,
+                drops: vec![],
+                floors: vec![],
+                obstacles: h.map(|(range_m, bearing)| Obstacle { bearing, range_m }).into_iter().collect(),
+                floor_beams: 0,
+                judged: 0,
+            })
+            .collect();
+        CliffStatus { recent, ..Default::default() }
+    }
+
+    #[test]
+    fn the_nose_against_a_table_edge_is_a_touch() {
+        let now = Instant::now();
+        // apartment's coffee table: the edge at 0.10 m in 7-9 of 8 frames.
+        let c = frames(now, &[Some((0.10, 0.0)), Some((0.11, 0.05)), None, Some((0.10, -0.02)), Some((0.12, 0.0)), Some((0.10, 0.0)), Some((0.13, 0.1)), Some((0.10, 0.0))]);
+        let o = touching(&c, now).expect("a touch");
+        assert!((o.range_m - 0.10).abs() < 1e-9);
+    }
+
+    #[test]
+    fn far_off_the_lane_or_a_few_frames_is_no_touch() {
+        let now = Instant::now();
+        // Approaching: 0.3 m off.
+        assert!(touching(&frames(now, &[Some((0.30, 0.0)); 8]), now).is_none());
+        // A door jamb beside the body: 0.2 m to the side, outside its lane.
+        assert!(touching(&frames(now, &[Some((0.21, 1.2)); 8]), now).is_none());
+        // A stray return or two.
+        assert!(touching(&frames(now, &[Some((0.10, 0.0)), None, None, Some((0.10, 0.0)), None, None, None, None]), now).is_none());
     }
 }
