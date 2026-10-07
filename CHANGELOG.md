@@ -34,6 +34,11 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   apartment's coffee table the body had pushed on the edge for minutes
   while the pose slid 0.3 m (MuJoCo twin). The step log carries the lane
   obstacle (`ahead`) and odometry.
+- **On a journey, a turn in place stops short by the coast it learns**:
+  the map's yaw at the next leg says how far the last turn really went
+  (35–44° past odometry's word on the MuJoCo twin). Twin A/B against main:
+  48/48 both, casa_ingombra 11/12 against 10/12, no fall either side,
+  journeys 9–22 % faster, half the turns and 5 dithers instead of 232.
 - **On a journey, what the sensor keeps seeing ahead is booked before
   the bump**: within 0.30 m in the lane, where the map has free floor, no
   map wall within 0.15 m and no booked drop within 0.5 m. MuJoCo twin A/B

@@ -365,6 +365,25 @@ sulle stesse mappe.
   casa_ingombra i viaggi sono stati più lunghi, attorno a ciò che era sul
   libro.
 
+- **Una svolta sul posto che impara il suo slancio** (63385be, branch
+  `stick-dither`). Una svolta chiusa sull'odometria finiva 35–44° oltre,
+  sul gemello MuJoCo, qualunque fosse la sua ampiezza: 249 delle 432
+  svolte dei viaggi di `main` erano seguite da una svolta nel verso
+  opposto, la papera che oscillava di ±40° davanti a bordi e tavoli, e
+  l'unica caduta di `main` nell'A/B precedente è arrivata in una di queste
+  oscillazioni. In un viaggio il yaw della mappa al passo successivo ora
+  dice quanto il corpo è andato davvero; l'eccesso entra in uno slancio
+  (17° all'inizio, al massimo 40°) di cui le svolte successive si fermano
+  prima — imparato, così lo fisserà l'andatura della papera stessa. Lo
+  stesso A/B contro `main` (2d4574d):
+
+  | | apartment | casa_arredata | casa_ingombra | cadute | s medi (apartment / arredata / ingombra) | svolte / annullate (apartment + arredata) |
+  |---|---|---|---|---|---|---|
+  | `main` | 24 / 24 | 24 / 24 | 10 / 12 | 0 | 112 / 98 / 109 | 398 / 232 |
+  | `stick-dither` | 24 / 24 | 24 / 24 | 11 / 12 | 0 | 90 / 89 / 87 | 200 / 5 |
+
+  Lo slancio si è assestato fra 25° e 35°.
+
 - **Provato e non tenuto: il go_to registra ciò che incontra** (branch
   `journey-books`). Registrare ciò che il sensore vede davanti prima
   dell'urto, uno stallo "scuff" (un passo che ha fatto meno del 40 % di un

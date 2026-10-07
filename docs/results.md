@@ -352,6 +352,23 @@ control on the same maps.
   apartment's corridor, no hole near. casa_ingombra's journeys took longer
   round what was booked.
 
+- **A turn in place that learns its coast** (63385be, branch
+  `stick-dither`). A turn closed on odometry ended 35–44° past it on the
+  MuJoCo twin, whatever its size: 249 of `main`'s 432 journey turns were
+  followed by a turn the other way, the duck dithering ±40° at rims and
+  tables, and the earlier A/B's one fall of `main` came in such a dither.
+  On a journey the map's yaw at the next leg now says how far the body
+  went; the excess is folded into a coast (prior 17°, at most 40°) the
+  next turns stop short by — learned, so the duck's own gait will set it.
+  The same A/B against `main` (2d4574d):
+
+  | | apartment | casa_arredata | casa_ingombra | falls | mean s (apartment / arredata / ingombra) | turns / undone (apartment + arredata) |
+  |---|---|---|---|---|---|---|
+  | `main` | 24 / 24 | 24 / 24 | 10 / 12 | 0 | 112 / 98 / 109 | 398 / 232 |
+  | `stick-dither` | 24 / 24 | 24 / 24 | 11 / 12 | 0 | 90 / 89 / 87 | 200 / 5 |
+
+  The coast settled at 25–35°.
+
 - **Tried and not kept: go_to books what it meets** (branch
   `journey-books`). Booking what the sensor sees ahead before the bump, a
   "scuff" stall (a step that moved under 40 % of a step), facing a hole
