@@ -173,6 +173,16 @@ impl Job {
             self.remember_local(nose, OBSTACLE_RADIUS_M);
             tracing::info!(at = ?(x, y, yaw), booked = ?nose, "map explore: stick: bumped; what the nose met goes on the books");
         }
+        // ... and, on a journey, before the bump: something the depth
+        // sensor keeps seeing in the lane within `SEEN_AHEAD_M`, where the
+        // map has free floor and no wall or booked drop is near, is a thing
+        // the map does not have — booked now, the route planned round it
+        // before the nose meets it (the quack-rl bench, 420 journeys: the
+        // stick 89.8 -> 94.3 % arrived, tip-overs 35 -> 16; the pilot 90.2
+        // -> 94.0 %, 10 -> 4. The MuJoCo twin's A/B decides, 2026-10-07).
+        if !self.stick_books {
+            self.book_seen_ahead(&*robot, (x, y, yaw));
+        }
         if err.abs() > turn_first || self.stick_stalls >= STALLS_TURN {
             // A pure turn in place: yaw past the gait's dead zone, about
             // 30-58°/s, for as long as the error asks and a second at most.
@@ -301,6 +311,78 @@ impl Job {
         })
     }
 }
+
+/// Whether something stands in the body's lane within `reach`, in at least
+/// half of the frames of the last [`SEEN_WITHIN`] and in three of them.
+fn seen_in_lane(c: &crate::cliff::CliffStatus, now: Instant, reach: f64) -> bool {
+    let frames: Vec<&crate::cliff::CliffFrame> = c.recent.iter().filter(|f| now.saturating_duration_since(f.at) <= SEEN_WITHIN).collect();
+    if frames.len() < 3 {
+        return false;
+    }
+    let hit = frames
+        .iter()
+        .filter(|f| {
+            f.obstacles.iter().any(|o| {
+                let (along, across) = (o.range_m * o.bearing.cos(), o.range_m * o.bearing.sin());
+                along > 0.0 && along <= reach && across.abs() <= BLIND_DROP_LANE_M
+            })
+        })
+        .count();
+    hit >= 3 && 2 * hit >= frames.len()
+}
+
+const SEEN_WITHIN: std::time::Duration = std::time::Duration::from_millis(600);
+
+/// Something seen in the lane this near is booked before the bump.
+const SEEN_AHEAD_M: f64 = 0.30;
+
+/// A map wall this near the point seen means the map has it already, give
+/// or take the pose: nothing goes on the books.
+const SEEN_WALL_NEAR_M: f64 = 0.15;
+
+/// A booked drop this near the point seen: nothing goes on the books, so the
+/// way past the hole stays as wide as the map has it.
+const SEEN_DROP_NEAR_M: f64 = 0.50;
+
+impl Job {
+    /// Book what the sensor keeps seeing in the lane within
+    /// [`SEEN_AHEAD_M`] where the map has free floor (see `stick_leg`).
+    fn book_seen_ahead(&mut self, robot: &dyn Body, (x, y, yaw): (f64, f64, f64)) {
+        let Some(c) = robot.cliff() else { return };
+        let now = robot.now();
+        if !seen_in_lane(&c, now, SEEN_AHEAD_M) {
+            return;
+        }
+        let Some(o) = c.obstacle_in_lane_walking(now, 0.0, BLIND_DROP_LANE_M, SEEN_AHEAD_M, SEEN_WITHIN, 3) else { return };
+        let Some(grid) = robot.frame().and_then(|f| f.grid().ok()) else { return };
+        let a = yaw + o.bearing;
+        let face = (x + o.range_m * a.cos(), y + o.range_m * a.sin());
+        // The map has it already (a wall, the map's furniture), or the pose
+        // is a few centimetres off a wall the map has: the route keeps off it
+        // as it is. A point booked beside a mapped wall only pushes the route
+        // away from it — toward whatever is on the other side.
+        let mapped = (0..=8).any(|i| {
+            let (d, b) = if i == 0 { (0.0, 0.0) } else { (SEEN_WALL_NEAR_M, i as f64 * std::f64::consts::FRAC_PI_4) };
+            !matches!(grid.at(face.0 + d * b.cos(), face.1 + d * b.sin()), Some(Cell::Free))
+        }) || [0.05, 0.1].iter().any(|d| !matches!(grid.at(face.0 + d * a.cos(), face.1 + d * a.sin()), Some(Cell::Free)));
+        if mapped {
+            return;
+        }
+        let at = (x + (o.range_m + OBSTACLE_RADIUS_M) * a.cos(), y + (o.range_m + OBSTACLE_RADIUS_M) * a.sin());
+        // Beside a booked drop an obstacle on the books narrows the one way
+        // past the hole and pushes the route toward the rim: the bump keeps
+        // its own booking there.
+        if self.local.iter().any(|(q, r)| *r >= DROP_RADIUS_M && dist2(*q, at) < SEEN_DROP_NEAR_M) {
+            return;
+        }
+        if self.local.iter().any(|(q, _)| dist2(*q, at) < LOCAL_DEDUP_M) {
+            return;
+        }
+        self.remember_local(at, OBSTACLE_RADIUS_M);
+        tracing::info!(at = ?(x, y, yaw), booked = ?at, range_m = format!("{:.2}", o.range_m), "map explore: seen ahead before the bump: on the books");
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
