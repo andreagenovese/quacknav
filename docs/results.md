@@ -293,7 +293,7 @@ On the MuJoCo twin, rounds of journeys on the books of an earlier
 exploration (`final_house.py`, `ROUNDS_ONLY=1`), the frozen `main` as the
 control on the same maps.
 
-- **The nose against something the map does not have** (d942590). Under
+- **The nose against something the map does not have** (44f9902). Under
   apartment's coffee table (its top 0.14–0.22 m above the floor, the head
   at 0.25 m) the map has free floor; the body pushed on the table's edge
   for minutes, sliding a few centimetres a step, so the "under a
@@ -308,7 +308,7 @@ control on the same maps.
   rules). Four rounds a house: it fired once a round in apartment, at the
   table (24 of 24 journeys arrived), never in casa_arredata, and 15 times
   in casa_ingombra (11 of 11, `main` 4 of 5).
-- **A walked lane yields to a booked drop within 0.20 m** (1eb83ba, was
+- **A walked lane yields to a booked drop within 0.20 m** (9bf7356, was
   0.12). casa_arredata's stairwell had its north rim booked to x 2.45 and
   nothing at its north-east corner; the lanes walked there kept the bath
   route 9–12 cm from the true hole (`route_on_map` with `TRUTH_HOLES`), and
@@ -317,6 +317,21 @@ control on the same maps.
   the saved tours of apartment, casa_arredata or casa_libera grew or
   closed. Filling the gaps between booked rim points did nothing there:
   the chord runs inside the hole, not round its corner.
+- **The A/B, identical tests** (`scripts/twin/houses/final_ab.sh`, 2026-10-07): the frozen
+  `main` (aa400b0) and this branch side by side, two twins at a time on
+  the same house, the same books, four rounds a house, and casa_ingombra
+  two rounds each.
+
+  | | apartment | casa_arredata | casa_ingombra | falls | median s (apartment / arredata) |
+  |---|---|---|---|---|---|
+  | `main` | 23 / 24 | 24 / 24 | 7 / 12 (3 refused) | 1 | 122 / 109 |
+  | this branch | 24 / 24 | 24 / 24 | 10 / 12 (1 refused) | 0 | 120 / 99 |
+
+  The touch fired 2–4 times a round in apartment and 12 times in
+  casa_ingombra, never in casa_arredata; `main`'s one miss in apartment was
+  g2 through the coffee table, its fall in casa_ingombra on the way to the
+  office.
+
 - **Tried and not kept: go_to books what it meets** (branch
   `journey-books`). Booking what the sensor sees ahead before the bump, a
   "scuff" stall (a step that moved under 40 % of a step), facing a hole

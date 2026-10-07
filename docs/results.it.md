@@ -302,7 +302,7 @@ Sul gemello MuJoCo, giri di viaggi sui libri di un'esplorazione precedente
 (`final_house.py`, `ROUNDS_ONLY=1`), con `main` congelato come controllo
 sulle stesse mappe.
 
-- **Il naso contro qualcosa che la mappa non ha** (d942590). Sotto il
+- **Il naso contro qualcosa che la mappa non ha** (44f9902). Sotto il
   tavolino del soggiorno di apartment (il piano a 0.14–0.22 m dal
   pavimento, la testa a 0.25 m) la mappa ha pavimento libero; il corpo
   spingeva sul bordo del tavolo per minuti, scivolando qualche centimetro
@@ -318,7 +318,7 @@ sulle stesse mappe.
   sue regole). Quattro giri per casa: è scattata una volta per giro in
   apartment, al tavolino (24 viaggi su 24 arrivati), mai in
   casa_arredata, e 15 volte in casa_ingombra (11 su 11, `main` 4 su 5).
-- **Una corsia percorsa cede a un drop sul libro entro 0.20 m** (1eb83ba,
+- **Una corsia percorsa cede a un drop sul libro entro 0.20 m** (9bf7356,
   era 0.12). Il vano scala di casa_arredata aveva il bordo nord sul libro
   fino a x 2.45 e niente all'angolo nord-est; le corsie percorse lì
   tenevano il percorso del bagno a 9–12 cm dal buco vero (`route_on_map`
@@ -328,6 +328,21 @@ sulle stesse mappe.
   apartment, casa_arredata e casa_libera si è allungata o chiusa.
   Riempire i vuoti fra i punti del bordo non è servito: la corda passa
   dentro il buco, non attorno al suo angolo.
+- **L'A/B, test identici** (`scripts/twin/houses/final_ab.sh`, 2026-10-07): `main`
+  congelato (aa400b0) e questo branch affiancati, due gemelli alla volta
+  sulla stessa casa, gli stessi libri, quattro giri per casa, e
+  casa_ingombra due giri ciascuno.
+
+  | | apartment | casa_arredata | casa_ingombra | cadute | s mediani (apartment / arredata) |
+  |---|---|---|---|---|---|
+  | `main` | 23 / 24 | 24 / 24 | 7 / 12 (3 rifiutati) | 1 | 122 / 109 |
+  | questo branch | 24 / 24 | 24 / 24 | 10 / 12 (1 rifiutato) | 0 | 120 / 99 |
+
+  Il tocco è scattato 2–4 volte per giro in apartment e 12 volte in
+  casa_ingombra, mai in casa_arredata; l'unico mancato arrivo di `main` in
+  apartment è g2 attraverso il tavolino, la sua caduta in casa_ingombra
+  sulla strada per lo studio.
+
 - **Provato e non tenuto: il go_to registra ciò che incontra** (branch
   `journey-books`). Registrare ciò che il sensore vede davanti prima
   dell'urto, uno stallo "scuff" (un passo che ha fatto meno del 40 % di un
