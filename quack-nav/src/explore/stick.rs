@@ -32,6 +32,11 @@ const STEP_S: f64 = 0.6;
 /// row, and the body turns in place to the route instead.
 const STALL_M: f64 = 0.01;
 const STALLS_TURN: u32 = 3;
+/// A turn in place's coast (see `learn_coast`): the weight of the newest
+/// turn, the most it may be, and where a journey starts.
+const COAST_LEARN: f64 = 0.3;
+const COAST_MAX_RAD: f64 = 0.7;
+pub(super) const COAST_PRIOR_RAD: f64 = 0.3;
 /// On a journey: something in the body's lane this near, in most of the
 /// last [`TOUCH_WITHIN`]'s frames, is the nose against it ...
 const TOUCH_M: f64 = 0.15;
@@ -88,7 +93,10 @@ impl Job {
     pub(super) fn stick_turn(&mut self, robot: &mut dyn Body, sign: f64, want: f64) -> f64 {
         let yaw_now = |robot: &dyn Body| odom_pose(robot).map(|p| p.2).or_else(|| robot.frame().map(|f| f.yaw));
         let Some(yaw0) = yaw_now(&*robot) else { return 0.0 };
-        let goal = (want - TURN_LEAD_RAD).max(0.05);
+        // On a journey, short of the goal by the coast measured on the
+        // turns before (see `learn_coast`).
+        let coast = if self.stick_books { 0.0 } else { self.stick_coast };
+        let goal = (want - TURN_LEAD_RAD - coast).max(0.05);
         let vyaw = quack_duck::body::TURN_IN_PLACE_RAD_S * sign;
         let started = robot.now();
         let budget = 2.0 * want / 0.5 + 1.0;
@@ -105,8 +113,28 @@ impl Job {
         turned
     }
 
+    /// What the body turned past the odometry's word on the last turn in
+    /// place, read off the map's yaw at the next leg, folded into the coast
+    /// the next turns stop short by. On the MuJoCo twin a turn closed on
+    /// odometry at 40° ended 35-44° further, whatever its size (main's logs,
+    /// 2026-10-07: 432 turns, 249 of them followed by a turn the other way
+    /// — the duck dithering ±40° at a rim or a table, and main's one fall of
+    /// the A/B in such a dither). Learned, not set: the duck's gait will
+    /// coast its own way.
+    fn learn_coast(&mut self, yaw: f64) {
+        let Some((yaw0, sign, turned)) = self.stick_turn_probe.take() else { return };
+        let seen = wrap(yaw - yaw0) * sign;
+        let extra = seen - turned;
+        if seen <= 0.0 || !(-0.5..=1.2).contains(&extra) {
+            return;
+        }
+        self.stick_coast = ((1.0 - COAST_LEARN) * self.stick_coast + COAST_LEARN * extra).clamp(0.0, COAST_MAX_RAD);
+        tracing::info!(turned_deg = format!("{:.0}", turned.to_degrees()), seen_deg = format!("{:.0}", seen.to_degrees()), coast_deg = format!("{:.0}", self.stick_coast.to_degrees()), "map explore: stick: a turn's coast");
+    }
+
     /// One leg of the stick (see the module): `None`, the job goes on.
     pub(super) fn stick_leg(&mut self, handle: &ExploreHandle, robot: &mut dyn Body, (x, y, yaw): (f64, f64, f64), f: &Frontier) -> Option<(State, String)> {
+        self.learn_coast(yaw);
         let look = f.path.iter().copied().find(|p| dist2(*p, (x, y)) >= LOOK_M).unwrap_or(f.stand);
         let err = wrap((look.1 - y).atan2(look.0 - x) - yaw);
         // Careful only beside a hole the sensor sees and the books do not
@@ -193,6 +221,9 @@ impl Job {
             self.stick_stalls = 0;
             let want = if stalled || booked_touch { err.abs().max(0.35) } else { err.abs() };
             let turned = self.stick_turn(robot, err.signum(), want);
+            if !self.stick_books {
+                self.stick_turn_probe = Some((yaw, err.signum(), turned));
+            }
             tracing::info!(at = ?(x, y, yaw), look = ?look, err_deg = format!("{:.0}", err.to_degrees()), turned_deg = format!("{:.0}", turned.to_degrees()), "map explore: stick: turn");
             // ... and a stand after it: the mapper corrects the pose at the
             // stands only, and a turn is where odometry drifts most.
