@@ -231,11 +231,11 @@ after an A/B on the release protocol (below):
 
 - a hole the guard sees and the books lack is **faced and booked** after
   a 2 s stand (walking frames never reached the books);
-- something the sensor keeps seeing in the lane within **0.30 m**, where
-  the map has free floor, is **booked before the bump**;
-- a leg that moved the body less than 40 % of a step counts as a stall
-  (a body pushing on a box slides along it), and a bump is booked **where
-  the sensor sees the thing**, not 15 cm ahead of the nose;
+- two forward steps in a row with something in the lane **within
+  0.15 m** (most of the last 0.6 s of frames) are a stall: the stick turns
+  and books it, unless a map wall or a booked drop is near (main's touch
+  stall, 2026-10-07; booking what is seen ahead at 0.30 m and the 40 %
+  "scuff" stall were tried here and lost the twin's A/B against `main`);
 - before "no way" on a journey (not on the exploration's travel, which
   keeps its margins beside rims it is still drawing), **one more plan at
   the tightest margins** the body
@@ -243,7 +243,13 @@ after an A/B on the release protocol (below):
   can pass, it passes, the hole guard watching every step.
 
 On the quack-rl bench (420 journeys) the stick went from 79.0 % to 95.7 %
-arrived, tip-overs from 73 to 9, bumps a journey from 12.6 to about 2.
+arrived, tip-overs from 73 to 9, bumps a journey from 12.6 to about 2,
+with the booking ahead and the scuff. With main's touch stall in their
+place (2026-10-07, after the twin's A/B against `main` in
+docs/results.md, "Overhangs and stairwell corners"): the stick 89.8 %,
+tip-overs 35 (clutter 14, mixed 12), bumps 6.9 a journey; the pilot v3-r6
+90.2 %, tip-overs 10. The bench rewards booking ahead, the MuJoCo twin did
+not; the twin is the closer to the duck.
 On the release protocol, the same day and the same robotd, three houses
 (house2, casa_libera, casa_arredata): go_to 51/51 against main's 45/51,
 homecoming 9/9 for both, exploration's coverage alike. With these rules

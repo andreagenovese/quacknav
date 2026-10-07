@@ -32,14 +32,24 @@ const STEP_S: f64 = 0.6;
 /// row, and the body turns in place to the route instead.
 const STALL_M: f64 = 0.01;
 const STALLS_TURN: u32 = 3;
+/// On a journey: something in the body's lane this near, in most of the
+/// last [`TOUCH_WITHIN`]'s frames, is the nose against it ...
+const TOUCH_M: f64 = 0.15;
+const TOUCH_WITHIN: std::time::Duration = std::time::Duration::from_millis(600);
+/// ... and after this many forward steps in a row, a stall.
+const TOUCHES_TURN: u32 = 2;
+/// What the nose met is not booked when a map wall is this near it (the
+/// map has it, give or take the pose: a point booked beside a wall pushes
+/// the route away from it, toward whatever is on the other side) ...
+const TOUCH_WALL_NEAR_M: f64 = 0.15;
+/// ... nor this near a booked drop: the way past the hole keeps its width.
+const TOUCH_DROP_NEAR_M: f64 = 0.50;
 /// The sensor's hole guard: a true hole within the step's reach and this.
 const DROP_GUARD_MARGIN_M: f64 = 0.15;
 /// A hole seen this near a booked rim point is that rim: not booked again.
 const KNOWN_RIM_M: f64 = 0.30;
 /// Where a bump is booked: this far ahead of the body's centre.
 const BUMP_AHEAD_M: f64 = 0.15;
-/// A bump is booked where the sensor sees something in the lane this near.
-const BUMP_SEEN_M: f64 = 0.35;
 /// A stand for the mapper every this far walked, and after a turn of this.
 const STAND_EVERY_M: f64 = 0.4;
 const STAND_AFTER_TURN_RAD: f64 = 0.5;
@@ -129,56 +139,45 @@ impl Job {
         // wall under the beak, and a curving step against it pushes for
         // ever (the paper twin, 2026-09-28: 878 steps on one spot, 8 cm
         // from the west wall). Three of them: turn in place instead.
-        // A leg that did not move the body — or, after a step, barely did:
-        // pushing against something the body slides along its face a few
-        // centimetres a step, and "under a centimetre" never counted it
-        // (casa_ingombra's doorway on the bench, 2026-10-06: 35 bumps
-        // against a box the map did not have, one booked).
-        let moved = self.stick_last.map(|p| dist2(p, (x, y)));
-        // The journey's rules (2026-10-06); the exploration's travel keeps
-        // its own, measured over its sessions — a scuff counts there as a
-        // move, a bump is booked at the nose, nothing seen ahead is booked.
-        let journey = !self.stick_books;
-        let stalled = moved.is_some_and(|m| m < STALL_M || (journey && self.stick_last_step && m < SCUFF_FRACTION * GAIT_M_PER_S * STEP_S));
+        let stalled = self.stick_last.is_some_and(|p| dist2(p, (x, y)) < STALL_M);
         self.stick_stalls = if stalled { self.stick_stalls + 1 } else { 0 };
         self.stick_last = Some((x, y));
+        // ... and, on a journey, a nose against something is a stall too,
+        // however far the pose says the body went: under a low table the
+        // body pushes on its edge and slides along it a few centimetres a
+        // step, never the centimetre the rule above asks, while the pose
+        // slides with it (apartment's coffee table, MuJoCo 2026-10-07: the
+        // sensor saw the edge at 0.10 m for 40 steps; another round, the
+        // pose 0.3 m off after three minutes of it, then the hole). The
+        // sensor's word, two steps in a row: turn, and book what it saw.
+        let touch = if self.stick_books || !self.stick_last_step { None } else { robot.cliff().and_then(|c| touching(&c, robot.now())) };
+        self.stick_touches = if touch.is_some() { self.stick_touches + 1 } else { 0 };
         self.stick_last_step = false;
-        // ... and what it pushed against goes on the books: the map says
-        // free, the body says not — a low box the map does not hold, or a
-        // wall where the pose's error puts it (house2's office door, MuJoCo
-        // 2026-09-28: the pose 0.2 m off, the body against the wall beside
-        // the doorway for the whole budget, six rounds in six). Where the
-        // depth sensor sees it in the lane, there; else at the nose. A
-        // point booked "at the nose" of a body sliding along a box's face
-        // fell past the box's corner, and the route went on through the
-        // box (the bench's doorway, 2026-10-06). The route re-planned from
-        // here goes round it.
+        let mut booked_touch = false;
+        if let (Some(o), true) = (touch, self.stick_touches >= TOUCHES_TURN) {
+            self.stick_touches = 0;
+            self.stick_stalls = STALLS_TURN;
+            booked_touch = true;
+            let a = yaw + o.bearing;
+            let at = (x + (o.range_m + OBSTACLE_RADIUS_M) * a.cos(), y + (o.range_m + OBSTACLE_RADIUS_M) * a.sin());
+            let book = self.touch_bookable(&*robot, (x + o.range_m * a.cos(), y + o.range_m * a.sin()), at);
+            if book {
+                self.remember_local(at, OBSTACLE_RADIUS_M);
+            }
+            tracing::info!(at = ?(x, y, yaw), seen = ?at, range_m = format!("{:.2}", o.range_m), booked = book, "map explore: stick: the nose against something the map does not have; turning");
+        }
+        // ... and what it pushed against goes on the books, at the nose:
+        // the map says free, the body says not — a low box the map does
+        // not hold, or a wall where the pose's error puts it (house2's
+        // office door, MuJoCo 2026-09-28: the pose 0.2 m off, the body
+        // against the wall beside the doorway for the whole budget, six
+        // rounds in six). The route re-planned from here goes round it.
         // The pilot keeps counting past three (it reads the count): booked
         // once, at the third.
-        if self.stick_stalls >= STALLS_TURN && (self.pilot.is_none() || self.stick_stalls == STALLS_TURN) {
-            let seen = robot
-                .cliff()
-                .filter(|_| journey)
-                .and_then(|c| c.obstacle_in_lane_walking(robot.now(), 0.0, BLIND_DROP_LANE_M, BUMP_SEEN_M, std::time::Duration::from_millis(1200), 1));
-            let at = match seen {
-                Some(o) => {
-                    let a = yaw + o.bearing;
-                    let r = o.range_m + OBSTACLE_RADIUS_M;
-                    (x + r * a.cos(), y + r * a.sin())
-                }
-                None => (x + BUMP_AHEAD_M * yaw.cos(), y + BUMP_AHEAD_M * yaw.sin()),
-            };
-            self.remember_local(at, OBSTACLE_RADIUS_M);
-            tracing::info!(at = ?(x, y, yaw), booked = ?at, seen = seen.is_some(), "map explore: stick: bumped; what the nose met goes on the books");
-        }
-        // ... and, better, before the bump: something the depth sensor sees
-        // in the lane within `SEEN_AHEAD_M`, frame after frame, where the
-        // map has free floor, is a thing the map does not have: it goes on
-        // the books now and the route is planned round it, a few
-        // centimetres before the nose would have met it (the user's eye on
-        // the MuJoCo twin, 2026-10-06: "it bumps, then corrects").
-        if journey {
-            self.book_seen_ahead(&*robot, (x, y, yaw));
+        if self.stick_stalls >= STALLS_TURN && !booked_touch && (self.pilot.is_none() || self.stick_stalls == STALLS_TURN) {
+            let nose = (x + BUMP_AHEAD_M * yaw.cos(), y + BUMP_AHEAD_M * yaw.sin());
+            self.remember_local(nose, OBSTACLE_RADIUS_M);
+            tracing::info!(at = ?(x, y, yaw), booked = ?nose, "map explore: stick: bumped; what the nose met goes on the books");
         }
         let before = crate::rlnav::trace::tracer().map(|_| crate::rlnav::trace::Snapshot::take(&*robot));
         let what;
@@ -205,7 +204,7 @@ impl Job {
             // (the oracle's run, MuJoCo 2026-09-28) — a turn read off it
             // overshoots, and the next step is aimed wrong.
             self.stick_stalls = 0;
-            let want = if stalled { err.abs().max(0.35) } else { err.abs() };
+            let want = if stalled || booked_touch { err.abs().max(0.35) } else { err.abs() };
             let turned = self.stick_turn(robot, err.signum(), want);
             tracing::info!(at = ?(x, y, yaw), look = ?look, err_deg = format!("{:.0}", err.to_degrees()), turned_deg = format!("{:.0}", turned.to_degrees()), "map explore: stick: turn");
             what = json!({"src": "stick", "act": if err > 0.0 { "turn_left" } else { "turn_right" }, "vyaw": quack_duck::body::TURN_IN_PLACE_RAD_S * err.signum(), "want": want, "turned": turned});
@@ -225,7 +224,13 @@ impl Job {
             let _ = robot.blind_move(&json!({"vx": 0.3, "vyaw": vyaw, "duration_s": STEP_S}));
             self.stick_last_step = true;
             handle.update(|s| s.legs += 1);
-            tracing::info!(at = ?(x, y, yaw), look = ?look, err_deg = format!("{:.0}", err.to_degrees()), vyaw, "map explore: stick: step");
+            let ahead = robot.cliff().and_then(|c| {
+                let now = robot.now();
+                let frames = c.recent.iter().filter(|f| now.saturating_duration_since(f.at) <= std::time::Duration::from_millis(600)).count();
+                c.obstacle_in_lane_walking(now, 0.0, BLIND_DROP_LANE_M, 0.6, std::time::Duration::from_millis(600), 1).map(|o| (o.range_m, frames))
+            });
+            let odom = odom_pose(&*robot);
+            tracing::info!(at = ?(x, y, yaw), look = ?look, err_deg = format!("{:.0}", err.to_degrees()), vyaw, ahead = ?ahead.map(|(r, n)| (format!("{r:.2}"), n)), odom = ?odom.map(|(a, b, _)| (format!("{a:.3}"), format!("{b:.3}"))), "map explore: stick: step");
             what = json!({"src": "stick", "act": "step", "vx": 0.3, "vyaw": vyaw, "secs": STEP_S});
         }
         self.trace_leg(&*robot, before, &what);
@@ -499,9 +504,9 @@ pub(super) const PILOT_TURNS_TO_STICK: u32 = 4;
 /// something ahead within [`PUSH_AHEAD_M`] is refused.
 const PUSH_STALLS: u32 = 2;
 const PUSH_AHEAD_M: f64 = 0.25;
-/// Something this near in the lane is at the beak (the front is 0.11 m
-/// from the centre): no step into it, whatever came before.
-const TOUCH_M: f64 = 0.15;
+// Something within [`TOUCH_M`] in the lane is at the beak (the front is
+// 0.11 m from the centre): the pilot steps into it never, whatever came
+// before.
 /// A forward step that moved the body less than this fraction of a step.
 const SCUFF_FRACTION: f64 = 0.4;
 
@@ -565,52 +570,88 @@ fn seen_in_lane(c: &crate::cliff::CliffStatus, now: Instant, reach: f64) -> bool
 
 const SEEN_WITHIN: std::time::Duration = std::time::Duration::from_millis(600);
 
-/// Something seen in the lane this near is booked before the bump.
-const SEEN_AHEAD_M: f64 = 0.30;
-
-/// A map wall this near the point seen means the map has it already, give
-/// or take the pose: nothing goes on the books.
-const SEEN_WALL_NEAR_M: f64 = 0.15;
-
-/// A booked drop this near the point seen: nothing goes on the books, so the
-/// way past the hole stays as wide as the map has it.
-const SEEN_DROP_NEAR_M: f64 = 0.50;
+/// The nearest thing in the body's lane within [`TOUCH_M`], when most of
+/// the frames of the last [`TOUCH_WITHIN`] (three at least) see one there.
+fn touching(c: &crate::cliff::CliffStatus, now: Instant) -> Option<crate::cliff::Obstacle> {
+    let frames: Vec<&crate::cliff::CliffFrame> = c.recent.iter().filter(|f| now.saturating_duration_since(f.at) <= TOUCH_WITHIN).collect();
+    let hits: Vec<crate::cliff::Obstacle> = frames
+        .iter()
+        .filter_map(|f| {
+            f.obstacles
+                .iter()
+                .filter(|o| {
+                    let (along, across) = (o.range_m * o.bearing.cos(), o.range_m * o.bearing.sin());
+                    along > 0.0 && along <= TOUCH_M && across.abs() <= BLIND_DROP_LANE_M
+                })
+                .min_by(|a, b| a.range_m.total_cmp(&b.range_m))
+                .copied()
+        })
+        .collect();
+    if hits.len() < 3 || 2 * hits.len() <= frames.len() {
+        return None;
+    }
+    hits.into_iter().min_by(|a, b| a.range_m.total_cmp(&b.range_m))
+}
 
 impl Job {
-    /// Book what the sensor keeps seeing in the lane within
-    /// [`SEEN_AHEAD_M`] where the map has free floor (see `stick_leg`).
-    fn book_seen_ahead(&mut self, robot: &dyn Body, (x, y, yaw): (f64, f64, f64)) {
-        let Some(c) = robot.cliff() else { return };
-        let now = robot.now();
-        if !seen_in_lane(&c, now, SEEN_AHEAD_M) {
-            return;
-        }
-        let Some(o) = c.obstacle_in_lane_walking(now, 0.0, BLIND_DROP_LANE_M, SEEN_AHEAD_M, SEEN_WITHIN, 3) else { return };
-        let Some(grid) = robot.frame().and_then(|f| f.grid().ok()) else { return };
-        let a = yaw + o.bearing;
-        let face = (x + o.range_m * a.cos(), y + o.range_m * a.sin());
-        // The map has it already (a wall, the map's furniture), or the pose
-        // is a few centimetres off a wall the map has: the route keeps off it
-        // as it is. A point booked beside a mapped wall only pushes the route
-        // away from it — toward whatever is on the other side.
-        let mapped = (0..=8).any(|i| {
-            let (d, b) = if i == 0 { (0.0, 0.0) } else { (SEEN_WALL_NEAR_M, i as f64 * std::f64::consts::FRAC_PI_4) };
-            !matches!(grid.at(face.0 + d * b.cos(), face.1 + d * b.sin()), Some(Cell::Free))
-        }) || [0.05, 0.1].iter().any(|d| !matches!(grid.at(face.0 + d * a.cos(), face.1 + d * a.sin()), Some(Cell::Free)));
-        if mapped {
-            return;
-        }
-        let at = (x + (o.range_m + OBSTACLE_RADIUS_M) * a.cos(), y + (o.range_m + OBSTACLE_RADIUS_M) * a.sin());
-        // Beside a booked drop an obstacle on the books narrows the one way
-        // past the hole and pushes the route toward the rim: the bump keeps
-        // its own booking there.
-        if self.local.iter().any(|(q, r)| *r >= DROP_RADIUS_M && dist2(*q, at) < SEEN_DROP_NEAR_M) {
-            return;
+    /// Whether what the nose met at `face` (booked at `at`) goes on the
+    /// books: not when the map has a wall near it, nor beside a booked drop.
+    fn touch_bookable(&self, robot: &dyn Body, face: (f64, f64), at: (f64, f64)) -> bool {
+        if self.local.iter().any(|(q, r)| *r >= DROP_RADIUS_M && dist2(*q, at) < TOUCH_DROP_NEAR_M) {
+            return false;
         }
         if self.local.iter().any(|(q, _)| dist2(*q, at) < LOCAL_DEDUP_M) {
-            return;
+            return false;
         }
-        self.remember_local(at, OBSTACLE_RADIUS_M);
-        tracing::info!(at = ?(x, y, yaw), booked = ?at, range_m = format!("{:.2}", o.range_m), "map explore: seen ahead before the bump: on the books");
+        let Some(grid) = robot.frame().and_then(|f| f.grid().ok()) else { return false };
+        !(0..=8).any(|i| {
+            let (d, b) = if i == 0 { (0.0, 0.0) } else { (TOUCH_WALL_NEAR_M, f64::from(i) * std::f64::consts::FRAC_PI_4) };
+            matches!(grid.at(face.0 + d * b.cos(), face.1 + d * b.sin()), Some(Cell::Wall))
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::cliff::{CliffFrame, CliffStatus, Obstacle};
+
+    fn frames(now: Instant, hits: &[Option<(f64, f64)>]) -> CliffStatus {
+        let recent = hits
+            .iter()
+            .enumerate()
+            .map(|(i, h)| CliffFrame {
+                seq: i as u64,
+                at: now - std::time::Duration::from_millis(60 * (hits.len() - i) as u64),
+                head_yaw: 0.0,
+                moving: true,
+                drops: vec![],
+                floors: vec![],
+                obstacles: h.map(|(range_m, bearing)| Obstacle { bearing, range_m }).into_iter().collect(),
+                floor_beams: 0,
+                judged: 0,
+            })
+            .collect();
+        CliffStatus { recent, ..Default::default() }
+    }
+
+    #[test]
+    fn the_nose_against_a_table_edge_is_a_touch() {
+        let now = Instant::now();
+        // apartment's coffee table: the edge at 0.10 m in 7-9 of 8 frames.
+        let c = frames(now, &[Some((0.10, 0.0)), Some((0.11, 0.05)), None, Some((0.10, -0.02)), Some((0.12, 0.0)), Some((0.10, 0.0)), Some((0.13, 0.1)), Some((0.10, 0.0))]);
+        let o = touching(&c, now).expect("a touch");
+        assert!((o.range_m - 0.10).abs() < 1e-9);
+    }
+
+    #[test]
+    fn far_off_the_lane_or_a_few_frames_is_no_touch() {
+        let now = Instant::now();
+        // Approaching: 0.3 m off.
+        assert!(touching(&frames(now, &[Some((0.30, 0.0)); 8]), now).is_none());
+        // A door jamb beside the body: 0.2 m to the side, outside its lane.
+        assert!(touching(&frames(now, &[Some((0.21, 1.2)); 8]), now).is_none());
+        // A stray return or two.
+        assert!(touching(&frames(now, &[Some((0.10, 0.0)), None, None, Some((0.10, 0.0)), None, None, None, None]), now).is_none());
     }
 }

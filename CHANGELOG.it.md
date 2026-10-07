@@ -19,14 +19,16 @@ carta, mai su una papera fisica; i dettagli sono in
   attorno** (branch `rl-nav`, per ogni viaggio con o senza pilota): una
   buca vista dalla guardia viene guardata di fronte e registrata dopo una
   sosta di 2 s (in un viaggio era vista camminando e mai registrata: 31
-  giri davanti a una tromba delle scale sul gemello MuJoCo); qualcosa che
-  il sensore continua a vedere nella corsia entro 0,30 m dove la mappa ha
-  pavimento va sul libro prima dell'urto; un passo che ha mosso appena il
-  corpo conta come fermo, e l'urto si registra dove il sensore vede la
-  cosa; e prima di "nessuna strada", un ultimo piano con i margini più
-  stretti che il corpo permette. Sul banco quack-rl lo stick passa dal
-  79,0 % al 95,7 % di arrivi, ribaltamenti da 73 a 9 su 420 viaggi; la
-  soglia del gemello di carta non cambia.
+  giri davanti a una tromba delle scale sul gemello MuJoCo); e prima di
+  "nessuna strada", un ultimo piano con i margini più stretti che il corpo
+  permette. (Qui c'erano anche il libro di ciò che si vede prima dell'urto
+  e lo stallo "scuff": nell'A/B del gemello contro `main` costavano arrivi
+  e cadute, e lo stallo del tocco di main li sostituisce, 2026-10-07.) Sul banco quack-rl (420 viaggi) lo
+  stick era passato dal 79,0 % al 95,7 % di arrivi con tutte, ed è
+  all'89,8 % con le regole di main al loro posto (ribaltamenti 73 -> 9 ->
+  35, quasi tutti nelle famiglie col disordine): banco e gemello MuJoCo non
+  sono d'accordo sul registrare in anticipo, e decide il gemello. La soglia
+  del gemello di carta non cambia.
 
 - **Il pilota** (sperimentale, branch `rl-nav`; docs/rl-pilot.it.md): una
   policy appresa per i passi dello stick (`QK_RL_POLICY`), l'osservazione
@@ -53,6 +55,25 @@ carta, mai su una papera fisica; i dettagli sono in
   locale. `install-on-duck.sh` gira dal pacchetto o da una copia del
   repository, accetta `--dry-run` (stampa ogni comando, non si collega) e
   non fallisce più con il bash 3.2 di macOS quando `SSH_OPTS` è vuoto.
+
+### Modificato
+
+- **In un viaggio, il naso contro qualcosa che la mappa non ha è uno
+  stallo.** Due passi avanti di fila con il sensore di profondità che vede
+  qualcosa nella corsia del corpo entro 0.15 m (nella maggior parte dei
+  frame degli ultimi 0.6 s): lo stick gira di almeno 20° e registra ciò che
+  ha visto, a meno che un muro della mappa sia entro 0.15 m o un drop sul
+  libro entro 0.5 m. Sotto il tavolino di apartment il corpo spingeva sul
+  bordo per minuti mentre la posa scivolava di 0.3 m (gemello MuJoCo). Il
+  log del passo porta l'ostacolo nella corsia (`ahead`) e l'odometria.
+- **Una corsia percorsa cede a un drop sul libro entro 0.20 m** (era
+  0.12): il percorso del bagno di casa_arredata passava a 9–12 cm
+  dall'angolo nord-est non registrato del vano scala, dove la papera del
+  gemello è caduta due volte; ora 16 cm, nessuna tappa dei giri salvati
+  più lunga o chiusa. `QK_LANE_YIELD_M` per misurare; `route_on_map`
+  riporta il buco vero più vicino (`TRUTH_HOLES`) e stampa il percorso
+  (`ROUTE_POINTS=1`). Vedi docs/results.it.md, "Sporgenze e angoli dei
+  vani scala".
 
 ## [0.2.0-rc2] - 2026-10-03
 

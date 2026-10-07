@@ -17,13 +17,14 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   (branch `rl-nav`, for every journey with or without the pilot): a hole
   the guard sees is faced and booked after a 2 s stand (on a journey it
   used to be seen walking and never booked: 31 turns at a stairwell on the
-  MuJoCo twin); something the sensor keeps seeing in the lane within
-  0.30 m where the map has floor is booked before the bump; a leg that
-  barely moved the body counts as a stall, and a bump is booked where the
-  sensor sees the thing; and before "no way", one more plan at the
-  tightest margins the body allows. On the quack-rl bench the stick goes
-  from 79.0 % to 95.7 % arrived, tip-overs 73 -> 9 in 420 journeys; the
-  paper twin's gate is unchanged.
+  MuJoCo twin); and before "no way", one more plan at the tightest
+  margins the body allows. (Booking what is seen ahead before the bump and
+  a "scuff" stall were here too: on the twin's A/B against `main` they cost
+  arrivals and falls, and main's touch stall replaces them, 2026-10-07.) On the quack-rl bench (420 journeys)
+  the stick went from 79.0 % to 95.7 % arrived with all of them, and is at
+  89.8 % with main's rules in their place (tip-overs 73 -> 9 -> 35, most in
+  the clutter families): the bench and the MuJoCo twin disagree on
+  booking ahead, and the twin decides. The paper twin's gate is unchanged.
 
 - **The pilot** (experimental, branch `rl-nav`; docs/rl-pilot.md): a
   learned policy for the stick's legs (`QK_RL_POLICY`), the observation
@@ -48,6 +49,24 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   locally. `install-on-duck.sh` runs from the package or from a checkout,
   takes `--dry-run` (prints every command, connects to nothing), and no
   longer fails on macOS's bash 3.2 when `SSH_OPTS` is empty.
+
+### Changed
+
+- **On a journey, the nose against something the map does not have is a
+  stall.** Two forward steps in a row with the depth sensor seeing
+  something in the body's lane within 0.15 m (most of the last 0.6 s'
+  frames): the stick turns 20° at least and books what it saw, unless a
+  map wall is within 0.15 m of it or a booked drop within 0.5 m. Under
+  apartment's coffee table the body had pushed on the edge for minutes
+  while the pose slid 0.3 m (MuJoCo twin). The step log carries the lane
+  obstacle (`ahead`) and odometry.
+- **A walked lane yields to a booked drop within 0.20 m** (was 0.12):
+  casa_arredata's bath route kept 9–12 cm from the stairwell's unbooked
+  north-east corner, where the twin's duck fell twice; now 16 cm, no leg
+  of the saved tours longer or closed. `QK_LANE_YIELD_M` to measure;
+  `route_on_map` reports the nearest true hole (`TRUTH_HOLES`) and prints
+  the route (`ROUTE_POINTS=1`). See docs/results.md, "Overhangs and
+  stairwell corners".
 
 ## [0.2.0-rc2] - 2026-10-03
 

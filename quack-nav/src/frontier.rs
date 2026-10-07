@@ -60,7 +60,18 @@ pub const DROP_WALL_M: f64 = 0.10;
 /// 10 cm. Wide enough to keep the axis of the 0.44 m passage east of the
 /// twin's stairwell open (0.22 m from its rim): the duck is to pass there
 /// as the human did (the user's rule, 2026-09-16), the sensor judging.
-pub const LANE_YIELDS_TO_DROP_M: f64 = 0.12;
+/// 0.20, not 0.12 (2026-10-07): casa_arredata's stairwell had its north rim
+/// booked to x 2.45 and nothing at its north-east corner, and the lanes
+/// walked there kept a route 9-12 cm from the true hole; the MuJoCo twin's
+/// duck fell at that corner twice, with an ordinary 9-11 cm of pose error.
+/// At 0.20 the route keeps 16 cm, and no leg of the saved tours of
+/// apartment, casa_arredata or casa_libera grew or closed (`route_on_map`).
+pub const LANE_YIELDS_TO_DROP_M: f64 = 0.20;
+/// `QK_LANE_YIELD_M`: [`LANE_YIELDS_TO_DROP_M`] for an experiment.
+fn lane_yield_m() -> f64 {
+    static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
+    *V.get_or_init(|| std::env::var("QK_LANE_YIELD_M").ok().and_then(|v| v.parse().ok()).unwrap_or(LANE_YIELDS_TO_DROP_M))
+}
 /// The margin the planner keeps around a booked drop, on top of its own
 /// radius: the body's half-width, never the wall margin. A drop's radius
 /// already says how far the rim may be off; adding the wall's 0.15 made
@@ -234,7 +245,7 @@ impl Costmap {
                 if lane[row * grid.cols + col] {
                     let (wx, wy) = to_world(grid, (row, col));
                     let rim_near = extra_walls.iter().any(|((bx, by), radius)| {
-                        *radius >= DROP_WALL_M && ((wx - bx).powi(2) + (wy - by).powi(2)).sqrt() < LANE_YIELDS_TO_DROP_M
+                        *radius >= DROP_WALL_M && ((wx - bx).powi(2) + (wy - by).powi(2)).sqrt() < lane_yield_m()
                     });
                     if !rim_near {
                         cost[row * grid.cols + col] = lane_cost.max(1);
