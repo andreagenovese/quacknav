@@ -37,6 +37,12 @@ carta, mai su una papera fisica; i dettagli sono in
   libro entro 0.5 m. Sotto il tavolino di apartment il corpo spingeva sul
   bordo per minuti mentre la posa scivolava di 0.3 m (gemello MuJoCo). Il
   log del passo porta l'ostacolo nella corsia (`ahead`) e l'odometria.
+- **In un viaggio, ciò che il sensore continua a vedere davanti va sul
+  libro prima dell'urto**: entro 0.30 m nella corsia, dove la mappa ha
+  pavimento libero, nessun muro della mappa entro 0.15 m e nessun drop sul
+  libro entro 0.5 m. A/B sul gemello MuJoCo contro main: 48/48 e
+  casa_ingombra 9/12 per entrambi, cadute 0 contro 1; banco quack-rl: lo
+  stick 89.8 -> 94.3 %. Vedi docs/results.it.md.
 - **Una corsia percorsa cede a un drop sul libro entro 0.20 m** (era
   0.12): il percorso del bagno di casa_arredata passava a 9–12 cm
   dall'angolo nord-est non registrato del vano scala, dove la papera del

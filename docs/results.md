@@ -332,6 +332,26 @@ control on the same maps.
   g2 through the coffee table, its fall in casa_ingombra on the way to the
   office.
 
+- **Booked before the bump, the prudent way** (branch `seen-ahead`,
+  2026-10-07). On a journey, something the depth sensor keeps seeing in
+  the lane within 0.30 m (in at least half of the last 0.6 s' frames,
+  three at least) goes on the books where the map has free floor, no map
+  wall within 0.15 m and no booked drop within 0.5 m — the scuff stall
+  that came with it the first time stays out. On the quack-rl bench (420
+  journeys) the stick went from 89.8 % to 94.3 % arrived, tip-overs 35 ->
+  16; the pilot v3-r6 from 90.2 % to 94.0 %, 10 -> 4. The same A/B as
+  above against `main` (2e3979e):
+
+  | | apartment | casa_arredata | casa_ingombra | falls | mean s (apartment / arredata / ingombra) |
+  |---|---|---|---|---|---|
+  | `main` | 24 / 24 | 24 / 24 | 9 / 12 | 1 | 113 / 104 / 90 |
+  | `seen-ahead` | 24 / 24 | 24 / 24 | 9 / 12 | 0 | 111 / 101 / 122 |
+
+  It booked 5–13 things a round in apartment, 33 in casa_ingombra's two
+  rounds, none in casa_arredata; `main`'s fall was a turn in place in
+  apartment's corridor, no hole near. casa_ingombra's journeys took longer
+  round what was booked.
+
 - **Tried and not kept: go_to books what it meets** (branch
   `journey-books`). Booking what the sensor sees ahead before the bump, a
   "scuff" stall (a step that moved under 40 % of a step), facing a hole

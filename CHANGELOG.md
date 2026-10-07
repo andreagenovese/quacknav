@@ -34,6 +34,11 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   apartment's coffee table the body had pushed on the edge for minutes
   while the pose slid 0.3 m (MuJoCo twin). The step log carries the lane
   obstacle (`ahead`) and odometry.
+- **On a journey, what the sensor keeps seeing ahead is booked before
+  the bump**: within 0.30 m in the lane, where the map has free floor, no
+  map wall within 0.15 m and no booked drop within 0.5 m. MuJoCo twin A/B
+  against main: 48/48 and casa_ingombra 9/12 for both, falls 0 against 1;
+  quack-rl bench: the stick 89.8 -> 94.3 %. See docs/results.md.
 - **A walked lane yields to a booked drop within 0.20 m** (was 0.12):
   casa_arredata's bath route kept 9–12 cm from the stairwell's unbooked
   north-east corner, where the twin's duck fell twice; now 16 cm, no leg
