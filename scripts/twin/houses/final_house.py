@@ -128,7 +128,17 @@ for k in range(1, (0 if ROUNDS_ONLY else max_sessions) + 1):
             say(f"{name} session {k}: the twin did not come up; the session is skipped")
             continue
         time.sleep(15)
-        call("robot.map_explore", {"max_s": session_s, "save_as": name})
+        # A duck still standing up refuses (daemon 0.16.1 eases into its
+        # stand): ask again until it starts, a minute at most.
+        t_ask = time.time()
+        while True:
+            r = call("robot.map_explore", {"max_s": session_s, "save_as": name})
+            if isinstance(r, dict) and r.get("started") is True:
+                break
+            if time.time() - t_ask > 60:
+                say(f"{name} session {k}: the exploration did not start — {json.dumps(r)[:200]}")
+                break
+            time.sleep(5)
     else:
         sp = boot(WIPE="on", MAPLOC_MODE="stop_and_scan", HOMECOMING="on", RESUME="on", EXPLORE_S=str(int(session_s)))
         if sp is None:
