@@ -2306,7 +2306,7 @@ pub fn plan_step(
         if arc {
             checks.push((0.0, ARC_FIRST_M + 0.15 + ARC_FIRST_MARGIN_M, false));
             checks.push((
-                quack_duck::body::YAW_RATE_PER_UNIT * vyaw * walk_s,
+                quack_duck::gait::numbers().yaw_rate_per_unit * vyaw * walk_s,
                 quack_duck::body::step_advance_m(vx, vyaw, walk_s) + 0.15 + margin,
                 true,
             ));
@@ -2343,7 +2343,7 @@ pub fn plan_step(
             let (mut px, mut py, mut h) = (0.0_f64, 0.0_f64, 0.0_f64);
             let mut path: Vec<(f64, f64)> = vec![(0.0, 0.0)];
             while t < walk_s {
-                h += p.vyaw * quack_duck::body::YAW_RATE_PER_UNIT * 0.1;
+                h += p.vyaw * quack_duck::gait::numbers().yaw_rate_per_unit * 0.1;
                 px += 0.12 * 0.1 * h.cos();
                 py += 0.12 * 0.1 * h.sin();
                 path.push((px, py));

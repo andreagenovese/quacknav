@@ -33,10 +33,10 @@ const STEP_S: f64 = 0.6;
 const STALL_M: f64 = 0.01;
 const STALLS_TURN: u32 = 3;
 /// A turn in place's coast (see `learn_coast`): the weight of the newest
-/// turn, the most it may be, and where a journey starts.
+/// turn and the most it may be; a journey starts from the walk's
+/// `coast_prior_rad` (`quack_duck::gait::Profile`).
 const COAST_LEARN: f64 = 0.3;
 const COAST_MAX_RAD: f64 = 0.7;
-pub(super) const COAST_PRIOR_RAD: f64 = 0.3;
 /// On a journey: something in the body's lane this near, in most of the
 /// last [`TOUCH_WITHIN`]'s frames, is the nose against it ...
 const TOUCH_M: f64 = 0.15;
@@ -79,7 +79,9 @@ const CAREFUL_GUARD_MARGIN_M: f64 = 0.25;
 const BOOK_STAND_S: f64 = 1.5;
 /// The yaw asked per radian of heading error, as the gait turns 0.65 of
 /// it a second: the error closed over about the step.
-const YAW_GAIN: f64 = 1.0 / (0.65 * STEP_S);
+fn yaw_gain() -> f64 {
+    1.0 / (quack_duck::gait::numbers().yaw_rate_per_unit * STEP_S)
+}
 
 /// Odometry's pose, when robotd gives it.
 fn odom_pose(robot: &dyn Body) -> Option<(f64, f64, f64)> {
@@ -97,7 +99,7 @@ impl Job {
         // turns before (see `learn_coast`).
         let coast = if self.stick_books { 0.0 } else { self.stick_coast };
         let goal = (want - TURN_LEAD_RAD - coast).max(0.05);
-        let vyaw = quack_duck::body::TURN_IN_PLACE_RAD_S * sign;
+        let vyaw = quack_duck::gait::numbers().turn_in_place_rad_s * sign;
         let started = robot.now();
         let budget = 2.0 * want / 0.5 + 1.0;
         let mut turned = 0.0f64;
@@ -231,7 +233,7 @@ impl Job {
                 let _ = stand(robot, self.stick_stand_s);
                 self.stick_since_stand = 0.0;
             }
-        } else if let Some(d) = robot.cliff().and_then(|c| self.blind_drop_ahead(&c, robot.now(), GAIT_M_PER_S * STEP_S + guard_margin)) {
+        } else if let Some(d) = robot.cliff().and_then(|c| self.blind_drop_ahead(&c, robot.now(), gait_m_per_s() * STEP_S + guard_margin)) {
             // The one guard it keeps: a true hole the sensor sees in the
             // step's own lane. Without it, the paper twin's journeys with a
             // map bias of 0.18-0.25 m across the stairwell's passage walked
@@ -261,11 +263,11 @@ impl Job {
                 }
                 self.record_drops(robot);
             }
-            let vyaw = -quack_duck::body::TURN_IN_PLACE_RAD_S * d.bearing.signum();
+            let vyaw = -quack_duck::gait::numbers().turn_in_place_rad_s * d.bearing.signum();
             let _ = robot.blind_move(&json!({"vx": 0.0, "vyaw": vyaw, "duration_s": 0.5}));
             tracing::info!(at = ?(x, y, yaw), edge_m = format!("{:.2}", d.edge_min_m), bearing_deg = format!("{:.0}", d.bearing.to_degrees()), booked = !known, "map explore: stick: a hole ahead; turned from it");
         } else {
-            let vyaw = (YAW_GAIN * err).clamp(-0.7, 0.7);
+            let vyaw = (yaw_gain() * err).clamp(-0.7, 0.7);
             let _ = robot.blind_move(&json!({"vx": 0.3, "vyaw": vyaw, "duration_s": STEP_S}));
             self.stick_last_step = true;
             handle.update(|s| s.legs += 1);
@@ -287,7 +289,7 @@ impl Job {
             }
             self.stick_odom_at = Some((ox, oy));
         } else {
-            self.stick_since_stand += GAIT_M_PER_S * STEP_S;
+            self.stick_since_stand += gait_m_per_s() * STEP_S;
         }
         if self.stick_since_stand >= stand_every {
             let _ = stand(robot, self.stick_stand_s);

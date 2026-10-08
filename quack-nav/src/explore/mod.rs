@@ -154,7 +154,11 @@ const ARRIVE_M: f64 = 0.30;
 /// position was lost after two minutes.
 const LEG_STOP_S: f64 = 3.0;
 /// What the gait covers per second at vx 0.3 (measured on the twin).
-const GAIT_M_PER_S: f64 = 0.12;
+/// The walk's forward speed at vx 0.3 (m/s): 0.12 for alpha (see
+/// `quack_duck::gait::Profile`).
+fn gait_m_per_s() -> f64 {
+    quack_duck::gait::numbers().m_per_s
+}
 /// A passage narrower than this (and wider than the body) is a doorway.
 const GAP_MAX_M: f64 = 0.6;
 /// The sensor lane in a doorway: the body's half-width plus two centimetres
@@ -1543,7 +1547,7 @@ impl Job {
             stick_stalls: 0,
             stick_last_step: false,
             stick_touches: 0,
-            stick_coast: stick::COAST_PRIOR_RAD,
+            stick_coast: quack_duck::gait::numbers().coast_prior_rad,
             stick_turn_probe: None,
             stick_since_stand: 0.0,
             stick_odom_at: None,
@@ -1743,7 +1747,7 @@ impl Job {
             // until two stands in a row agree on where the duck is.
             let now = robot.now();
             if let Some((prev, at)) = self.last_pose {
-                let allowed = JUMP_SLACK_M + GAIT_M_PER_S * (now - at).as_secs_f64();
+                let allowed = JUMP_SLACK_M + gait_m_per_s() * (now - at).as_secs_f64();
                 let moved = dist2(prev, (x, y));
                 if moved > allowed {
                     // On a frozen map the books are the map's own (the

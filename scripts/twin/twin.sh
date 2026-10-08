@@ -14,10 +14,10 @@
 # quack-navd's environment, as the unit's EnvironmentFile= is on the duck.
 #
 # Needs (see README.md):
-#   MICRODUCK     pollen-robotics/microduck at daemon-v0.15.0, with
+#   MICRODUCK     pollen-robotics/microduck at daemon-v0.16.1, with
 #                 `cargo build -p robotd -p tof` done (target/debug)
 #   MICRODUCK_RL  pollen-robotics/microduck_rl, with its .venv
-#   POLICY_DIR    alpha_walking.onnx, alpha_stand.onnx, alpha_sitstand.onnx,
+#   POLICY_DIR    alpha_walking.onnx (or velstand.onnx), alpha_stand.onnx, alpha_sitstand.onnx,
 #                 alpha_ground_pick.onnx, ball_kick_left/right.onnx, roulade.onnx
 # Optional:
 #   VIEWER        on (default): the viewer draws the map, the route, the ToF
@@ -26,6 +26,7 @@
 #   VIEWER_DIR    another body_with_map.py + maploc_overlay.py to use instead
 #   STATE         runtime directory (default /tmp/quack-twin)
 #   PORT          the simulator's port (default 7872)
+#   GAIT          alpha (default) or velstand: the walk robotd runs
 #   MAPLOC_MODE   stop_and_scan (default) or localize
 #   HOMECOMING    on or off (default off)
 #   RESUME        on: progressive exploration — home on a map still being
@@ -70,11 +71,23 @@ up)
   ort=( $MICRODUCK_RL/.venv/lib/python*/site-packages/onnxruntime/capi/libonnxruntime*.(dylib|so*)(N) )
   ORT=${ort[1]:-}
   [ -n "$ORT" ] || { echo "no onnxruntime library in $MICRODUCK_RL/.venv" >&2; exit 2; }
+  # The walk: alpha (the pair every number before 2026-10-08 came from) or
+  # velstand, the duck's default since policy set v5 (one network that
+  # walks on a twist and stands at zero; no standing network).
+  case ${GAIT:-alpha} in
+    alpha) WALK_POLICY=alpha_walking.onnx; STAND_POLICY="$POLICY_DIR/alpha_stand.onnx"
+      # alpha's corrections on the twin, measured 2026-09-14
+      GAIT_TOML=$'yaw_trim = 0.08\nyaw_gain_left = 1.34\nyaw_gain_right = 1.58' ;;
+    velstand) WALK_POLICY=velstand.onnx; STAND_POLICY=none
+      GAIT_TOML='profile = "velstand"' ;;
+    *) echo "GAIT is alpha or velstand, not ${GAIT}" >&2; exit 2 ;;
+  esac
+  [ -f $POLICY_DIR/$WALK_POLICY ] || { echo "no $WALK_POLICY in $POLICY_DIR" >&2; exit 2; }
   cat > $STATE/robotd.toml <<TOML
 [policy]
 enabled = true
-walk = "$POLICY_DIR/alpha_walking.onnx"
-stand = "$POLICY_DIR/alpha_stand.onnx"
+walk = "$POLICY_DIR/$WALK_POLICY"
+stand = "$STAND_POLICY"
 sitstand = "$POLICY_DIR/alpha_sitstand.onnx"
 ground_pick = "$POLICY_DIR/alpha_ground_pick.onnx"
 kick_left = "$POLICY_DIR/ball_kick_left.onnx"
@@ -99,9 +112,7 @@ places_path = "$STATE/places.json"
 ask_phrase = "${ASK_PHRASE:-Qui dove siamo?}"
 
 [gait]
-yaw_trim = 0.08
-yaw_gain_left = 1.34
-yaw_gain_right = 1.58
+$GAIT_TOML
 
 [homecoming]
 enabled = $([ "${HOMECOMING:-off}" = on ] && echo true || echo false)

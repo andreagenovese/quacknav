@@ -61,8 +61,8 @@ checksum = "4e7648175b45a9a48536d676f68d918270699102aa8dab5496df06904c914600"
 
 [[package]]
 name = "duck-ipc-proto"
-version = "0.15.0"
-source = "git+https://github.com/pollen-robotics/microduck.git?tag=daemon-v0.15.0#a9ec4b2079ef8ee7904014089c885bb07d57d63c"
+version = "0.16.1"
+source = "git+https://github.com/pollen-robotics/microduck.git?tag=daemon-v0.16.1#d818af5d91fce0e3f5f8c22d47d47caf7b3f17a1"
 dependencies = [
  "libc",
  "semver",
@@ -145,8 +145,8 @@ checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
 
 [[package]]
 name = "kinematics"
-version = "0.15.0"
-source = "git+https://github.com/pollen-robotics/microduck.git?tag=daemon-v0.15.0#a9ec4b2079ef8ee7904014089c885bb07d57d63c"
+version = "0.16.1"
+source = "git+https://github.com/pollen-robotics/microduck.git?tag=daemon-v0.16.1#d818af5d91fce0e3f5f8c22d47d47caf7b3f17a1"
 dependencies = [
  "roxmltree",
  "thiserror",

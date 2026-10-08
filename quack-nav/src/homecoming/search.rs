@@ -603,7 +603,7 @@ fn pure_turn(robot: &Arc<Mutex<Robot>>, sign: f64, want: f64) -> Option<f64> {
     let budget = Duration::from_secs_f64(2.0 * want / 0.5 + 1.0);
     let mut turned = 0.0_f64;
     while started.elapsed() < budget {
-        let _ = blind_move(robot, &json!({"vx": 0.0, "vyaw": quack_duck::body::TURN_IN_PLACE_RAD_S * sign.signum(), "duration_s": 0.15}));
+        let _ = blind_move(robot, &json!({"vx": 0.0, "vyaw": quack_duck::gait::numbers().turn_in_place_rad_s * sign.signum(), "duration_s": 0.15}));
         if let Some(y) = odom_yaw(robot) {
             turned = (y - yaw0).sin().atan2((y - yaw0).cos()) * sign.signum();
             if turned >= goal {

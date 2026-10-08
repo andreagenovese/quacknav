@@ -10,8 +10,11 @@ use serde::Deserialize;
 /// a straight 3 s leg veers about 20° right and `yaw_trim = 0.2` cancels
 /// it. Applied only while walking forward.
 #[derive(Debug, Clone, Deserialize)]
-#[serde(default, deny_unknown_fields)]
+#[serde(from = "RawGaitConfig")]
 pub struct GaitConfig {
+    /// The walk robotd runs (see [`Profile`]): it sets every number below
+    /// that the file leaves out, and the explorer's gait model.
+    pub profile: Profile,
     /// Added to the yaw command (rad/s, + = left) whenever vx > 0.
     pub yaw_trim: f64,
     /// Multiplies a left (positive) yaw command.
@@ -31,13 +34,113 @@ pub struct GaitConfig {
 
 impl Default for GaitConfig {
     fn default() -> Self {
+        Self::from(RawGaitConfig::default())
+    }
+}
+
+/// `[gait]` as written: what is left out comes from the profile.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+struct RawGaitConfig {
+    profile: Profile,
+    yaw_trim: Option<f64>,
+    yaw_gain_left: Option<f64>,
+    yaw_gain_right: Option<f64>,
+    yaw_max: Option<f64>,
+}
+
+impl From<RawGaitConfig> for GaitConfig {
+    fn from(raw: RawGaitConfig) -> Self {
+        let n = raw.profile.numbers();
         Self {
-            yaw_trim: 0.0,
-            yaw_gain_left: 1.0,
-            yaw_gain_right: 1.0,
-            yaw_max: YAW_MAX,
+            profile: raw.profile,
+            yaw_trim: raw.yaw_trim.unwrap_or(n.yaw_trim),
+            yaw_gain_left: raw.yaw_gain_left.unwrap_or(n.yaw_gain_left),
+            yaw_gain_right: raw.yaw_gain_right.unwrap_or(n.yaw_gain_right),
+            yaw_max: raw.yaw_max.unwrap_or(n.yaw_max),
         }
     }
+}
+
+/// The walking policy robotd runs, and what the navigation assumes of it.
+/// `alpha` is the pair (`alpha_walking` + `alpha_stand`) every number before
+/// 2026-10-08 was measured on, and its numbers here are exactly the
+/// constants the code had then: a profile never changes the other one.
+/// `velstand` is the duck's default walk since Pollen's policy set v5 (one
+/// network that walks on a twist and stands at zero), measured on the
+/// MuJoCo twin with set v7.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Profile {
+    #[default]
+    Alpha,
+    Velstand,
+}
+
+/// A walk's numbers (see [`Profile`]).
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct Numbers {
+    /// Forward speed at vx 0.3 (m/s).
+    pub m_per_s: f64,
+    /// Yaw rate per unit of yaw command while walking (rad/s per unit).
+    pub yaw_rate_per_unit: f64,
+    /// What a turn in place asks for, and the most a standstill may ask.
+    pub turn_in_place_rad_s: f64,
+    pub max_turn_in_place_rad_s: f64,
+    /// A journey's turn-in-place coast before it has measured one (rad).
+    pub coast_prior_rad: f64,
+    /// `[gait]`'s defaults under this walk.
+    pub yaw_trim: f64,
+    pub yaw_gain_left: f64,
+    pub yaw_gain_right: f64,
+    pub yaw_max: f64,
+}
+
+impl Profile {
+    pub const fn numbers(self) -> Numbers {
+        match self {
+            Profile::Alpha => Numbers {
+                m_per_s: 0.12,
+                yaw_rate_per_unit: 0.65,
+                turn_in_place_rad_s: 1.5,
+                max_turn_in_place_rad_s: 1.6,
+                coast_prior_rad: 0.3,
+                yaw_trim: 0.0,
+                yaw_gain_left: 1.0,
+                yaw_gain_right: 1.0,
+                yaw_max: YAW_MAX,
+            },
+            Profile::Velstand => VELSTAND,
+        }
+    }
+}
+
+/// velstand: provisional — the forward speed and `[gait]` corrections
+/// measured on set v5 (2026-09-14), alpha's for the rest, until set v7 is
+/// measured on the MuJoCo twin at daemon-v0.16.1.
+const VELSTAND: Numbers = Numbers {
+    m_per_s: 0.129,
+    yaw_rate_per_unit: 0.65,
+    turn_in_place_rad_s: 1.5,
+    max_turn_in_place_rad_s: 1.6,
+    coast_prior_rad: 0.3,
+    yaw_trim: 0.16,
+    yaw_gain_left: 1.63,
+    yaw_gain_right: 1.58,
+    yaw_max: 1.7,
+};
+
+static ACTIVE: std::sync::OnceLock<Profile> = std::sync::OnceLock::new();
+
+/// The walk this process drives, set once at start from `[gait] profile`
+/// (alpha until then, and in the tests).
+pub fn set_active(profile: Profile) {
+    let _ = ACTIVE.set(profile);
+}
+
+/// The numbers of the walk this process drives.
+pub fn numbers() -> Numbers {
+    ACTIVE.get().copied().unwrap_or_default().numbers()
 }
 
 /// The clamp every gait measured so far was run under.
@@ -51,5 +154,35 @@ impl GaitConfig {
         }
         let gain = if vyaw > 0.0 { self.yaw_gain_left } else { self.yaw_gain_right };
         (vyaw * gain + self.yaw_trim).clamp(-self.yaw_max, self.yaw_max)
+    }
+}
+#[cfg(test)]
+mod profile_tests {
+    use super::*;
+
+    #[test]
+    fn alpha_is_the_code_before_profiles() {
+        // The constants every number before 2026-10-08 came from.
+        let n = Profile::Alpha.numbers();
+        assert_eq!(n.m_per_s, 0.12);
+        assert_eq!(n.yaw_rate_per_unit, 0.65);
+        assert_eq!(n.turn_in_place_rad_s, crate::body::TURN_IN_PLACE_RAD_S);
+        assert_eq!(n.max_turn_in_place_rad_s, crate::body::MAX_TURN_IN_PLACE_RAD_S);
+        assert_eq!(n.yaw_rate_per_unit, crate::body::YAW_RATE_PER_UNIT);
+        assert_eq!(n.coast_prior_rad, 0.3);
+        let g = GaitConfig::default();
+        assert_eq!((g.profile, g.yaw_trim, g.yaw_gain_left, g.yaw_gain_right, g.yaw_max), (Profile::Alpha, 0.0, 1.0, 1.0, 0.9));
+    }
+
+    #[test]
+    fn a_profile_fills_what_the_file_leaves_out() {
+        let g: GaitConfig = serde_json::from_str(r#"{"profile": "velstand", "yaw_trim": 0.05}"#).unwrap();
+        assert_eq!(g.profile, Profile::Velstand);
+        assert_eq!(g.yaw_trim, 0.05);
+        assert_eq!(g.yaw_gain_left, VELSTAND.yaw_gain_left);
+        assert_eq!(g.yaw_max, VELSTAND.yaw_max);
+        let a: GaitConfig = serde_json::from_str(r#"{"yaw_trim": 0.08}"#).unwrap();
+        assert_eq!((a.profile, a.yaw_trim, a.yaw_gain_left), (Profile::Alpha, 0.08, 1.0));
+        assert!(serde_json::from_str::<GaitConfig>(r#"{"profile": "roller"}"#).is_err());
     }
 }

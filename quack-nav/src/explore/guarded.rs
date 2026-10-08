@@ -108,7 +108,7 @@ impl Job {
         if vx <= 0.0 {
             return false;
         }
-        let (v, w) = (GAIT_M_PER_S * vx / 0.3, 0.65 * vyaw);
+        let (v, w) = (gait_m_per_s() * vx / 0.3, quack_duck::gait::numbers().yaw_rate_per_unit * vyaw);
         let (mut px, mut py, mut h) = (x, y, yaw);
         let mut t = 0.0;
         while t < walk_s {
@@ -179,7 +179,7 @@ impl Job {
             // the map.
             if vx > 0.0
                 && let Some(cliff) = robot.cliff()
-                && let Some(o) = cliff.obstacle_in_lane_walking(robot.now(), 0.0, BLIND_OBSTACLE_LANE_M, GAIT_M_PER_S * walk_s + BLIND_OBSTACLE_REACH_M, Duration::from_millis(1200), 2)
+                && let Some(o) = cliff.obstacle_in_lane_walking(robot.now(), 0.0, BLIND_OBSTACLE_LANE_M, gait_m_per_s() * walk_s + BLIND_OBSTACLE_REACH_M, Duration::from_millis(1200), 2)
                 && o.bearing.abs() <= blind_cone_rad(o.range_m)
                 && !self.on_mapped_wall(robot, pose, o.bearing, o.range_m)
             {
@@ -203,7 +203,7 @@ impl Job {
             let mut walk_s = walk_s;
             if vx > 0.0
                 && let Some(cliff) = robot.cliff()
-                && let Some(d) = self.blind_drop_ahead(&cliff, robot.now(), GAIT_M_PER_S * walk_s + BLIND_DROP_MARGIN_M)
+                && let Some(d) = self.blind_drop_ahead(&cliff, robot.now(), gait_m_per_s() * walk_s + BLIND_DROP_MARGIN_M)
             {
                 // The leg cut to end the margin short of the edge the
                 // sensor sees, when a leg is left of it — a 3 s leg
@@ -215,7 +215,7 @@ impl Job {
                 // wider of the rim on the refusal and is the faster for
                 // it (paper twin: 28/30 in 196 s with the cut against
                 // 29/30 in 168 s without).
-                let fits = ((d.edge_min_m - BLIND_DROP_MARGIN_M) / GAIT_M_PER_S).min(walk_s);
+                let fits = ((d.edge_min_m - BLIND_DROP_MARGIN_M) / gait_m_per_s()).min(walk_s);
                 if fits >= BLIND_LEG_MIN_S && !self.blind() {
                     tracing::info!(edge_m = format!("{:.2}", d.edge_min_m), walk_s = format!("{fits:.1}"), "map explore: the blind leg cut short of the drop the sensor sees");
                     walk_s = fits;
@@ -254,8 +254,8 @@ impl Job {
             // The step's own default (`QK_CLIFF_MARGIN_M`), so the cut and
             // the step's guard judge the edge with the same margin.
             let margin = crate::tools::cliff_margin_m();
-            if let Some(d) = self.blind_drop_ahead(&cliff, robot.now(), GAIT_M_PER_S * walk_s + 0.15 + margin) {
-                let fits = ((d.edge_min_m - 0.15 - margin - 0.02) / GAIT_M_PER_S).min(walk_s);
+            if let Some(d) = self.blind_drop_ahead(&cliff, robot.now(), gait_m_per_s() * walk_s + 0.15 + margin) {
+                let fits = ((d.edge_min_m - 0.15 - margin - 0.02) / gait_m_per_s()).min(walk_s);
                 if fits >= BLIND_LEG_MIN_S && fits < walk_s {
                     tracing::info!(edge_m = format!("{:.2}", d.edge_min_m), walk_s = format!("{fits:.1}"), "map explore: the guarded leg cut short of the drop the sensor sees");
                     let mut cut = leg.clone();
