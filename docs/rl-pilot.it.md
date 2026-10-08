@@ -276,6 +276,16 @@ ribaltamenti 16; il pilota 94,0 %, ribaltamenti 4. Con lo slancio delle
 svolte imparato di main (2026-10-07): lo stick 93,3 %, ribaltamenti 20; il
 pilota 94,3 %, ribaltamenti 6: l'andatura del banco non ha slancio, quindi
 i 17° iniziali lì fanno svolte un po' corte.
+
+**v3-r7** (2026-10-08), riaddestrato da zero su quel codice (DAgger poi
+PPO, gli stessi argomenti di v3-r6; `quack-rl/pilots/v3-r7`): sul banco di
+prova, 420 viaggi, il pilota arriva al 96,7 % (ribaltamenti 4), lo stick
+al 93,3 % (20), l'esperto al 94,0 %; nessuna caduta in un buco, cervelli
+spericolati compresi. Tarato sulla calibrazione MuJoCo (`v3-r7-mujoco`):
+96,0 % (2) contro il 93,1 % (17) dello stick. Sul gemello MuJoCo,
+casa_ingombra, due giri: **12/12 entrambi**, nessuna caduta, lo stick più
+veloce (108 s contro 130): lo stick lì ha recuperato (9/12 contro l'11/12
+di v3-r6 un mese fa), quindi il pilota resta facoltativo.
 Sul protocollo di release, stesso giorno e stesso robotd, tre case (house2,
 casa_libera, casa_arredata): go_to 51/51 contro 45/51 di main, homecoming
 9/9 per entrambi, copertura dell'esplorazione uguale. Con queste regole

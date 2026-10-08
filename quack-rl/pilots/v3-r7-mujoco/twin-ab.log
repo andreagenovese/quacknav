@@ -1,0 +1,33 @@
+[stick] up: body 61909 tofd 61926 robotd 61932 quack-navd 61938
+[stick] r0 kitchen: ARRIVED in 93 s, 0.12 m off, legs 52 — arrived at (-2.90, 1.90)
+[stick] r0 living: ARRIVED in 84 s, 0.17 m off, legs 55 — arrived at (1.40, 1.20)
+[stick] r0 bedroom: ARRIVED in 256 s, 0.13 m off, legs 180 — arrived at (-2.10, -1.10)
+[stick] r0 office: ARRIVED in 90 s, 0.12 m off, legs 58 — arrived at (-0.60, -1.30)
+[stick] r0 bath: ARRIVED in 105 s, 0.17 m off, legs 73 — arrived at (3.30, -1.20)
+[stick] r0 home: ARRIVED in 75 s, 0.13 m off, legs 47 — arrived at (0.00, 0.00)
+[stick] r1 kitchen: ARRIVED in 78 s, 0.10 m off, legs 54 — arrived at (-2.90, 1.90)
+[stick] r1 living: ARRIVED in 75 s, 0.17 m off, legs 55 — arrived at (1.40, 1.20)
+[stick] r1 bedroom: ARRIVED in 132 s, 0.15 m off, legs 99 — arrived at (-2.10, -1.10)
+[stick] r1 office: ARRIVED in 84 s, 0.15 m off, legs 56 — arrived at (-0.60, -1.30)
+[stick] r1 bath: ARRIVED in 136 s, 0.11 m off, legs 99 — arrived at (3.30, -1.20)
+[stick] r1 home: ARRIVED in 81 s, 0.12 m off, legs 48 — arrived at (0.00, 0.00)
+[pilot] up: body 64598 tofd 64620 robotd 64626 quack-navd 64632
+[pilot] r0 kitchen: ARRIVED in 162 s, 0.16 m off, legs 120 — arrived at (-2.90, 1.90)
+[pilot] r0 living: ARRIVED in 81 s, 0.14 m off, legs 60 — arrived at (1.40, 1.20)
+[pilot] r0 bedroom: ARRIVED in 259 s, 0.14 m off, legs 183 — arrived at (-2.10, -1.10)
+[pilot] r0 office: ARRIVED in 87 s, 0.25 m off, legs 57 — arrived at (-0.60, -1.30)
+[pilot] r0 bath: ARRIVED in 190 s, 0.19 m off, legs 112 — arrived at (3.30, -1.20)
+[pilot] r0 home: ARRIVED in 126 s, 0.11 m off, legs 86 — arrived at (0.00, 0.00)
+[pilot] r1 kitchen: ARRIVED in 145 s, 0.14 m off, legs 65 — arrived at (-2.90, 1.90)
+[pilot] r1 living: ARRIVED in 69 s, 0.11 m off, legs 57 — arrived at (1.40, 1.20)
+[pilot] r1 bedroom: ARRIVED in 115 s, 0.10 m off, legs 77 — arrived at (-2.10, -1.10)
+[pilot] r1 office: ARRIVED in 130 s, 0.16 m off, legs 82 — arrived at (-0.60, -1.30)
+[pilot] r1 bath: ARRIVED in 109 s, 0.22 m off, legs 73 — arrived at (3.30, -1.20)
+[pilot] r1 home: ARRIVED in 84 s, 0.12 m off, legs 51 — arrived at (0.00, 0.00)
+# Twin A/B on casa_ingombra: the stick and the pilot
+
+| arm | journeys | arrived | fell | mean s (arrived) | refused |
+|---|---|---|---|---|---|
+| stick | 12 | 12 | 0 | 108 | 0 |
+| pilot | 12 | 12 | 0 | 130 | 0 |
+

@@ -257,6 +257,16 @@ main's one): the stick 94.3 %, tip-overs 16; the pilot 94.0 %, tip-overs 4.
 With main's learned turn coast (2026-10-07): the stick 93.3 %, tip-overs
 20; the pilot 94.3 %, tip-overs 6 — the bench's gait does not coast, so
 the prior's 17° makes its turns a little short there.
+
+**v3-r7** (2026-10-08), retrained from nothing on that code (DAgger then
+PPO, the same arguments as v3-r6; `quack-rl/pilots/v3-r7`): on the test
+bench, 420 journeys, the pilot 96.7 % arrived (tip-overs 4), the stick
+93.3 % (20), the expert 94.0 %; no fall into a hole, reckless brains
+included. Tuned on the MuJoCo calibration (`v3-r7-mujoco`): 96.0 % (2)
+against the stick's 93.1 % (17). On the MuJoCo twin, casa_ingombra, two
+rounds: **12/12 both**, no fall, the stick faster (108 s against 130) —
+the stick has caught up there (9/12 against v3-r6's 11/12 a month ago),
+so the pilot stays optional.
 On the release protocol, the same day and the same robotd, three houses
 (house2, casa_libera, casa_arredata): go_to 51/51 against main's 45/51,
 homecoming 9/9 for both, exploration's coverage alike. With these rules
