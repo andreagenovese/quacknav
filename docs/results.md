@@ -369,6 +369,17 @@ control on the same maps.
 
   The coast settled at 25–35°.
 
+- **Tried and not kept: the journey's rules on the exploration's travel**
+  (branch `explore-rules`, 2026-10-07/08). The touch stall, the booking
+  ahead and the turn's coast on the exploration's legs too, against
+  `main` exploring each house from nothing (`scripts/twin/houses/explore_ab.sh`:
+  sessions of 30 min, four at most, then two rounds of journeys on its own
+  books). No fall and no phantom drop on either side, the rooms' coverage
+  within a point or two; casa_arredata done by itself in three sessions
+  (`main` not done in four), casa_libera in two (`main` in one); every
+  journey after arrived on both. Even, so the exploration keeps `main`'s
+  rules; one exploration a side is too few to call a point either way.
+
 - **Tried and not kept: go_to books what it meets** (branch
   `journey-books`). Booking what the sensor sees ahead before the bump, a
   "scuff" stall (a step that moved under 40 % of a step), facing a hole

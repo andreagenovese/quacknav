@@ -384,6 +384,19 @@ sulle stesse mappe.
 
   Lo slancio si è assestato fra 25° e 35°.
 
+- **Provato e non tenuto: le regole dei viaggi negli spostamenti
+  dell'esplorazione** (branch `explore-rules`, 2026-10-07/08). Lo stallo
+  del tocco, il libro in anticipo e lo slancio delle svolte anche nei passi
+  dell'esplorazione, contro `main` che esplora ogni casa da zero
+  (`scripts/twin/houses/explore_ab.sh`: sessioni di 30 min, al più
+  quattro, poi due giri di viaggi sui propri libri). Nessuna caduta e
+  nessun drop fantasma da nessuna parte, la copertura delle stanze entro
+  un punto o due; casa_arredata finita da sola in tre sessioni (`main` non
+  finita in quattro), casa_libera in due (`main` in una); ogni viaggio
+  dopo arrivato in entrambi. Pari, quindi l'esplorazione tiene le regole
+  di `main`; un'esplorazione per parte è troppo poco per decidere un punto
+  in un senso o nell'altro.
+
 - **Provato e non tenuto: il go_to registra ciò che incontra** (branch
   `journey-books`). Registrare ciò che il sensore vede davanti prima
   dell'urto, uno stallo "scuff" (un passo che ha fatto meno del 40 % di un
