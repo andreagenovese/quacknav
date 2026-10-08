@@ -208,7 +208,7 @@ Tutto — il progetto, gli scudi, i numeri, i limiti:
 ## Farlo girare
 
 Rust 1.89 o più recente; la prima compilazione scarica da GitHub i crate
-`duck-ipc-proto` e `kinematics` di Pollen (tag daemon-v0.15.0).
+`duck-ipc-proto` e `kinematics` di Pollen (tag daemon-v0.16.1).
 
 ```sh
 git clone https://github.com/andreagenovese/quacknav.git && cd quacknav
@@ -235,6 +235,10 @@ resume_explore = true   # esplora ancora dopo ogni carica finché la casa è com
 enabled = true          # ospita qui il mapper, con il robotd ufficiale
 mode = "stop_and_scan"  # oppure "localize" quando la casa è mappata
 map_path = "/var/lib/quack-nav/maploc.session"
+
+[gait]
+profile = "velstand"    # the walk robotd runs: "velstand" (Pollen's default since
+                        # policy set v5) or "alpha" (alpha_walking + alpha_stand)
 ```
 
 Con `[maploc]` acceso, `quack-navd` fa girare da sé il `maploc` di Pollen
@@ -318,12 +322,32 @@ standard; cosa guardare su una vera:
 | `[map] places_path` | `/var/lib/quack-nav/places.json` | i luoghi con un nome |
 | `[homecoming] enabled`, `resume_explore` | `true`, `true` | spenti: la papera non fa nulla da sé all'avvio, né riprende a esplorare dopo una ricarica |
 | `socket` | `/run/quack-nav/nav.sock` | dove quacksat e quack-control trovano quack-navd |
+| `[gait] profile` | `"velstand"` | `"alpha"` quando robotd cammina con `alpha_walking` + `alpha_stand` (vedi sotto) |
 
 I percorsi devono restare sotto `/var/lib/quack-nav/` o `/run/quack-nav/`:
 l'unità non lascia scrivere il demone altrove. Una chiave che il demone non
 conosce lo ferma con un messaggio che la nomina (`journalctl -u
 quack-navd`). Tutte le chiavi e i loro predefiniti:
 `quack-nav/src/config.rs`.
+
+**La camminata.** quack-nav deve sapere quale policy di camminata usa
+robotd, e `[gait] profile` lo dice. Le papere di Pollen escono con
+**velstand** (una sola rete che cammina e sta in piedi; dal set di policy
+v5 in poi). **alpha** (`alpha_walking` + `alpha_stand`) è ancora nel set, e
+ogni numero prima del 2026-10-08 è stato misurato con lei; per usarla,
+sulla papera:
+
+```sh
+robotctl policy load walk alpha_walking.onnx
+robotctl policy load stand alpha_stand.onnx
+```
+
+e qui `profile = "alpha"` (il default quando `[gait]` manca). Entrambe sono
+validate sul gemello MuJoCo con daemon-v0.16.1: 48 viaggi su 48 con
+velstand, 47 su 48 con alpha, la posa entro 6–7 cm (mediana) —
+[docs/results.it.md](docs/results.it.md), "daemon 0.16.1 e velstand". Il
+profilo porta i numeri della camminata (velocità, rotazione, quanto il
+corpo impiega a fermarsi dopo uno stop); un profilo non cambia mai l'altro.
 
 **Controllarlo**: `systemctl status quack-navd`, `journalctl -u quack-navd
 -f`, e la chiamata `nc -U` sotto
@@ -547,7 +571,7 @@ il comportamento e dargli le forme del settore:
 Misurato sul gemello MuJoCo (`microduck_rl` + robotd); la papera fisica
 arriva a dicembre 2026. Due modi di farlo girare:
 
-- **robotd ufficiale** (daemon-v0.15.0) con `[maploc] enabled`: il
+- **robotd ufficiale** (daemon-v0.16.1) con `[maploc] enabled`: il
   mapper sta in `quack-navd`. È la configurazione della preview; i numeri
   di [`docs/results.it.md`](docs/results.it.md) sono stati misurati sulla
   daemon-v0.14.4.
@@ -555,9 +579,10 @@ arriva a dicembre 2026. Due modi di farlo girare:
   più la libreria di mappe di `docs/study/upstream-asks.md` §5, che vive su
   un fork di `pollen-robotics/microduck` — con `[maploc]` spento.
 
-`main` è fissato a daemon-v0.15.0 (API 37) dal 2026-10-01; era stato
-validato sul gemello sul branch `microduck-015` (quattro sessioni per
-casa, nessuna regressione). Le sue aggiunte sono facoltative sul filo,
+`main` è fissato a daemon-v0.16.1 (API 41) dal 2026-10-08, validato sul
+gemello con entrambe le camminate (branch `microduck-016`: quattro giri
+per casa, nessuna regressione con alpha; velstand altrettanto bene);
+prima a daemon-v0.15.0 (API 37) dal 2026-10-01. Le sue aggiunte sono facoltative sul filo,
 quindi lo stesso `quack-navd` gira anche su una scheda ancora alla
 daemon-v0.14.4.
 

@@ -4,7 +4,7 @@ Submap pose-graph SLAM and relocalization over the head ToF, from Pollen
 Robotics' `pollen-robotics/microduck` (PR 127, by apirrone), with the
 changes of the `maploc-quacknav` branch (commit `16070fd`) on top. Carried
 here so `quack-navd` can host the mapper itself against the released
-robotd (daemon-v0.15.0, API 37) — see `NOTICE`.
+robotd (daemon-v0.16.1, API 41) — see `NOTICE`.
 
 `flat` (behind the `kinematics` feature) is the depth frame as a 2D scan;
 in the fork it was `kinematics::tof::Reprojector::flatten`.

@@ -384,6 +384,19 @@ sulle stesse mappe.
 
   Lo slancio si è assestato fra 25° e 35°.
 
+- **Provato e non tenuto: le regole dei viaggi negli spostamenti
+  dell'esplorazione** (branch `explore-rules`, 2026-10-07/08). Lo stallo
+  del tocco, il libro in anticipo e lo slancio delle svolte anche nei passi
+  dell'esplorazione, contro `main` che esplora ogni casa da zero
+  (`scripts/twin/houses/explore_ab.sh`: sessioni di 30 min, al più
+  quattro, poi due giri di viaggi sui propri libri). Nessuna caduta e
+  nessun drop fantasma da nessuna parte, la copertura delle stanze entro
+  un punto o due; casa_arredata finita da sola in tre sessioni (`main` non
+  finita in quattro), casa_libera in due (`main` in una); ogni viaggio
+  dopo arrivato in entrambi. Pari, quindi l'esplorazione tiene le regole
+  di `main`; un'esplorazione per parte è troppo poco per decidere un punto
+  in un senso o nell'altro.
+
 - **Provato e non tenuto: il go_to registra ciò che incontra** (branch
   `journey-books`). Registrare ciò che il sensore vede davanti prima
   dell'urto, uno stallo "scuff" (un passo che ha fatto meno del 40 % di un
@@ -398,6 +411,41 @@ sulle stesse mappe.
   rallentati da 49 a 27–29 tick d'odometria al secondo nei cinque secondi
   prima: il computer, non la papera. Da ora le verifiche girano due
   gemelli alla volta.
+
+### daemon 0.16.1 e velstand (2026-10-08)
+
+Sul gemello MuJoCo con daemon-v0.16.1 di Pollen, `microduck_rl` al
+`develop` upstream e il set di policy v7; lo stesso protocollo di sopra
+(quattro giri per casa sugli stessi libri, casa_ingombra due).
+
+- **alpha, daemon 0.15.0 contro 0.16.1**: 24/24 + 24/24 entrambi;
+  casa_ingombra 10/12 contro 11/12; nessuna caduta da nessuna parte.
+- **velstand misurato** in un'arena vuota (`scripts/twin/gaitprobe.py`):
+  0,115 m/s a vx 0,3 (alpha 0,119), 6° di deriva in 10 s dritto (alpha
+  25°; il set v7 ha tolto la deriva in addestramento), 0,62 rad/s per
+  unità di yaw camminando, una svolta sul posto a ±1,5 di 44–51°/s, la
+  stessa zona morta di alpha. L'odometria di robotd è entro l'1–2 % della
+  verità per entrambe, dritto, sul tappeto di apartment e a passi e soste
+  (`odoprobe.py`).
+- **Perché velstand all'inizio falliva**: una papera velstand ferma è
+  etichettata "walk" (nessuna rete per stare in piedi), quindi il mapper non
+  la vedeva mai ferma e, dalla 0.16.1, gli sguardi automatici di robotd si
+  prendevano la testa: 0/24, l'homecoming rinunciava dopo 16 min. Poi,
+  considerata ferma appena finiva la velocità, le sue finestre iniziavano
+  col corpo ancora in moto (0,1–0,55 s, `settleprobe.py`; alpha 0–0,3) e le
+  soste da 2 s lasciavano 1,4 s di immobilità: 9 correzioni di posa per
+  giro (alpha 30), la posa a 0,3–0,5 m nei viaggi lunghi, una volta 1,3 m.
+  Con l'assestamento (0,6 s) e soste più lunghe di altrettanto: tre giri,
+  18/18, la posa a 6 cm di mediana, 34–41 correzioni per giro.
+- **alpha contro velstand, stesso codice e stesso stack**:
+
+  | | apartment | casa_arredata | casa_ingombra | cadute | posa (mediana / p90) | s medi (apartment / arredata) |
+  |---|---|---|---|---|---|---|
+  | alpha | 24 / 24 | 23 / 24 | 11 / 12 | 1 | 8 / 16, 7 / 11 cm | 92 / 90 |
+  | velstand | 24 / 24 | 24 / 24 | 10 / 12 | 0 | 7 / 16, 6 / 10 cm | 103 / 98 |
+
+  L'unico mancato di velstand, la camera di casa_ingombra, ha finito il
+  tempo; la caduta di alpha è stata in casa_arredata.
 
 ## Limiti noti
 

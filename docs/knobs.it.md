@@ -113,6 +113,7 @@ del processo.
 | `ODOM_LOG` | un percorso, o un valore | `maploc/examples/trajectory.rs` | `ODOM_LOG=<file>`: the raw odometry the mapper was fed, on the Unix clock, for its increments against the truth's. |
 | `ODOM_SIGMA_XY` | numero (default slam_cfg.odom_sigma_xy) | `maploc/examples/evaluate.rs`, `maploc/examples/trajectory.rs` | How much the graph believes odometry against a closure: a closure 5° wrong turned casa_arredata's first session 5° and walked the pose 0.47 m off across the living room (x13, 2026-09-29), odometry being near perfect on t… |
 | `ODOM_SIGMA_YAW` | numero (default slam_cfg.odom_sigma_yaw) | `maploc/examples/evaluate.rs`, `maploc/examples/trajectory.rs` |  |
+| `ONLY` | un valore (script) | `scripts/twin/odoprobe.py` |  |
 | `OTHER_HOUSE` | un valore | `maploc/examples/wake_match.rs` |  |
 | `OUT_SESSION` | un percorso, o un valore | `maploc/examples/evaluate.rs` | `OUT_SESSION=<file>`: the map this replay built, saved the way the robot saves one — so a bench run and a live run are scored by the same tools (quacksat's mapquality.py, dump_frame). |
 | `POLICY_DIR` | un valore (script) | `scripts/twin/houses/run_house.py` |  |
@@ -130,6 +131,7 @@ del processo.
 | `ROUTE_POINTS` | presente = accesa (qualsiasi valore) | `quack-nav/examples/route_on_map.rs` | with `TRUTH_HOLES=<truth.json>` (the twin's truth) also to a true hole, and with `ROUTE_POINTS=1` the route. |
 | `SAVE_SESSION` | un percorso, o un valore | `maploc/examples/trajectory.rs` | `SAVE_SESSION=<file>`: the map the replay built, saved as the live daemon saves it — for `dump_frame` and `map_vs_truth.py`. |
 | `SLANT` | number (unset: none) | `maploc/examples/submap_fit.rs` | `SLANT=x0,x1,y0,y1`: how many of this submap's wall cells fall in that box. |
+| `SPOT` | un valore (script) | `scripts/twin/odoprobe.py` |  |
 | `STATE` | un valore (script) | `scripts/rl/twin_ab.py` |  |
 | `TRACK` | 1 accesa, altrimenti spenta; assente: mapper_cfg.tracking.enabled | `maploc/examples/evaluate.rs` |  |
 | `TRACK_COND` | numero (default mapper_cfg.tracking.min_conditioning) | `maploc/examples/evaluate.rs` |  |

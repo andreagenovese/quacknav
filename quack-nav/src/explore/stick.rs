@@ -33,10 +33,10 @@ const STEP_S: f64 = 0.6;
 const STALL_M: f64 = 0.01;
 const STALLS_TURN: u32 = 3;
 /// A turn in place's coast (see `learn_coast`): the weight of the newest
-/// turn, the most it may be, and where a journey starts.
+/// turn and the most it may be; a journey starts from the walk's
+/// `coast_prior_rad` (`quack_duck::gait::Profile`).
 const COAST_LEARN: f64 = 0.3;
 const COAST_MAX_RAD: f64 = 0.7;
-pub(super) const COAST_PRIOR_RAD: f64 = 0.3;
 /// On a journey: something in the body's lane this near, in most of the
 /// last [`TOUCH_WITHIN`]'s frames, is the nose against it ...
 const TOUCH_M: f64 = 0.15;
@@ -83,7 +83,9 @@ const EXPLORE_BOOK_STAND_S: f64 = 1.5;
 const FACE_RIM_RAD: f64 = 0.15;
 /// The yaw asked per radian of heading error, as the gait turns 0.65 of
 /// it a second: the error closed over about the step.
-const YAW_GAIN: f64 = 1.0 / (0.65 * STEP_S);
+fn yaw_gain() -> f64 {
+    1.0 / (quack_duck::gait::numbers().yaw_rate_per_unit * STEP_S)
+}
 
 /// Odometry's pose, when robotd gives it.
 fn odom_pose(robot: &dyn Body) -> Option<(f64, f64, f64)> {
@@ -101,7 +103,7 @@ impl Job {
         // turns before (see `learn_coast`).
         let coast = if self.stick_books { 0.0 } else { self.stick_coast };
         let goal = (want - TURN_LEAD_RAD - coast).max(0.05);
-        let vyaw = quack_duck::body::TURN_IN_PLACE_RAD_S * sign;
+        let vyaw = quack_duck::gait::numbers().turn_in_place_rad_s * sign;
         let started = robot.now();
         let budget = 2.0 * want / 0.5 + 1.0;
         let mut turned = 0.0f64;
@@ -248,7 +250,7 @@ impl Job {
                 self.stick_turn_probe = Some((yaw, err.signum(), turned));
             }
             tracing::info!(at = ?(x, y, yaw), look = ?look, err_deg = format!("{:.0}", err.to_degrees()), turned_deg = format!("{:.0}", turned.to_degrees()), "map explore: stick: turn");
-            what = json!({"src": "stick", "act": if err > 0.0 { "turn_left" } else { "turn_right" }, "vyaw": quack_duck::body::TURN_IN_PLACE_RAD_S * err.signum(), "want": want, "turned": turned});
+            what = json!({"src": "stick", "act": if err > 0.0 { "turn_left" } else { "turn_right" }, "vyaw": quack_duck::gait::numbers().turn_in_place_rad_s * err.signum(), "want": want, "turned": turned});
             // ... and a stand after it: the mapper corrects the pose at the
             // stands only, and a turn is where odometry drifts most.
             if want >= STAND_AFTER_TURN_RAD {
@@ -258,10 +260,10 @@ impl Job {
                 self.stick_steps += 1;
                 return self.stick_tail(robot, stand_every);
             }
-        } else if let Some(d) = robot.cliff().and_then(|c| self.blind_drop_ahead(&c, robot.now(), GAIT_M_PER_S * STEP_S + guard_margin)) {
+        } else if let Some(d) = robot.cliff().and_then(|c| self.blind_drop_ahead(&c, robot.now(), gait_m_per_s() * STEP_S + guard_margin)) {
             what = self.turn_from_hole(robot, (x, y, yaw), d, "stick");
         } else {
-            let vyaw = (YAW_GAIN * err).clamp(-0.7, 0.7);
+            let vyaw = (yaw_gain() * err).clamp(-0.7, 0.7);
             let _ = robot.blind_move(&json!({"vx": 0.3, "vyaw": vyaw, "duration_s": STEP_S}));
             self.stick_last_step = true;
             handle.update(|s| s.legs += 1);
@@ -291,7 +293,7 @@ impl Job {
             }
             self.stick_odom_at = Some((ox, oy));
         } else {
-            self.stick_since_stand += GAIT_M_PER_S * STEP_S;
+            self.stick_since_stand += gait_m_per_s() * STEP_S;
         }
         if self.stick_since_stand >= stand_every {
             self.traced_stand(robot, self.stick_stand_s);
@@ -350,7 +352,7 @@ impl Job {
             }
             self.record_drops(robot);
         }
-        let vyaw = -quack_duck::body::TURN_IN_PLACE_RAD_S * d.bearing.signum();
+        let vyaw = -quack_duck::gait::numbers().turn_in_place_rad_s * d.bearing.signum();
         let _ = robot.blind_move(&json!({"vx": 0.0, "vyaw": vyaw, "duration_s": 0.5}));
         tracing::info!(at = ?(x, y, yaw), edge_m = format!("{:.2}", d.edge_min_m), bearing_deg = format!("{:.0}", d.bearing.to_degrees()), booked = !known, src, "map explore: stick: a hole ahead; turned from it");
         json!({"src": src, "act": "turn_from_hole", "vx": 0.0, "vyaw": vyaw, "secs": 0.5, "edge_m": d.edge_min_m, "bearing": d.bearing})
@@ -383,7 +385,7 @@ impl Job {
         });
         let action = pilot.act(&obs);
         let odom0 = odom_pose(&*robot).map(|p| (p.0, p.1)).unwrap_or((pose.0, pose.1));
-        let guarded = action.forward().then(|| cliff.as_ref().and_then(|c| self.blind_drop_ahead(c, now, GAIT_M_PER_S * STEP_S + guard_margin))).flatten();
+        let guarded = action.forward().then(|| cliff.as_ref().and_then(|c| self.blind_drop_ahead(c, now, gait_m_per_s() * STEP_S + guard_margin))).flatten();
         // Backing is blind (the sensor looks ahead): only onto floor the map
         // knows, off the books' drops. The bench's first pilot backed into
         // an unbooked stairwell, turning and backing by turns beside it
@@ -418,7 +420,7 @@ impl Job {
         // a scuff: the body pushing, sliding along what it meets (a
         // centimetre and a half a leg, along the wall into the hole: the
         // bench's stairwell 300059, 2026-10-06).
-        let scuffing = self.pilot_last.is_some_and(Action::forward) && self.pilot_moved_m < SCUFF_FRACTION * GAIT_M_PER_S * STEP_S;
+        let scuffing = self.pilot_last.is_some_and(Action::forward) && self.pilot_moved_m < SCUFF_FRACTION * gait_m_per_s() * STEP_S;
         self.pilot_scuffs = if scuffing { self.pilot_scuffs + 1 } else { 0 };
         let pushing = action.forward()
             && (ahead_within(TOUCH_M)
@@ -464,7 +466,7 @@ impl Job {
                 Action::TurnLeft | Action::TurnRight => {
                     let sign = if action == Action::TurnLeft { 1.0 } else { -1.0 };
                     let turned = self.stick_turn(robot, sign, TURN_RAD);
-                    json!({"src": "pilot", "act": action.name(), "vyaw": quack_duck::body::TURN_IN_PLACE_RAD_S * sign, "want": TURN_RAD, "turned": turned})
+                    json!({"src": "pilot", "act": action.name(), "vyaw": quack_duck::gait::numbers().turn_in_place_rad_s * sign, "want": TURN_RAD, "turned": turned})
                 }
                 Action::Wait => {
                     let _ = stand(robot, WAIT_S);
@@ -567,7 +569,7 @@ fn step_into_unknown(grid: &crate::map::Grid, (x, y, yaw): (f64, f64, f64), vx: 
     }
     const FRONT_M: f64 = 0.11;
     const MARGIN_M: f64 = 0.08;
-    let v = GAIT_M_PER_S * vx / 0.3;
+    let v = gait_m_per_s() * vx / 0.3;
     for gain in [0.65, 1.3] {
         let w = gain * vyaw;
         let (mut px, mut py, mut h) = (x, y, yaw);

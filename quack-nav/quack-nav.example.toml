@@ -19,3 +19,7 @@ resume_explore = true   # explore on after each charge until the house is done
 enabled = true          # host the mapper here, against the released robotd
 mode = "stop_and_scan"  # or "localize" once the house is mapped
 map_path = "/var/lib/quack-nav/maploc.session"
+
+[gait]
+profile = "velstand"    # the walk robotd runs: "velstand" (Pollen's default since
+                        # policy set v5) or "alpha" (alpha_walking + alpha_stand)

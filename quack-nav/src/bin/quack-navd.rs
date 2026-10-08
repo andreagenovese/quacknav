@@ -32,6 +32,10 @@ fn main() -> anyhow::Result<()> {
     let path = std::env::args().nth(1).unwrap_or_else(|| "/etc/robot/quack-nav.toml".into());
     let config = NavdConfig::load(&path)?;
     tracing::info!(config = %path, socket = %config.socket, robotd = %config.robotd_socket, "quack-navd");
+    // The walk robotd runs: the explorer's gait model and `[gait]`'s
+    // defaults follow it.
+    quack_duck::gait::set_active(config.gait.profile);
+    tracing::info!(profile = ?config.gait.profile, gait = ?config.gait, "quack-navd: the walk");
 
     // The mapper, when this daemon hosts it (`[maploc]`): the released robotd
     // publishes what it needs, and the rest of the navigation reads the map

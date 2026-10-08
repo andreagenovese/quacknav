@@ -88,6 +88,39 @@ carta, mai su una papera fisica; i dettagli sono in
   (`ROUTE_POINTS=1`). Vedi docs/results.it.md, "Sporgenze e angoli dei
   vani scala".
 
+### Modificato (daemon 0.16.1)
+
+- **Fissato a daemon-v0.16.1 di Pollen (API 41)**, prima daemon-v0.15.0.
+  Lo `SafetyState` del protocollo ha `picked_up` (il rilevatore di presa
+  in braccio di Pollen). Con alpha nessuna regressione sul gemello MuJoCo
+  (48/48 contro 48/48, casa_ingombra 11/12 contro 10/12, nessuna caduta).
+- **`[gait] profile = "alpha" | "velstand"`**: la policy di camminata che
+  usa robotd. Fissa il modello di andatura dell'esploratore (velocità,
+  rotazione per unità, svolta sul posto, slancio iniziale, quanto il corpo
+  impiega a fermarsi) e i default di `[gait]`; ogni valore resta
+  impostabile. I numeri di alpha sono esattamente le costanti di prima,
+  quindi alpha si comporta come prima, identico al bit sul gemello di
+  carta. **Aggiornando una papera che cammina con velstand (il default di
+  Pollen): aggiungere `[gait] profile = "velstand"` a
+  `/etc/robot/quack-nav.toml`**: l'installer non tocca una configurazione
+  esistente, e senza la chiave vale alpha. La configurazione d'esempio ora
+  dice velstand.
+- **velstand funziona.** Sta in piedi sotto la rete di camminata, quindi
+  robotd etichetta "walk" una papera ferma: quack-nav la credeva sempre in
+  movimento (nessuna finestra ferma, nessuno sweep della testa) e, dalla
+  0.16.1, gli sguardi automatici di robotd si prendevano la testa:
+  l'homecoming rinunciava dopo 16 minuti. Con velstand decide la velocità
+  applicata, e la papera conta come ferma 0,6 s dopo che finisce (il corpo
+  prosegue tanto), ogni sosta più lunga di altrettanto. Sul gemello,
+  quattro giri per casa: 48/48, nessuna caduta, la posa entro 6–7 cm
+  (mediana).
+- **Lo sweep della testa prova i propri comandi prima di farsi da parte**:
+  una testa in posa riceve 2,5 s di comandi (qualunque comando ferma gli
+  sguardi automatici di robotd 0.16.1); ancora in posa, è di qualcun
+  altro, come prima.
+- `scripts/twin`: `GAIT=alpha|velstand`; `gaitprobe.py`, `odoprobe.py`,
+  `settleprobe.py`. `final_ab.sh` mette ogni braccio sul suo stack.
+
 ## [0.2.0-rc2] - 2026-10-03
 
 Una seconda release candidate, ancora validata solo sui gemelli. Note di

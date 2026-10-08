@@ -97,6 +97,15 @@ struct Tick {
     policy: String,
     head: [f64; 4],
     imu: Option<serde_json::Value>,
+    /// The twist robotd applies (velstand stands under "walk").
+    #[serde(rename = "move")]
+    motion: Motion,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(default)]
+struct Motion {
+    applied: [f64; 3],
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -139,7 +148,9 @@ fn sample(tick: &Tick) -> Option<OdomSample> {
         trunk_z: tick.odom.position[2],
         head: [head[0], head[1], head[2], head[3]],
         t_ns: tick.t_ns,
-        moving: moving(&tick.policy),
+        // velstand stands under "walk": the applied twist says whether it
+        // walks (see `quack_duck::gait::walking`); alpha as ever.
+        moving: if tick.policy == "walk" { quack_duck::gait::walking("walk", tick.motion.applied) } else { moving(&tick.policy) },
         sitting: tick.policy == "sit",
         fallen: tick.safety.fallen,
     })
@@ -171,6 +182,7 @@ fn state_lane(path: &str, host: &Host, body: &SharedBody, said: &mut bool) -> an
     )?;
     tracing::info!(socket = path, "maploc: subscribed to robot.state");
     *said = true;
+    let mut stillness = quack_duck::gait::Stillness::default();
     loop {
         let mut line = String::new();
         if reader.read_line(&mut line)? == 0 {
@@ -188,9 +200,14 @@ fn state_lane(path: &str, host: &Host, body: &SharedBody, said: &mut bool) -> an
         let Ok(tick) = serde_json::from_value::<Tick>(params) else {
             continue;
         };
-        let Some(sample) = sample(&tick) else {
+        let Some(mut sample) = sample(&tick) else {
             continue;
         };
+        // velstand: still only once its body has settled (see
+        // `quack_duck::gait::Stillness`); alpha as `sample` has it.
+        if tick.policy == "walk" {
+            sample.moving = stillness.moving("walk", tick.motion.applied, tick.t_ns);
+        }
         *body.lock().expect("maploc body poisoned") = Some(Body {
             moving: sample.moving,
             sitting: sample.sitting,

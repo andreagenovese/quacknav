@@ -369,6 +369,17 @@ control on the same maps.
 
   The coast settled at 25–35°.
 
+- **Tried and not kept: the journey's rules on the exploration's travel**
+  (branch `explore-rules`, 2026-10-07/08). The touch stall, the booking
+  ahead and the turn's coast on the exploration's legs too, against
+  `main` exploring each house from nothing (`scripts/twin/houses/explore_ab.sh`:
+  sessions of 30 min, four at most, then two rounds of journeys on its own
+  books). No fall and no phantom drop on either side, the rooms' coverage
+  within a point or two; casa_arredata done by itself in three sessions
+  (`main` not done in four), casa_libera in two (`main` in one); every
+  journey after arrived on both. Even, so the exploration keeps `main`'s
+  rules; one exploration a side is too few to call a point either way.
+
 - **Tried and not kept: go_to books what it meets** (branch
   `journey-books`). Booking what the sensor sees ahead before the bump, a
   "scuff" stall (a step that moved under 40 % of a step), facing a hole
@@ -381,6 +392,40 @@ control on the same maps.
   other in two separate twins, both simulators slowed from 49 to 27–29
   odometry ticks a second the five seconds before: the host, not the duck.
   Verifications run two twins at a time from now on.
+
+### daemon 0.16.1 and velstand (2026-10-08)
+
+On the MuJoCo twin at Pollen's daemon-v0.16.1 with `microduck_rl` at
+upstream `develop` and policy set v7; the same protocol as above (four
+rounds a house on the same books, casa_ingombra two).
+
+- **alpha, daemon 0.15.0 against 0.16.1**: 24/24 + 24/24 both;
+  casa_ingombra 10/12 against 11/12; no fall either side.
+- **velstand measured** in an empty arena (`scripts/twin/gaitprobe.py`):
+  0.115 m/s at vx 0.3 (alpha 0.119), 6° of veer in 10 s straight (alpha
+  25°; set v7 trained its bias out), 0.62 rad/s per unit of yaw walking,
+  a turn in place at ±1.5 of 44–51°/s, the same dead zone as alpha.
+  Robotd's odometry is within 1–2 % of the truth for both, straight, on
+  apartment's rug and in step-and-stand legs (`odoprobe.py`).
+- **Why velstand first failed**: a standing velstand duck is labelled
+  "walk" (no standing network), so the mapper never saw it still and,
+  since 0.16.1, robotd's idle glancing took the head — 0/24, the homecoming
+  standing down after 16 min. Then, read as still the moment the twist
+  ended, its windows began while the body still moved (0.1–0.55 s,
+  `settleprobe.py`; alpha 0–0.3) and the 2 s stands kept 1.4 s of
+  stillness: 9 pose corrections a round (alpha 30), the pose 0.3–0.5 m
+  off in long journeys, once 1.3 m. With the settle (0.6 s) and stands
+  that much longer: three rounds, 18/18, the pose 6 cm median, 34–41
+  corrections a round.
+- **alpha against velstand, the same code and stack**:
+
+  | | apartment | casa_arredata | casa_ingombra | falls | pose (median / p90) | mean s (apartment / arredata) |
+  |---|---|---|---|---|---|---|
+  | alpha | 24 / 24 | 23 / 24 | 11 / 12 | 1 | 8 / 16, 7 / 11 cm | 92 / 90 |
+  | velstand | 24 / 24 | 24 / 24 | 10 / 12 | 0 | 7 / 16, 6 / 10 cm | 103 / 98 |
+
+  velstand's one miss, casa_ingombra's bedroom, ran out of time; alpha's
+  fall was in casa_arredata.
 
 ## Known limits
 

@@ -139,7 +139,7 @@ impl Job {
     }
 
     /// A pure turn in place: yaw alone past the gait's dead zone
-    /// ([`quack_duck::body::TURN_IN_PLACE_RAD_S`]), no kick, the body
+    /// ([`quack_duck::gait::numbers().turn_in_place_rad_s`]), no kick, the body
     /// within a few centimetres — so nothing ahead, a drop least of all,
     /// can refuse it. Closed on the odometry's yaw in short chunks, with
     /// the depth sensor's watch between them as [`Job::spin`] keeps it.
@@ -161,7 +161,7 @@ impl Job {
             tracing::info!(near_m = format!("{near:.2}"), "map explore: a drop this near; no turn in place here");
             return Some(0.0);
         }
-        let vyaw = quack_duck::body::TURN_IN_PLACE_RAD_S * sign.signum();
+        let vyaw = quack_duck::gait::numbers().turn_in_place_rad_s * sign.signum();
         let goal = (want - TURN_LEAD_RAD).max(0.05);
         // 30°/s is the slowest measured side; a turn that has not got there
         // in twice its time is not turning.
@@ -667,7 +667,7 @@ impl Job {
         };
         // Along the way, no booked drop nearer than the one it leaves.
         let nearer = self.local.iter().filter(|(_, r)| *r >= DROP_RADIUS_M).any(|((dx, dy), _)| {
-            let (v, w) = if vx > 0.0 { (GAIT_M_PER_S, 0.65 * vyaw) } else { (-BACK_M_PER_S, 0.6 * vyaw) };
+            let (v, w) = if vx > 0.0 { (gait_m_per_s(), quack_duck::gait::numbers().yaw_rate_per_unit * vyaw) } else { (-BACK_M_PER_S, 0.6 * vyaw) };
             let (mut px, mut py, mut h) = pose;
             let mut t = 0.0;
             let mut hit = false;
@@ -707,7 +707,7 @@ impl Job {
         margin: f64,
     ) -> Option<(f64, f64)> {
         let (v, w) = if vx > 0.0 {
-            (GAIT_M_PER_S * vx / 0.3, 0.65 * vyaw)
+            (gait_m_per_s() * vx / 0.3, quack_duck::gait::numbers().yaw_rate_per_unit * vyaw)
         } else if vyaw > 0.3 {
             (-BACK_M_PER_S, 0.6 * vyaw)
         } else {

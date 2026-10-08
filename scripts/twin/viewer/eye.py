@@ -5,7 +5,7 @@ unix socket (`/run/mediad/media.sock`, 0660 group `robot`): a JSON-RPC line
 `{"jsonrpc":"2.0","id":N,"method":"media.frame"}`, answered with one
 JSON-RPC line whose result is the header — width, height, format "UYVY",
 bytes, captured_at_unix_us, rotate — followed by exactly `bytes` raw UYVY
-bytes. `hello` is answered too (duck_ipc_proto at daemon-v0.15.0, API 37).
+bytes. `hello` is answered too (duck_ipc_proto at daemon-v0.16.1, API 41).
 This module is that endpoint for the twin, on `$STATE/media.sock`, so
 quack-control's `mediad` adapter is the same for the twin and the duck.
 
@@ -35,7 +35,7 @@ import numpy as np
 WIDTH = 640
 HEIGHT = 360
 ROTATE = 90
-API_VERSION = 37  # duck_ipc_proto at daemon-v0.15.0
+API_VERSION = 41  # duck_ipc_proto at daemon-v0.16.1
 # mediad's FRAME_TIMEOUT is 500 ms; the sim loop runs a pass every 20 ms.
 COPY_TIMEOUT_S = 0.5
 CLIENT_TIMEOUT_S = 5.0

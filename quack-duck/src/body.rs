@@ -63,7 +63,7 @@ pub const MAX_ARC_YAW_RAD_S: f64 = 0.7;
 
 /// The yaw a command may carry: more for a turn in place than for a walk.
 pub fn yaw_cap(vx: f64, vy: f64) -> f64 {
-    if vx == 0.0 && vy == 0.0 { MAX_TURN_IN_PLACE_RAD_S } else { MAX_YAW_RAD_S }
+    if vx == 0.0 && vy == 0.0 { crate::gait::numbers().max_turn_in_place_rad_s } else { MAX_YAW_RAD_S }
 }
 
 pub fn move_params(args: &Value) -> proto::MoveParams {
@@ -163,7 +163,7 @@ fn run_timed(
                 && let Some(yaw) = yaw_now()
             {
                 let y0 = *yaw0.get_or_insert(yaw);
-                let meant = y0 + bias + YAW_RATE_PER_UNIT * vyaw_cmd * (now - started).as_secs_f64();
+                let meant = y0 + bias + crate::gait::numbers().yaw_rate_per_unit * vyaw_cmd * (now - started).as_secs_f64();
                 let e = wrap(meant - yaw);
                 if e.abs() > HOLD_THRESHOLD_RAD {
                     let tap = HOLD_TAP_WIRE.copysign(e);

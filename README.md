@@ -193,7 +193,7 @@ the limits: [docs/rl-pilot.md](docs/rl-pilot.md).
 ## Running it
 
 Rust 1.89 or newer; the first build fetches Pollen's `duck-ipc-proto` and
-`kinematics` crates from GitHub (tag daemon-v0.15.0).
+`kinematics` crates from GitHub (tag daemon-v0.16.1).
 
 ```sh
 git clone https://github.com/andreagenovese/quacknav.git && cd quacknav
@@ -220,6 +220,10 @@ resume_explore = true   # explore on after each charge until the house is done
 enabled = true          # host the mapper here, against the released robotd
 mode = "stop_and_scan"  # or "localize" once the house is mapped
 map_path = "/var/lib/quack-nav/maploc.session"
+
+[gait]
+profile = "velstand"    # the walk robotd runs: "velstand" (Pollen's default since
+                        # policy set v5) or "alpha" (alpha_walking + alpha_stand)
 ```
 
 With `[maploc]` on, `quack-navd` runs Pollen's `maploc` itself (the
@@ -304,11 +308,30 @@ duck; what to look at on a real one:
 | `[map] places_path` | `/var/lib/quack-nav/places.json` | the named places |
 | `[homecoming] enabled`, `resume_explore` | `true`, `true` | off: the duck does nothing on its own at boot, nor explores on after a charge |
 | `socket` | `/run/quack-nav/nav.sock` | where quacksat and quack-control find quack-navd |
+| `[gait] profile` | `"velstand"` | `"alpha"` when robotd walks with `alpha_walking` + `alpha_stand` (see below) |
 
 Paths must stay under `/var/lib/quack-nav/` or `/run/quack-nav/`: the unit
 lets the daemon write nowhere else. A key the daemon does not know stops
 it with a message naming the key (`journalctl -u quack-navd`). Every key
 and its default: `quack-nav/src/config.rs`.
+
+**The walk.** quack-nav needs to know which walking policy robotd runs,
+and `[gait] profile` says it. Pollen's ducks ship with **velstand** (one
+network that walks and stands; policy set v5 and on). **alpha**
+(`alpha_walking` + `alpha_stand`) is still in the set, and every number
+before 2026-10-08 was measured on it; to run it, on the duck:
+
+```sh
+robotctl policy load walk alpha_walking.onnx
+robotctl policy load stand alpha_stand.onnx
+```
+
+and `profile = "alpha"` here (the default when `[gait]` is left out). Both
+are validated on the MuJoCo twin at daemon-v0.16.1: 48 of 48 journeys
+with velstand, 47 of 48 with alpha, the pose within 6–7 cm (median) —
+[docs/results.md](docs/results.md), "daemon 0.16.1 and velstand". The
+profile carries the walk's numbers (speed, turn rate, how long the body
+takes to settle after a stop); a profile never changes the other's.
 
 **Checking it**: `systemctl status quack-navd`, `journalctl -u quack-navd
 -f`, and the `nc -U` call under [Installing on the duck](#installing-on-the-duck).
@@ -523,16 +546,17 @@ behaviour and put it in the field's shapes:
 Measured on the MuJoCo twin (`microduck_rl` + robotd); the physical duck
 arrives in December 2026. Two ways to run it:
 
-- **Released robotd** (daemon-v0.15.0) with `[maploc] enabled`: the
+- **Released robotd** (daemon-v0.16.1) with `[maploc] enabled`: the
   mapper in `quack-navd`. This is the preview's configuration; the numbers
   in [`docs/results.md`](docs/results.md) were measured on daemon-v0.14.4.
 - **A robotd that hosts maploc** — upstream PR 127, still open, plus the
   map library of `docs/study/upstream-asks.md` §5, which lives on a fork
   of `pollen-robotics/microduck` — with `[maploc]` off.
 
-`main` is pinned to daemon-v0.15.0 (API 37) since 2026-10-01; it was
-validated on the twin on the branch `microduck-015` (four sessions per
-house, no regression). Its additions are optional on the wire, so the
+`main` is pinned to daemon-v0.16.1 (API 41) since 2026-10-08, validated
+on the twin with both walks (branch `microduck-016`: four rounds per
+house, no regression with alpha; velstand as good); before that to
+daemon-v0.15.0 (API 37) from 2026-10-01. Its additions are optional on the wire, so the
 same `quack-navd` runs against a board still on daemon-v0.14.4.
 
 The first session on the physical duck — safety, install, measurements,

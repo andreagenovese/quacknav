@@ -153,7 +153,7 @@ impl Job {
         if vx <= 0.0 || walk_s <= 0.0 {
             return false;
         }
-        let (v, w) = (GAIT_M_PER_S * vx / 0.3, 0.65 * vyaw);
+        let (v, w) = (gait_m_per_s() * vx / 0.3, quack_duck::gait::numbers().yaw_rate_per_unit * vyaw);
         let (mut px, mut py, mut h) = (x, y, yaw);
         let mut t = 0.0;
         while t < walk_s + DROP_PATH_EXTRA_S {

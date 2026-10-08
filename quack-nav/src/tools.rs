@@ -2122,6 +2122,10 @@ pub fn plan_step(
         .and_then(Value::as_f64)
         .unwrap_or(quack_duck::body::DEFAULT_STOP_S)
         .clamp(0.0, quack_duck::body::MAX_STOP_S);
+    // A stand is still for the mapper only once the walk has settled
+    // (`quack_duck::gait::Numbers::settle_s`: velstand's 0.6 s, alpha's 0):
+    // the stand is that much longer, so the still window keeps its length.
+    let stop_s = if stop_s > 0.0 { stop_s + quack_duck::gait::numbers().settle_s } else { stop_s };
     if first.seated {
         return Err("the duck is seated or fallen: stand it up first (sit_toggle)".into());
     }
@@ -2313,7 +2317,7 @@ pub fn plan_step(
         if arc {
             checks.push((0.0, ARC_FIRST_M + 0.15 + ARC_FIRST_MARGIN_M, false));
             checks.push((
-                quack_duck::body::YAW_RATE_PER_UNIT * vyaw * walk_s,
+                quack_duck::gait::numbers().yaw_rate_per_unit * vyaw * walk_s,
                 quack_duck::body::step_advance_m(vx, vyaw, walk_s) + 0.15 + margin,
                 true,
             ));
@@ -2350,7 +2354,7 @@ pub fn plan_step(
             let (mut px, mut py, mut h) = (0.0_f64, 0.0_f64, 0.0_f64);
             let mut path: Vec<(f64, f64)> = vec![(0.0, 0.0)];
             while t < walk_s {
-                h += p.vyaw * quack_duck::body::YAW_RATE_PER_UNIT * 0.1;
+                h += p.vyaw * quack_duck::gait::numbers().yaw_rate_per_unit * 0.1;
                 px += 0.12 * 0.1 * h.cos();
                 py += 0.12 * 0.1 * h.sin();
                 path.push((px, py));

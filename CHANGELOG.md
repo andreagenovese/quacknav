@@ -78,6 +78,36 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   the route (`ROUTE_POINTS=1`). See docs/results.md, "Overhangs and
   stairwell corners".
 
+### Changed (daemon 0.16.1)
+
+- **Pinned to Pollen's daemon-v0.16.1 (API 41)**, was daemon-v0.15.0.
+  The proto's `SafetyState` gains `picked_up` (Pollen's pickup detector).
+  With alpha, no regression on the MuJoCo twin (48/48 against 48/48,
+  casa_ingombra 11/12 against 10/12, no fall).
+- **`[gait] profile = "alpha" | "velstand"`**: the walking policy robotd
+  runs. It sets the explorer's gait model (speed, yaw per unit, turn in
+  place, the coast's prior, how long the body settles after a stop) and
+  `[gait]`'s own defaults; every value still settable. alpha's numbers are
+  exactly the old constants, so alpha behaves as before, bit for bit on the
+  paper twin. **Upgrading a duck that walks with velstand (Pollen's
+  default): add `[gait] profile = "velstand"` to
+  `/etc/robot/quack-nav.toml`** — the installer leaves an existing config
+  alone, and a config without it means alpha. The example config now says
+  velstand.
+- **velstand works.** It stands under the walking network, so robotd
+  labels a standing duck "walk": quack-nav read it as moving for ever (no
+  still window, no head sweep) and, since 0.16.1, robotd's idle glancing
+  took the head — the homecoming stood down after 16 minutes. Under
+  velstand the applied twist decides, and the duck counts as still 0.6 s
+  after it ends (its body goes on that long), every stand that much longer.
+  On the twin, four rounds a house: 48/48, no fall, the pose within 6–7 cm
+  (median).
+- **The head sweep tries its own commands before standing aside**: a posed
+  head gets 2.5 s of them (any head command stops robotd 0.16.1's idle
+  glancing); still posed, it is somebody else's, as before.
+- `scripts/twin`: `GAIT=alpha|velstand`; `gaitprobe.py`, `odoprobe.py`,
+  `settleprobe.py`. `final_ab.sh` puts each arm on its own stack.
+
 ## [0.2.0-rc2] - 2026-10-03
 
 A second release candidate, still validated on the twins only. Release

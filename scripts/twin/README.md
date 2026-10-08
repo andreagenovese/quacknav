@@ -1,16 +1,25 @@
 # The twin, on the released robotd
 
 Everything needed to run quack-nav on the MuJoCo twin with Pollen's
-**released** robotd (daemon-v0.15.0) and the mapper hosted in
+**released** robotd (daemon-v0.16.1) and the mapper hosted in
 `quack-navd` (`[maploc]`, see ADR 0007) — and to repeat the measurements
 of 2026-09-23 (on daemon-v0.14.4) that say it behaves like the robotd fork.
+
+`GAIT=velstand` runs Pollen's default walk (policy set v7: `velstand.onnx`
+in `POLICY_DIR`, no standing network) and writes `[gait] profile =
+"velstand"` into quack-navd's config; `GAIT=alpha`, the default, the pair
+every older number came from. `MICRODUCK_RL` at upstream's `develop`
+(2026-10-08) plus the body server's spawn commit. `gaitprobe.py`,
+`odoprobe.py` and `settleprobe.py` measure a walk in `scene_arena.xml`:
+its speed and turns, robotd's odometry against the truth, and how long
+the body takes to stand still after a stop.
 
 ## Setting up
 
 ```sh
 # Pollen's daemon at the release, robotd and tofd built for the simulator
 git clone https://github.com/pollen-robotics/microduck && cd microduck
-git checkout daemon-v0.15.0 && cargo build -p robotd -p tof
+git checkout daemon-v0.16.1 && cargo build -p robotd -p tof
 
 # the simulator (its README sets up the .venv)
 git clone https://github.com/pollen-robotics/microduck_rl
@@ -20,7 +29,7 @@ cargo build --release
 ```
 
 ```sh
-export MICRODUCK=~/src/microduck          # at daemon-v0.15.0, built
+export MICRODUCK=~/src/microduck          # at daemon-v0.16.1, built
 export MICRODUCK_RL=~/src/microduck_rl    # with its .venv
 export POLICY_DIR=~/policies              # the alpha set: alpha_walking.onnx, alpha_stand.onnx,
                                           # alpha_sitstand.onnx, alpha_ground_pick.onnx,
@@ -40,7 +49,7 @@ The viewer is also the duck's camera (`viewer/eye.py`): there is no
 `mediad` on the twin, so it answers mediad's `media.frame` on
 `$STATE/media.sock` — the same JSON-RPC line, header (640x360, `UYVY`,
 `rotate` 90 like the real mount) and raw frame as `/run/mediad/media.sock`
-on the duck (daemon-v0.15.0) — rendered from the head camera of the model.
+on the duck (daemon-v0.16.1) — rendered from the head camera of the model.
 quack-control's camera window reads it with the same adapter as on the
 duck. Nothing is rendered while nobody asks; a request costs the
 simulation one `mj_copyData` between two steps (~15 µs) and the render
