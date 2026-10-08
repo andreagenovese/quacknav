@@ -1,17 +1,27 @@
 # Il gemello, con il robotd ufficiale
 
 Tutto ciò che serve per far girare quack-nav sul gemello MuJoCo con il
-robotd **ufficiale** di Pollen (daemon-v0.15.0) e il mapper ospitato in
+robotd **ufficiale** di Pollen (daemon-v0.16.1) e il mapper ospitato in
 `quack-navd` (`[maploc]`, vedi ADR 0007) — e per ripetere le misure del
 2026-09-23 (sulla daemon-v0.14.4) che dicono che si comporta come il fork
 di robotd.
+
+`GAIT=velstand` usa la camminata di default di Pollen (set di policy v7:
+`velstand.onnx` in `POLICY_DIR`, nessuna rete per stare in piedi) e scrive
+`[gait] profile = "velstand"` nella configurazione di quack-navd;
+`GAIT=alpha`, il default, la coppia da cui vengono tutti i numeri
+precedenti. `MICRODUCK_RL` al `develop` upstream (2026-10-08) più il commit
+del body server per lo spawn. `gaitprobe.py`, `odoprobe.py` e
+`settleprobe.py` misurano una camminata in `scene_arena.xml`: velocità e
+svolte, l'odometria di robotd contro la verità, e quanto il corpo impiega
+a fermarsi dopo uno stop.
 
 ## Preparare
 
 ```sh
 # il demone di Pollen alla release, robotd e tofd compilati per il simulatore
 git clone https://github.com/pollen-robotics/microduck && cd microduck
-git checkout daemon-v0.15.0 && cargo build -p robotd -p tof
+git checkout daemon-v0.16.1 && cargo build -p robotd -p tof
 
 # il simulatore (il suo README prepara la .venv)
 git clone https://github.com/pollen-robotics/microduck_rl
@@ -21,7 +31,7 @@ cargo build --release
 ```
 
 ```sh
-export MICRODUCK=~/src/microduck          # alla daemon-v0.15.0, compilato
+export MICRODUCK=~/src/microduck          # alla daemon-v0.16.1, compilato
 export MICRODUCK_RL=~/src/microduck_rl    # con la sua .venv
 export POLICY_DIR=~/policies              # il set alpha: alpha_walking.onnx, alpha_stand.onnx,
                                           # alpha_sitstand.onnx, alpha_ground_pick.onnx,
@@ -41,7 +51,7 @@ Il viewer è anche la telecamera dell'anatra (`viewer/eye.py`): sul
 gemello non c'è `mediad`, quindi risponde al `media.frame` di mediad su
 `$STATE/media.sock` — la stessa riga JSON-RPC, intestazione (640x360,
 `UYVY`, `rotate` 90 come il montaggio vero) e fotogramma grezzo di
-`/run/mediad/media.sock` sull'anatra (daemon-v0.15.0) — renderizzato dalla
+`/run/mediad/media.sock` sull'anatra (daemon-v0.16.1) — renderizzato dalla
 telecamera sulla testa del modello. La finestra della telecamera di
 quack-control lo legge con lo stesso adattatore che usa sull'anatra.
 Nessun render finché nessuno chiede; una richiesta costa alla simulazione

@@ -107,6 +107,7 @@ Every knob needs that restart: the environment is read at the process's start.
 | `ODOM_LOG` | a path, or a value | `maploc/examples/trajectory.rs` | `ODOM_LOG=<file>`: the raw odometry the mapper was fed, on the Unix clock, for its increments against the truth's. |
 | `ODOM_SIGMA_XY` | number (default slam_cfg.odom_sigma_xy) | `maploc/examples/evaluate.rs`, `maploc/examples/trajectory.rs` | How much the graph believes odometry against a closure: a closure 5° wrong turned casa_arredata's first session 5° and walked the pose 0.47 m off across the living room (x13, 2026-09-29), odometry being near perfect on t… |
 | `ODOM_SIGMA_YAW` | number (default slam_cfg.odom_sigma_yaw) | `maploc/examples/evaluate.rs`, `maploc/examples/trajectory.rs` |  |
+| `ONLY` | a value (script) | `scripts/twin/odoprobe.py` |  |
 | `OTHER_HOUSE` | a value | `maploc/examples/wake_match.rs` |  |
 | `OUT_SESSION` | a path, or a value | `maploc/examples/evaluate.rs` | `OUT_SESSION=<file>`: the map this replay built, saved the way the robot saves one — so a bench run and a live run are scored by the same tools (quacksat's mapquality.py, dump_frame). |
 | `POLICY_DIR` | a value (script) | `scripts/twin/houses/run_house.py` |  |
@@ -123,6 +124,7 @@ Every knob needs that restart: the environment is read at the process's start.
 | `ROUTE_POINTS` | set = on (any value) | `quack-nav/examples/route_on_map.rs` | with `TRUTH_HOLES=<truth.json>` (the twin's truth) also to a true hole, and with `ROUTE_POINTS=1` the route. |
 | `SAVE_SESSION` | a path, or a value | `maploc/examples/trajectory.rs` | `SAVE_SESSION=<file>`: the map the replay built, saved as the live daemon saves it — for `dump_frame` and `map_vs_truth.py`. |
 | `SLANT` | number (unset: none) | `maploc/examples/submap_fit.rs` | `SLANT=x0,x1,y0,y1`: how many of this submap's wall cells fall in that box. |
+| `SPOT` | a value (script) | `scripts/twin/odoprobe.py` |  |
 | `TRACK` | 1 on, else off; unset: mapper_cfg.tracking.enabled | `maploc/examples/evaluate.rs` |  |
 | `TRACK_COND` | number (default mapper_cfg.tracking.min_conditioning) | `maploc/examples/evaluate.rs` |  |
 | `TRACK_IMPROVE` | number (default mapper_cfg.tracking.min_improvement) | `maploc/examples/evaluate.rs` |  |
