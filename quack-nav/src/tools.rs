@@ -2115,6 +2115,10 @@ pub fn plan_step(
         .and_then(Value::as_f64)
         .unwrap_or(quack_duck::body::DEFAULT_STOP_S)
         .clamp(0.0, quack_duck::body::MAX_STOP_S);
+    // A stand is still for the mapper only once the walk has settled
+    // (`quack_duck::gait::Numbers::settle_s`: velstand's 0.6 s, alpha's 0):
+    // the stand is that much longer, so the still window keeps its length.
+    let stop_s = if stop_s > 0.0 { stop_s + quack_duck::gait::numbers().settle_s } else { stop_s };
     if first.seated {
         return Err("the duck is seated or fallen: stand it up first (sit_toggle)".into());
     }

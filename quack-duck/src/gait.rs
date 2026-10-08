@@ -89,6 +89,9 @@ pub struct Numbers {
     pub max_turn_in_place_rad_s: f64,
     /// A journey's turn-in-place coast before it has measured one (rad).
     pub coast_prior_rad: f64,
+    /// How long the body goes on once no twist is applied, and so what a
+    /// stand adds before it is still for the mapper (s).
+    pub settle_s: f64,
     /// `[gait]`'s defaults under this walk.
     pub yaw_trim: f64,
     pub yaw_gain_left: f64,
@@ -105,6 +108,7 @@ impl Profile {
                 turn_in_place_rad_s: 1.5,
                 max_turn_in_place_rad_s: 1.6,
                 coast_prior_rad: 0.3,
+                settle_s: 0.0,
                 yaw_trim: 0.0,
                 yaw_gain_left: 1.0,
                 yaw_gain_right: 1.0,
@@ -128,6 +132,7 @@ const VELSTAND: Numbers = Numbers {
     turn_in_place_rad_s: 1.5,
     max_turn_in_place_rad_s: 1.6,
     coast_prior_rad: 0.3,
+    settle_s: 0.6,
     yaw_trim: 0.02,
     yaw_gain_left: 1.0,
     yaw_gain_right: 1.0,
@@ -150,6 +155,34 @@ pub fn walking(policy: &str, applied: [f64; 3]) -> bool {
 
 /// An applied twist under this is none (robotd's smoothing ends at 1e-300).
 const STILL_TWIST: f64 = 1e-3;
+
+/// How long velstand's body goes on once the twist is gone: 0.1-0.55 s on
+/// the twin (`scripts/twin/settleprobe.py`, set v7, 2026-10-08; alpha 0-0.3).
+/// The mapper's still windows began in that, smeared, and agreed with the
+/// map too little to correct the pose: 9 corrections a round against
+/// alpha's 30, and the pose 0.3-0.5 m off in long journeys.
+pub const VELSTAND_SETTLE_NS: u64 = (VELSTAND.settle_s * 1e9) as u64;
+
+/// [`walking`] with velstand's settle: a stream's own memory of the last
+/// tick that had a twist (alpha: the label, as [`walking`]).
+#[derive(Debug, Default, Clone)]
+pub struct Stillness {
+    last_twist_ns: Option<u64>,
+}
+
+impl Stillness {
+    pub fn moving(&mut self, policy: &str, applied: [f64; 3], t_ns: u64) -> bool {
+        let walking_now = walking(policy, applied);
+        if numbers_profile() != Profile::Velstand || policy != "walk" {
+            return walking_now;
+        }
+        if walking_now {
+            self.last_twist_ns = Some(t_ns);
+            return true;
+        }
+        self.last_twist_ns.is_some_and(|t| t_ns.saturating_sub(t) < VELSTAND_SETTLE_NS)
+    }
+}
 
 fn numbers_profile() -> Profile {
     ACTIVE.get().copied().unwrap_or_default()
@@ -195,6 +228,7 @@ mod profile_tests {
         assert_eq!(n.max_turn_in_place_rad_s, crate::body::MAX_TURN_IN_PLACE_RAD_S);
         assert_eq!(n.yaw_rate_per_unit, crate::body::YAW_RATE_PER_UNIT);
         assert_eq!(n.coast_prior_rad, 0.3);
+        assert_eq!(n.settle_s, 0.0);
         let g = GaitConfig::default();
         assert_eq!((g.profile, g.yaw_trim, g.yaw_gain_left, g.yaw_gain_right, g.yaw_max), (Profile::Alpha, 0.0, 1.0, 1.0, 0.9));
     }
@@ -209,5 +243,13 @@ mod profile_tests {
         let a: GaitConfig = serde_json::from_str(r#"{"yaw_trim": 0.08}"#).unwrap();
         assert_eq!((a.profile, a.yaw_trim, a.yaw_gain_left), (Profile::Alpha, 0.08, 1.0));
         assert!(serde_json::from_str::<GaitConfig>(r#"{"profile": "roller"}"#).is_err());
+    }
+
+    #[test]
+    fn alpha_still_is_the_label() {
+        // The active profile is alpha in the tests: the label alone, no memory.
+        let mut s = Stillness::default();
+        assert!(s.moving("walk", [0.0; 3], 0));
+        assert!(!s.moving("stand", [0.3, 0.0, 0.0], 1));
     }
 }

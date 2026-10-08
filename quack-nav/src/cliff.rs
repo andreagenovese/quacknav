@@ -194,6 +194,8 @@ struct StateBits {
     /// The twist robotd applies (velstand stands under "walk").
     #[serde(default, rename = "move")]
     motion: MoveBits,
+    #[serde(default)]
+    t_ns: u64,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -680,6 +682,7 @@ fn body_lane(
             &proto::Call::RobotSubscribe(proto::SubscribeParams { hz: Some(STATE_HZ) }),
         ),
     )?;
+    let mut stillness = quack_duck::gait::Stillness::default();
     loop {
         let mut line = String::new();
         if reader.read_line(&mut line)? == 0 {
@@ -697,7 +700,7 @@ fn body_lane(
         let Ok(bits) = serde_json::from_value::<StateBits>(params) else {
             continue;
         };
-        let moving = quack_duck::gait::walking(&bits.policy, bits.motion.applied);
+        let moving = stillness.moving(&bits.policy, bits.motion.applied, bits.t_ns);
         *body.lock().expect("body pose poisoned") = Some(BodyPose {
             head: bits.head_joints(),
             gravity: bits.safety.gravity,

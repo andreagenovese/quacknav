@@ -182,6 +182,7 @@ fn state_lane(path: &str, host: &Host, body: &SharedBody, said: &mut bool) -> an
     )?;
     tracing::info!(socket = path, "maploc: subscribed to robot.state");
     *said = true;
+    let mut stillness = quack_duck::gait::Stillness::default();
     loop {
         let mut line = String::new();
         if reader.read_line(&mut line)? == 0 {
@@ -199,9 +200,14 @@ fn state_lane(path: &str, host: &Host, body: &SharedBody, said: &mut bool) -> an
         let Ok(tick) = serde_json::from_value::<Tick>(params) else {
             continue;
         };
-        let Some(sample) = sample(&tick) else {
+        let Some(mut sample) = sample(&tick) else {
             continue;
         };
+        // velstand: still only once its body has settled (see
+        // `quack_duck::gait::Stillness`); alpha as `sample` has it.
+        if tick.policy == "walk" {
+            sample.moving = stillness.moving("walk", tick.motion.applied, tick.t_ns);
+        }
         *body.lock().expect("maploc body poisoned") = Some(Body {
             moving: sample.moving,
             sitting: sample.sitting,
