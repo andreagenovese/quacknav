@@ -134,6 +134,27 @@ const VELSTAND: Numbers = Numbers {
     yaw_max: YAW_MAX,
 };
 
+/// Whether a body robotd labels `policy` is walking. alpha has a standing
+/// network, so its label says it ("walk" or not). velstand has none: it
+/// stands under the walking network, labelled "walk" standing still too
+/// (`docs/study/upstream-asks.md` §6a) — the mapper's still windows never
+/// opened, the head sweep never ran and robotd's idle glancing took the
+/// head (MuJoCo, daemon 0.16.1, 2026-10-08). Under velstand a "walk" body
+/// with no twist applied (`robot.state.move.applied`) stands still.
+pub fn walking(policy: &str, applied: [f64; 3]) -> bool {
+    match numbers_profile() {
+        Profile::Velstand if policy == "walk" => applied.iter().any(|v| v.abs() > STILL_TWIST),
+        _ => policy == "walk",
+    }
+}
+
+/// An applied twist under this is none (robotd's smoothing ends at 1e-300).
+const STILL_TWIST: f64 = 1e-3;
+
+fn numbers_profile() -> Profile {
+    ACTIVE.get().copied().unwrap_or_default()
+}
+
 static ACTIVE: std::sync::OnceLock<Profile> = std::sync::OnceLock::new();
 
 /// The walk this process drives, set once at start from `[gait] profile`

@@ -97,6 +97,15 @@ struct Tick {
     policy: String,
     head: [f64; 4],
     imu: Option<serde_json::Value>,
+    /// The twist robotd applies (velstand stands under "walk").
+    #[serde(rename = "move")]
+    motion: Motion,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(default)]
+struct Motion {
+    applied: [f64; 3],
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -139,7 +148,9 @@ fn sample(tick: &Tick) -> Option<OdomSample> {
         trunk_z: tick.odom.position[2],
         head: [head[0], head[1], head[2], head[3]],
         t_ns: tick.t_ns,
-        moving: moving(&tick.policy),
+        // velstand stands under "walk": the applied twist says whether it
+        // walks (see `quack_duck::gait::walking`); alpha as ever.
+        moving: if tick.policy == "walk" { quack_duck::gait::walking("walk", tick.motion.applied) } else { moving(&tick.policy) },
         sitting: tick.policy == "sit",
         fallen: tick.safety.fallen,
     })

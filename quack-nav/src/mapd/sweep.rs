@@ -50,6 +50,10 @@ const PERIOD_S: f64 = 6.0;
 /// the head: a thinking sway recentres when the answer comes, and the
 /// answer is often followed by the next question.
 const YIELD: Duration = Duration::from_secs(5);
+/// How long a posed head gets the sweep's own commands: robotd's glance fades
+/// out over 1.5 s once a head command arrives; a pose still there after this
+/// is somebody else's.
+const NUDGE_WAIT: Duration = Duration::from_millis(2500);
 /// A commanded pitch or roll beyond this is not the sweep's (it writes 0,
 /// and robotd's slew brings its own writes to 0 within a fraction of this).
 const FOREIGN_RAD: f64 = 0.03;
@@ -63,6 +67,7 @@ pub fn spawn(host: Host, body: SharedBody, robotd_socket: String) {
             let mut was_sweeping = false;
             let mut last = Instant::now();
             let mut foreign_until: Option<Instant> = None;
+            let mut nudged: Option<Instant> = None;
             loop {
                 std::thread::sleep(TICK);
                 let now = Instant::now();
@@ -76,11 +81,31 @@ pub fn spawn(host: Host, body: SharedBody, robotd_socket: String) {
                 // the window that judges the resting pose (maploc's
                 // `RestConfig`).
                 let wanted = host.driving() || host.searching() || host.watching();
-                if fresh.is_some_and(|b| foreign(b.commanded_head)) {
+                let posed = fresh.is_some_and(|b| foreign(b.commanded_head));
+                // robotd (daemon 0.16.1) glances on its own 2 s after the
+                // last head command when nothing drives the duck, and its
+                // published head carries the glance: read as somebody
+                // else's pose, the sweep stood aside for good and the duck
+                // glanced through a whole homecoming (velstand, which is
+                // "still" when it stands, MuJoCo 2026-10-08: 16 min, no way
+                // out found). Any head command stops the glancing, so a pose
+                // first gets NUDGE_WAIT of the sweep's own commands: still
+                // there after them, it is somebody else's, and the sweep
+                // stands aside as before.
+                if posed && wanted && nudged.is_none() && foreign_until.is_none_or(|t| t <= now) {
+                    nudged = Some(now);
+                    tracing::info!("maploc: the head is posed; the sweep's own commands first (robotd's own glancing stops at any)");
+                }
+                let proving = nudged.is_some_and(|t| now.duration_since(t) < NUDGE_WAIT);
+                if posed && !proving {
                     if wanted && foreign_until.is_none_or(|t| t <= now) {
                         tracing::info!("maploc: somebody else is posing the head; the sweep stands aside");
                     }
                     foreign_until = Some(now + YIELD);
+                } else if !wanted || (!posed && !proving && nudged.is_some_and(|t| now.duration_since(t) >= YIELD)) {
+                    // A new episode, or the next time the navigation needs
+                    // the head (robotd glances again once it rests).
+                    nudged = None;
                 }
                 let yielding = foreign_until.is_some_and(|t| t > now);
                 let sweeping = !yielding

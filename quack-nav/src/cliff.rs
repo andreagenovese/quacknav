@@ -191,6 +191,15 @@ struct StateBits {
     /// "walk" while the gait runs; anything else is a standing body.
     #[serde(default)]
     policy: String,
+    /// The twist robotd applies (velstand stands under "walk").
+    #[serde(default, rename = "move")]
+    motion: MoveBits,
+}
+
+#[derive(Debug, Default, Deserialize)]
+#[serde(default)]
+struct MoveBits {
+    applied: [f64; 3],
 }
 impl StateBits {
     /// The head as the reprojection needs it: the measured joints. The
@@ -688,7 +697,7 @@ fn body_lane(
         let Ok(bits) = serde_json::from_value::<StateBits>(params) else {
             continue;
         };
-        let moving = bits.policy == "walk";
+        let moving = quack_duck::gait::walking(&bits.policy, bits.motion.applied);
         *body.lock().expect("body pose poisoned") = Some(BodyPose {
             head: bits.head_joints(),
             gravity: bits.safety.gravity,
