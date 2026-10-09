@@ -1,0 +1,171 @@
+ppo 0: reward/step +0.060, pg +0.010 v 0.618 ent 1.098 bc 2.205 (x0.20), 2 s | 201 journeys: arrived 99.0 %, fell 2 | clutt 90 doorw 100 stair 100 corne 100 mover 100 low 100 mixed 100
+ppo 1: reward/step +0.052, pg -0.007 v 0.635 ent 1.173 bc 1.791 (x0.20), 2 s | 427 journeys: arrived 97.0 %, fell 4 | clutt 88 doorw 90 stair 100 corne 99 mover 100 low 100 mixed 96
+ppo 2: reward/step +0.051, pg -0.012 v 0.590 ent 1.203 bc 1.650 (x0.19), 2 s | 600 journeys: arrived 95.3 %, fell 6 | clutt 92 doorw 87 stair 100 corne 99 mover 100 low 100 mixed 84
+ppo 3: reward/step +0.055, pg -0.011 v 0.594 ent 1.205 bc 1.550 (x0.19), 2 s | 600 journeys: arrived 95.2 %, fell 5 | clutt 98 doorw 86 stair 100 corne 99 mover 98 low 100 mixed 82
+ppo 4: reward/step +0.050, pg -0.013 v 0.592 ent 1.246 bc 1.604 (x0.19), 2 s | 600 journeys: arrived 96.3 %, fell 4 | clutt 100 doorw 88 stair 100 corne 100 mover 98 low 100 mixed 85
+ppo 5: reward/step +0.043, pg -0.010 v 0.945 ent 1.241 bc 1.575 (x0.18), 2 s | 600 journeys: arrived 96.3 %, fell 7 | clutt 97 doorw 89 stair 100 corne 98 mover 98 low 100 mixed 90
+ppo 6: reward/step +0.045, pg -0.013 v 0.718 ent 1.286 bc 1.588 (x0.18), 2 s | 600 journeys: arrived 95.7 %, fell 8 | clutt 95 doorw 86 stair 100 corne 98 mover 100 low 100 mixed 90
+ppo 7: reward/step +0.043, pg -0.010 v 0.882 ent 1.279 bc 1.505 (x0.18), 2 s | 600 journeys: arrived 94.3 %, fell 12 | clutt 91 doorw 88 stair 100 corne 98 mover 98 low 100 mixed 85
+ppo 8: reward/step +0.045, pg -0.012 v 0.897 ent 1.266 bc 1.459 (x0.17), 1 s | 600 journeys: arrived 94.2 %, fell 10 | clutt 90 doorw 90 stair 100 corne 100 mover 98 low 100 mixed 80
+ppo 9: reward/step +0.044, pg -0.013 v 0.664 ent 1.248 bc 1.491 (x0.17), 2 s | 600 journeys: arrived 94.2 %, fell 10 | clutt 89 doorw 88 stair 100 corne 100 mover 98 low 100 mixed 79
+bench at 9: arrived 200/210, fell 4 (holes 0, tipped 4), off 0, timeout 6, failed 0, secs 69.6, bumps 0.79
+  best so far (update 9)
+ppo 10: reward/step +0.047, pg -0.014 v 0.625 ent 1.255 bc 1.473 (x0.17), 1 s | 600 journeys: arrived 94.8 %, fell 7 | clutt 90 doorw 87 stair 100 corne 100 mover 100 low 100 mixed 83
+ppo 11: reward/step +0.047, pg -0.012 v 0.616 ent 1.266 bc 1.464 (x0.16), 1 s | 600 journeys: arrived 96.3 %, fell 4 | clutt 91 doorw 90 stair 100 corne 100 mover 100 low 100 mixed 89
+ppo 12: reward/step +0.042, pg -0.011 v 0.824 ent 1.276 bc 1.468 (x0.16), 2 s | 600 journeys: arrived 95.7 %, fell 7 | clutt 91 doorw 91 stair 100 corne 99 mover 100 low 100 mixed 83
+ppo 13: reward/step +0.039, pg -0.011 v 0.884 ent 1.264 bc 1.453 (x0.16), 2 s | 600 journeys: arrived 95.0 %, fell 9 | clutt 91 doorw 91 stair 100 corne 99 mover 100 low 100 mixed 82
+ppo 14: reward/step +0.042, pg -0.013 v 0.984 ent 1.257 bc 1.417 (x0.15), 2 s | 600 journeys: arrived 93.7 %, fell 14 | clutt 90 doorw 86 stair 100 corne 99 mover 100 low 100 mixed 81
+ppo 15: reward/step +0.049, pg -0.013 v 0.752 ent 1.268 bc 1.440 (x0.15), 1 s | 600 journeys: arrived 94.3 %, fell 10 | clutt 93 doorw 83 stair 100 corne 100 mover 100 low 98 mixed 87
+ppo 16: reward/step +0.045, pg -0.014 v 0.714 ent 1.265 bc 1.431 (x0.15), 2 s | 600 journeys: arrived 95.5 %, fell 9 | clutt 92 doorw 87 stair 99 corne 100 mover 100 low 98 mixed 90
+ppo 17: reward/step +0.049, pg -0.013 v 0.619 ent 1.257 bc 1.412 (x0.14), 1 s | 600 journeys: arrived 96.3 %, fell 4 | clutt 94 doorw 91 stair 99 corne 100 mover 100 low 99 mixed 90
+ppo 18: reward/step +0.051, pg -0.014 v 0.653 ent 1.244 bc 1.414 (x0.14), 1 s | 600 journeys: arrived 96.5 %, fell 5 | clutt 94 doorw 91 stair 99 corne 100 mover 100 low 100 mixed 88
+ppo 19: reward/step +0.045, pg -0.013 v 0.613 ent 1.241 bc 1.420 (x0.14), 1 s | 600 journeys: arrived 96.5 %, fell 3 | clutt 94 doorw 92 stair 100 corne 100 mover 100 low 100 mixed 86
+bench at 19: arrived 197/210, fell 2 (holes 0, tipped 2), off 0, timeout 11, failed 0, secs 70.0, bumps 0.73
+  best so far (update 19)
+ppo 20: reward/step +0.048, pg -0.016 v 0.504 ent 1.249 bc 1.430 (x0.13), 1 s | 600 journeys: arrived 96.5 %, fell 2 | clutt 95 doorw 92 stair 100 corne 100 mover 98 low 100 mixed 85
+ppo 21: reward/step +0.042, pg -0.013 v 0.895 ent 1.273 bc 1.429 (x0.13), 2 s | 600 journeys: arrived 95.8 %, fell 4 | clutt 95 doorw 92 stair 100 corne 100 mover 98 low 96 mixed 86
+ppo 22: reward/step +0.043, pg -0.013 v 0.767 ent 1.274 bc 1.476 (x0.13), 2 s | 600 journeys: arrived 95.2 %, fell 7 | clutt 98 doorw 88 stair 100 corne 100 mover 97 low 96 mixed 85
+ppo 23: reward/step +0.042, pg -0.012 v 0.920 ent 1.229 bc 1.360 (x0.12), 1 s | 600 journeys: arrived 94.3 %, fell 12 | clutt 93 doorw 89 stair 100 corne 100 mover 99 low 94 mixed 83
+ppo 24: reward/step +0.050, pg -0.015 v 0.487 ent 1.232 bc 1.367 (x0.12), 1 s | 600 journeys: arrived 94.7 %, fell 7 | clutt 94 doorw 85 stair 100 corne 100 mover 100 low 100 mixed 83
+ppo 25: reward/step +0.047, pg -0.013 v 0.620 ent 1.229 bc 1.397 (x0.12), 1 s | 600 journeys: arrived 95.3 %, fell 6 | clutt 94 doorw 88 stair 100 corne 100 mover 100 low 100 mixed 84
+ppo 26: reward/step +0.049, pg -0.015 v 0.581 ent 1.228 bc 1.414 (x0.11), 1 s | 600 journeys: arrived 96.3 %, fell 2 | clutt 98 doorw 90 stair 100 corne 100 mover 100 low 98 mixed 86
+ppo 27: reward/step +0.045, pg -0.013 v 0.525 ent 1.250 bc 1.430 (x0.11), 1 s | 600 journeys: arrived 95.8 %, fell 2 | clutt 98 doorw 91 stair 100 corne 100 mover 100 low 98 mixed 82
+ppo 28: reward/step +0.051, pg -0.014 v 0.669 ent 1.227 bc 1.385 (x0.11), 1 s | 600 journeys: arrived 94.8 %, fell 4 | clutt 95 doorw 87 stair 100 corne 100 mover 100 low 98 mixed 82
+ppo 29: reward/step +0.045, pg -0.012 v 0.927 ent 1.232 bc 1.390 (x0.10), 1 s | 600 journeys: arrived 94.5 %, fell 8 | clutt 93 doorw 88 stair 100 corne 100 mover 100 low 98 mixed 84
+bench at 29: arrived 198/210, fell 0 (holes 0, tipped 0), off 0, timeout 12, failed 0, secs 67.8, bumps 0.83
+  best so far (update 29)
+ppo 30: reward/step +0.052, pg -0.010 v 0.813 ent 1.234 bc 1.431 (x0.10), 2 s | 600 journeys: arrived 95.2 %, fell 10 | clutt 91 doorw 90 stair 100 corne 100 mover 100 low 98 mixed 85
+ppo 31: reward/step +0.042, pg -0.010 v 1.058 ent 1.229 bc 1.434 (x0.10), 1 s | 600 journeys: arrived 94.8 %, fell 10 | clutt 92 doorw 87 stair 100 corne 99 mover 100 low 100 mixed 82
+ppo 32: reward/step +0.044, pg -0.008 v 1.143 ent 1.229 bc 1.412 (x0.09), 2 s | 600 journeys: arrived 94.3 %, fell 14 | clutt 89 doorw 81 stair 100 corne 99 mover 98 low 100 mixed 84
+ppo 33: reward/step +0.044, pg -0.012 v 0.882 ent 1.218 bc 1.391 (x0.09), 1 s | 600 journeys: arrived 93.5 %, fell 17 | clutt 90 doorw 81 stair 100 corne 99 mover 98 low 98 mixed 84
+ppo 34: reward/step +0.043, pg -0.009 v 0.946 ent 1.247 bc 1.416 (x0.09), 1 s | 600 journeys: arrived 93.8 %, fell 16 | clutt 94 doorw 80 stair 100 corne 99 mover 98 low 98 mixed 87
+ppo 35: reward/step +0.051, pg -0.012 v 0.786 ent 1.251 bc 1.484 (x0.08), 2 s | 600 journeys: arrived 95.0 %, fell 10 | clutt 99 doorw 85 stair 100 corne 99 mover 100 low 98 mixed 85
+ppo 36: reward/step +0.050, pg -0.011 v 0.767 ent 1.260 bc 1.412 (x0.08), 1 s | 600 journeys: arrived 95.5 %, fell 9 | clutt 98 doorw 87 stair 100 corne 99 mover 100 low 100 mixed 86
+ppo 37: reward/step +0.047, pg -0.012 v 0.700 ent 1.239 bc 1.431 (x0.08), 2 s | 600 journeys: arrived 95.3 %, fell 8 | clutt 95 doorw 85 stair 100 corne 100 mover 100 low 100 mixed 88
+ppo 38: reward/step +0.050, pg -0.012 v 0.655 ent 1.225 bc 1.405 (x0.07), 1 s | 600 journeys: arrived 94.8 %, fell 8 | clutt 94 doorw 88 stair 100 corne 100 mover 98 low 100 mixed 81
+ppo 39: reward/step +0.050, pg -0.012 v 0.762 ent 1.241 bc 1.396 (x0.07), 1 s | 600 journeys: arrived 94.0 %, fell 9 | clutt 93 doorw 86 stair 100 corne 100 mover 98 low 100 mixed 78
+bench at 39: arrived 199/210, fell 4 (holes 0, tipped 4), off 0, timeout 7, failed 0, secs 68.2, bumps 1.21
+ppo 40: reward/step +0.047, pg -0.012 v 0.787 ent 1.232 bc 1.418 (x0.07), 1 s | 600 journeys: arrived 94.8 %, fell 9 | clutt 92 doorw 89 stair 100 corne 100 mover 98 low 100 mixed 79
+ppo 41: reward/step +0.042, pg -0.010 v 1.072 ent 1.247 bc 1.457 (x0.06), 1 s | 600 journeys: arrived 94.3 %, fell 11 | clutt 93 doorw 84 stair 100 corne 100 mover 100 low 100 mixed 80
+ppo 42: reward/step +0.043, pg -0.010 v 0.917 ent 1.216 bc 1.419 (x0.06), 1 s | 600 journeys: arrived 94.5 %, fell 12 | clutt 89 doorw 88 stair 100 corne 100 mover 100 low 100 mixed 79
+ppo 43: reward/step +0.052, pg -0.011 v 0.603 ent 1.216 bc 1.413 (x0.06), 1 s | 600 journeys: arrived 95.2 %, fell 9 | clutt 94 doorw 91 stair 100 corne 100 mover 100 low 100 mixed 80
+ppo 44: reward/step +0.052, pg -0.012 v 0.590 ent 1.224 bc 1.413 (x0.05), 1 s | 600 journeys: arrived 96.3 %, fell 6 | clutt 94 doorw 93 stair 100 corne 100 mover 100 low 100 mixed 87
+ppo 45: reward/step +0.045, pg -0.013 v 0.671 ent 1.195 bc 1.427 (x0.05), 1 s | 600 journeys: arrived 96.7 %, fell 4 | clutt 95 doorw 93 stair 100 corne 100 mover 100 low 100 mixed 86
+ppo 46: reward/step +0.050, pg -0.012 v 0.511 ent 1.221 bc 1.453 (x0.05), 1 s | 600 journeys: arrived 96.2 %, fell 4 | clutt 95 doorw 89 stair 100 corne 100 mover 100 low 100 mixed 85
+ppo 47: reward/step +0.053, pg -0.011 v 0.725 ent 1.207 bc 1.457 (x0.04), 1 s | 600 journeys: arrived 95.0 %, fell 5 | clutt 93 doorw 84 stair 100 corne 100 mover 100 low 100 mixed 83
+ppo 48: reward/step +0.052, pg -0.010 v 0.786 ent 1.186 bc 1.453 (x0.04), 1 s | 600 journeys: arrived 95.3 %, fell 6 | clutt 92 doorw 88 stair 100 corne 100 mover 100 low 100 mixed 83
+ppo 49: reward/step +0.051, pg -0.010 v 0.798 ent 1.185 bc 1.413 (x0.04), 1 s | 600 journeys: arrived 95.7 %, fell 7 | clutt 90 doorw 89 stair 100 corne 100 mover 98 low 100 mixed 86
+bench at 49: arrived 201/210, fell 2 (holes 0, tipped 2), off 0, timeout 7, failed 0, secs 67.4, bumps 1.12
+ppo 50: reward/step +0.050, pg -0.010 v 0.938 ent 1.205 bc 1.453 (x0.03), 1 s | 600 journeys: arrived 95.0 %, fell 8 | clutt 95 doorw 89 stair 100 corne 100 mover 98 low 100 mixed 78
+ppo 51: reward/step +0.058, pg -0.010 v 0.658 ent 1.225 bc 1.460 (x0.03), 1 s | 600 journeys: arrived 95.8 %, fell 9 | clutt 97 doorw 91 stair 100 corne 100 mover 98 low 100 mixed 82
+ppo 52: reward/step +0.051, pg -0.012 v 0.713 ent 1.200 bc 1.483 (x0.03), 1 s | 600 journeys: arrived 95.5 %, fell 10 | clutt 94 doorw 91 stair 100 corne 100 mover 100 low 100 mixed 81
+ppo 53: reward/step +0.044, pg -0.010 v 0.880 ent 1.200 bc 1.493 (x0.02), 1 s | 600 journeys: arrived 95.7 %, fell 8 | clutt 90 doorw 92 stair 100 corne 100 mover 100 low 100 mixed 84
+ppo 54: reward/step +0.051, pg -0.009 v 0.951 ent 1.207 bc 1.497 (x0.02), 1 s | 600 journeys: arrived 94.5 %, fell 9 | clutt 89 doorw 90 stair 100 corne 99 mover 100 low 100 mixed 80
+ppo 55: reward/step +0.055, pg -0.010 v 0.746 ent 1.198 bc 1.504 (x0.02), 2 s | 600 journeys: arrived 94.7 %, fell 8 | clutt 94 doorw 89 stair 100 corne 99 mover 100 low 100 mixed 80
+ppo 56: reward/step +0.056, pg -0.011 v 0.605 ent 1.181 bc 1.513 (x0.01), 1 s | 600 journeys: arrived 95.8 %, fell 6 | clutt 96 doorw 89 stair 100 corne 99 mover 100 low 100 mixed 86
+ppo 57: reward/step +0.054, pg -0.010 v 0.735 ent 1.196 bc 1.548 (x0.01), 1 s | 600 journeys: arrived 96.7 %, fell 3 | clutt 95 doorw 88 stair 100 corne 100 mover 100 low 100 mixed 93
+ppo 58: reward/step +0.051, pg -0.009 v 0.838 ent 1.166 bc 1.551 (x0.01), 1 s | 600 journeys: arrived 96.0 %, fell 6 | clutt 95 doorw 86 stair 100 corne 100 mover 99 low 100 mixed 92
+ppo 59: reward/step +0.051, pg -0.011 v 0.701 ent 1.163 bc 1.568 (x0.00), 1 s | 600 journeys: arrived 94.7 %, fell 8 | clutt 92 doorw 82 stair 100 corne 100 mover 98 low 100 mixed 88
+bench at 59: arrived 200/210, fell 5 (holes 0, tipped 5), off 0, timeout 5, failed 0, secs 67.3, bumps 0.77
+ppo 60: reward/step +0.049, pg -0.010 v 0.901 ent 1.163 bc 1.605 (x0.00), 1 s | 600 journeys: arrived 95.3 %, fell 9 | clutt 89 doorw 83 stair 100 corne 100 mover 98 low 100 mixed 93
+ppo 61: reward/step +0.052, pg -0.009 v 0.927 ent 1.163 bc 1.621 (x0.00), 1 s | 600 journeys: arrived 94.7 %, fell 9 | clutt 88 doorw 84 stair 100 corne 100 mover 100 low 100 mixed 88
+ppo 62: reward/step +0.057, pg -0.008 v 0.936 ent 1.158 bc 1.621 (x0.00), 1 s | 600 journeys: arrived 95.3 %, fell 10 | clutt 89 doorw 88 stair 100 corne 99 mover 100 low 100 mixed 89
+ppo 63: reward/step +0.063, pg -0.010 v 0.671 ent 1.147 bc 1.643 (x0.00), 1 s | 600 journeys: arrived 96.2 %, fell 9 | clutt 92 doorw 89 stair 100 corne 99 mover 100 low 100 mixed 90
+ppo 64: reward/step +0.059, pg -0.010 v 0.735 ent 1.151 bc 1.674 (x0.00), 1 s | 600 journeys: arrived 97.5 %, fell 4 | clutt 96 doorw 91 stair 100 corne 100 mover 100 low 100 mixed 94
+ppo 65: reward/step +0.062, pg -0.010 v 0.599 ent 1.153 bc 1.659 (x0.00), 1 s | 600 journeys: arrived 97.3 %, fell 4 | clutt 96 doorw 89 stair 100 corne 100 mover 100 low 100 mixed 94
+ppo 66: reward/step +0.055, pg -0.010 v 0.657 ent 1.153 bc 1.738 (x0.00), 1 s | 600 journeys: arrived 95.8 %, fell 4 | clutt 91 doorw 88 stair 100 corne 100 mover 100 low 100 mixed 88
+ppo 67: reward/step +0.052, pg -0.011 v 0.701 ent 1.157 bc 1.746 (x0.00), 2 s | 600 journeys: arrived 95.2 %, fell 4 | clutt 89 doorw 90 stair 100 corne 100 mover 100 low 100 mixed 82
+ppo 68: reward/step +0.050, pg -0.008 v 1.139 ent 1.145 bc 1.738 (x0.00), 2 s | 600 journeys: arrived 94.3 %, fell 9 | clutt 92 doorw 83 stair 100 corne 100 mover 98 low 100 mixed 86
+ppo 69: reward/step +0.056, pg -0.009 v 0.932 ent 1.139 bc 1.767 (x0.00), 1 s | 600 journeys: arrived 94.0 %, fell 15 | clutt 96 doorw 79 stair 100 corne 100 mover 98 low 100 mixed 81
+bench at 69: arrived 204/210, fell 2 (holes 0, tipped 2), off 0, timeout 4, failed 0, secs 66.5, bumps 1.03
+  best so far (update 69)
+ppo 70: reward/step +0.059, pg -0.010 v 0.744 ent 1.134 bc 1.786 (x0.00), 1 s | 600 journeys: arrived 96.2 %, fell 10 | clutt 97 doorw 90 stair 100 corne 100 mover 97 low 100 mixed 83
+ppo 71: reward/step +0.055, pg -0.009 v 0.653 ent 1.120 bc 1.783 (x0.00), 1 s | 600 journeys: arrived 95.7 %, fell 9 | clutt 96 doorw 90 stair 100 corne 100 mover 98 low 100 mixed 82
+ppo 72: reward/step +0.062, pg -0.008 v 0.798 ent 1.106 bc 1.772 (x0.00), 1 s | 600 journeys: arrived 96.0 %, fell 5 | clutt 94 doorw 91 stair 100 corne 99 mover 100 low 100 mixed 88
+ppo 73: reward/step +0.064, pg -0.009 v 0.710 ent 1.108 bc 1.786 (x0.00), 1 s | 600 journeys: arrived 96.5 %, fell 6 | clutt 94 doorw 93 stair 100 corne 99 mover 100 low 100 mixed 91
+ppo 74: reward/step +0.062, pg -0.009 v 0.819 ent 1.114 bc 1.837 (x0.00), 2 s | 600 journeys: arrived 97.5 %, fell 5 | clutt 98 doorw 96 stair 100 corne 99 mover 100 low 100 mixed 91
+ppo 75: reward/step +0.059, pg -0.008 v 0.961 ent 1.118 bc 1.829 (x0.00), 2 s | 600 journeys: arrived 96.3 %, fell 7 | clutt 93 doorw 92 stair 100 corne 99 mover 100 low 100 mixed 89
+ppo 76: reward/step +0.058, pg -0.009 v 0.838 ent 1.102 bc 1.831 (x0.00), 1 s | 600 journeys: arrived 95.2 %, fell 9 | clutt 90 doorw 90 stair 100 corne 99 mover 100 low 100 mixed 86
+ppo 77: reward/step +0.063, pg -0.009 v 0.511 ent 1.113 bc 1.961 (x0.00), 1 s | 600 journeys: arrived 94.8 %, fell 8 | clutt 89 doorw 89 stair 100 corne 99 mover 100 low 100 mixed 85
+ppo 78: reward/step +0.058, pg -0.006 v 0.996 ent 1.123 bc 1.941 (x0.00), 1 s | 600 journeys: arrived 95.0 %, fell 9 | clutt 91 doorw 88 stair 100 corne 100 mover 100 low 100 mixed 82
+ppo 79: reward/step +0.060, pg -0.007 v 0.898 ent 1.121 bc 1.945 (x0.00), 1 s | 600 journeys: arrived 96.0 %, fell 9 | clutt 94 doorw 90 stair 100 corne 100 mover 100 low 100 mixed 86
+bench at 79: arrived 204/210, fell 2 (holes 0, tipped 2), off 0, timeout 4, failed 0, secs 65.6, bumps 0.60
+  best so far (update 79)
+ppo 80: reward/step +0.062, pg -0.008 v 0.704 ent 1.103 bc 1.964 (x0.00), 1 s | 600 journeys: arrived 96.5 %, fell 8 | clutt 98 doorw 90 stair 100 corne 100 mover 100 low 100 mixed 88
+ppo 81: reward/step +0.057, pg -0.004 v 1.162 ent 1.137 bc 2.025 (x0.00), 1 s | 600 journeys: arrived 96.2 %, fell 8 | clutt 96 doorw 90 stair 100 corne 100 mover 100 low 100 mixed 86
+ppo 82: reward/step +0.055, pg -0.008 v 0.787 ent 1.131 bc 1.929 (x0.00), 1 s | 600 journeys: arrived 95.8 %, fell 10 | clutt 95 doorw 90 stair 100 corne 100 mover 100 low 100 mixed 86
+ppo 83: reward/step +0.054, pg -0.007 v 0.752 ent 1.115 bc 1.966 (x0.00), 2 s | 600 journeys: arrived 95.2 %, fell 10 | clutt 95 doorw 90 stair 100 corne 100 mover 100 low 100 mixed 82
+ppo 84: reward/step +0.054, pg -0.007 v 0.821 ent 1.127 bc 2.008 (x0.00), 2 s | 600 journeys: arrived 94.7 %, fell 6 | clutt 97 doorw 90 stair 100 corne 100 mover 98 low 100 mixed 78
+ppo 85: reward/step +0.056, pg -0.006 v 0.940 ent 1.111 bc 1.980 (x0.00), 1 s | 600 journeys: arrived 94.0 %, fell 9 | clutt 95 doorw 91 stair 100 corne 98 mover 97 low 100 mixed 77
+ppo 86: reward/step +0.060, pg -0.008 v 0.892 ent 1.143 bc 2.051 (x0.00), 2 s | 600 journeys: arrived 94.8 %, fell 8 | clutt 94 doorw 91 stair 100 corne 98 mover 98 low 100 mixed 82
+ppo 87: reward/step +0.066, pg -0.007 v 0.480 ent 1.125 bc 2.023 (x0.00), 1 s | 600 journeys: arrived 95.3 %, fell 6 | clutt 98 doorw 90 stair 100 corne 99 mover 100 low 100 mixed 83
+ppo 88: reward/step +0.067, pg -0.008 v 0.632 ent 1.118 bc 2.020 (x0.00), 1 s | 600 journeys: arrived 96.5 %, fell 5 | clutt 96 doorw 94 stair 100 corne 100 mover 100 low 98 mixed 86
+ppo 89: reward/step +0.053, pg -0.006 v 0.931 ent 1.111 bc 2.129 (x0.00), 1 s | 600 journeys: arrived 95.8 %, fell 4 | clutt 92 doorw 93 stair 100 corne 100 mover 100 low 98 mixed 83
+bench at 89: arrived 201/210, fell 4 (holes 0, tipped 4), off 0, timeout 5, failed 0, secs 65.6, bumps 0.63
+ppo 90: reward/step +0.059, pg -0.008 v 0.989 ent 1.100 bc 2.077 (x0.00), 1 s | 600 journeys: arrived 95.0 %, fell 10 | clutt 89 doorw 89 stair 100 corne 100 mover 100 low 98 mixed 83
+ppo 91: reward/step +0.057, pg -0.008 v 0.943 ent 1.078 bc 2.023 (x0.00), 1 s | 600 journeys: arrived 94.0 %, fell 13 | clutt 87 doorw 88 stair 100 corne 99 mover 100 low 98 mixed 81
+ppo 92: reward/step +0.065, pg -0.006 v 0.679 ent 1.117 bc 2.128 (x0.00), 1 s | 600 journeys: arrived 96.3 %, fell 8 | clutt 95 doorw 95 stair 100 corne 99 mover 100 low 100 mixed 84
+ppo 93: reward/step +0.058, pg -0.007 v 0.891 ent 1.124 bc 2.155 (x0.00), 1 s | 600 journeys: arrived 96.3 %, fell 7 | clutt 93 doorw 95 stair 100 corne 100 mover 100 low 100 mixed 85
+ppo 94: reward/step +0.061, pg -0.007 v 0.781 ent 1.122 bc 2.189 (x0.00), 1 s | 600 journeys: arrived 96.5 %, fell 7 | clutt 95 doorw 92 stair 100 corne 100 mover 100 low 100 mixed 88
+ppo 95: reward/step +0.065, pg -0.007 v 0.630 ent 1.102 bc 2.225 (x0.00), 1 s | 600 journeys: arrived 95.5 %, fell 9 | clutt 88 doorw 89 stair 100 corne 100 mover 100 low 100 mixed 87
+ppo 96: reward/step +0.063, pg -0.008 v 0.459 ent 1.093 bc 2.135 (x0.00), 2 s | 600 journeys: arrived 96.8 %, fell 3 | clutt 94 doorw 90 stair 100 corne 100 mover 100 low 100 mixed 90
+ppo 97: reward/step +0.059, pg -0.006 v 0.939 ent 1.103 bc 2.123 (x0.00), 1 s | 600 journeys: arrived 95.8 %, fell 7 | clutt 91 doorw 89 stair 100 corne 100 mover 99 low 100 mixed 89
+ppo 98: reward/step +0.068, pg -0.007 v 0.451 ent 1.093 bc 2.231 (x0.00), 1 s | 600 journeys: arrived 95.5 %, fell 6 | clutt 92 doorw 88 stair 100 corne 100 mover 99 low 100 mixed 86
+ppo 99: reward/step +0.067, pg -0.006 v 0.419 ent 1.082 bc 2.225 (x0.00), 1 s | 600 journeys: arrived 96.5 %, fell 2 | clutt 100 doorw 91 stair 100 corne 100 mover 100 low 100 mixed 84
+bench at 99: arrived 202/210, fell 2 (holes 0, tipped 2), off 0, timeout 6, failed 0, secs 66.0, bumps 0.67
+ppo 100: reward/step +0.067, pg -0.005 v 0.611 ent 1.081 bc 2.242 (x0.00), 2 s | 600 journeys: arrived 96.7 %, fell 2 | clutt 96 doorw 91 stair 100 corne 100 mover 100 low 100 mixed 88
+ppo 101: reward/step +0.059, pg -0.005 v 0.778 ent 1.098 bc 2.235 (x0.00), 1 s | 600 journeys: arrived 95.8 %, fell 5 | clutt 97 doorw 89 stair 100 corne 100 mover 100 low 99 mixed 86
+ppo 102: reward/step +0.057, pg -0.005 v 0.794 ent 1.105 bc 2.386 (x0.00), 1 s | 600 journeys: arrived 95.3 %, fell 5 | clutt 98 doorw 87 stair 100 corne 99 mover 100 low 99 mixed 84
+ppo 103: reward/step +0.057, pg -0.005 v 0.740 ent 1.115 bc 2.358 (x0.00), 2 s | 600 journeys: arrived 95.3 %, fell 6 | clutt 97 doorw 91 stair 100 corne 99 mover 100 low 100 mixed 77
+ppo 104: reward/step +0.064, pg -0.006 v 0.523 ent 1.104 bc 2.349 (x0.00), 2 s | 600 journeys: arrived 94.3 %, fell 5 | clutt 95 doorw 88 stair 100 corne 99 mover 100 low 100 mixed 73
+ppo 105: reward/step +0.067, pg -0.006 v 0.536 ent 1.086 bc 2.331 (x0.00), 1 s | 600 journeys: arrived 95.2 %, fell 2 | clutt 96 doorw 88 stair 100 corne 100 mover 100 low 100 mixed 80
+ppo 106: reward/step +0.063, pg -0.005 v 0.864 ent 1.092 bc 2.319 (x0.00), 1 s | 600 journeys: arrived 96.7 %, fell 4 | clutt 94 doorw 94 stair 100 corne 100 mover 100 low 100 mixed 87
+ppo 107: reward/step +0.055, pg -0.005 v 1.083 ent 1.090 bc 2.334 (x0.00), 1 s | 600 journeys: arrived 95.8 %, fell 7 | clutt 94 doorw 92 stair 100 corne 99 mover 100 low 100 mixed 84
+ppo 108: reward/step +0.067, pg -0.005 v 0.587 ent 1.077 bc 2.415 (x0.00), 1 s | 600 journeys: arrived 96.2 %, fell 7 | clutt 92 doorw 93 stair 100 corne 99 mover 100 low 100 mixed 88
+ppo 109: reward/step +0.059, pg -0.005 v 0.694 ent 1.070 bc 2.379 (x0.00), 2 s | 600 journeys: arrived 95.3 %, fell 5 | clutt 91 doorw 90 stair 100 corne 99 mover 100 low 100 mixed 84
+bench at 109: arrived 204/210, fell 1 (holes 0, tipped 1), off 0, timeout 5, failed 0, secs 66.1, bumps 0.74
+  best so far (update 109)
+ppo 110: reward/step +0.060, pg -0.006 v 0.821 ent 1.066 bc 2.302 (x0.00), 2 s | 600 journeys: arrived 95.2 %, fell 6 | clutt 94 doorw 88 stair 100 corne 99 mover 100 low 100 mixed 82
+ppo 111: reward/step +0.067, pg -0.005 v 0.597 ent 1.079 bc 2.345 (x0.00), 1 s | 600 journeys: arrived 94.5 %, fell 7 | clutt 90 doorw 90 stair 100 corne 99 mover 100 low 100 mixed 80
+ppo 112: reward/step +0.059, pg -0.005 v 0.669 ent 1.095 bc 2.388 (x0.00), 1 s | 600 journeys: arrived 96.2 %, fell 4 | clutt 96 doorw 92 stair 100 corne 100 mover 100 low 100 mixed 86
+ppo 113: reward/step +0.061, pg -0.005 v 0.707 ent 1.096 bc 2.459 (x0.00), 2 s | 600 journeys: arrived 96.3 %, fell 3 | clutt 93 doorw 93 stair 100 corne 100 mover 100 low 100 mixed 89
+ppo 114: reward/step +0.067, pg -0.004 v 0.704 ent 1.072 bc 2.382 (x0.00), 1 s | 600 journeys: arrived 95.8 %, fell 5 | clutt 92 doorw 90 stair 100 corne 100 mover 98 low 100 mixed 90
+ppo 115: reward/step +0.064, pg -0.005 v 0.698 ent 1.077 bc 2.305 (x0.00), 1 s | 600 journeys: arrived 96.0 %, fell 5 | clutt 96 doorw 89 stair 100 corne 100 mover 98 low 100 mixed 87
+ppo 116: reward/step +0.062, pg -0.004 v 0.676 ent 1.068 bc 2.385 (x0.00), 1 s | 600 journeys: arrived 96.8 %, fell 4 | clutt 98 doorw 92 stair 100 corne 100 mover 100 low 100 mixed 88
+ppo 117: reward/step +0.064, pg -0.004 v 0.666 ent 1.076 bc 2.432 (x0.00), 1 s | 600 journeys: arrived 96.2 %, fell 5 | clutt 96 doorw 91 stair 100 corne 99 mover 100 low 100 mixed 87
+ppo 118: reward/step +0.065, pg -0.004 v 0.809 ent 1.087 bc 2.451 (x0.00), 2 s | 600 journeys: arrived 96.0 %, fell 6 | clutt 95 doorw 91 stair 100 corne 99 mover 100 low 100 mixed 86
+ppo 119: reward/step +0.068, pg -0.003 v 0.672 ent 1.080 bc 2.293 (x0.00), 1 s | 600 journeys: arrived 95.2 %, fell 8 | clutt 95 doorw 90 stair 100 corne 100 mover 100 low 100 mixed 80
+bench at 119: arrived 203/210, fell 1 (holes 0, tipped 1), off 0, timeout 6, failed 0, secs 66.0, bumps 0.61
+ppo 120: reward/step +0.061, pg -0.004 v 0.670 ent 1.095 bc 2.433 (x0.00), 2 s | 600 journeys: arrived 95.5 %, fell 6 | clutt 98 doorw 89 stair 100 corne 100 mover 100 low 100 mixed 83
+ppo 121: reward/step +0.059, pg -0.004 v 0.758 ent 1.101 bc 2.436 (x0.00), 1 s | 600 journeys: arrived 95.5 %, fell 8 | clutt 93 doorw 89 stair 100 corne 100 mover 100 low 100 mixed 87
+ppo 122: reward/step +0.065, pg -0.004 v 0.507 ent 1.094 bc 2.418 (x0.00), 1 s | 600 journeys: arrived 96.2 %, fell 5 | clutt 91 doorw 94 stair 100 corne 100 mover 100 low 100 mixed 88
+ppo 123: reward/step +0.060, pg -0.003 v 0.753 ent 1.082 bc 2.363 (x0.00), 1 s | 600 journeys: arrived 96.7 %, fell 3 | clutt 94 doorw 93 stair 100 corne 100 mover 100 low 100 mixed 89
+ppo 124: reward/step +0.057, pg -0.003 v 0.771 ent 1.079 bc 2.371 (x0.00), 1 s | 600 journeys: arrived 96.0 %, fell 5 | clutt 98 doorw 89 stair 100 corne 100 mover 98 low 100 mixed 85
+ppo 125: reward/step +0.061, pg -0.003 v 0.811 ent 1.078 bc 2.360 (x0.00), 1 s | 600 journeys: arrived 95.2 %, fell 9 | clutt 97 doorw 89 stair 100 corne 100 mover 98 low 100 mixed 81
+ppo 126: reward/step +0.064, pg -0.003 v 0.804 ent 1.065 bc 2.336 (x0.00), 1 s | 600 journeys: arrived 94.7 %, fell 9 | clutt 97 doorw 88 stair 100 corne 100 mover 100 low 100 mixed 79
+ppo 127: reward/step +0.064, pg -0.003 v 0.734 ent 1.083 bc 2.320 (x0.00), 1 s | 600 journeys: arrived 96.0 %, fell 7 | clutt 100 doorw 91 stair 100 corne 100 mover 100 low 100 mixed 82
+ppo 128: reward/step +0.060, pg -0.003 v 0.816 ent 1.099 bc 2.325 (x0.00), 1 s | 600 journeys: arrived 96.7 %, fell 6 | clutt 100 doorw 92 stair 100 corne 100 mover 100 low 100 mixed 87
+ppo 129: reward/step +0.060, pg -0.003 v 0.958 ent 1.063 bc 2.304 (x0.00), 1 s | 600 journeys: arrived 95.5 %, fell 7 | clutt 94 doorw 90 stair 100 corne 99 mover 100 low 100 mixed 88
+bench at 129: arrived 203/210, fell 1 (holes 0, tipped 1), off 0, timeout 6, failed 0, secs 65.7, bumps 0.93
+ppo 130: reward/step +0.059, pg -0.003 v 0.759 ent 1.069 bc 2.303 (x0.00), 1 s | 600 journeys: arrived 95.2 %, fell 8 | clutt 93 doorw 91 stair 100 corne 99 mover 100 low 100 mixed 84
+ppo 131: reward/step +0.070, pg -0.003 v 0.680 ent 1.074 bc 2.310 (x0.00), 1 s | 600 journeys: arrived 96.2 %, fell 7 | clutt 94 doorw 92 stair 100 corne 100 mover 100 low 100 mixed 86
+ppo 132: reward/step +0.064, pg -0.003 v 0.792 ent 1.076 bc 2.420 (x0.00), 1 s | 600 journeys: arrived 96.5 %, fell 5 | clutt 98 doorw 93 stair 100 corne 100 mover 100 low 100 mixed 83
+ppo 133: reward/step +0.064, pg -0.002 v 0.662 ent 1.077 bc 2.466 (x0.00), 1 s | 600 journeys: arrived 96.8 %, fell 4 | clutt 96 doorw 93 stair 100 corne 100 mover 100 low 100 mixed 88
+ppo 134: reward/step +0.064, pg -0.002 v 0.759 ent 1.081 bc 2.388 (x0.00), 1 s | 600 journeys: arrived 96.3 %, fell 6 | clutt 94 doorw 90 stair 100 corne 100 mover 99 low 100 mixed 90
+ppo 135: reward/step +0.068, pg -0.002 v 0.611 ent 1.082 bc 2.403 (x0.00), 1 s | 600 journeys: arrived 96.2 %, fell 5 | clutt 95 doorw 93 stair 100 corne 100 mover 99 low 100 mixed 86
+ppo 136: reward/step +0.062, pg -0.002 v 0.666 ent 1.083 bc 2.332 (x0.00), 1 s | 600 journeys: arrived 96.5 %, fell 3 | clutt 96 doorw 94 stair 100 corne 100 mover 99 low 100 mixed 85
+ppo 137: reward/step +0.059, pg -0.002 v 0.640 ent 1.065 bc 2.354 (x0.00), 1 s | 600 journeys: arrived 96.2 %, fell 3 | clutt 94 doorw 93 stair 100 corne 100 mover 98 low 100 mixed 87
+ppo 138: reward/step +0.064, pg -0.002 v 0.713 ent 1.079 bc 2.365 (x0.00), 1 s | 600 journeys: arrived 96.0 %, fell 4 | clutt 95 doorw 94 stair 100 corne 100 mover 96 low 100 mixed 85
+ppo 139: reward/step +0.063, pg -0.002 v 0.786 ent 1.101 bc 2.530 (x0.00), 1 s | 600 journeys: arrived 96.3 %, fell 4 | clutt 96 doorw 93 stair 100 corne 100 mover 98 low 100 mixed 87
+bench at 139: arrived 204/210, fell 1 (holes 0, tipped 1), off 0, timeout 5, failed 0, secs 66.1, bumps 1.07
+ppo 140: reward/step +0.060, pg -0.001 v 1.017 ent 1.074 bc 2.397 (x0.00), 2 s | 600 journeys: arrived 95.5 %, fell 9 | clutt 95 doorw 90 stair 100 corne 100 mover 98 low 100 mixed 86
+ppo 141: reward/step +0.069, pg -0.002 v 0.689 ent 1.064 bc 2.392 (x0.00), 1 s | 600 journeys: arrived 95.2 %, fell 9 | clutt 95 doorw 90 stair 100 corne 100 mover 98 low 100 mixed 81
+ppo 142: reward/step +0.059, pg -0.002 v 0.893 ent 1.084 bc 2.423 (x0.00), 1 s | 600 journeys: arrived 96.0 %, fell 8 | clutt 97 doorw 90 stair 100 corne 100 mover 98 low 100 mixed 83
+ppo 143: reward/step +0.066, pg -0.003 v 0.647 ent 1.073 bc 2.329 (x0.00), 1 s | 600 journeys: arrived 96.2 %, fell 5 | clutt 97 doorw 85 stair 100 corne 100 mover 100 low 100 mixed 86
+ppo 144: reward/step +0.064, pg -0.002 v 0.732 ent 1.070 bc 2.396 (x0.00), 1 s | 600 journeys: arrived 96.2 %, fell 5 | clutt 94 doorw 86 stair 100 corne 100 mover 100 low 100 mixed 90
+ppo 145: reward/step +0.063, pg -0.002 v 0.546 ent 1.052 bc 2.282 (x0.00), 1 s | 600 journeys: arrived 96.7 %, fell 4 | clutt 96 doorw 89 stair 100 corne 100 mover 100 low 100 mixed 90
+ppo 146: reward/step +0.065, pg -0.002 v 0.689 ent 1.064 bc 2.374 (x0.00), 1 s | 600 journeys: arrived 95.8 %, fell 5 | clutt 95 doorw 91 stair 100 corne 100 mover 98 low 100 mixed 84
+ppo 147: reward/step +0.067, pg -0.002 v 0.567 ent 1.078 bc 2.452 (x0.00), 1 s | 600 journeys: arrived 95.5 %, fell 3 | clutt 95 doorw 90 stair 100 corne 100 mover 98 low 100 mixed 82
+ppo 148: reward/step +0.062, pg -0.002 v 0.884 ent 1.059 bc 2.379 (x0.00), 1 s | 600 journeys: arrived 95.5 %, fell 6 | clutt 91 doorw 89 stair 100 corne 100 mover 98 low 100 mixed 87
+ppo 149: reward/step +0.059, pg -0.002 v 0.795 ent 1.073 bc 2.372 (x0.00), 1 s | 600 journeys: arrived 95.7 %, fell 7 | clutt 89 doorw 90 stair 100 corne 100 mover 100 low 100 mixed 87
+bench at 149: arrived 203/210, fell 2 (holes 0, tipped 2), off 0, timeout 5, failed 0, secs 64.8, bumps 0.76

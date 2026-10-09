@@ -1,0 +1,297 @@
+{
+ "calib": {
+  "back_speed": 0.08,
+  "body_r": 0.11,
+  "bump_fall_p": 0.00909090909090909,
+  "gait": "velstand",
+  "map_period_s": 0.05,
+  "mover_fall_p": 0.02,
+  "odom_xy_per_m": 0.05,
+  "odom_yaw_per_rad": 0.015,
+  "phantom_any_p": 4.573833100830151e-06,
+  "phantom_p": 0.1,
+  "pose_jitter_m": 0.01,
+  "post_fall_p": 0.045454545454545456,
+  "pulse_gain_mean": 0.7465799236697974,
+  "pulse_gain_sd": 0.4171478378664671,
+  "speed_at_03": 0.12278006533816657,
+  "speed_sd": 0.0,
+  "spin_rate": 0.52,
+  "spur_median_m": 1.16345,
+  "spur_p": 0.0004759559058472681,
+  "spur_sigma": 0.5099325823799955,
+  "stand_keep": 0.5,
+  "straight_veer": -0.012500000000000105,
+  "tof_dropout": 0.02,
+  "tof_dropout_far": 0.2781716417910448,
+  "tof_hz": 13.831258644572285,
+  "tof_low_walk_m": 0.09,
+  "tof_range_bias": -0.07460000037252956,
+  "tof_range_max": 2.2,
+  "tof_range_sd": 0.04151280000000004,
+  "turn_left_rad_s": 0.5981879954699628,
+  "turn_left_slow_rad_s": 0.5235987755982988,
+  "turn_right_rad_s": 0.7619664579284268,
+  "turn_sd": 0.3300081167904243,
+  "yaw_per_unit": 0.65
+ },
+ "events": 1653,
+ "falls": 0,
+ "fit": {
+  "back_speed": {
+   "fitted": false,
+   "how": "median speed of the back-offs \u2014 too few samples (0 < 8): prior kept",
+   "n": 0,
+   "prior": 0.08,
+   "value": 0.08
+  },
+  "bump_fall_p": {
+   "fitted": true,
+   "how": "0 falls in 55 bumps (forward steps that barely moved with something within 0.25 m ahead)",
+   "n": 55,
+   "prior": 0.006,
+   "sd": 0.0,
+   "value": 0.00909090909090909
+  },
+  "odom_xy_per_m": {
+   "fitted": false,
+   "how": "odometry against the map's pose over 183 walks between stands: the difference (10.0 mm) is within the map pose's own noise \u2014 not identifiable, prior kept",
+   "n": 0,
+   "prior": 0.05,
+   "value": 0.05
+  },
+  "phantom_any_p": {
+   "fitted": true,
+   "how": "drops on known floor (0.3 m of floor all round) per floor row judged, at the stands",
+   "n": 218635,
+   "prior": 0.002,
+   "sd": 0.0,
+   "value": 4.573833100830151e-06
+  },
+  "phantom_p": {
+   "fitted": false,
+   "how": "low furniture's phantoms are not told apart from the others in a trace: prior kept",
+   "n": 0,
+   "prior": 0.1,
+   "value": 0.1
+  },
+  "pose_jitter_m": {
+   "fitted": false,
+   "how": "not identifiable from the traces: prior kept",
+   "n": 0,
+   "prior": 0.01,
+   "value": 0.01
+  },
+  "post_fall_p": {
+   "fitted": true,
+   "how": "bump_fall_p \u00d7 the prior's ratio of posts to boxes (a trace does not tell what was met)",
+   "n": 55,
+   "prior": 0.03,
+   "value": 0.045454545454545456
+  },
+  "pulse_gain_mean": {
+   "fitted": true,
+   "how": "median of (yaw turned) / (yaw_per_unit \u00d7 vyaw \u00d7 secs) over the curving steps \u2264 0.8 s",
+   "n": 558,
+   "prior": 0.85,
+   "sd": 0.4171478378664671,
+   "value": 0.7465799236697974
+  },
+  "pulse_gain_sd": {
+   "fitted": true,
+   "how": "their spread (MAD)",
+   "n": 558,
+   "prior": 0.65,
+   "sd": 0.0,
+   "value": 0.4171478378664671
+  },
+  "short_returns": {
+   "fitted": false,
+   "how": "returns more than 0.3 m short of the map at the stands: 48660 of them, 286 lone (noise), the rest things the map does not have",
+   "n": 48660,
+   "prior": 0.0,
+   "value": 48660
+  },
+  "speed_at_03": {
+   "fitted": true,
+   "how": "median forward speed of the free steps, by the map's pose, scaled to vx 0.3",
+   "n": 1059,
+   "prior": 0.114,
+   "sd": 0.016145683674594624,
+   "value": 0.12278006533816657
+  },
+  "speed_sd": {
+   "fitted": true,
+   "how": "their spread (MAD), relative, less the map pose's jitter at both ends",
+   "n": 1059,
+   "prior": 0.1,
+   "sd": 0.0,
+   "value": 0.0
+  },
+  "spur_median_m": {
+   "fitted": true,
+   "how": "their median distance",
+   "n": 286,
+   "prior": 0.45,
+   "sd": 0.0,
+   "value": 1.16345
+  },
+  "spur_p": {
+   "fitted": true,
+   "how": "lone returns more than 0.3 m short of the map's ray (not back at that point of the world a second later), per zone and frame at the stands",
+   "n": 286,
+   "prior": 0.005,
+   "sd": 0.0,
+   "value": 0.0004759559058472681
+  },
+  "spur_sigma": {
+   "fitted": true,
+   "how": "their spread, in log (half the 16-84 % span)",
+   "n": 286,
+   "prior": 0.8,
+   "sd": 0.0,
+   "value": 0.5099325823799955
+  },
+  "stand_keep": {
+   "fitted": false,
+   "how": "not identifiable from the traces (the map's own error is not seen): prior kept",
+   "n": 0,
+   "prior": 0.5,
+   "value": 0.5
+  },
+  "straight_veer": {
+   "fitted": true,
+   "how": "median yaw rate of the straight steps (|vyaw| < 0.1)",
+   "n": 176,
+   "prior": -0.05,
+   "sd": 0.1434233970203782,
+   "value": -0.012500000000000105
+  },
+  "tof_dropout": {
+   "fitted": false,
+   "how": "near (under 1.4 m) several rows meet a wall and a column's silence says little of one zone: prior kept",
+   "n": 0,
+   "prior": 0.02,
+   "value": 0.02
+  },
+  "tof_dropout_far": {
+   "fitted": true,
+   "how": "columns whose ray meets a mapped wall 1.4-1.95 m off (one row reaches it) with no return there",
+   "n": 16080,
+   "prior": 0.2,
+   "sd": 0.0,
+   "value": 0.2781716417910448
+  },
+  "tof_hz": {
+   "fitted": true,
+   "how": "1 / the median gap between frames",
+   "n": 19804,
+   "prior": 15.0,
+   "sd": 0.0,
+   "value": 13.831258644572285
+  },
+  "tof_low_walk_m": {
+   "fitted": false,
+   "how": "not identifiable from the traces: prior kept",
+   "n": 0,
+   "prior": 0.09,
+   "value": 0.09
+  },
+  "tof_range_bias": {
+   "fitted": true,
+   "how": "median of (range \u2212 the map's ray) at the stands, inliers within 0.3 m",
+   "n": 35321,
+   "prior": 0.0,
+   "sd": 0.04151280000000004,
+   "value": -0.07460000037252956
+  },
+  "tof_range_sd": {
+   "fitted": true,
+   "how": "their spread (MAD)",
+   "n": 35321,
+   "prior": 0.02,
+   "sd": 0.0,
+   "value": 0.04151280000000004
+  },
+  "turn_left_rad_s": {
+   "fitted": true,
+   "how": "median rate of the turns in place to the left (vyaw \u2265 1.45), by odometry over the turn's duration",
+   "n": 49,
+   "prior": 0.8901179185171081,
+   "sd": 0.251719143310942,
+   "value": 0.5981879954699628
+  },
+  "turn_right_rad_s": {
+   "fitted": true,
+   "how": "the same to the right",
+   "n": 55,
+   "prior": 1.0122909661567112,
+   "sd": 0.24722697702416513,
+   "value": 0.7619664579284268
+  },
+  "turn_sd": {
+   "fitted": true,
+   "how": "their spread, relative",
+   "n": 104,
+   "prior": 0.1,
+   "sd": 0.0,
+   "value": 0.3300081167904243
+  },
+  "yaw_per_unit": {
+   "fitted": false,
+   "how": "median yaw rate per unit of vyaw over curving legs longer than 0.8 s (the pilot's and the stick's steps are 0.6 s: rarely seen) \u2014 too few samples (0 < 8): prior kept",
+   "n": 0,
+   "prior": 0.65,
+   "value": 0.65
+  }
+ },
+ "legs": 1389,
+ "maps": 33,
+ "prior": {
+  "back_speed": 0.08,
+  "body_r": 0.11,
+  "bump_fall_p": 0.006,
+  "gait": null,
+  "map_period_s": 0.05,
+  "mover_fall_p": 0.02,
+  "odom_xy_per_m": 0.05,
+  "odom_yaw_per_rad": 0.015,
+  "phantom_any_p": 0.002,
+  "phantom_p": 0.1,
+  "pose_jitter_m": 0.01,
+  "post_fall_p": 0.03,
+  "pulse_gain_mean": 0.85,
+  "pulse_gain_sd": 0.65,
+  "speed_at_03": 0.114,
+  "speed_sd": 0.1,
+  "spin_rate": 0.52,
+  "spur_median_m": 0.45,
+  "spur_p": 0.005,
+  "spur_sigma": 0.8,
+  "stand_keep": 0.5,
+  "straight_veer": -0.05,
+  "tof_dropout": 0.02,
+  "tof_dropout_far": 0.2,
+  "tof_hz": 15.0,
+  "tof_low_walk_m": 0.09,
+  "tof_range_bias": 0.0,
+  "tof_range_max": 2.2,
+  "tof_range_sd": 0.02,
+  "turn_left_rad_s": 0.8901179185171081,
+  "turn_left_slow_rad_s": 0.5235987755982988,
+  "turn_right_rad_s": 1.0122909661567112,
+  "turn_sd": 0.1,
+  "yaw_per_unit": 0.65
+ },
+ "replay": {
+  "fit_rmse_m": 0.024793820789125315,
+  "fit_rmse_yaw_rad": 0.1664424422353084,
+  "legs": 1176,
+  "prior_rmse_m": 0.02343012980914136,
+  "prior_rmse_yaw_rad": 0.19107751010067417
+ },
+ "stands": 264,
+ "traces": [
+  "rl-runs/twin-vel/stick/traces/trace-1791526686.jsonl"
+ ]
+}
