@@ -178,7 +178,7 @@ checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
 
 [[package]]
 name = "maploc"
-version = "0.2.0-rc2"
+version = "0.3.0-rc1"
 dependencies = [
  "bincode",
  "kinematics",
@@ -271,7 +271,7 @@ dependencies = [
 
 [[package]]
 name = "quack-duck"
-version = "0.2.0-rc2"
+version = "0.3.0-rc1"
 dependencies = [
  "anyhow",
  "duck-ipc-proto",
@@ -283,7 +283,7 @@ dependencies = [
 
 [[package]]
 name = "quack-nav"
-version = "0.2.0-rc2"
+version = "0.3.0-rc1"
 dependencies = [
  "anyhow",
  "duck-ipc-proto",
@@ -303,7 +303,7 @@ dependencies = [
 
 [[package]]
 name = "quack-rl"
-version = "0.2.0-rc2"
+version = "0.3.0-rc1"
 dependencies = [
  "anyhow",
  "quack-duck",

@@ -48,8 +48,25 @@ dell'utente agli strumenti di quack-nav e non fa navigazione.
 > spiega il movimento; solo un trasporto, una seduta o una caduta le fanno
 > cercare dov'è.
 
-Release attuale: **v0.2.0-rc2**, una release candidate validata sui gemelli —
-[note di rilascio](docs/release-notes-v0.2.0-rc2.it.md) (rc1: [note](docs/release-notes-v0.2.0-rc1.it.md)), [changelog](CHANGELOG.it.md).
+Release attuale: **v0.3.0-rc1**, una release candidate validata sui gemelli —
+[note di rilascio](docs/release-notes-v0.3.0-rc1.it.md) (precedenti: [rc2](docs/release-notes-v0.2.0-rc2.it.md), [rc1](docs/release-notes-v0.2.0-rc1.it.md)), [changelog](CHANGELOG.it.md).
+
+> **Due cose da sapere prima di installare la v0.3.0**
+>
+> 1. **Dite a quack-nav quale camminata usa la vostra papera.** Le papere
+>    di Pollen escono con la policy di camminata **velstand**, ed è il
+>    default di quack-nav: `[gait] profile = "velstand"` in
+>    `/etc/robot/quack-nav.toml`. Se avete passato robotd ad **alpha**
+>    (`alpha_walking` + `alpha_stand`), impostate `profile = "alpha"`. Il
+>    profilo porta velocità, rotazione e quanto il corpo impiega a fermarsi
+>    dopo uno stop; quello sbagliato fa sbagliare alla papera i propri
+>    passi. [La camminata](#la-camminata).
+> 2. **Ha un modello neurale di navigazione, facoltativo.** Una piccola
+>    rete (un MLP, esportato in ONNX ed eseguito in Rust puro) può scegliere
+>    ogni passo di un viaggio al posto delle regole scritte a mano, un
+>    modello per camminata; scudi rigidi attorno la tengono lontana dai
+>    buchi. Spento di default: impostate
+>    `QK_RL_POLICY=/var/lib/quack-nav/pilots` per usarlo. [Il pilota](#il-pilota).
 
 ## A cosa serve
 
@@ -124,7 +141,11 @@ Il progetto è l'ADR 0008.
   della papera, niente di più; lo usa anche il satellite.
 - **`quack-nav`** — il client della mappa, la guardia del dirupo, il
   planner, il registro dei posti, l'esploratore, l'homecoming, i tool,
-  il gemello di carta e `quack-navd`.
+  il gemello di carta, il runtime del pilota e `quack-navd`.
+- **`quack-rl`** — il campo d'addestramento del pilota: case generate, il
+  simulatore che esegue il ciclo di viaggio di quack-navd stesso, il
+  banco, la taratura dalle tracce di una papera (`scripts/rl` guida
+  l'addestramento).
 
 ## Cosa è stato misurato
 
@@ -190,9 +211,9 @@ cargo run --release --example paper_twin -- \
 dx,dy` sposta il frame della mappa dal mondo (quel che un errore di posa
 vero fa a un passaggio).
 
-## Il pilota (sperimentale, branch `rl-nav`)
+## Il pilota
 
-Una piccola rete che sceglie le mosse dello stick dalla rotta davanti,
+**Un modello neurale di navigazione, uno per camminata, facoltativo.** Una piccola rete che sceglie le mosse dello stick dalla rotta davanti,
 dall'ultimo secondo del sensore di profondità e dalla mappa attorno al
 corpo, addestrata su centinaia di migliaia di viaggi simulati in case
 generate con ciò che la mappa non sa lungo la strada (cose posate dopo,
@@ -202,6 +223,32 @@ bordo che conosce o all'indietro alla cieca; spento finché `QK_RL_POLICY`
 non nomina il suo file. Con esso, una taratura: `QK_RL_TRACE` registra i
 passi della papera, e `scripts/rl/calibrate.sh` adatta il simulatore a
 essi, riaddestra, e fa volare il pilota nuovo solo se lì batte lo stick.
+- **Cosa decide**: una di 9 mosse per ogni passo (un passo dritto o
+  curvo, una svolta sul posto, una retromarcia, un'attesa) da 351 numeri
+  (la rotta davanti, 1,4 s di frame di profondità, 1,6 m di mappa, le
+  ultime mosse). Mai la rotta: la pianifica Dijkstra, il pilota la cammina
+  soltanto.
+- **Il modello**: un MLP 351 → 256 → 256 → 9, addestrato per imitazione
+  (DAgger) poi con PPO in un simulatore che esegue il ciclo di viaggio di
+  quack-navd stesso, tarato sulle tracce del gemello MuJoCo, esportato come
+  `pilot.json` (ciò che carica quack-navd, Rust puro) e `pilot.onnx` (la
+  stessa rete, per qualunque runtime ONNX).
+- **Uno per camminata**: `pilots/alpha/` (v3-r7-mujoco) e
+  `pilots/velstand/` (v3-r7-velstand) sono nel pacchetto d'installazione,
+  in `/var/lib/quack-nav/pilots/`. Con `QK_RL_POLICY` che nomina quella
+  cartella, quack-navd prende quello di `[gait] profile`; un pilota non
+  guida mai una camminata su cui non è stato addestrato (guida lo stick).
+- **Gli scudi**: la guardia dei buchi, nessun passo attraverso un drop sul
+  libro, niente retromarcia alla cieca, niente spinte; due mosse rifiutate
+  o quattro svolte di fila e il passo è dello stick. Un pilota si rilascia
+  solo se nessun cervello, nemmeno uno che sceglie a caso, cade in un buco
+  sul banco di prova.
+- **Misurato**: banco di prova, 420 viaggi, numeri di alpha: il pilota al
+  97,1 %, 3 ribaltamenti, lo stick al 93,3 %, 20. Sul simulatore tarato su
+  velstand 95,2 % contro 94,8 %, 4 ribaltamenti contro 18. Sul gemello
+  MuJoCo, casa_ingombra, velstand: il pilota 12 su 12, nessuna caduta.
+  Per ora solo i gemelli: su una papera va prima tarato.
+
 Tutto — il progetto, gli scudi, i numeri, i limiti:
 [docs/rl-pilot.it.md](docs/rl-pilot.it.md).
 
@@ -330,7 +377,9 @@ conosce lo ferma con un messaggio che la nomina (`journalctl -u
 quack-navd`). Tutte le chiavi e i loro predefiniti:
 `quack-nav/src/config.rs`.
 
-**La camminata.** quack-nav deve sapere quale policy di camminata usa
+### La camminata
+
+quack-nav deve sapere quale policy di camminata usa
 robotd, e `[gait] profile` lo dice. Le papere di Pollen escono con
 **velstand** (una sola rete che cammina e sta in piedi; dal set di policy
 v5 in poi). **alpha** (`alpha_walking` + `alpha_stand`) è ancora nel set, e
@@ -342,7 +391,8 @@ robotctl policy load walk alpha_walking.onnx
 robotctl policy load stand alpha_stand.onnx
 ```
 
-e qui `profile = "alpha"` (il default quando `[gait]` manca). Entrambe sono
+e qui `profile = "alpha"` (velstand è il default quando `[gait]`
+manca). Entrambe sono
 validate sul gemello MuJoCo con daemon-v0.16.1: 48 viaggi su 48 con
 velstand, 47 su 48 con alpha, la posa entro 6–7 cm (mediana) —
 [docs/results.it.md](docs/results.it.md), "daemon 0.16.1 e velstand". Il

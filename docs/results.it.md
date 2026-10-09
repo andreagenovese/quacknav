@@ -447,6 +447,37 @@ Sul gemello MuJoCo con daemon-v0.16.1 di Pollen, `microduck_rl` al
   L'unico mancato di velstand, la camera di casa_ingombra, ha finito il
   tempo; la caduta di alpha è stata in casa_arredata.
 
+### v0.3.0-rc1: le verifiche contro main (2026-10-09)
+
+Sul gemello MuJoCo con daemon-v0.16.1, `main` (707db6f) contro la release
+candidate, due gemelli alla volta, gli stessi libri.
+
+| prova | main | v0.3.0-rc1 |
+|---|---|---|
+| viaggi, velstand (apartment + casa_arredata, quattro giri; casa_ingombra due) | 48/48 + 11/12, nessuna caduta | 48/48 + 12/12, nessuna caduta |
+| viaggi, alpha | 48/48 + 11/12, nessuna caduta | 48/48 + 12/12, nessuna caduta |
+| esplorazione da zero, velstand (tre case, poi due giri di viaggi) | copertura 61–100 % per stanza, 107 drop sul libro, nessuno fantasma, 34/34, nessuna caduta | stessa copertura, 93 drop, nessuno fantasma, 34/34, nessuna caduta |
+| il pilota contro lo stick, velstand, casa_ingombra due giri | lo stick: 4 su 5, poi ribaltato contro un oggetto vicino alla partenza (nessun buco) | il pilota v3-r7-velstand: 12/12, nessuna caduta |
+
+- **alpha contro velstand, esplorando** (stesso codice, 2026-10-08):
+  nessuna caduta e nessun drop fantasma da nessuna parte, la stessa
+  copertura finale; velstand più lento nella prima sessione (casa_libera
+  finita in due sessioni contro una; la camera di casa_arredata all'11 %
+  dopo una contro il 63 %), perché le sue soste durano 0,6 s in più. I suoi
+  homecoming sono più precisi: 21/21 confermati, errore mediano 3 cm
+  (alpha 20/20, 8 cm), mediana 110 s (alpha 85).
+- **La guardia davanti a un buco contro un muro** (cliff.rs): un drop con
+  un ostacolo alla stessa direzione entro 0,25 m, davanti o dietro, veniva
+  letto come il bordo di una scatola; sul banco tarato su velstand un
+  cervello che sceglie a caso è entrato in un vano scala contro un muro
+  (stairwell 300038). Ora un ostacolo spiega un drop solo se non è più
+  lontano del drop + 5 cm, nel solo test della guardia (registrare sul
+  libro con quella regola aveva messo drop fantasma accanto al giocattolo
+  di casa_ingombra il 2026-10-06). Cervelli spericolati: 0 buchi su 3.780
+  viaggi con ciascuna delle tarature velstand e MuJoCo; il banco invariato
+  (lo stick 93,3 %), il pilota v3-r7 dal 96,7 al 97,1 %; gemello di carta
+  53,0 % / 30/30.
+
 ## Limiti noti
 
 - **Un bordo registrato dove lo metteva la posa.** Circa un drop su 50 finisce

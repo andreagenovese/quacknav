@@ -427,6 +427,35 @@ rounds a house on the same books, casa_ingombra two).
   velstand's one miss, casa_ingombra's bedroom, ran out of time; alpha's
   fall was in casa_arredata.
 
+### v0.3.0-rc1: the verifications against main (2026-10-09)
+
+On the MuJoCo twin at daemon-v0.16.1, `main` (707db6f) against the release
+candidate, two twins at a time, the same books.
+
+| test | main | v0.3.0-rc1 |
+|---|---|---|
+| journeys, velstand (apartment + casa_arredata, four rounds; casa_ingombra two) | 48/48 + 11/12, no fall | 48/48 + 12/12, no fall |
+| journeys, alpha | 48/48 + 11/12, no fall | 48/48 + 12/12, no fall |
+| exploration from nothing, velstand (three houses, then two rounds of journeys) | coverage 61–100 % a room, 107 drops booked, none phantom, 34/34, no fall | the same coverage, 93 drops, none phantom, 34/34, no fall |
+| the pilot against the stick, velstand, casa_ingombra two rounds | the stick: 4 of 5, then tipped over against a thing near the start (no hole) | the pilot v3-r7-velstand: 12/12, no fall |
+
+- **alpha against velstand, exploring** (the same code, 2026-10-08): no
+  fall and no phantom drop either way, the same final coverage; velstand
+  slower in the first session (casa_libera done in two sessions against
+  one; casa_arredata's bedroom at 11 % after one against 63 %), as its
+  stands are 0.6 s longer. Its homecomings came closer: 21/21 confirmed,
+  median error 3 cm (alpha 20/20, 8 cm), median 110 s (alpha 85).
+- **The guard against a hole by a wall** (cliff.rs): a drop with an
+  obstacle at its bearing within 0.25 m either side read as a box's edge;
+  on the velstand-tuned bench a brain choosing at random stepped into a
+  stairwell set against a wall (stairwell 300038). An obstacle explains a
+  drop now only when it stands no farther than the drop + 5 cm, in the
+  guard's test only (the books' booking by that rule had put phantom drops
+  beside casa_ingombra's toy on 2026-10-06). Reckless brains: 0 holes in
+  3,780 journeys under each of the velstand and the MuJoCo calibrations;
+  the bench unchanged (the stick 93.3 %), the pilot v3-r7 96.7 → 97.1 %;
+  paper twin 53.0 % / 30/30.
+
 ## Known limits
 
 - **A rim booked where the pose had it.** About 1 in 50 drops lands 20–35 cm

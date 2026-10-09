@@ -15,6 +15,7 @@
 #   systemd/sysusers.d/quack-nav.conf
 #   quack-nav.example.toml
 #   install-on-duck.sh            (finds bin/ next to itself)
+#   pilots/alpha/, pilots/velstand/  pilot.json + pilot.onnx, one per walk
 #   README-install.md, README-install.it.md
 #   LICENSE, NOTICE, CHANGELOG.md
 # The .sha256 is in `sha256sum` format, checked with `shasum -a 256 -c` or
@@ -54,6 +55,12 @@ install -m 644 "$ROOT/quack-nav/systemd/quack-navd.service" "$PKG/systemd/"
 install -m 644 "$ROOT/quack-nav/systemd/sysusers.d/quack-nav.conf" "$PKG/systemd/sysusers.d/"
 install -m 644 "$ROOT/quack-nav/quack-nav.example.toml" "$PKG/"
 install -m 755 "$ROOT/scripts/install-on-duck.sh" "$PKG/"
+# The pilots, one per walk: pilot.json (what quack-navd loads) and its ONNX twin.
+for pair in alpha:v3-r7-mujoco velstand:v3-r7-velstand; do
+    walk="${pair%%:*}"; run="${pair#*:}"
+    install -d "$PKG/pilots/$walk"
+    install -m 644 "$ROOT/quack-rl/pilots/$run/pilot.json" "$ROOT/quack-rl/pilots/$run/pilot.onnx" "$PKG/pilots/$walk/"
+done
 # The install README (scripts/package/), with this package's version in.
 for f in README-install.md README-install.it.md; do
     sed "s/@VERSION@/$VERSION/g" "$ROOT/scripts/package/$f" > "$PKG/$f"

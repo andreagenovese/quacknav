@@ -54,6 +54,7 @@ Copia i file sulla papera, poi lì con `sudo`:
 | `/etc/systemd/system/quack-navd.service` | `systemd/quack-navd.service` |
 | `/etc/sysusers.d/quack-nav.conf` (utente `quacknav`) | `systemd/sysusers.d/quack-nav.conf` |
 | `/etc/robot/quack-nav.toml` — **solo se non c'è** | `quack-nav.example.toml` |
+| `/var/lib/quack-nav/pilots/alpha/pilot.json`, `…/velstand/pilot.json` | `pilots/` (usati solo se attivati, sotto) |
 
 Un vecchio `/var/lib/quacksat/places.json` (quack-nav 0.1.0) viene copiato
 in `/var/lib/quack-nav/` se lì non ce n'è uno. Poi abilita e riavvia il
@@ -77,6 +78,15 @@ papera (`sudo nano /etc/robot/quack-nav.toml`) quando qualcosa è diverso:
 | `[maploc] map_path` | `/var/lib/quack-nav/maploc.session` | la sessione di lavoro; le mappe con un nome stanno in `maps/` accanto |
 | `[homecoming] enabled` | `true` nell'esempio | all'avvio, riconosce una casa già mappata e ne riprende la mappa |
 | `[homecoming] resume_explore` | `true` nell'esempio | dopo ogni ricarica, continua a esplorare finché la casa è finita |
+| `[gait] profile` | `"velstand"` | **la policy di camminata che usa robotd**: `"velstand"` (il default di Pollen) o `"alpha"` se avete caricato `alpha_walking` + `alpha_stand` (`robotctl policy load walk alpha_walking.onnx`, `robotctl policy load stand alpha_stand.onnx`). Quella sbagliata fa sbagliare alla papera i propri passi |
+
+**Il pilota (facoltativo).** Un modello neurale di navigazione per
+camminata è installato in `/var/lib/quack-nav/pilots/`. Per usarlo,
+aggiungete la riga `QK_RL_POLICY=/var/lib/quack-nav/pilots` a
+`/var/lib/quack-nav/knobs.env` (o impostatela dalla pagina di
+quack-control) e `sudo systemctl restart quack-navd`; quack-navd prende il
+pilota di `[gait] profile`. Validato solo sui gemelli: su una papera vera
+va prima tarato (docs/rl-pilot.it.md).
 
 I percorsi devono restare sotto `/var/lib/quack-nav/` (l'unica cartella in
 cui il servizio può scrivere) o `/run/quack-nav/`. Ogni chiave omessa
@@ -106,7 +116,9 @@ printf '{"jsonrpc":"2.0","id":1,"method":"nav.call","params":{"name":"robot.wher
 
 Si scarica il pacchetto più nuovo, si verifica, si scompatta e si lancia
 il suo `./install-on-duck.sh` allo stesso modo. Il binario, la unit e
-l'account vengono sostituiti; il tuo `/etc/robot/quack-nav.toml` e le
+l'account vengono sostituiti; **se la papera cammina con alpha e la
+configurazione non ha una sezione `[gait]`, aggiungete `profile = "alpha"`**
+(se manca, ora vuol dire velstand). Il tuo `/etc/robot/quack-nav.toml` e le
 mappe e i luoghi in `/var/lib/quack-nav/` restano (fermare il servizio
 salva prima la sessione di mappatura).
 

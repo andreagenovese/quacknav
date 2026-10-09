@@ -1,6 +1,6 @@
 # The pilot: a learned policy for the stick's legs
 
-Branch `rl-nav`, experimental. Italian copy: [rl-pilot.it.md](rl-pilot.it.md).
+Experimental, optional (off unless `QK_RL_POLICY` names it), in the releases since v0.3.0-rc1. Italian copy: [rl-pilot.it.md](rl-pilot.it.md).
 
 The journey (`go_to`) and the exploration's travel walk the planner's
 route with the **stick** (`quack-nav/src/explore/stick.rs`): turn in place
@@ -39,15 +39,20 @@ for each scenario, then `python3 scripts/rl/pages.py t1.json t2.json ...`.
 
 | knob | what |
 |---|---|
-| `QK_RL_POLICY=/var/lib/quack-nav/pilot.json` | the pilot file; unset, the stick. A file that does not load (another observation version, a broken file) is said in the log and the stick drives |
+| `QK_RL_POLICY=/var/lib/quack-nav/pilots` | a directory with one pilot per walk (`alpha/pilot.json`, `velstand/pilot.json`: the install package puts them there), the one of `[gait] profile` taken — or a single pilot file; unset, the stick. A pilot flies only the walk it was trained on (its `meta.gait`; alpha when it names none), else the stick drives; a file that does not load (another observation version, a broken file) is said in the log and the stick drives |
 | `QK_RL_TRACE=/var/lib/quack-nav/rl-traces` | every leg, stand and fall recorded for the calibration (below), one JSONL file per start of quack-navd |
 
 Both go in `/var/lib/quack-nav/knobs.env` (quack-control's knobs page
 writes it) and take effect at the next `systemctl restart quack-navd`.
-The pilot to start from is `quack-rl/pilots/v3-r6/pilot.json` (trained on
-the simulator's default numbers); `quack-rl/pilots/v3-r6-mujoco/` is the
-same pilot calibrated on the MuJoCo twin's traces, the dress rehearsal of
-what the duck's traces will do. The network is a 351 → 256 → 256 → 9 MLP
+The pilots released are `quack-rl/pilots/v3-r7-mujoco/` (alpha: v3-r7,
+trained on the simulator's default numbers, then tuned on the MuJoCo
+twin's alpha traces) and `quack-rl/pilots/v3-r7-velstand/` (the same v3-r7
+tuned on the twin's velstand traces, `GAIT=velstand calibrate.sh`): the
+dress rehearsal of what the duck's own traces will do. On the
+velstand-tuned bench it arrives 95.2 % against the stick's 94.8 %, 4
+tip-overs against 18; on the MuJoCo twin, casa_ingombra, 12 of 12 with no
+fall (the stick, the same afternoon: 4 of 5, then a tip-over against a
+thing). The network is a 351 → 256 → 256 → 9 MLP
 evaluated in plain Rust (`quack_nav::rlnav::Pilot`), about 160 k
 multiply-adds a leg: well under a millisecond on the board's Cortex-A55.
 The same network is exported as ONNX (`pilot.onnx`); quack-navd reads the

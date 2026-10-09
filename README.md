@@ -42,8 +42,23 @@ commands to quack-nav's tools and does no navigation.
 > Driving it around by hand does not lose its position: walking explains
 > the motion; only a carry, a sit or a fall makes it look for itself.
 
-Current release: **v0.2.0-rc2**, a release candidate validated on the twins —
-[release notes](docs/release-notes-v0.2.0-rc2.md) (rc1: [notes](docs/release-notes-v0.2.0-rc1.md)), [changelog](CHANGELOG.md).
+Current release: **v0.3.0-rc1**, a release candidate validated on the twins —
+[release notes](docs/release-notes-v0.3.0-rc1.md) (earlier: [rc2](docs/release-notes-v0.2.0-rc2.md), [rc1](docs/release-notes-v0.2.0-rc1.md)), [changelog](CHANGELOG.md).
+
+> **Two things to know before installing v0.3.0**
+>
+> 1. **Tell quack-nav which walk your duck runs.** Pollen's ducks ship with
+>    the **velstand** walking policy, and that is quack-nav's default:
+>    `[gait] profile = "velstand"` in `/etc/robot/quack-nav.toml`. If you
+>    switched robotd to **alpha** (`alpha_walking` + `alpha_stand`), set
+>    `profile = "alpha"`. The profile carries the walk's speed, turn rate
+>    and how long the body settles after a stop; the wrong one makes the
+>    duck misjudge its own steps. [The walk](#the-walk).
+> 2. **It has a neural navigation model, optional.** A small network (an
+>    MLP, exported to ONNX and run in pure Rust) can choose each step of a
+>    journey in place of the hand-written rules, one model per walk; hard
+>    shields around it keep it off holes. Off by default: set
+>    `QK_RL_POLICY=/var/lib/quack-nav/pilots` to fly it. [The pilot](#the-pilot).
 
 ## What it is for
 
@@ -114,7 +129,10 @@ The design is ADR 0008.
   duck, nothing more; the satellite uses it too.
 - **`quack-nav`** — the map client, the cliff guard, the planner, the
   places registry, the explorer, the homecoming, the tools, the paper
-  twin, and `quack-navd`.
+  twin, the pilot's runtime, and `quack-navd`.
+- **`quack-rl`** — the pilot's training ground: generated houses, the
+  simulator that runs quack-navd's own journey loop, the bench, the
+  calibration from a duck's traces (`scripts/rl` drives the training).
 
 ## What has been measured
 
@@ -176,9 +194,9 @@ cargo run --release --example paper_twin -- \
 dx,dy` offsets the map's frame from the world (what a real pose error
 does to a passage).
 
-## The pilot (experimental, branch `rl-nav`)
+## The pilot
 
-A small network that picks the stick's moves from the route ahead, the
+**A neural navigation model, one per walk, optional.** A small network that picks the stick's moves from the route ahead, the
 depth sensor's last second and the map around the body, trained on
 hundreds of thousands of simulated journeys through generated houses with
 what the map does not know on the way (things put down since, pets and
@@ -187,8 +205,34 @@ that no move it asks for can take the duck over a rim it knows or backward
 blind; off unless `QK_RL_POLICY` names its file. With it, a calibration:
 `QK_RL_TRACE` records the duck's legs, and `scripts/rl/calibrate.sh` fits
 the simulator to them, retrains, and lets the new pilot fly only if it
-beats the stick there. Everything — the design, the shields, the numbers,
-the limits: [docs/rl-pilot.md](docs/rl-pilot.md).
+beats the stick there.
+
+- **What it decides**: one of 9 moves for each step (a step straight or
+  curving, a turn in place, a back-off, a wait) from 351 numbers (the
+  route ahead, 1.4 s of depth frames, 1.6 m of map, its last moves). Never
+  the route: Dijkstra plans it, the pilot only walks it.
+- **The model**: an MLP 351 → 256 → 256 → 9, trained by imitation (DAgger)
+  then PPO in a simulator that runs quack-navd's own journey loop, tuned
+  on the MuJoCo twin's traces, exported as `pilot.json` (what quack-navd
+  loads, pure Rust) and `pilot.onnx` (the same network, for any ONNX
+  runtime).
+- **One per walk**: `pilots/alpha/` (v3-r7-mujoco) and `pilots/velstand/`
+  (v3-r7-velstand) ship in the install package, under
+  `/var/lib/quack-nav/pilots/`. With `QK_RL_POLICY` naming that directory,
+  quack-navd takes the one of `[gait] profile`; a pilot never flies a walk
+  it was not trained on (the stick drives then).
+- **The shields**: the hole guard, no step across a booked drop, no blind
+  back-off, no pushing on; two refused moves or four turns in a row and
+  the stick takes the leg. A pilot is released only if no brain — not
+  even one choosing at random — falls into a hole on the test bench.
+- **Measured**: test bench, 420 journeys, alpha's numbers: the pilot 97.1 %
+  arrived, 3 tip-overs, the stick 93.3 %, 20. On the velstand-tuned
+  simulator 95.2 % against 94.8 %, 4 tip-overs against 18. On the MuJoCo
+  twin, casa_ingombra, velstand: the pilot 12 of 12, no fall. Only the
+  twins so far: on a duck, calibrate it first.
+
+Everything — the design, the shields, the numbers, the limits:
+[docs/rl-pilot.md](docs/rl-pilot.md).
 
 ## Running it
 
@@ -315,7 +359,9 @@ lets the daemon write nowhere else. A key the daemon does not know stops
 it with a message naming the key (`journalctl -u quack-navd`). Every key
 and its default: `quack-nav/src/config.rs`.
 
-**The walk.** quack-nav needs to know which walking policy robotd runs,
+### The walk
+
+quack-nav needs to know which walking policy robotd runs,
 and `[gait] profile` says it. Pollen's ducks ship with **velstand** (one
 network that walks and stands; policy set v5 and on). **alpha**
 (`alpha_walking` + `alpha_stand`) is still in the set, and every number
@@ -326,7 +372,8 @@ robotctl policy load walk alpha_walking.onnx
 robotctl policy load stand alpha_stand.onnx
 ```
 
-and `profile = "alpha"` here (the default when `[gait]` is left out). Both
+and `profile = "alpha"` here (velstand is the default when `[gait]` is
+left out). Both
 are validated on the MuJoCo twin at daemon-v0.16.1: 48 of 48 journeys
 with velstand, 47 of 48 with alpha, the pose within 6–7 cm (median) —
 [docs/results.md](docs/results.md), "daemon 0.16.1 and velstand". The

@@ -13,113 +13,92 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ## [Unreleased]
 
+## [0.3.0-rc1] - 2026-10-09
+
+Una terza release candidate, validata solo sui gemelli MuJoCo e di carta.
+Note di rilascio: [docs/release-notes-v0.3.0-rc1.it.md](docs/release-notes-v0.3.0-rc1.it.md).
+
+### Aggiornare
+
+- **Dite quale camminata usa la papera.** `[gait] profile` in
+  `/etc/robot/quack-nav.toml`: `"velstand"` (il default di Pollen, e di
+  quack-nav quando la chiave manca) o `"alpha"` (robotd con
+  `alpha_walking` + `alpha_stand`). Una papera su alpha senza sezione
+  `[gait]` prima era alpha e ora è velstand: aggiungete `profile = "alpha"`.
+- Il **daemon-v0.16.1** di Pollen (API 41) è quello validato.
+
 ### Aggiunto
 
-- **Ciò che la papera incontra va sul libro, e Dijkstra ci ripianifica
-  attorno** (branch `rl-nav`, per ogni viaggio con o senza pilota): una
-  buca vista dalla guardia viene guardata di fronte e registrata dopo una
-  sosta di 2 s (in un viaggio era vista camminando e mai registrata: 31
-  giri davanti a una tromba delle scale sul gemello MuJoCo); e prima di
-  "nessuna strada", un ultimo piano con i margini più stretti che il corpo
-  permette. (Qui c'erano anche lo stallo "scuff" e un libro in anticipo
-  senza filtri: nell'A/B del gemello contro `main` costavano arrivi e
-  cadute; lo stallo del tocco e il libro in anticipo prudente di main li
-  sostituiscono, 2026-10-07.) Sul banco quack-rl (420 viaggi) lo
-  stick era passato dal 79,0 % al 95,7 % di arrivi con tutte, ed è
-  all'89,8 % con lo stallo del tocco di main al loro posto, al 94,3 % con
-  il libro in anticipo prudente di main di nuovo (ribaltamenti 73 -> 9 ->
-  35 -> 16). La soglia
-  del gemello di carta non cambia.
-
-- **Il pilota** (sperimentale, branch `rl-nav`; docs/rl-pilot.it.md): una
-  policy appresa per i passi dello stick (`QK_RL_POLICY`), l'osservazione
-  condivisa da simulatore e papera (`quack_nav::rlnav`), scudi sopra di
-  essa (la guardia dei buchi, niente retromarcia alla cieca, nessun passo
-  attraverso un drop o l'ignoto accanto, non insistere, lo stick dopo due
-  rifiuti); il crate `quack-rl` (scenari generati attraverso il ciclo di
-  viaggio di quack-navd, l'esperto, `rl_env`, `rl_eval` con i cervelli
-  spericolati, `rl_calib`, `rl_pilot_check`) e `scripts/rl` (DAgger, PPO,
-  finalize, gate, calibrate). `QK_RL_TRACE` registra passi e soste per la
-  taratura. `QK_ORACLE_AS_MAPPED` dell'oracolo disegna la verità come la
-  disegnerebbe un mapper; `gen.py` scrive `casa_ingombra` (casa_arredata e
-  cose posate dopo). Senza pilota non cambia nulla: la soglia del gemello di
-  carta è la stessa al decimale.
-
+- **Il pilota, un modello neurale di navigazione, uno per camminata**
+  (facoltativo; docs/rl-pilot.it.md). Un MLP (351 ingressi, 9 mosse)
+  sceglie ogni passo di un viaggio al posto delle regole dello stick, mai la
+  rotta; gli scudi lo tengono lontano dai buchi e dalle retromarce alla
+  cieca, e lo stick subentra quando esita. `pilot.json` (eseguito da
+  quack-navd in Rust puro) e `pilot.onnx` per ogni camminata: v3-r7-mujoco
+  (alpha) e v3-r7-velstand. Il pacchetto li installa in
+  `/var/lib/quack-nav/pilots/<camminata>/`;
+  `QK_RL_POLICY=/var/lib/quack-nav/pilots` usa quello del profilo, e un
+  pilota non guida mai una camminata su cui non è stato addestrato. Banco
+  (420 viaggi): 97,1 % di arrivi contro il 93,3 % dello stick (alpha),
+  95,2 % contro 94,8 % (velstand); sul gemello, velstand, 12/12. Il crate
+  `quack-rl` e `scripts/rl` lo addestrano, lo tarano (`calibrate.sh`,
+  `GAIT=`) e lo filtrano; `QK_RL_TRACE` registra i passi di una papera per
+  la taratura.
+- **`[gait] profile = "velstand" | "alpha"`**: i numeri della camminata
+  (velocità, rotazione per unità, svolta sul posto, l'assestamento dopo uno
+  stop) per il modello di andatura dell'esploratore e i default di
+  `[gait]`. Quelli di alpha sono le costanti di prima.
 - **Un pacchetto d'installazione a ogni release.** La CI impacchetta
   `quack-nav-<versione>-aarch64-linux.tar.gz` (con il suo `.sha256`)
   accanto al binario nudo, e un tag `v*` li allega entrambi: il binario,
-  l'unità, l'utente di servizio, la configurazione d'esempio,
+  l'unità, l'utente di servizio, la configurazione d'esempio, i piloti,
   `install-on-duck.sh` e un `README-install.it.md` passo per passo (e
   `.md`), così la papera si installa da un download, senza repository né
-  compilazione (README, "Installare da una release").
-  `scripts/package.sh <versione> <binario> <cartella>` lo impacchetta in
-  locale. `install-on-duck.sh` gira dal pacchetto o da una copia del
-  repository, accetta `--dry-run` (stampa ogni comando, non si collega) e
-  non fallisce più con il bash 3.2 di macOS quando `SSH_OPTS` è vuoto.
+  compilazione. `install-on-duck.sh` gira dal pacchetto o da una copia del
+  repository e accetta `--dry-run`.
+- Strumenti del gemello: `final_ab.sh` ed `explore_ab.sh` (A/B contro main,
+  due gemelli alla volta, stack e camminata per braccio), `gaitprobe.py`,
+  `odoprobe.py`, `settleprobe.py`; `route_on_map` riporta il buco vero più
+  vicino.
 
 ### Modificato
 
-- **In un viaggio, il naso contro qualcosa che la mappa non ha è uno
-  stallo.** Due passi avanti di fila con il sensore di profondità che vede
-  qualcosa nella corsia del corpo entro 0.15 m (nella maggior parte dei
-  frame degli ultimi 0.6 s): lo stick gira di almeno 20° e registra ciò che
-  ha visto, a meno che un muro della mappa sia entro 0.15 m o un drop sul
-  libro entro 0.5 m. Sotto il tavolino di apartment il corpo spingeva sul
-  bordo per minuti mentre la posa scivolava di 0.3 m (gemello MuJoCo). Il
-  log del passo porta l'ostacolo nella corsia (`ahead`) e l'odometria.
-- **In un viaggio, una svolta sul posto si ferma prima dello slancio che
-  impara**: il yaw della mappa al passo successivo dice quanto è andata
-  davvero l'ultima svolta (35–44° oltre l'odometria sul gemello MuJoCo).
-  A/B sul gemello contro main: 48/48 entrambi, casa_ingombra 11/12 contro
-  10/12, nessuna caduta da nessuna parte, viaggi più veloci del 9–22 %,
-  metà delle svolte e 5 oscillazioni invece di 232.
-- **In un viaggio, ciò che il sensore continua a vedere davanti va sul
-  libro prima dell'urto**: entro 0.30 m nella corsia, dove la mappa ha
-  pavimento libero, nessun muro della mappa entro 0.15 m e nessun drop sul
-  libro entro 0.5 m. A/B sul gemello MuJoCo contro main: 48/48 e
-  casa_ingombra 9/12 per entrambi, cadute 0 contro 1; banco quack-rl: lo
-  stick 89.8 -> 94.3 %. Vedi docs/results.it.md.
-- **Una corsia percorsa cede a un drop sul libro entro 0.20 m** (era
-  0.12): il percorso del bagno di casa_arredata passava a 9–12 cm
-  dall'angolo nord-est non registrato del vano scala, dove la papera del
-  gemello è caduta due volte; ora 16 cm, nessuna tappa dei giri salvati
-  più lunga o chiusa. `QK_LANE_YIELD_M` per misurare; `route_on_map`
-  riporta il buco vero più vicino (`TRUTH_HOLES`) e stampa il percorso
-  (`ROUTE_POINTS=1`). Vedi docs/results.it.md, "Sporgenze e angoli dei
-  vani scala".
-
-### Modificato (daemon 0.16.1)
-
-- **Fissato a daemon-v0.16.1 di Pollen (API 41)**, prima daemon-v0.15.0.
-  Lo `SafetyState` del protocollo ha `picked_up` (il rilevatore di presa
-  in braccio di Pollen). Con alpha nessuna regressione sul gemello MuJoCo
-  (48/48 contro 48/48, casa_ingombra 11/12 contro 10/12, nessuna caduta).
-- **`[gait] profile = "alpha" | "velstand"`**: la policy di camminata che
-  usa robotd. Fissa il modello di andatura dell'esploratore (velocità,
-  rotazione per unità, svolta sul posto, slancio iniziale, quanto il corpo
-  impiega a fermarsi) e i default di `[gait]`; ogni valore resta
-  impostabile. I numeri di alpha sono esattamente le costanti di prima,
-  quindi alpha si comporta come prima, identico al bit sul gemello di
-  carta. **Aggiornando una papera che cammina con velstand (il default di
-  Pollen): aggiungere `[gait] profile = "velstand"` a
-  `/etc/robot/quack-nav.toml`**: l'installer non tocca una configurazione
-  esistente, e senza la chiave vale alpha. La configurazione d'esempio ora
-  dice velstand.
-- **velstand funziona.** Sta in piedi sotto la rete di camminata, quindi
-  robotd etichetta "walk" una papera ferma: quack-nav la credeva sempre in
-  movimento (nessuna finestra ferma, nessuno sweep della testa) e, dalla
-  0.16.1, gli sguardi automatici di robotd si prendevano la testa:
-  l'homecoming rinunciava dopo 16 minuti. Con velstand decide la velocità
-  applicata, e la papera conta come ferma 0,6 s dopo che finisce (il corpo
-  prosegue tanto), ogni sosta più lunga di altrettanto. Sul gemello,
-  quattro giri per casa: 48/48, nessuna caduta, la posa entro 6–7 cm
-  (mediana).
+- **velstand funziona**: robotd etichetta "walk" una papera velstand
+  ferma; ora decide la velocità applicata, la papera conta come ferma
+  0,6 s dopo, e ogni sosta è più lunga di altrettanto. Prima il mapper non
+  la vedeva mai ferma e l'homecoming rinunciava.
+- **In un viaggio, lo stick**:
+  - gira quando il naso incontra qualcosa entro 0,15 m per due passi, e lo
+    registra (a meno che vicino ci sia un muro della mappa o un drop sul
+    libro);
+  - registra ciò che il sensore continua a vedere nella corsia entro
+    0,30 m, dove la mappa ha pavimento libero e nessun muro o drop vicino;
+  - ferma una svolta sul posto prima dello slancio che impara (35–44° sul
+    gemello: oscillazioni 232 → 5, viaggi più veloci del 9–22 %).
+- **Una corsia percorsa cede a un drop sul libro entro 0,20 m** (era
+  0,12): la rotta resta lontana dall'angolo non registrato di un vano scala.
 - **Lo sweep della testa prova i propri comandi prima di farsi da parte**:
-  una testa in posa riceve 2,5 s di comandi (qualunque comando ferma gli
-  sguardi automatici di robotd 0.16.1); ancora in posa, è di qualcun
-  altro, come prima.
-- `scripts/twin`: `GAIT=alpha|velstand`; `gaitprobe.py`, `odoprobe.py`,
-  `settleprobe.py`. `final_ab.sh` mette ogni braccio sul suo stack.
+  gli sguardi automatici di robotd 0.16.1 si fermano a qualunque comando
+  di testa.
+- Fissato a **daemon-v0.16.1** (API 41), prima daemon-v0.15.0.
+
+### Corretto
+
+- **La guardia dei buchi scambiava un buco contro un muro per il bordo di
+  una scatola**: un drop con un ostacolo alla stessa direzione entro
+  0,25 m, davanti o dietro, veniva scartato. Ora lo spiega solo un ostacolo
+  non più lontano del drop (il test della guardia; il libro tiene il suo).
+  Un cervello che sceglie a caso è caduto una volta in un vano scala sul
+  banco; 0 su 7.560 viaggi dopo.
+- Il banco di prova dell'esplorazione sul gemello richiede di nuovo
+  l'esplorazione mentre la papera si alza.
+
+### Misurato (gemello MuJoCo, contro main, quattro giri per casa)
+
+Viaggi 48/48 e casa_ingombra 12/12 con entrambe le camminate (main 48/48,
+11/12); esplorazione con velstand come quella di main (copertura, nessun
+drop fantasma, 34/34 viaggi dopo); nessuna caduta in un buco da nessuna
+parte. docs/results.it.md.
 
 ## [0.2.0-rc2] - 2026-10-03
 

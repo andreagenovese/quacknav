@@ -46,7 +46,7 @@ Every knob needs that restart: the environment is read at the process's start.
 | `QK_REACH_TO_FLOOR` | on unless 0 | `quack-nav/src/explore/books.rs` | `QK_REACH_TO_FLOOR=0`: the reach behind a rim ignores where the floor comes back (see `record_drops`). |
 | `QK_REANCHOR` | on unless 0 | `quack-nav/src/explore/journey.rs` | `QK_REANCHOR=0`: no trip back to mapped floor now and then to close a loop while the exploration walks new floor (see the explorer's run). |
 | `QK_RIM_TOUR` | 1 on, 0 off, else the caller's default | `quack-nav/src/explore/rim_tour.rs` | `QK_RIM_TOUR=0`: no rounds of the holes. |
-| `QK_RL_POLICY` | a value | `quack-nav/src/rlnav/mod.rs` | `QK_RL_POLICY`: the pilot file (docs/rl-pilot.md) that flies the stick's legs; |
+| `QK_RL_POLICY` | a value | `quack-nav/src/rlnav/mod.rs` | `QK_RL_POLICY`: the pilot (docs/rl-pilot.md) that flies the stick's legs; |
 | `QK_RL_TRACE` | a value | `quack-nav/src/rlnav/trace.rs` | `QK_RL_TRACE`: what the duck did and saw, leg by leg, for the calibration (`quack-rl`'s `rl_calib`, docs/rl-pilot.md). |
 | `QK_SPIN_WATCH` | on unless 0 | `quack-nav/src/explore/gait.rs` | `QK_SPIN_WATCH=0`: turn in place without watching the sensor, as before. |
 | `QK_STICK_CAREFUL` | 1 on, 0 off, else the caller's default | `quack-nav/src/explore/navigate.rs` |  |

@@ -1,6 +1,6 @@
 # Il pilota: una policy appresa per i passi dello stick
 
-Branch `rl-nav`, sperimentale. Copia inglese canonica: [rl-pilot.md](rl-pilot.md).
+Sperimentale, facoltativo (spento finché `QK_RL_POLICY` non lo nomina), nelle release dalla v0.3.0-rc1. Copia inglese canonica: [rl-pilot.md](rl-pilot.md).
 
 Il viaggio (`go_to`) e gli spostamenti dell'esplorazione camminano la
 rotta del planner con lo **stick** (`quack-nav/src/explore/stick.rs`):
@@ -40,16 +40,20 @@ per ogni scenario, poi `python3 scripts/rl/pages.py t1.json t2.json ...`.
 
 | manopola | cosa |
 |---|---|
-| `QK_RL_POLICY=/var/lib/quack-nav/pilot.json` | il file del pilota; non impostata, lo stick. Un file che non si carica (un'altra versione dell'osservazione, un file rotto) lo dice nel log e guida lo stick |
+| `QK_RL_POLICY=/var/lib/quack-nav/pilots` | una cartella con un pilota per camminata (`alpha/pilot.json`, `velstand/pilot.json`: il pacchetto d'installazione li mette lì), preso quello di `[gait] profile`, oppure un singolo file pilota; non impostata, lo stick. Un pilota guida solo la camminata su cui è stato addestrato (il suo `meta.gait`; alpha se non ne nomina una), altrimenti guida lo stick; un file che non si carica (un'altra versione dell'osservazione, un file rotto) lo dice nel log e guida lo stick |
 | `QK_RL_TRACE=/var/lib/quack-nav/rl-traces` | ogni passo, sosta e caduta registrati per la taratura (sotto), un file JSONL a ogni avvio di quack-navd |
 
 Entrambe vanno in `/var/lib/quack-nav/knobs.env` (la pagina delle manopole
 di quack-control lo scrive) e valgono dal prossimo `systemctl restart
-quack-navd`. Il pilota da cui partire è `quack-rl/pilots/v3-r6/pilot.json`
-(addestrato sui numeri di partenza del simulatore);
-`quack-rl/pilots/v3-r6-mujoco/` è lo stesso pilota tarato sulle tracce del
-gemello MuJoCo, la prova generale di ciò che faranno le tracce della
-papera. La rete è un MLP 351 → 256 → 256 → 9 calcolato in Rust puro
+quack-navd`. I piloti rilasciati sono `quack-rl/pilots/v3-r7-mujoco/`
+(alpha: v3-r7, addestrato sui numeri di partenza del simulatore, poi
+tarato sulle tracce alpha del gemello MuJoCo) e
+`quack-rl/pilots/v3-r7-velstand/` (lo stesso v3-r7 tarato sulle tracce
+velstand del gemello, `GAIT=velstand calibrate.sh`): la prova generale di
+ciò che faranno le tracce della papera. Sul banco tarato su velstand
+arriva al 95,2 % contro il 94,8 % dello stick, 4 ribaltamenti contro 18;
+sul gemello MuJoCo, casa_ingombra, 12 su 12 senza cadute (lo stick, lo
+stesso pomeriggio: 4 su 5, poi un ribaltamento contro un oggetto). La rete è un MLP 351 → 256 → 256 → 9 calcolato in Rust puro
 (`quack_nav::rlnav::Pilot`), circa 160 mila moltiplicazioni-somme a passo:
 ben sotto il millisecondo sul Cortex-A55 della scheda. La stessa rete è
 esportata in ONNX (`pilot.onnx`); quack-navd legge il JSON.

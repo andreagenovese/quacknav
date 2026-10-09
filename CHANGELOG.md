@@ -11,102 +11,83 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ## [Unreleased]
 
+## [0.3.0-rc1] - 2026-10-09
+
+A third release candidate, validated on the MuJoCo and paper twins only.
+Release notes: [docs/release-notes-v0.3.0-rc1.md](docs/release-notes-v0.3.0-rc1.md).
+
+### Upgrading
+
+- **Say which walk the duck runs.** `[gait] profile` in
+  `/etc/robot/quack-nav.toml`: `"velstand"` (Pollen's default, and
+  quack-nav's when the key is left out) or `"alpha"` (robotd on
+  `alpha_walking` + `alpha_stand`). A duck on alpha with no `[gait]`
+  section was alpha before and is velstand now: add `profile = "alpha"`.
+- Pollen's **daemon-v0.16.1** (API 41) is the one validated.
+
 ### Added
 
-- **What the duck meets goes on the books, so Dijkstra plans round it**
-  (branch `rl-nav`, for every journey with or without the pilot): a hole
-  the guard sees is faced and booked after a 2 s stand (on a journey it
-  used to be seen walking and never booked: 31 turns at a stairwell on the
-  MuJoCo twin); and before "no way", one more plan at the tightest
-  margins the body allows. (A "scuff" stall and an unfiltered booking ahead
-  were here too: on the twin's A/B against `main` they cost arrivals and
-  falls; main's touch stall and prudent booking ahead replace them,
-  2026-10-07.) On the quack-rl bench (420 journeys)
-  the stick went from 79.0 % to 95.7 % arrived with all of them, and is at
-  89.8 % with main's touch stall in their place, 94.3 % with main's
-  prudent booking ahead back (tip-overs 73 -> 9 -> 35 -> 16). The paper twin's gate is unchanged.
-
-- **The pilot** (experimental, branch `rl-nav`; docs/rl-pilot.md): a
-  learned policy for the stick's legs (`QK_RL_POLICY`), the observation
-  shared by the simulator and the duck (`quack_nav::rlnav`), shields over
-  it (the hole guard, no blind back-off, no step across a drop or the
-  unknown beside one, no pushing on, the stick after two refusals); the
-  `quack-rl` crate (generated scenarios through quack-navd's own journey
-  loop, the expert, `rl_env`, `rl_eval` with reckless brains, `rl_calib`,
-  `rl_pilot_check`) and `scripts/rl` (DAgger, PPO, finalize, gate,
-  calibrate). `QK_RL_TRACE` records legs and stands for the calibration.
-  The oracle's `QK_ORACLE_AS_MAPPED` draws the truth as a mapper would;
-  `gen.py` writes `casa_ingombra` (casa_arredata and things put down since).
-  Unset, nothing changes: the paper twin's gate is the same to the decimal.
-
+- **The pilot, a neural navigation model, one per walk** (optional;
+  docs/rl-pilot.md). An MLP (351 inputs, 9 moves) picks each step of a
+  journey in place of the stick's rules, never the route; shields keep it
+  off holes and blind back-offs, and the stick takes over when it
+  hesitates. `pilot.json` (run by quack-navd in pure Rust) and `pilot.onnx`
+  for each walk: v3-r7-mujoco (alpha) and v3-r7-velstand. The package
+  installs them in `/var/lib/quack-nav/pilots/<walk>/`;
+  `QK_RL_POLICY=/var/lib/quack-nav/pilots` flies the one of the profile,
+  and a pilot never flies a walk it was not trained on. Bench (420
+  journeys): 97.1 % arrived against the stick's 93.3 % (alpha), 95.2 %
+  against 94.8 % (velstand); on the twin, velstand, 12/12. The `quack-rl`
+  crate and `scripts/rl` train, calibrate (`calibrate.sh`, `GAIT=`) and
+  gate it; `QK_RL_TRACE` records a duck's legs for the calibration.
+- **`[gait] profile = "velstand" | "alpha"`**: the walk's numbers (speed,
+  yaw per unit, turn in place, the settle after a stop) for the explorer's
+  gait model and `[gait]`'s defaults. alpha's are the old constants.
 - **An install package on every release.** CI packs
   `quack-nav-<version>-aarch64-linux.tar.gz` (with its `.sha256`) beside
   the bare binary, and a `v*` tag attaches both: the binary, the unit, the
-  service account, the example config, `install-on-duck.sh` and a
-  step-by-step `README-install.md` (and `.it.md`), so the duck installs
-  from a download, no checkout and no build (README, "Installing from a
-  release"). `scripts/package.sh <version> <binary> <outdir>` packs it
-  locally. `install-on-duck.sh` runs from the package or from a checkout,
-  takes `--dry-run` (prints every command, connects to nothing), and no
-  longer fails on macOS's bash 3.2 when `SSH_OPTS` is empty.
+  service account, the example config, the pilots, `install-on-duck.sh`
+  and a step-by-step `README-install.md` (and `.it.md`), so the duck
+  installs from a download, no checkout and no build. `install-on-duck.sh`
+  runs from the package or from a checkout and takes `--dry-run`.
+- Twin tools: `final_ab.sh` and `explore_ab.sh` (A/B against main, two
+  twins at a time, per-arm stacks and walks), `gaitprobe.py`,
+  `odoprobe.py`, `settleprobe.py`; `route_on_map` reports the nearest true
+  hole.
 
 ### Changed
 
-- **On a journey, the nose against something the map does not have is a
-  stall.** Two forward steps in a row with the depth sensor seeing
-  something in the body's lane within 0.15 m (most of the last 0.6 s'
-  frames): the stick turns 20° at least and books what it saw, unless a
-  map wall is within 0.15 m of it or a booked drop within 0.5 m. Under
-  apartment's coffee table the body had pushed on the edge for minutes
-  while the pose slid 0.3 m (MuJoCo twin). The step log carries the lane
-  obstacle (`ahead`) and odometry.
-- **On a journey, a turn in place stops short by the coast it learns**:
-  the map's yaw at the next leg says how far the last turn really went
-  (35–44° past odometry's word on the MuJoCo twin). Twin A/B against main:
-  48/48 both, casa_ingombra 11/12 against 10/12, no fall either side,
-  journeys 9–22 % faster, half the turns and 5 dithers instead of 232.
-- **On a journey, what the sensor keeps seeing ahead is booked before
-  the bump**: within 0.30 m in the lane, where the map has free floor, no
-  map wall within 0.15 m and no booked drop within 0.5 m. MuJoCo twin A/B
-  against main: 48/48 and casa_ingombra 9/12 for both, falls 0 against 1;
-  quack-rl bench: the stick 89.8 -> 94.3 %. See docs/results.md.
-- **A walked lane yields to a booked drop within 0.20 m** (was 0.12):
-  casa_arredata's bath route kept 9–12 cm from the stairwell's unbooked
-  north-east corner, where the twin's duck fell twice; now 16 cm, no leg
-  of the saved tours longer or closed. `QK_LANE_YIELD_M` to measure;
-  `route_on_map` reports the nearest true hole (`TRUTH_HOLES`) and prints
-  the route (`ROUTE_POINTS=1`). See docs/results.md, "Overhangs and
-  stairwell corners".
+- **velstand works**: a standing velstand duck is labelled "walk" by
+  robotd; the applied twist now decides, the duck counts as still 0.6 s
+  after it, and every stand is that much longer. Before, the mapper never
+  saw it still and the homecoming gave up.
+- **On a journey, the stick**:
+  - turns when the nose meets something within 0.15 m for two steps, and
+    books it (unless a map wall or a booked drop is near);
+  - books what the sensor keeps seeing in its lane within 0.30 m, where
+    the map has free floor and no wall or booked drop is near;
+  - stops a turn in place short by the coast it learns (35–44° on the twin:
+    dithers 232 → 5, journeys 9–22 % faster).
+- **A walked lane yields to a booked drop within 0.20 m** (was 0.12): the
+  route keeps off a stairwell's unbooked corner.
+- **The head sweep tries its own commands before standing aside**:
+  robotd 0.16.1's idle glancing stops at any head command.
+- Pinned to **daemon-v0.16.1** (API 41), was daemon-v0.15.0.
 
-### Changed (daemon 0.16.1)
+### Fixed
 
-- **Pinned to Pollen's daemon-v0.16.1 (API 41)**, was daemon-v0.15.0.
-  The proto's `SafetyState` gains `picked_up` (Pollen's pickup detector).
-  With alpha, no regression on the MuJoCo twin (48/48 against 48/48,
-  casa_ingombra 11/12 against 10/12, no fall).
-- **`[gait] profile = "alpha" | "velstand"`**: the walking policy robotd
-  runs. It sets the explorer's gait model (speed, yaw per unit, turn in
-  place, the coast's prior, how long the body settles after a stop) and
-  `[gait]`'s own defaults; every value still settable. alpha's numbers are
-  exactly the old constants, so alpha behaves as before, bit for bit on the
-  paper twin. **Upgrading a duck that walks with velstand (Pollen's
-  default): add `[gait] profile = "velstand"` to
-  `/etc/robot/quack-nav.toml`** — the installer leaves an existing config
-  alone, and a config without it means alpha. The example config now says
-  velstand.
-- **velstand works.** It stands under the walking network, so robotd
-  labels a standing duck "walk": quack-nav read it as moving for ever (no
-  still window, no head sweep) and, since 0.16.1, robotd's idle glancing
-  took the head — the homecoming stood down after 16 minutes. Under
-  velstand the applied twist decides, and the duck counts as still 0.6 s
-  after it ends (its body goes on that long), every stand that much longer.
-  On the twin, four rounds a house: 48/48, no fall, the pose within 6–7 cm
-  (median).
-- **The head sweep tries its own commands before standing aside**: a posed
-  head gets 2.5 s of them (any head command stops robotd 0.16.1's idle
-  glancing); still posed, it is somebody else's, as before.
-- `scripts/twin`: `GAIT=alpha|velstand`; `gaitprobe.py`, `odoprobe.py`,
-  `settleprobe.py`. `final_ab.sh` puts each arm on its own stack.
+- **The cliff guard took a hole against a wall for a box's edge**: a drop
+  with an obstacle at its bearing within 0.25 m either side was dismissed.
+  Now only an obstacle no farther than the drop explains it (the guard's
+  test; the books keep theirs). A brain choosing at random stepped into a
+  stairwell once on the bench; 0 in 7,560 journeys since.
+- The twin's exploration harness asks again while the duck stands up.
+
+### Measured (MuJoCo twin, against main, four rounds a house)
+
+Journeys 48/48 and casa_ingombra 12/12 with both walks (main 48/48,
+11/12); exploration with velstand as main's (coverage, no phantom drop,
+34/34 journeys after); no fall into a hole anywhere. docs/results.md.
 
 ## [0.2.0-rc2] - 2026-10-03
 

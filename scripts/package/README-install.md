@@ -53,6 +53,7 @@ It copies the files to the duck, then with `sudo` there:
 | `/etc/systemd/system/quack-navd.service` | `systemd/quack-navd.service` |
 | `/etc/sysusers.d/quack-nav.conf` (user `quacknav`) | `systemd/sysusers.d/quack-nav.conf` |
 | `/etc/robot/quack-nav.toml` — **only when there is none** | `quack-nav.example.toml` |
+| `/var/lib/quack-nav/pilots/alpha/pilot.json`, `…/velstand/pilot.json` | `pilots/` (used only when switched on, below) |
 
 An old `/var/lib/quacksat/places.json` (quack-nav 0.1.0) is copied to
 `/var/lib/quack-nav/` when that has none. Then it enables and restarts the
@@ -76,6 +77,14 @@ The example works as it is on a standard duck. Edit it on the duck
 | `[maploc] map_path` | `/var/lib/quack-nav/maploc.session` | the working session; the named maps live in `maps/` beside it |
 | `[homecoming] enabled` | `true` in the example | at boot, recognise a house mapped before and take its map back |
 | `[homecoming] resume_explore` | `true` in the example | after each charge, explore on until the house is done |
+| `[gait] profile` | `"velstand"` | **the walking policy robotd runs**: `"velstand"` (Pollen's default) or `"alpha"` if you loaded `alpha_walking` + `alpha_stand` (`robotctl policy load walk alpha_walking.onnx`, `robotctl policy load stand alpha_stand.onnx`). The wrong one makes the duck misjudge its own steps |
+
+**The pilot (optional).** A neural navigation model per walk is installed
+in `/var/lib/quack-nav/pilots/`. To fly it, add the line
+`QK_RL_POLICY=/var/lib/quack-nav/pilots` to `/var/lib/quack-nav/knobs.env`
+(or set it on quack-control's page) and `sudo systemctl restart
+quack-navd`; quack-navd takes the pilot of `[gait] profile`. Validated on
+the twins only: on a real duck, calibrate it first (docs/rl-pilot.md).
 
 Paths must stay under `/var/lib/quack-nav/` (the only directory the
 service may write) or `/run/quack-nav/`. Every key left out takes its
@@ -105,7 +114,9 @@ Without robotd or tofd the daemon still starts and waits for them.
 
 Download the newer package, verify it, unpack it, and run its
 `./install-on-duck.sh` the same way. The binary, the unit and the account
-are replaced; your `/etc/robot/quack-nav.toml` and the maps and places in
+are replaced; **if the duck walks with alpha and the config has no
+`[gait]` section, add `profile = "alpha"`** (left out, it now means
+velstand). Your `/etc/robot/quack-nav.toml` and the maps and places in
 `/var/lib/quack-nav/` are kept (stopping the service saves the mapping
 session first).
 

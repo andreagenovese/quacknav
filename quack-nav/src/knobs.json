@@ -467,7 +467,7 @@
    "where": [
     "quack-nav/src/rlnav/mod.rs"
    ],
-   "doc": "`QK_RL_POLICY`: the pilot file (docs/rl-pilot.md) that flies the stick's legs;"
+   "doc": "`QK_RL_POLICY`: the pilot (docs/rl-pilot.md) that flies the stick's legs;"
   },
   {
    "name": "QK_RL_TRACE",

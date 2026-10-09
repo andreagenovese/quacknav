@@ -22,7 +22,9 @@
 # (/usr/local/bin/quack-navd), the unit (/etc/systemd/system/
 # quack-navd.service) and the service account (/etc/sysusers.d/
 # quack-nav.conf). The config (/etc/robot/quack-nav.toml) is installed
-# only when there is none; an old /var/lib/quacksat/places.json is copied,
+# only when there is none; the pilots go to /var/lib/quack-nav/pilots/
+# <walk>/pilot.json (used only when QK_RL_POLICY names that directory);
+# an old /var/lib/quacksat/places.json is copied,
 # never moved, and only when /var/lib/quack-nav/ has none. Then the
 # service is enabled and (re)started. The user needs sudo on the duck.
 set -euo pipefail
@@ -39,6 +41,7 @@ if [ -f "$HERE/bin/quack-navd" ]; then
     UNIT="$HERE/systemd/quack-navd.service"
     SYSUSERS="$HERE/systemd/sysusers.d/quack-nav.conf"
     CONFIG="$HERE/quack-nav.example.toml"
+    PILOTS=("alpha:$HERE/pilots/alpha/pilot.json" "velstand:$HERE/pilots/velstand/pilot.json")
     BUILD_HINT="the package is incomplete: unpack it again"
 else
     # The repository's layout (this script in scripts/).
@@ -47,6 +50,7 @@ else
     UNIT="$ROOT/quack-nav/systemd/quack-navd.service"
     SYSUSERS="$ROOT/quack-nav/systemd/sysusers.d/quack-nav.conf"
     CONFIG="$ROOT/quack-nav/quack-nav.example.toml"
+    PILOTS=("alpha:$ROOT/quack-rl/pilots/v3-r7-mujoco/pilot.json" "velstand:$ROOT/quack-rl/pilots/v3-r7-velstand/pilot.json")
     BUILD_HINT="run scripts/cross-build.sh first"
 fi
 BIN="${2:-$DEFAULT_BIN}"
@@ -89,6 +93,12 @@ step scp ${SCP_OPTS[@]+"${SCP_OPTS[@]}"} -q "$BIN" "$HOST:$STAGE/quack-navd"
 step scp ${SCP_OPTS[@]+"${SCP_OPTS[@]}"} -q "$UNIT" "$HOST:$STAGE/quack-navd.service"
 step scp ${SCP_OPTS[@]+"${SCP_OPTS[@]}"} -q "$SYSUSERS" "$HOST:$STAGE/sysusers.conf"
 step scp ${SCP_OPTS[@]+"${SCP_OPTS[@]}"} -q "$CONFIG" "$HOST:$STAGE/quack-nav.toml"
+# The pilots, one per walk (docs/rl-pilot.md); off until QK_RL_POLICY names
+# their directory, /var/lib/quack-nav/pilots.
+for p in "${PILOTS[@]}"; do
+    walk="${p%%:*}"; file="${p#*:}"
+    [ -f "$file" ] && step scp ${SCP_OPTS[@]+"${SCP_OPTS[@]}"} -q "$file" "$HOST:$STAGE/pilot-$walk.json"
+done
 
 # shellcheck disable=SC2087 # $STAGE is expanded here on purpose
 REMOTE=$(cat <<REMOTE
@@ -114,6 +124,12 @@ if [ -f /var/lib/quacksat/places.json ] && ! sudo test -f /var/lib/quack-nav/pla
     run install -o quacknav -g quacknav -m 644 /var/lib/quacksat/places.json /var/lib/quack-nav/places.json
     echo "copied the old places registry; /var/lib/quacksat/places.json can go once quack-navd lists its places"
 fi
+
+for walk in alpha velstand; do
+    if [ -f "pilot-\$walk.json" ]; then
+        run install -D -o quacknav -g quacknav -m 644 "pilot-\$walk.json" "/var/lib/quack-nav/pilots/\$walk/pilot.json"
+    fi
+done
 
 run systemctl daemon-reload
 run systemctl enable quack-navd
