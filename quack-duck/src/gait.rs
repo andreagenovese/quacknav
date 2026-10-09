@@ -72,9 +72,28 @@ impl From<RawGaitConfig> for GaitConfig {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Profile {
-    #[default]
     Alpha,
+    /// The default since 2026-10-08: the walk Pollen's ducks ship with.
+    #[default]
     Velstand,
+}
+
+impl Profile {
+    /// As `[gait] profile` and a pilot's `meta.gait` spell it.
+    pub fn name(self) -> &'static str {
+        match self {
+            Profile::Alpha => "alpha",
+            Profile::Velstand => "velstand",
+        }
+    }
+
+    pub fn from_name(name: &str) -> Option<Profile> {
+        match name {
+            "alpha" => Some(Profile::Alpha),
+            "velstand" => Some(Profile::Velstand),
+            _ => None,
+        }
+    }
 }
 
 /// A walk's numbers (see [`Profile`]).
@@ -185,20 +204,28 @@ impl Stillness {
 }
 
 fn numbers_profile() -> Profile {
-    ACTIVE.get().copied().unwrap_or_default()
+    active()
+}
+
+/// The walk this process drives: `[gait] profile` once quack-navd has read
+/// it (velstand when the file leaves it out); alpha in a process that reads
+/// no config — the tests, the paper twin and the quack-rl simulator, all
+/// built on alpha — unless it sets one.
+pub fn active() -> Profile {
+    ACTIVE.get().copied().unwrap_or(Profile::Alpha)
 }
 
 static ACTIVE: std::sync::OnceLock<Profile> = std::sync::OnceLock::new();
 
-/// The walk this process drives, set once at start from `[gait] profile`
-/// (alpha until then, and in the tests).
+/// Set the walk this process drives, once (quack-navd at start, from
+/// `[gait] profile`; the quack-rl simulator from `--gait`).
 pub fn set_active(profile: Profile) {
     let _ = ACTIVE.set(profile);
 }
 
 /// The numbers of the walk this process drives.
 pub fn numbers() -> Numbers {
-    ACTIVE.get().copied().unwrap_or_default().numbers()
+    active().numbers()
 }
 
 /// The clamp every gait measured so far was run under.
@@ -229,8 +256,10 @@ mod profile_tests {
         assert_eq!(n.yaw_rate_per_unit, crate::body::YAW_RATE_PER_UNIT);
         assert_eq!(n.coast_prior_rad, 0.3);
         assert_eq!(n.settle_s, 0.0);
-        let g = GaitConfig::default();
+        let g = GaitConfig::from(RawGaitConfig { profile: Profile::Alpha, ..Default::default() });
         assert_eq!((g.profile, g.yaw_trim, g.yaw_gain_left, g.yaw_gain_right, g.yaw_max), (Profile::Alpha, 0.0, 1.0, 1.0, 0.9));
+        // Left out, the walk is velstand: Pollen's ducks ship with it.
+        assert_eq!(GaitConfig::default().profile, Profile::Velstand);
     }
 
     #[test]
@@ -240,14 +269,14 @@ mod profile_tests {
         assert_eq!(g.yaw_trim, 0.05);
         assert_eq!(g.yaw_gain_left, VELSTAND.yaw_gain_left);
         assert_eq!(g.yaw_max, VELSTAND.yaw_max);
-        let a: GaitConfig = serde_json::from_str(r#"{"yaw_trim": 0.08}"#).unwrap();
+        let a: GaitConfig = serde_json::from_str(r#"{"profile": "alpha", "yaw_trim": 0.08}"#).unwrap();
         assert_eq!((a.profile, a.yaw_trim, a.yaw_gain_left), (Profile::Alpha, 0.08, 1.0));
         assert!(serde_json::from_str::<GaitConfig>(r#"{"profile": "roller"}"#).is_err());
     }
 
     #[test]
     fn alpha_still_is_the_label() {
-        // The active profile is alpha in the tests: the label alone, no memory.
+        // No profile set in the tests: alpha, the label alone, no memory.
         let mut s = Stillness::default();
         assert!(s.moving("walk", [0.0; 3], 0));
         assert!(!s.moving("stand", [0.3, 0.0, 0.0], 1));

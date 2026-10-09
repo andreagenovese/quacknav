@@ -77,7 +77,7 @@ up)
   case ${GAIT:-alpha} in
     alpha) WALK_POLICY=alpha_walking.onnx; STAND_POLICY="$POLICY_DIR/alpha_stand.onnx"
       # alpha's corrections on the twin, measured 2026-09-14
-      GAIT_TOML=$'yaw_trim = 0.08\nyaw_gain_left = 1.34\nyaw_gain_right = 1.58' ;;
+      GAIT_TOML=$'profile = "alpha"\nyaw_trim = 0.08\nyaw_gain_left = 1.34\nyaw_gain_right = 1.58' ;;
     velstand) WALK_POLICY=velstand.onnx; STAND_POLICY=none
       GAIT_TOML='profile = "velstand"' ;;
     *) echo "GAIT is alpha or velstand, not ${GAIT}" >&2; exit 2 ;;

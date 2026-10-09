@@ -346,6 +346,17 @@ pub struct Pilot {
 }
 
 impl Pilot {
+    /// The walk it was trained on (`meta.gait`; alpha, the only one before
+    /// 2026-10-08, when it says none).
+    pub fn gait(&self) -> quack_duck::gait::Profile {
+        self.file
+            .meta
+            .get("gait")
+            .and_then(|g| g.as_str())
+            .and_then(quack_duck::gait::Profile::from_name)
+            .unwrap_or(quack_duck::gait::Profile::Alpha)
+    }
+
     pub fn load(path: &Path) -> anyhow::Result<Self> {
         let text = std::fs::read_to_string(path).map_err(|e| anyhow::anyhow!("cannot read the pilot {}: {e}", path.display()))?;
         let file: PilotFile = serde_json::from_str(&text).map_err(|e| anyhow::anyhow!("the pilot {} is not a pilot file: {e}", path.display()))?;
@@ -400,16 +411,26 @@ impl Pilot {
     }
 }
 
-/// `QK_RL_POLICY`: the pilot file (docs/rl-pilot.md) that flies the stick's legs; unset, the stick.
-/// Loaded once; a file that does not load is said in the log and the stick
-/// drives.
+/// `QK_RL_POLICY`: the pilot (docs/rl-pilot.md) that flies the stick's legs; unset, the stick.
+/// A file, or a directory holding one per walk, `<dir>/<profile>/pilot.json`
+/// (`alpha/`, `velstand/`), the one of `[gait] profile` taken. A pilot flies
+/// only the walk it was trained on (its `meta.gait`, alpha when it says
+/// none): a velstand duck with an alpha pilot is driven by the stick.
+/// Loaded once; a pilot that does not load is said in the log and the
+/// stick drives.
 pub fn from_env() -> Option<Arc<dyn Brain>> {
     static P: OnceLock<Option<Arc<Pilot>>> = OnceLock::new();
     P.get_or_init(|| {
-        let path = std::env::var("QK_RL_POLICY").ok().filter(|p| !p.is_empty())?;
+        let given = std::env::var("QK_RL_POLICY").ok().filter(|p| !p.is_empty())?;
+        let walk = quack_duck::gait::active();
+        let path = if Path::new(&given).is_dir() { format!("{given}/{}/pilot.json", walk.name()) } else { given };
         match Pilot::load(Path::new(&path)) {
+            Ok(p) if p.gait() != walk => {
+                tracing::warn!(path, pilot = p.gait().name(), walk = walk.name(), "rl pilot: trained on another walk; the stick drives");
+                None
+            }
             Ok(p) => {
-                tracing::info!(path, "rl pilot: loaded; the stick's legs are the pilot's");
+                tracing::info!(path, walk = walk.name(), "rl pilot: loaded; the stick's legs are the pilot's");
                 Some(Arc::new(p))
             }
             Err(e) => {

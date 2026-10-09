@@ -83,6 +83,10 @@ pub struct Calib {
     pub spur_p: f64,
     pub spur_median_m: f64,
     pub spur_sigma: f64,
+    /// The walk these numbers are of (`[gait] profile`): quack-navd's loop
+    /// in the simulator runs that walk's rules, and a pilot trained on it
+    /// says so (its `meta.gait`). Unset: alpha.
+    pub gait: Option<String>,
 }
 
 impl Default for Calib {
@@ -123,6 +127,7 @@ impl Default for Calib {
             spur_p: 0.005,
             spur_median_m: 0.45,
             spur_sigma: 0.8,
+            gait: None,
         }
     }
 }
@@ -165,7 +170,13 @@ impl Calib {
         // A calibration report carries the numbers under "calib".
         let v: serde_json::Value = serde_json::from_str(&text)?;
         let inner = v.get("calib").cloned().unwrap_or(v);
-        Ok(serde_json::from_value(inner)?)
+        let calib: Calib = serde_json::from_value(inner)?;
+        // The loop's rules for the walk the duck walked (once per process).
+        if let Some(g) = calib.gait.as_deref() {
+            let walk = quack_duck::gait::Profile::from_name(g).ok_or_else(|| anyhow::anyhow!("{path}: gait {g:?} is alpha or velstand"))?;
+            quack_duck::gait::set_active(walk);
+        }
+        Ok(calib)
     }
 
     /// A draw around these numbers.

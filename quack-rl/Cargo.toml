@@ -11,6 +11,7 @@ publish = false
 
 [dependencies]
 anyhow.workspace = true
+quack-duck = { path = "../quack-duck" }
 quack-nav = { path = "../quack-nav" }
 serde.workspace = true
 serde_json.workspace = true

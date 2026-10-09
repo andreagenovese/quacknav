@@ -306,6 +306,7 @@ name = "quack-rl"
 version = "0.2.0-rc2"
 dependencies = [
  "anyhow",
+ "quack-duck",
  "quack-nav",
  "serde",
  "serde_json",
