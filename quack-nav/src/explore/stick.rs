@@ -673,7 +673,7 @@ impl Job {
 
 
 /// After a bump or a touch, a step back this long before the turn.
-const BACK_STEP_S: f64 = 0.0;
+const BACK_STEP_S: f64 = 0.6;
 /// `QK_BACK_STEP_S`: [`BACK_STEP_S`] for an experiment.
 fn back_step_s() -> f64 {
     static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
@@ -681,7 +681,7 @@ fn back_step_s() -> f64 {
 }
 
 /// Something seen in the lane this near is booked before the bump.
-const SEEN_AHEAD_M: f64 = 0.30;
+const SEEN_AHEAD_M: f64 = 0.35;
 /// `QK_SEEN_AHEAD_M`: [`SEEN_AHEAD_M`] for an experiment.
 fn seen_ahead_m() -> f64 {
     static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
@@ -736,11 +736,13 @@ impl Job {
     }
 }
 
-/// `QK_MOVER_AHEAD_M`: something in the lane that comes nearer faster
-/// than the body walks is booked from this far (see `approaching`); 0, off.
+/// Something in the lane that comes nearer faster than the body walks is
+/// booked from this far (see `approaching`).
+const MOVER_AHEAD_M: f64 = 0.6;
+/// `QK_MOVER_AHEAD_M`: [`MOVER_AHEAD_M`] for an experiment; 0, off.
 fn mover_ahead_m() -> f64 {
     static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
-    *V.get_or_init(|| std::env::var("QK_MOVER_AHEAD_M").ok().and_then(|v| v.parse().ok()).unwrap_or(0.0))
+    *V.get_or_init(|| std::env::var("QK_MOVER_AHEAD_M").ok().and_then(|v| v.parse().ok()).unwrap_or(MOVER_AHEAD_M))
 }
 
 /// The lane's nearest thing, seen this long ago and now: closer by more
@@ -784,11 +786,12 @@ fn approaching(c: &crate::cliff::CliffStatus, now: Instant) -> bool {
     then - now_r > gait_m_per_s() * dt + APPROACH_MARGIN_M
 }
 
-/// `QK_FORGET_FREE=1`: what the body booked on a journey leaves the books
-/// when the sensor sees the floor where it stood (see `forget_seen_free`).
+/// What the body booked on a journey leaves the books when the sensor
+/// sees the floor where it stood (see `forget_seen_free`); `QK_FORGET_FREE=0`
+/// keeps it, for measuring.
 fn forget_free() -> bool {
     static V: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
-    *V.get_or_init(|| std::env::var("QK_FORGET_FREE").is_ok_and(|v| v == "1"))
+    *V.get_or_init(|| std::env::var("QK_FORGET_FREE").map_or(true, |v| v != "0"))
 }
 
 /// Frames, of the last [`FREE_WITHIN`], that must see the floor where a
