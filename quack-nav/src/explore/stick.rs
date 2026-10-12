@@ -217,6 +217,9 @@ impl Job {
         // stick 89.8 -> 94.3 % arrived, tip-overs 35 -> 16; the pilot 90.2
         // -> 94.0 %, 10 -> 4. The MuJoCo twin's A/B decides, 2026-10-07).
         if !self.stick_books {
+            if forget_free() {
+                self.forget_seen_free(&*robot, (x, y, yaw));
+            }
             self.book_seen_ahead(&*robot, (x, y, yaw));
         }
         let before = crate::rlnav::trace::tracer().map(|_| crate::rlnav::trace::Snapshot::take(&*robot));
@@ -243,7 +246,20 @@ impl Job {
             // comes once a second and lags a turn at 30-58°/s by up to 50°
             // (the oracle's run, MuJoCo 2026-09-28) — a turn read off it
             // overshoots, and the next step is aimed wrong.
+            let bumped = booked_touch || self.stick_stalls >= STALLS_TURN;
             self.stick_stalls = 0;
+            // ... from a step back, after a bump or a touch: turned in
+            // place with the nose on it, the beak sweeps what it met and
+            // the next step meets it again. Backing is blind: only onto
+            // floor the map knows, off the books' drops (`back_is_safe`).
+            if bumped && back_step_s() > 0.0 {
+                if let Some(grid) = robot.frame().and_then(|f| f.grid().ok()) {
+                    if self.back_is_safe(&grid, (x, y, yaw)) {
+                        let _ = robot.blind_move(&json!({"vx": crate::rlnav::BACK_VX, "vyaw": 0.0, "duration_s": back_step_s()}));
+                        tracing::info!(at = ?(x, y, yaw), "map explore: stick: a step back before the turn");
+                    }
+                }
+            }
             let want = if stalled || booked_touch { err.abs().max(0.35) } else { err.abs() };
             let turned = self.stick_turn(robot, err.signum(), want);
             if !self.stick_books {
@@ -656,8 +672,21 @@ impl Job {
 
 
 
+/// After a bump or a touch, a step back this long before the turn.
+const BACK_STEP_S: f64 = 0.0;
+/// `QK_BACK_STEP_S`: [`BACK_STEP_S`] for an experiment.
+fn back_step_s() -> f64 {
+    static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
+    *V.get_or_init(|| std::env::var("QK_BACK_STEP_S").ok().and_then(|v| v.parse().ok()).unwrap_or(BACK_STEP_S))
+}
+
 /// Something seen in the lane this near is booked before the bump.
 const SEEN_AHEAD_M: f64 = 0.30;
+/// `QK_SEEN_AHEAD_M`: [`SEEN_AHEAD_M`] for an experiment.
+fn seen_ahead_m() -> f64 {
+    static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
+    *V.get_or_init(|| std::env::var("QK_SEEN_AHEAD_M").ok().and_then(|v| v.parse().ok()).unwrap_or(SEEN_AHEAD_M))
+}
 
 /// A map wall this near the point seen means the map has it already, give
 /// or take the pose: nothing goes on the books.
@@ -673,10 +702,11 @@ impl Job {
     fn book_seen_ahead(&mut self, robot: &dyn Body, (x, y, yaw): (f64, f64, f64)) {
         let Some(c) = robot.cliff() else { return };
         let now = robot.now();
-        if !seen_in_lane(&c, now, SEEN_AHEAD_M) {
+        let reach = if mover_ahead_m() > 0.0 && approaching(&c, now) { mover_ahead_m().max(seen_ahead_m()) } else { seen_ahead_m() };
+        if !seen_in_lane(&c, now, reach) {
             return;
         }
-        let Some(o) = c.obstacle_in_lane_walking(now, 0.0, BLIND_DROP_LANE_M, SEEN_AHEAD_M, SEEN_WITHIN, 3) else { return };
+        let Some(o) = c.obstacle_in_lane_walking(now, 0.0, BLIND_DROP_LANE_M, reach, SEEN_WITHIN, 3) else { return };
         let Some(grid) = robot.frame().and_then(|f| f.grid().ok()) else { return };
         let a = yaw + o.bearing;
         let face = (x + o.range_m * a.cos(), y + o.range_m * a.sin());
@@ -706,6 +736,116 @@ impl Job {
     }
 }
 
+/// `QK_MOVER_AHEAD_M`: something in the lane that comes nearer faster
+/// than the body walks is booked from this far (see `approaching`); 0, off.
+fn mover_ahead_m() -> f64 {
+    static V: std::sync::OnceLock<f64> = std::sync::OnceLock::new();
+    *V.get_or_init(|| std::env::var("QK_MOVER_AHEAD_M").ok().and_then(|v| v.parse().ok()).unwrap_or(0.0))
+}
+
+/// The lane's nearest thing, seen this long ago and now: closer by more
+/// than the body could have walked, plus [`APPROACH_MARGIN_M`], it is
+/// coming (a person walking up the corridor, a pet).
+const APPROACH_THEN: (std::time::Duration, std::time::Duration) = (std::time::Duration::from_millis(1200), std::time::Duration::from_millis(600));
+const APPROACH_MARGIN_M: f64 = 0.08;
+const APPROACH_LANE_REACH_M: f64 = 1.0;
+
+/// Whether the lane's nearest thing comes nearer faster than the body
+/// walks (see [`APPROACH_THEN`]).
+fn approaching(c: &crate::cliff::CliffStatus, now: Instant) -> bool {
+    let nearest = |from: std::time::Duration, to: std::time::Duration| {
+        let ranges: Vec<f64> = c
+            .recent
+            .iter()
+            .filter(|f| {
+                let age = now.saturating_duration_since(f.at);
+                age >= to && age <= from
+            })
+            .filter_map(|f| {
+                f.obstacles
+                    .iter()
+                    .filter(|o| {
+                        let (along, across) = (o.range_m * o.bearing.cos(), o.range_m * o.bearing.sin());
+                        along > 0.0 && along <= APPROACH_LANE_REACH_M && across.abs() <= BLIND_DROP_LANE_M
+                    })
+                    .map(|o| o.range_m * o.bearing.cos())
+                    .min_by(f64::total_cmp)
+            })
+            .collect();
+        // Most frames of the window see it: one frame's word is noise.
+        (ranges.len() >= 3).then(|| {
+            let mut r = ranges;
+            r.sort_by(f64::total_cmp);
+            r[r.len() / 2]
+        })
+    };
+    let (Some(then), Some(now_r)) = (nearest(APPROACH_THEN.0, APPROACH_THEN.1), nearest(std::time::Duration::from_millis(400), std::time::Duration::ZERO)) else { return false };
+    let dt = (APPROACH_THEN.0 + APPROACH_THEN.1).as_secs_f64() / 2.0 - 0.2;
+    then - now_r > gait_m_per_s() * dt + APPROACH_MARGIN_M
+}
+
+/// `QK_FORGET_FREE=1`: what the body booked on a journey leaves the books
+/// when the sensor sees the floor where it stood (see `forget_seen_free`).
+fn forget_free() -> bool {
+    static V: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *V.get_or_init(|| std::env::var("QK_FORGET_FREE").is_ok_and(|v| v == "1"))
+}
+
+/// Frames, of the last [`FREE_WITHIN`], that must see the floor where a
+/// booked thing stood for it to leave the books.
+const FREE_FRAMES: usize = 3;
+const FREE_WITHIN: std::time::Duration = std::time::Duration::from_millis(1000);
+/// A floor beam this near the booked thing's bearing looks at it.
+const FREE_BEARING_RAD: f64 = 0.07;
+/// The floor seen from this short of the booked face to this past it:
+/// the beams a thing standing there would stop. A beam that lands farther
+/// passes over a low box, and proves nothing.
+const FREE_SHORT_M: f64 = 0.03;
+const FREE_PAST_M: f64 = 0.12;
+/// Only within this range: farther, the floor rows are sparse and noisy.
+const FREE_RANGE_M: (f64, f64) = (0.15, 0.9);
+
+impl Job {
+    /// What the body booked on this journey (obstacles, never drops) goes
+    /// off the books when the sensor sees the floor where it stood, frame
+    /// after frame: a person who stood in a doorway and left, a pet that
+    /// lay in the corridor. Booked, it stayed until a "no way" forgot it,
+    /// and the route went round where nothing was.
+    fn forget_seen_free(&mut self, robot: &dyn Body, (x, y, yaw): (f64, f64, f64)) {
+        let Some(c) = robot.cliff() else { return };
+        let now = robot.now();
+        let frames: Vec<&crate::cliff::CliffFrame> = c.recent.iter().filter(|f| now.saturating_duration_since(f.at) <= FREE_WITHIN).collect();
+        if frames.len() < FREE_FRAMES {
+            return;
+        }
+        let mut forgotten = Vec::new();
+        self.local.retain(|(p, r)| {
+            if *r >= DROP_RADIUS_M {
+                return true;
+            }
+            let face = dist2(*p, (x, y)) - r;
+            if !(FREE_RANGE_M.0..=FREE_RANGE_M.1).contains(&face) {
+                return true;
+            }
+            let bearing = wrap((p.1 - y).atan2(p.0 - x) - yaw);
+            let free = frames
+                .iter()
+                .filter(|f| {
+                    f.floors.iter().any(|(b, d)| wrap(b - bearing).abs() <= FREE_BEARING_RAD && (face - FREE_SHORT_M..=face + FREE_PAST_M).contains(d))
+                        && !f.obstacles.iter().any(|o| wrap(o.bearing - bearing).abs() <= 2.0 * FREE_BEARING_RAD && o.range_m <= face + FREE_PAST_M)
+                })
+                .count();
+            if free >= FREE_FRAMES {
+                forgotten.push(*p);
+                return false;
+            }
+            true
+        });
+        if !forgotten.is_empty() {
+            tracing::info!(at = ?(x, y, yaw), forgotten = ?forgotten, "map explore: the floor is seen where something was booked: off the books");
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
