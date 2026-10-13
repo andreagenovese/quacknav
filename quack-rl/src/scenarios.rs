@@ -15,6 +15,12 @@
 //!   phantom drops;
 //! - `mixed`: a doorway, clutter, a hole and something moving at once.
 //!
+//! And one family only the bench asks for by name (`--families passers`),
+//! out of [`FAMILIES`] so the training's draws stay as they were:
+//!
+//! - `passers`: two rooms, someone standing in the doorway when the duck
+//!   gets there, who leaves 2-12 s later; and a pet or feet about.
+//!
 //! The levels are the curriculum: 0 the plain ones, 3 everything with the
 //! map off and the sensor at its noisiest.
 
@@ -25,6 +31,9 @@ use crate::world::{Hole, Mover, MoverKind, Post, Rect, World};
 use crate::{Rng, dist};
 
 pub const FAMILIES: [&str; 7] = ["clutter", "doorway", "stairwell", "corners", "movers", "low", "mixed"];
+
+/// Families for the bench only (see the module).
+pub const BENCH_FAMILIES: [&str; 1] = ["passers"];
 const WALL: f64 = 0.12;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -136,7 +145,7 @@ fn movers(w: &mut World, rng: &mut Rng, a: (f64, f64), b: (f64, f64), n: usize) 
             continue;
         }
         let height = if kind == MoverKind::StopGo { 1.0 } else { rng.range(0.15, 0.4) };
-        w.movers.push(Mover { x, y, r, heading, speed, kind, timer: rng.range(0.5, 3.0), still: kind == MoverKind::StopGo && rng.chance(0.5), height });
+        w.movers.push(Mover { x, y, r, heading, speed, kind, timer: rng.range(0.5, 3.0), still: kind == MoverKind::StopGo && rng.chance(0.5), height, woken: false });
     }
 }
 
@@ -145,6 +154,29 @@ fn room(rng: &mut Rng) -> World {
     let mut w = World { bounds: [0.0, wd, 0.0, ht], ..Default::default() };
     walls_around(&mut w);
     w
+}
+
+/// The doorways in the wall between [`two_rooms`]' rooms, as (y0, y1).
+fn doors_of(w: &World, l: [f64; 4], r: [f64; 4]) -> Vec<(f64, f64)> {
+    let xm = (l[1] + r[0]) / 2.0;
+    let mut out = Vec::new();
+    let mut open: Option<f64> = None;
+    let mut y = l[2];
+    while y <= l[3] {
+        match (w.static_collides(xm, y, 0.01), open) {
+            (false, None) => open = Some(y),
+            (true, Some(y0)) => {
+                out.push((y0, y));
+                open = None;
+            }
+            _ => {}
+        }
+        y += 0.01;
+    }
+    if let Some(y0) = open {
+        out.push((y0, l[3]));
+    }
+    out
 }
 
 fn two_rooms(rng: &mut Rng, unmapped_door: bool) -> (World, [f64; 4], [f64; 4]) {
@@ -320,6 +352,31 @@ pub fn generate(seed: u64, level: u32, family: Option<&str>) -> Scenario {
                 if rng.chance(bias_p) {
                     bias = (rng.range(-0.12, 0.12), rng.range(-0.12, 0.12));
                 }
+                (w, a, b)
+            }
+            "passers" => {
+                let (mut w, l, r) = two_rooms(&mut rng, false);
+                let (Some(a), Some(b)) = (free_spot(&w, &mut rng, l, 0.3), free_spot(&w, &mut rng, r, 0.3)) else { continue };
+                let (a, b) = if rng.chance(0.5) { (a, b) } else { (b, a) };
+                let doors = doors_of(&w, l, r);
+                let (y0, y1) = doors[rng.pick(doors.len())];
+                let xm = (l[1] + r[0]) / 2.0;
+                let pet = rng.chance(0.3);
+                let radius = if pet { rng.range(0.08, 0.14) } else { rng.range(0.12, 0.2) }.min((y1 - y0) / 2.0 - 0.01);
+                w.movers.push(Mover {
+                    x: xm,
+                    y: (y0 + y1) / 2.0 + rng.range(-0.25, 0.25) * (y1 - y0 - 2.0 * radius).max(0.0),
+                    r: radius,
+                    heading: 0.0,
+                    speed: rng.range(0.2, 0.5),
+                    kind: MoverKind::Lingerer,
+                    timer: rng.range(2.0, 12.0),
+                    still: true,
+                    height: if pet { rng.range(0.15, 0.3) } else { 1.0 },
+                    woken: false,
+                });
+                let n = rng.pick(2);
+                movers(&mut w, &mut rng, a, b, n);
                 (w, a, b)
             }
             _ => {

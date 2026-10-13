@@ -146,7 +146,15 @@ pub enum MoverKind {
     Wanderer,
     /// Walks and stops, as feet in a kitchen.
     StopGo,
+    /// Stands in a doorway: still until the duck comes within
+    /// [`LINGER_NEAR_M`], `timer` seconds more, then steps out into one of
+    /// the rooms and wanders (someone talking on the threshold, a pet lying
+    /// there). The `passers` family's (see `scenarios`).
+    Lingerer,
 }
+
+/// The duck this near wakes a [`MoverKind::Lingerer`]'s countdown.
+pub const LINGER_NEAR_M: f64 = 0.9;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Mover {
@@ -162,6 +170,9 @@ pub struct Mover {
     /// How tall it stands (a cat 0.25, a foot and leg well over the head).
     #[serde(default = "mover_height")]
     pub height: f64,
+    /// A [`MoverKind::Lingerer`] the duck came near: its countdown runs.
+    #[serde(default)]
+    pub woken: bool,
 }
 
 fn mover_height() -> f64 {
@@ -303,6 +314,21 @@ impl World {
     pub fn step_movers(&mut self, dt: f64, rng: &mut Rng, duck: (f64, f64), duck_r: f64) {
         for i in 0..self.movers.len() {
             let mut m = self.movers[i].clone();
+            if m.kind == MoverKind::Lingerer {
+                m.woken |= dist((m.x, m.y), duck) < LINGER_NEAR_M;
+                if m.woken {
+                    m.timer -= dt;
+                }
+                if m.timer <= 0.0 {
+                    m.kind = MoverKind::Wanderer;
+                    m.still = false;
+                    // Out of the doorway into one of the rooms.
+                    m.heading += if rng.chance(0.5) { 0.0 } else { std::f64::consts::PI } + rng.range(-0.4, 0.4);
+                    m.timer = rng.range(2.0, 4.0);
+                }
+                self.movers[i] = m;
+                continue;
+            }
             m.timer -= dt;
             match m.kind {
                 MoverKind::StopGo if m.timer <= 0.0 => {
@@ -481,7 +507,7 @@ mod tests {
         assert!((w.ray(0.0, 0.0, 0.0, 2.2, 0.0).0 - 1.0).abs() < 1e-9);
         w.posts.push(Post { x: 0.5, y: 0.0, r: 0.03, height: 0.7, mapped: false });
         assert!((w.ray(0.0, 0.0, 0.0, 2.2, 0.0).0 - 0.47).abs() < 1e-9);
-        w.movers.push(Mover { x: 0.3, y: 0.0, r: 0.1, heading: 0.0, speed: 0.0, kind: MoverKind::Wanderer, timer: 1.0, still: true, height: 0.3 });
+        w.movers.push(Mover { x: 0.3, y: 0.0, r: 0.1, heading: 0.0, speed: 0.0, kind: MoverKind::Wanderer, timer: 1.0, still: true, height: 0.3, woken: false });
         assert!((w.ray(0.0, 0.0, 0.0, 2.2, 0.0).0 - 0.2).abs() < 1e-9);
         // Low things are lost while walking.
         w.movers.clear();

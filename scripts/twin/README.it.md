@@ -90,6 +90,16 @@ simulatore (7872), `SCENE` la scena MuJoCo (default l'appartamento).
 nome (default "Qui dove siamo?"). Per parlarci, puntare `[nav] socket` di un satellite vocale su
 `$STATE/nav.sock` e il suo `robotd_socket` su `$STATE/robotd.sock`.
 
+Cose che si muovono: `TWIN_MOVERS=<casa>.truth.json` muove i `movers`
+della casa (quelli di casa_viva e di casa_porta) tra un passo e l'altro
+del simulatore, con o senza viewer (`viewer/movers.py`). Un `linger` sta
+in una porta e si sposta quando la papera gli è stata vicina per un po',
+e ritorna quando lei si è allontanata; un `patrol` percorre un tragitto
+avanti e indietro. Entrambi aspettano finché la papera è sulla loro
+strada, e ogni contatto con la papera è scritto in `body.log`
+(`== movers: bump <nome>`). `TWIN_MOVERS_SEED` fissa i loro dadi;
+`scripts/rl/twin_ab.py` imposta da solo `TWIN_MOVERS` per una casa così.
+
 ## Misurare
 
 | script | a cosa risponde |
@@ -132,7 +142,7 @@ Copia inglese canonica: `README.md`.
 
 | file | cos'è |
 |---|---|
-| `gen.py <robot dir> <out> [casa ...]` | scrive le case indicate (casa_libera e casa_arredata di default; anche casa_grande, 9 x 7 m, un corridoio che gira di 90°, niente che blocchi): le scene MuJoCo (nella cartella robot di microduck_rl), la verità di maploc (`.toml`), il mondo del gemello di carta (`.world.json`) e buche, stanze e mete (`.truth.json`) |
+| `gen.py <robot dir> <out> [casa ...]` | scrive le case indicate (casa_libera e casa_arredata di default; anche casa_grande, 9 x 7 m, un corridoio che gira di 90°, niente che blocchi; casa_ingombra, casa_arredata con cose che la sua mappa non conosce; casa_viva, casa_arredata con due persone e un gatto che si muovono; casa_porta, casa_arredata con una persona ferma nella porta dello studio, l'unico ingresso, che si sposta quando la papera le è stata vicina): le scene MuJoCo (nella cartella robot di microduck_rl), la verità di maploc (`.toml`), il mondo del gemello di carta (`.world.json`) e buche, stanze e mete (`.truth.json`) |
 | `final_house.py <nome> <scena> <state> <porta> <truth> <out> [session_s] [sessioni] [giri]` | il protocollo di release su una casa: esplorazione progressiva da zero, "esplorazione completata" se la papera non ha finito, tre riavvii con un giro di go_to sulla mappa congelata, e lo stesso con la build di `main` (`AB_REPO`, un worktree di main con la sua release compilata). `ROUNDS_ONLY=1` parte dai giri, dalla mappa e dal libro lasciati dall'esplorazione in `<out>` |
 | `aggregate.py` | le tabelle di `docs/results.it.md` dagli output del protocollo |
 | `modes_test.py` | ripresa, "a che punto sei", completata, la mappa congelata dopo un riavvio, una mappa nuova che sostituisce la vecchia solo quando salva |

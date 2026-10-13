@@ -87,6 +87,15 @@ explorer asks at a nameless area (default "Qui dove siamo?"). To talk to it, poi
 voice satellite's `[nav] socket` at `$STATE/nav.sock` and its
 `robotd_socket` at `$STATE/robotd.sock`.
 
+Things that move: `TWIN_MOVERS=<house>.truth.json` moves the house's
+`movers` (casa_viva's, casa_porta's) between the simulator's steps,
+viewer on or off (`viewer/movers.py`). A `linger` stands in a door and
+steps away once the duck has been near a while, back when it has gone
+far; a `patrol` walks a path there and back. Both wait while the duck is
+in their way, and every touch of the duck is printed in `body.log`
+(`== movers: bump <name>`). `TWIN_MOVERS_SEED` fixes their dice;
+`scripts/rl/twin_ab.py` sets `TWIN_MOVERS` itself for such a house.
+
 ## Measuring
 
 | script | what it answers |
@@ -127,7 +136,7 @@ off; `MAPLOC_SHADOW_EVERY_S` (30) and `MAPLOC_SHADOW_ASKS` (2) set it.
 
 | file | what it is |
 |---|---|
-| `gen.py <robot dir> <out> [house ...]` | writes the houses named (casa_libera and casa_arredata by default; casa_grande too, 9 x 7 m, a corridor turning 90°, nothing that blocks): the MuJoCo scenes (into microduck_rl's robot directory), maploc's truth (`.toml`), the paper twin's world (`.world.json`) and the holes, rooms and goals (`.truth.json`) |
+| `gen.py <robot dir> <out> [house ...]` | writes the houses named (casa_libera and casa_arredata by default; casa_grande too, 9 x 7 m, a corridor turning 90°, nothing that blocks; casa_ingombra, casa_arredata with things its map does not know; casa_viva, casa_arredata with two people and a cat that move; casa_porta, casa_arredata with someone standing in the office's door, its only way in, who steps aside once the duck has been near): the MuJoCo scenes (into microduck_rl's robot directory), maploc's truth (`.toml`), the paper twin's world (`.world.json`) and the holes, rooms and goals (`.truth.json`) |
 | `final_house.py <name> <scene> <state> <port> <truth> <out> [session_s] [sessions] [rounds]` | the release protocol on one house: progressive exploration from nothing, "exploration complete" if the duck has not finished, three restarts with a go_to tour on the frozen map, and the same on `main`'s build (`AB_REPO`, a worktree of main with its release built). `ROUNDS_ONLY=1` starts at the tours, from the map and book the exploration left in `<out>` |
 | `aggregate.py` | the tables of `docs/results.md` from the protocol's outputs |
 | `modes_test.py` | resume, "how far along", complete, the frozen map after a restart, a fresh map replacing the old one only when it saves |

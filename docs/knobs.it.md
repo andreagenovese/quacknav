@@ -22,6 +22,7 @@ del processo.
 | `QK_BACK_NO_STEP_M` | numero (default 0.30) | `quack-nav/src/explore/gait.rs` | No blind step back at all with a booked drop this close to the body, whatever its bearing, on the trail or not (`QK_BACK_NO_STEP_M`). |
 | `QK_BACK_REORIENT` | accesa salvo 0 | `quack-nav/src/explore/gait.rs` | `QK_BACK_REORIENT=0`: after the step back, head for the most open floor and walk a leg there, as before. |
 | `QK_BACK_S` | numero (default 1.5) | `quack-nav/src/explore/gait.rs` | The step back: this gait needs about a second to start moving at all, so a shorter one moves nothing (measured); and no more often than this. |
+| `QK_BACK_STEP_S` | numero (default 0.6) | `quack-nav/src/explore/stick.rs` | `QK_BACK_STEP_S`: [`BACK_STEP_S`] for an experiment. |
 | `QK_BLIND_CONE_LANE` | accesa salvo 0 | `quack-nav/src/explore/guarded.rs` | The cone widens at short range to the lane's own angle — at 0.25 m a 12 cm lane is 26°, and a cube 0.25 m ahead at 18° inside the lane was outside the 15° cone, walked over and dragged 1.9 m (sideA016r, 2026-09-22). |
 | `QK_CLIFF_MARGIN_M` | numero (default 0.25) | `quack-nav/src/tools.rs` | Stop this far short of a drop's edge — farther than a wall's margin, because an edge is not a bump. |
 | `QK_CLOSE_LOOK` | 1 accesa, 0 spenta, altrimenti il default del chiamante | `quack-nav/src/explore/close_look.rs` | `QK_CLOSE_LOOK=0`: no close looks. |
@@ -31,12 +32,14 @@ del processo.
 | `QK_DROP_PLAN_RADIUS_M` | numero (default 0.12 (guarded: 0.20)) | `quack-nav/src/explore/mode.rs` |  |
 | `QK_DROP_REACH_M` | numero (default 0.30) | `quack-nav/src/explore/books.rs` | `QK_DROP_REACH_M=0` goes back to points. |
 | `QK_EDGE_DISCRIMINATE` | accesa salvo 0 | `quack-nav/src/explore/books.rs` | `QK_EDGE_DISCRIMINATE=0`: every sensed drop goes on the books as a hole, as before. |
+| `QK_FORGET_FREE` | accesa salvo 0 | `quack-nav/src/explore/stick.rs` | What the body booked on a journey leaves the books when the sensor sees the floor where it stood (see `forget_seen_free`); `QK_FORGET_FREE=0` keeps it, for measuring. |
 | `QK_GAP_LANE_HALF_M` | numero (default 0.115) | `quack-nav/src/explore/mod.rs` |  |
 | `QK_GAP_MAX_M` | numero (default 0.6) | `quack-nav/src/explore/mod.rs` |  |
 | `QK_GUARD_ARC_FULL` | accesa solo con 1 | `quack-duck/src/body.rs` | Turning costs little forward speed: 0.110 m/s at vyaw 0.7 against 0.121 straight, measured on the human drive (2026-09-07). |
 | `QK_INFLATE_M` | numero (default 0.12) | `quack-nav/src/frontier.rs` | The inflation the planner runs with: 0.12, a little over the body's half-width, 0.10 (`QK_INFLATE_M`). |
 | `QK_LANE_HALF_M` | numero (default 0.16) | `quack-nav/src/explore/mod.rs` |  |
 | `QK_LANE_YIELD_M` | numero (default 0.20) | `quack-nav/src/frontier.rs` | `QK_LANE_YIELD_M`: [`LANE_YIELDS_TO_DROP_M`] for an experiment. |
+| `QK_MOVER_AHEAD_M` | numero (default 0.6) | `quack-nav/src/explore/stick.rs` | `QK_MOVER_AHEAD_M`: [`MOVER_AHEAD_M`] for an experiment; 0, off. |
 | `QK_NO_GUARDS` | 1 accesa, 0 spenta, altrimenti il default del chiamante | `quack-nav/src/explore/journey.rs` | `QK_NO_GUARDS`: every leg, kick and pulse goes through `robot.move`, blind, and the route check is off — the planner alone (the frozen map, the books, the margins) brings the duck home. |
 | `QK_ORACLE_AS_MAPPED` | accesa solo con 1 | `quack-nav/src/oracle.rs` | `QK_ORACLE_AS_MAPPED=1`: the truth drawn as a mapper draws a house — the holes unknown (no floor ever seen there) instead of wall, and the inside of each box of the truth's `boxes` unknown past a 5 cm band (nothing sees … |
 | `QK_ORACLE_BOOK` | un valore | `quack-nav/src/oracle.rs` | `QK_ORACLE_BOOK=<truth.json>`: the true holes' rims on the books at start, every 10 cm (what a ground book holds for a mapped house), for the journeys on the oracle's map (`scripts/rl/twin_ab.py`). |
@@ -50,6 +53,7 @@ del processo.
 | `QK_RIM_TOUR` | 1 accesa, 0 spenta, altrimenti il default del chiamante | `quack-nav/src/explore/rim_tour.rs` | `QK_RIM_TOUR=0`: no rounds of the holes. |
 | `QK_RL_POLICY` | un valore | `quack-nav/src/rlnav/mod.rs` | `QK_RL_POLICY`: the pilot (docs/rl-pilot.md) that flies the stick's legs; |
 | `QK_RL_TRACE` | un valore | `quack-nav/src/rlnav/trace.rs` | `QK_RL_TRACE`: what the duck did and saw, leg by leg, for the calibration (`quack-rl`'s `rl_calib`, docs/rl-pilot.md). |
+| `QK_SEEN_AHEAD_M` | numero (default 0.35) | `quack-nav/src/explore/stick.rs` | `QK_SEEN_AHEAD_M`: [`SEEN_AHEAD_M`] for an experiment. |
 | `QK_SPIN_WATCH` | accesa salvo 0 | `quack-nav/src/explore/gait.rs` | `QK_SPIN_WATCH=0`: turn in place without watching the sensor, as before. |
 | `QK_STICK_CAREFUL` | 1 accesa, 0 spenta, altrimenti il default del chiamante | `quack-nav/src/explore/navigate.rs` |  |
 | `QK_STRAIGHT_RAD` | numero (default 0.35) | `quack-nav/src/explore/gait.rs` |  |
@@ -142,6 +146,8 @@ del processo.
 | `TRACK_MIN_BEFORE` | numero (default mapper_cfg.tracking.min_residual_before_m) | `maploc/examples/evaluate.rs` |  |
 | `TRACK_PRIOR_XY` | numero (default mapper_cfg.tracking.prior_sigma_xy) | `maploc/examples/evaluate.rs` |  |
 | `TRUTH_HOLES` | un valore | `quack-nav/examples/route_on_map.rs` | with `TRUTH_HOLES=<truth.json>` (the twin's truth) also to a true hole, and with `ROUTE_POINTS=1` the route. |
+| `TWIN_MOVERS` | un valore (script) | `scripts/twin/viewer/body_with_map.py` |  |
+| `TWIN_MOVERS_SEED` | un valore (script) | `scripts/twin/viewer/movers.py` |  |
 | `TWIN_REPO` | un valore (script) | `scripts/rl/twin_ab.py` |  |
 | `TWIN_WORK` | un valore (script) | `scripts/twin/houses/aggregate.py`, `scripts/twin/houses/final_house.py`, `scripts/twin/houses/modes_test.py` … |  |
 | `UNC_BEAMS` | numero (default u.independent_beams) | `maploc/examples/trajectory.rs` |  |

@@ -225,6 +225,17 @@
    "doc": "The step back: this gait needs about a second to start moving at all, so a shorter one moves nothing (measured); and no more often than this."
   },
   {
+   "name": "QK_BACK_STEP_S",
+   "group": "QK",
+   "read_as": "number (default 0.6)",
+   "type": "number",
+   "default": "0.6",
+   "where": [
+    "quack-nav/src/explore/stick.rs"
+   ],
+   "doc": "`QK_BACK_STEP_S`: [`BACK_STEP_S`] for an experiment."
+  },
+  {
    "name": "QK_BLIND_CONE_LANE",
    "group": "QK",
    "read_as": "on unless 0",
@@ -325,6 +336,17 @@
    "doc": "`QK_EDGE_DISCRIMINATE=0`: every sensed drop goes on the books as a hole, as before."
   },
   {
+   "name": "QK_FORGET_FREE",
+   "group": "QK",
+   "read_as": "on unless 0",
+   "type": "switch",
+   "default": "1",
+   "where": [
+    "quack-nav/src/explore/stick.rs"
+   ],
+   "doc": "What the body booked on a journey leaves the books when the sensor sees the floor where it stood (see `forget_seen_free`); `QK_FORGET_FREE=0` keeps it, for measuring."
+  },
+  {
    "name": "QK_GAP_LANE_HALF_M",
    "group": "QK",
    "read_as": "number (default 0.115)",
@@ -389,6 +411,17 @@
     "quack-nav/src/frontier.rs"
    ],
    "doc": "`QK_LANE_YIELD_M`: [`LANE_YIELDS_TO_DROP_M`] for an experiment."
+  },
+  {
+   "name": "QK_MOVER_AHEAD_M",
+   "group": "QK",
+   "read_as": "number (default 0.6)",
+   "type": "number",
+   "default": "0.6",
+   "where": [
+    "quack-nav/src/explore/stick.rs"
+   ],
+   "doc": "`QK_MOVER_AHEAD_M`: [`MOVER_AHEAD_M`] for an experiment; 0, off."
   },
   {
    "name": "QK_NO_GUARDS",
@@ -479,6 +512,17 @@
     "quack-nav/src/rlnav/trace.rs"
    ],
    "doc": "`QK_RL_TRACE`: what the duck did and saw, leg by leg, for the calibration (`quack-rl`'s `rl_calib`, docs/rl-pilot.md)."
+  },
+  {
+   "name": "QK_SEEN_AHEAD_M",
+   "group": "QK",
+   "read_as": "number (default 0.35)",
+   "type": "number",
+   "default": "0.35",
+   "where": [
+    "quack-nav/src/explore/stick.rs"
+   ],
+   "doc": "`QK_SEEN_AHEAD_M`: [`SEEN_AHEAD_M`] for an experiment."
   },
   {
    "name": "QK_SPIN_WATCH",

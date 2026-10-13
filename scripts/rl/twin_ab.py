@@ -12,6 +12,11 @@ every leg; the pilot arm with `QK_RL_POLICY`. Then `ROUNDS` tours of the truth's
 `robot.go_to`, judged on the simulator's trunk: arrived within 0.4 m, the
 time, a fall (the trunk under 7 cm, or the journey's own word).
 
+An arm may carry knobs of its own (`--knobs ARM:K=V,K=V`): the same
+binary with an experiment on against without it. A house whose truth has
+`movers` (casa_viva) gets them moving (`TWIN_MOVERS`, the twin's
+viewer/movers.py).
+
 Writes OUT_DIR/<arm>/{journeys.jsonl, traces/, twin logs} and
 OUT_DIR/summary.md. Needs what twin.sh needs (MICRODUCK at daemon-v0.15.0,
 MICRODUCK_RL, POLICY_DIR).
@@ -68,7 +73,7 @@ def say(out, text):
         f.write(text + "\n")
 
 
-def arm(out, name, house, pilot, rounds, only=None, book=True, main_oracle=False):
+def arm(out, name, house, pilot, rounds, only=None, book=True, main_oracle=False, extra=()):
     d = os.path.join(out, name)
     os.makedirs(os.path.join(d, "traces"), exist_ok=True)
     subprocess.run([TWIN, "down"], capture_output=True)
@@ -88,10 +93,13 @@ def arm(out, name, house, pilot, rounds, only=None, book=True, main_oracle=False
             knobs.append(f"QK_ORACLE_BOOK={HOUSES}/{house}.truth.json")
     if pilot:
         knobs.append(f"QK_RL_POLICY={pilot}")
+    knobs += list(extra)
     with open(f"{STATE}/knobs.env", "w") as f:
         f.write("\n".join(knobs) + "\n")
     scene = os.path.join(os.environ["MICRODUCK_RL"], "src/mjlab_microduck/robot/microduck", f"scene_{house}.xml")
     env = dict(os.environ, SCENE=scene, VIEWER=os.environ.get("VIEWER", "on"), HOMECOMING="off", WIPE="on", MAPLOC_MODE="stop_and_scan")
+    if truth.get("movers"):
+        env["TWIN_MOVERS"] = f"{HOUSES}/{house}.truth.json"
 
     def port_busy():
         c = socket.socket()
@@ -174,12 +182,18 @@ def main():
     ap.add_argument("--main-oracle", action="store_true", help="only main's oracle knobs (walls, holes as walls, pose)")
     ap.add_argument("--no-book", action="store_true", help="no true rims on the books: the holes unbooked, the guard alone")
     ap.add_argument("--goals", help="only these of the truth's goals, comma-separated")
+    ap.add_argument("--knobs", action="append", default=[], help="ARM:K=V,K=V — knobs of that arm's own")
     args = ap.parse_args()
+    extra = {}
+    for k in args.knobs:
+        a, _, kv = k.partition(":")
+        extra.setdefault(a, []).extend(x for x in kv.split(",") if x)
     os.makedirs(args.out, exist_ok=True)
     pilot = os.path.abspath(args.pilot)
+    # An arm named `<x>+<tag>` flies as `<x>` (stick or pilot) with its own knobs.
     res = {}
     for a in args.arms.split(","):
-        res[a] = arm(args.out, a, args.house, pilot if a == "pilot" else None, args.rounds, args.goals.split(",") if args.goals else None, not args.no_book, args.main_oracle)
+        res[a] = arm(args.out, a, args.house, pilot if a.split("+")[0] == "pilot" else None, args.rounds, args.goals.split(",") if args.goals else None, not args.no_book, args.main_oracle, extra.get(a, ()))
     with open(os.path.join(args.out, "summary.md"), "w") as f:
         f.write(f"# Twin A/B on {args.house}: the stick and the pilot\n\n| arm | journeys | arrived | fell | mean s (arrived) | refused |\n|---|---|---|---|---|---|\n")
         for a, rows in res.items():

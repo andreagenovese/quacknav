@@ -24,6 +24,9 @@
 #                 rays and the guard's lane (scripts/twin/viewer); off: the
 #                 plain body server, the duck alone
 #   VIEWER_DIR    another body_with_map.py + maploc_overlay.py to use instead
+#   TWIN_MOVERS   a house's truth.json with `movers` (casa_viva's, casa_porta's): people and
+#                 pets moved in the scene (viewer/movers.py), viewer or not;
+#                 TWIN_MOVERS_SEED fixes their dice
 #   STATE         runtime directory (default /tmp/quack-twin)
 #   PORT          the simulator's port (default 7872)
 #   GAIT          alpha (default) or velstand: the walk robotd runs
@@ -140,6 +143,12 @@ TOML
     ( cd $MICRODUCK_RL && PYTHONPATH=src MAP_FALLBACK= QUACK_NAV_SOCKET=$STATE/nav.sock \
         detach $STATE/body.log $MICRODUCK_RL/.venv/bin/mjpython $VIEWER_DIR/body_with_map.py \
         --port $PORT --ducks 1 --keyframe SIT --scene $scene --robot-socket $STATE/map.sock --media-socket $STATE/media.sock ) > $STATE/body.pid
+  elif [ -n "$TWIN_MOVERS" ]; then
+    # Things that move (TWIN_MOVERS, viewer/movers.py) need the wrapper's
+    # loop, without its window.
+    ( cd $MICRODUCK_RL && PYTHONPATH=src MAP_FALLBACK= QUACK_NAV_SOCKET=$STATE/nav.sock \
+        detach $STATE/body.log $MICRODUCK_RL/.venv/bin/python $VIEWER_DIR/body_with_map.py \
+        --port $PORT --ducks 1 --keyframe SIT --scene $scene --headless --robot-socket $STATE/map.sock --media-socket $STATE/media.sock ) > $STATE/body.pid
   else
     ( cd $MICRODUCK_RL && PYTHONPATH=src \
         detach $STATE/body.log $MICRODUCK_RL/.venv/bin/mjpython -m mjlab_microduck.sim.body_server \

@@ -4421,6 +4421,11 @@ nothing: it explores and asks.
       (the 3 s local memory, "the planner keeps off it from now on" after
       repeated stalls), or does a removed chair keep closing a door?
       A person walking by: still "a wall that moves".
+      2026-10-13: four rules for things that move (docs/results.md,
+      "Moving obstacles"), among them booked things forgotten on seen
+      floor; on the twin's casa_porta (someone in a door) it never had
+      to fire. A chair removed from a door that it sealed: still to
+      measure.
 - [ ] 2026-10-03: the first session on the physical duck, by the
       checklist [first-duck-session.md](first-duck-session.md): safety,
       install of the three release packages, CPU, memory, temperature and

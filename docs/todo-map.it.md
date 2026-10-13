@@ -4738,6 +4738,11 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       planner lo evita d'ora in poi" dopo blocchi ripetuti), o una sedia
       tolta continua a chiudere una porta? Una persona che passa: ancora
       "un muro che si muove".
+      2026-10-13: quattro regole per le cose che si muovono
+      (docs/results.it.md, "Ostacoli in movimento"), tra cui le cose a
+      libro dimenticate sul pavimento visto; in casa_porta del gemello
+      (qualcuno in una porta) non ha mai dovuto scattare. Una sedia tolta
+      da una porta che chiudeva: ancora da misurare.
 - [ ] 2026-10-03: la prima sessione sulla papera vera, secondo la
       checklist [first-duck-session.it.md](first-duck-session.it.md):
       sicurezza, installazione dei tre pacchetti di release, CPU, memoria,

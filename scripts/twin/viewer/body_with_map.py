@@ -15,6 +15,9 @@ body_server and replaces its `run` with the same loop plus three additions —
   4. with `--media-socket PATH`, the head camera answered as mediad's
      `media.frame` on that socket (eye.py): rendered only when asked, on
      its own thread, from a copy of the data the loop makes between steps.
+  5. with `TWIN_MOVERS=<truth.json>`, the house's people and pets moved
+     between steps (movers.py; casa_viva's). `--headless` runs all of it
+     without the window.
 
     mjpython body_with_map.py --port 7871 --ducks 1 --keyframe SIT \
         --scene .../scene_apartment.xml --robot-socket /tmp/dsm/a.sock
@@ -79,6 +82,11 @@ def run(world, headless: bool) -> None:
         except (ValueError, OSError) as e:
             print(f"== camera: none on the twin ({e})", flush=True)
 
+    movers = None
+    if os.environ.get("TWIN_MOVERS"):
+        import movers as movers_mod
+        movers = movers_mod.Movers(world.model, os.environ["TWIN_MOVERS"])
+
     source = mo.MapSource(ROBOT_SOCKET).start()
     # quack-nav's plan (route, aim, goal, booked drops), asked of quack-navd's
     # own socket (QUACK_NAV_SOCKET, which twin.sh always sets). The old path
@@ -110,6 +118,9 @@ def run(world, headless: bool) -> None:
     try:
         while True:
             world.step(batch)
+            if movers is not None:
+                duck = _truth(world)
+                movers.tick(world.data, duck[:2] if duck else None)
             if eye is not None:
                 eye.tick(world.data)
             if viewer is not None and not viewer.is_running():

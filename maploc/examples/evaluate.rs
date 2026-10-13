@@ -227,7 +227,16 @@ fn main() {
     let mut t_end = 0.0f32;
 
     for record in SessionReplayer::open(&session).expect("open session") {
-        let record = record.expect("read record");
+        // A recording copied while the daemon still writes it ends in half
+        // a record: the session up to there is what there is.
+        let record = match record {
+            Ok(r) => r,
+            Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
+                eprintln!("the recording ends in half a record: evaluated up to it");
+                break;
+            }
+            Err(e) => panic!("read record: {e:?}"),
+        };
         let t = record.ts_us() as f32 / 1e6;
         if t > max_t {
             break;

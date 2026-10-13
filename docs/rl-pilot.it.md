@@ -130,7 +130,11 @@ questi cervelli. Da allora: nessuna in 3.760 viaggi.
   curriculum; ognuno un pezzo di casa, una partenza, una meta a 2-6 m, e
   ciò che la mappa non sa. La mappa è disegnata come la disegna un mapper
   (i mobili come una fascia, l'interno ignoto; macchie di pavimento mai
-  viste), fino a 0,2 m spostata dal mondo.
+  viste), fino a 0,2 m spostata dal mondo. Un'altra famiglia che
+  l'addestramento non vede mai, solo il banco per nome (`--families
+  passers`): due stanze, e una persona o un animale fermo nella porta tra
+  loro, che se ne va qualche secondo dopo che la papera si è avvicinata —
+  la prova delle regole per gli ostacoli in movimento (2026-10-12).
 - **Il corpo** (`body.rs`) è il modello del gemello di carta, i suoi numeri
   in una [`Calib`](../quack-rl/src/calib.rs): velocità per vx, lo yaw per
   unità, la deriva del passo dritto, il guadagno casuale dell'impulso
