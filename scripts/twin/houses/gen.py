@@ -11,7 +11,9 @@ the map from the truth, so the map does not know them); and `casa_viva`, casa_ar
 with things that move (mocap bodies the twin's body wrapper moves, see
 scripts/twin/viewer/movers.py): someone standing in the kitchen's door
 who steps away once the duck comes near, someone walking up and down the
-corridor, a cat going round the living room.
+corridor, a cat going round the living room; and `casa_porta`, casa_arredata
+with someone standing in the office's door, its only way in, who steps
+aside once the duck has been near a while.
 
 Writes, per house: <robot dir>/<name>.xml and scene_<name>.xml (MuJoCo),
 <out>/<name>.toml (maploc evaluate truth, cm), <out>/<name>.world.json
@@ -158,6 +160,25 @@ def house_viva():
     return boxes, holes, rooms, goals, low, [], movers
 
 
+def house_porta():
+    """casa_arredata, and someone standing in the office's door: 0.7 m, the
+    only way in, so a person there (0.28 m left either side) shuts the room.
+    Once the duck has been near a while they step into the office, off the
+    way, and back to the door when the duck has gone far. What it tests: a
+    thing booked in a door that then leaves (the books forgotten on seen
+    floor, against waiting for a "no way" stuck). The goals go in and out
+    of the office between far rooms, so the person is back in the door for
+    every visit."""
+    boxes, holes, rooms, goals, low = house_arredata()
+    movers = [
+        {"name": "person_office", "kind": "linger", "r": 0.14, "h": 0.9, "speed": 0.35,
+         "at": [-0.55, -0.5], "away": [0.4, -1.0], "linger_s": [8.0, 15.0]},
+    ]
+    goals = {"office": goals["office"], "kitchen": goals["kitchen"], "office_w": [-1.0, -1.0],
+             "bath": goals["bath"], "office_e": [0.0, -1.3], "home": goals["home"]}
+    return boxes, holes, rooms, goals, low, [], movers
+
+
 def house_grande():
     """Seven rooms, 9 x 7 m, furnished, two holes, and no passage the duck
     cannot take: the house to test the whole stack on, not its limits
@@ -280,6 +301,6 @@ def write(name, house):
 
 OUT.mkdir(parents=True, exist_ok=True)
 HOUSES = {"casa_libera": house_libera, "casa_arredata": house_arredata, "casa_grande": house_grande, "casa_ingombra": house_ingombra,
-          "casa_viva": house_viva}
+          "casa_viva": house_viva, "casa_porta": house_porta}
 for name in sys.argv[3:] or ["casa_libera", "casa_arredata"]:
     write(name, HOUSES[name]())
