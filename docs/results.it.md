@@ -478,6 +478,75 @@ candidate, due gemelli alla volta, gli stessi libri.
   (lo stick 93,3 %), il pilota v3-r7 dal 96,7 al 97,1 %; gemello di carta
   53,0 % / 30/30.
 
+### Ostacoli in movimento: quattro regole (2026-10-12/13)
+
+Persone e animali sono cose che la mappa non ha mai: una papera che ne
+incontra una la mette a libro, e una persona a libro restava a libro anche
+dopo essersene andata. Quattro regole, ciascuna una manopola
+(docs/knobs.it.md), ora accese di default:
+
+1. **Visto davanti da 0,35 m** (`QK_SEEN_AHEAD_M`, prima 0,30): qualcosa
+   nella corsia va a libro un po' prima, prima dell'urto.
+2. **Un passo indietro dopo un urto o un tocco** (`QK_BACK_STEP_S`,
+   0,6 s; 0 spento): prima di girarsi, solo su pavimento che la mappa
+   conosce.
+3. **Le cose a libro dimenticate sul pavimento visto** (`QK_FORGET_FREE`,
+   0 spento): ciò che un viaggio ha messo a libro ne esce quando il
+   sensore vede il pavimento dove stava, tre frame entro un secondo. I
+   dislivelli non si dimenticano mai.
+4. **Chi si avvicina va a libro da 0,6 m** (`QK_MOVER_AHEAD_M`; 0
+   spento): qualcosa nella corsia che si avvicina più in fretta di quanto
+   cammini il corpo.
+
+**Banco** (`quack-rl`, 420 viaggi per camminata; lo stick, main → le
+quattro regole): velstand 94,8 → 94,0 % arrivati, ribaltamenti 18 → 13,
+urti a viaggio 2,59 → 1,88; alpha (calibrazione MuJoCo) 93,1 → 94,3 %,
+ribaltamenti 17 → 13, urti 4,66 → 3,45; nessun buco in nessun caso. Il
+pilota resta uguale entro il rumore (95,2 → 96,0 %, 96,0 → 96,0 %).
+`passers`, una famiglia solo da banco (qualcuno sulla porta quando la
+papera arriva, che se ne va 2-12 s dopo): con la sola regola 3 il tempo
+medio del pilota passa da 71,7 a 67,0 s (velstand) e da 72,3 a 69,3 s
+(alpha).
+
+**Gemello** (velstand, `main` 4c5a2fa contro il candidato, due gemelli
+alla volta, il braccio main con le quattro manopole spente):
+
+| prova | main | le quattro regole |
+|---|---|---|
+| viaggi, apartment, quattro giri | 24/24, mediana 114 s | 24/24, mediana 124 s |
+| viaggi, casa_arredata, quattro giri | 24/24, mediana 99 s | 24/24, mediana 99 s |
+| viaggi, casa_ingombra, due giri | 12/12, media 105 s | 12/12, media 104 s |
+| esplorazione da zero, tre case | copertura 92 / 79 / 97 %, una caduta (apartment, sessione 3), 3 dislivelli fantasma | 92 / 81 / 95 %, nessuna caduta, 4 dislivelli fantasma |
+| casa_viva (tre cose che si muovono), quattro giri | 24/24, media 97 s, 22 episodi d'urto | 24/24, media 97 s, 18 |
+| casa_porta (qualcuno nell'unica porta dello studio), quattro giri | 24/24, media 82 s, 6 episodi d'urto | 24/24, media 83 s, 7 |
+
+- casa_viva è casa_arredata con qualcuno sulla porta della cucina,
+  qualcuno che percorre il corridoio e un gatto; casa_porta ha una
+  persona ferma nella porta dello studio, larga 0,7 m, che si sposta
+  10-20 s dopo che la papera le arriva entro 0,5 m
+  (`scripts/twin/houses/gen.py`, `TWIN_MOVERS` del gemello). Un episodio
+  d'urto è il corpo che tocca una cosa che si muove, contando una volta
+  i tocchi a meno di 2 s l'uno dall'altro.
+- Dopo l'esplorazione, i viaggi sulla casa così costruita: 12/12 per
+  casa da entrambe le parti, ma in casa_libera l'homecoming di `main` ha
+  rinunciato due volte (dopo circa 975 s), quindi lì i suoi viaggi non
+  sono stati fatti; quelli del candidato 10/10.
+- I dislivelli fantasma dell'apartment stanno sulla stessa striscia
+  accanto alla tromba delle scale di quelli di main (0-2 lì nelle prove
+  precedenti).
+- **La regola 3 non è mai scattata sul gemello.** Una persona messa a
+  libro come pochi punti da 5 cm non chiude mai una porta da 0,7 m: il
+  pianificatore non trova strada con i margini soliti, poi passa con i
+  più stretti che il corpo consente appena la persona si sposta, e ciò
+  che era a libro finisce dietro la papera, dove il sensore non lo vede
+  più. Tenuta accesa per il guadagno al banco; il suo beneficio sul
+  gemello finora non si è visto.
+- Verdetto: nessuna regressione, meno ribaltamenti e urti al banco, gli
+  arrivi entro il rumore. Unito con le quattro regole accese.
+- Un ultimo record troncato (una registrazione fermata a metà scrittura)
+  faceva andare in panic `evaluate` di `maploc` e usciva una copertura
+  vuota; ora valuta fino a lì.
+
 ## Limiti noti
 
 - **Un bordo registrato dove lo metteva la posa.** Circa un drop su 50 finisce

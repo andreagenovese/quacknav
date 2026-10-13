@@ -123,7 +123,10 @@ fix came from a fall these brains found. Since: none in 3,760 journeys.
   levels; each a piece of a house, a start, a goal 2-6 m away, and what the
   map does not know. The map is drawn as a mapper draws (furniture inked
   as a band, its inside unknown; patches of floor never seen), up to
-  0.2 m off the world.
+  0.2 m off the world. One more family the training never sees, only the
+  bench by name (`--families passers`): two rooms, and a person or a pet
+  standing in the door between them, who walks off a few seconds after
+  the duck comes near — the moving-obstacle rules' test (2026-10-12).
 - **The body** (`body.rs`) is the paper twin's model, its numbers in a
   [`Calib`](../quack-rl/src/calib.rs): forward speed per vx, the yaw per
   unit, the veer of a straight step, the short pulse's random gain, the

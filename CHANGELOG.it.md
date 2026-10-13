@@ -13,6 +13,40 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ## [Unreleased]
 
+### Modificato
+
+- **Ostacoli in movimento: quattro regole, accese di default**
+  (docs/results.it.md, "Ostacoli in movimento"). Ciascuna è una manopola
+  (docs/knobs.it.md); a 0 torna il comportamento di v0.3.0-rc1.
+  - `QK_SEEN_AHEAD_M` 0,35 (prima 0,30): qualcosa nella corsia va a
+    libro un po' prima, prima dell'urto.
+  - `QK_BACK_STEP_S` 0,6: dopo un urto o un tocco, un passo indietro
+    prima di girarsi, solo su pavimento che la mappa conosce.
+  - `QK_FORGET_FREE`: ciò che un viaggio ha messo a libro ne esce quando
+    il sensore vede il pavimento dove stava; i dislivelli non si
+    dimenticano mai.
+  - `QK_MOVER_AHEAD_M` 0,6: qualcosa nella corsia che si avvicina più in
+    fretta di quanto cammini il corpo va a libro da questa distanza.
+  - Banco: i ribaltamenti dello stick 18 → 13 (velstand) e 17 → 13
+    (alpha), urti a viaggio 2,59 → 1,88 e 4,66 → 3,45, arrivi entro il
+    rumore. Gemello (velstand): i viaggi di ogni casa come quelli di
+    `main`, nessuna caduta esplorando (`main` una). La dimenticanza sul
+    gemello non è mai scattata.
+
+### Aggiunto
+
+- Gemello: persone e animali che si muovono (`TWIN_MOVERS`,
+  `viewer/movers.py`), e due case con loro: casa_viva e casa_porta.
+- `twin_ab.py --knobs ARM:K=V,...`: un braccio con le sue manopole.
+- `quack-rl`: `passers`, una famiglia solo da banco (qualcuno sulla
+  porta quando la papera arriva), fuori dalle estrazioni
+  dell'addestramento.
+
+### Corretto
+
+- `evaluate` di `maploc` andava in panic su una registrazione che finisce
+  a metà record; ora valuta fino a lì.
+
 ## [0.3.0-rc1] - 2026-10-09
 
 Una terza release candidate, validata solo sui gemelli MuJoCo e di carta.

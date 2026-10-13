@@ -24,7 +24,7 @@
 #                 rays and the guard's lane (scripts/twin/viewer); off: the
 #                 plain body server, the duck alone
 #   VIEWER_DIR    another body_with_map.py + maploc_overlay.py to use instead
-#   TWIN_MOVERS   a house's truth.json with `movers` (casa_viva's): people and
+#   TWIN_MOVERS   a house's truth.json with `movers` (casa_viva's, casa_porta's): people and
 #                 pets moved in the scene (viewer/movers.py), viewer or not;
 #                 TWIN_MOVERS_SEED fixes their dice
 #   STATE         runtime directory (default /tmp/quack-twin)

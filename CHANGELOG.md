@@ -11,6 +11,37 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ## [Unreleased]
 
+### Changed
+
+- **Moving obstacles: four rules, on by default** (docs/results.md,
+  "Moving obstacles"). Each is a knob (docs/knobs.md); set it to 0 for
+  the v0.3.0-rc1 behaviour.
+  - `QK_SEEN_AHEAD_M` 0.35 (0.30 before): something in the lane is
+    booked a little sooner, before the bump.
+  - `QK_BACK_STEP_S` 0.6: after a bump or a touch, a step back before
+    the turn, only onto floor the map knows.
+  - `QK_FORGET_FREE`: what a journey booked leaves the books when the
+    sensor sees the floor where it stood; drops are never forgotten.
+  - `QK_MOVER_AHEAD_M` 0.6: something in the lane coming nearer faster
+    than the body walks is booked from this far.
+  - Bench: the stick's tip-overs 18 → 13 (velstand) and 17 → 13 (alpha),
+    bumps a journey 2.59 → 1.88 and 4.66 → 3.45, arrivals within noise.
+    Twin (velstand): every house's journeys as `main`'s, no fall
+    exploring (`main` one). The forgetting never fired on the twin.
+
+### Added
+
+- Twin: people and pets that move (`TWIN_MOVERS`, `viewer/movers.py`),
+  and two houses with them: casa_viva and casa_porta.
+- `twin_ab.py --knobs ARM:K=V,...`: an arm with its own knobs.
+- `quack-rl`: `passers`, a bench-only family (someone in the doorway
+  when the duck gets there), outside the training draws.
+
+### Fixed
+
+- `maploc`'s `evaluate` panicked on a recording that ends in half a
+  record; it now evaluates up to it.
+
 ## [0.3.0-rc1] - 2026-10-09
 
 A third release candidate, validated on the MuJoCo and paper twins only.

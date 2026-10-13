@@ -456,6 +456,68 @@ candidate, two twins at a time, the same books.
   the bench unchanged (the stick 93.3 %), the pilot v3-r7 96.7 → 97.1 %;
   paper twin 53.0 % / 30/30.
 
+### Moving obstacles: four rules (2026-10-12/13)
+
+People and pets are things the map never has: a duck meeting one books
+it, and a booked person used to stay booked after leaving. Four rules,
+each a knob (docs/knobs.md), now on by default:
+
+1. **Seen ahead from 0.35 m** (`QK_SEEN_AHEAD_M`, 0.30 before): something
+   in the lane is booked a little sooner, before the bump.
+2. **A step back after a bump or a touch** (`QK_BACK_STEP_S`, 0.6 s; 0
+   off): before turning away, only onto floor the map knows.
+3. **Booked things forgotten on seen floor** (`QK_FORGET_FREE`, 0 off):
+   what a journey booked leaves the books when the sensor sees the floor
+   where it stood, three frames within a second. Drops are never
+   forgotten.
+4. **Approaching movers booked from 0.6 m** (`QK_MOVER_AHEAD_M`; 0 off):
+   something in the lane coming nearer faster than the body walks.
+
+**Bench** (`quack-rl`, 420 journeys a walk; the stick, main → the four
+rules): velstand 94.8 → 94.0 % arrived, tip-overs 18 → 13, bumps a
+journey 2.59 → 1.88; alpha (MuJoCo calibration) 93.1 → 94.3 %, tip-overs
+17 → 13, bumps 4.66 → 3.45; no hole either way. The pilot is unchanged
+within noise (95.2 → 96.0 %, 96.0 → 96.0 %). `passers`, a bench-only
+family (someone in the doorway when the duck gets there, leaving 2-12 s
+later): with rule 3 alone the pilot's mean time 71.7 → 67.0 s
+(velstand) and 72.3 → 69.3 s (alpha).
+
+**Twin** (velstand, `main` 4c5a2fa against the candidate, two twins at a
+time, the main arm with the four knobs off):
+
+| test | main | the four rules |
+|---|---|---|
+| journeys, apartment, four rounds | 24/24, median 114 s | 24/24, median 124 s |
+| journeys, casa_arredata, four rounds | 24/24, median 99 s | 24/24, median 99 s |
+| journeys, casa_ingombra, two rounds | 12/12, mean 105 s | 12/12, mean 104 s |
+| exploring from nothing, three houses | coverage 92 / 79 / 97 %, one fall (apartment, session 3), 3 phantom drops | 92 / 81 / 95 %, no fall, 4 phantom drops |
+| casa_viva (three movers), four rounds | 24/24, mean 97 s, 22 bump episodes | 24/24, mean 97 s, 18 |
+| casa_porta (someone in the office's only door), four rounds | 24/24, mean 82 s, 6 bump episodes | 24/24, mean 83 s, 7 |
+
+- casa_viva is casa_arredata with someone in the kitchen's door, someone
+  walking the corridor and a cat; casa_porta has one person standing in
+  the office's door, 0.7 m wide, who steps aside 10-20 s after the duck
+  comes within 0.5 m (`scripts/twin/houses/gen.py`, the twin's
+  `TWIN_MOVERS`). A bump episode is the body touching a mover, touches
+  less than 2 s apart counted once.
+- After exploring, the journeys on the house it made: 12/12 a house on
+  both sides, but in casa_libera `main`'s homecoming stood down twice
+  (after about 975 s), so its journeys there were not run; the
+  candidate's 10/10.
+- The apartment's phantom drops lie on the same strip by the stairwell
+  as main's (0-2 there in earlier runs).
+- **Rule 3 never fired on the twin.** A person booked as a few 5 cm
+  points never seals a 0.7 m door: the planner finds no way at its usual
+  margins, then goes through at the tightest the body allows once the
+  person moves, and what was booked falls behind the duck, where the
+  sensor never sees it again. Kept on for the bench's gain; its benefit
+  on the twin is unshown so far.
+- Verdict: no regression anywhere, fewer tip-overs and bumps on the
+  bench, the arrivals within noise. Merged with the four rules on.
+- A truncated last record (a recording stopped mid-write) made
+  `maploc`'s `evaluate` panic and the coverage come out empty; it now
+  evaluates up to it.
+
 ## Known limits
 
 - **A rim booked where the pose had it.** About 1 in 50 drops lands 20–35 cm
