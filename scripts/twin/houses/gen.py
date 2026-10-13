@@ -172,7 +172,9 @@ def house_porta():
     boxes, holes, rooms, goals, low = house_arredata()
     movers = [
         {"name": "person_office", "kind": "linger", "r": 0.14, "h": 0.9, "speed": 0.35,
-         "at": [-0.55, -0.5], "away": [0.4, -1.0], "linger_s": [8.0, 15.0]},
+         "at": [-0.55, -0.5], "away": [0.4, -1.0], "linger_s": [10.0, 20.0],
+         # Noticed late, gone late: the duck meets them in the door.
+         "near_m": 0.5},
     ]
     goals = {"office": goals["office"], "kitchen": goals["kitchen"], "office_w": [-1.0, -1.0],
              "bath": goals["bath"], "office_e": [0.0, -1.3], "home": goals["home"]}

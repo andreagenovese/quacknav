@@ -5,7 +5,7 @@ casa_viva's); the scene has a mocap body `mv_<name>` for each. This moves
 them, a few centimetres a step, from body_with_map.py's loop:
 
   - `linger`: stands at `at` (a doorway). Once the duck has been within
-    LINGER_NEAR_M, `linger_s` seconds more, then walks to `away`; when the
+    `near_m` (LINGER_NEAR_M unless the house says), `linger_s` seconds more, then walks to `away`; when the
     duck is farther than RETURN_FAR_M for RETURN_AFTER_S, back to `at`.
   - `patrol`: walks its `path` there and back, pausing `pause_s` at each
     end or corner.
@@ -60,7 +60,7 @@ class Mover:
 
     def tick(self, t, dt, duck):
         s = self.spec
-        near = duck is not None and math.hypot(duck[0] - self.pos[0], duck[1] - self.pos[1]) < LINGER_NEAR_M
+        near = duck is not None and math.hypot(duck[0] - self.pos[0], duck[1] - self.pos[1]) < s.get("near_m", LINGER_NEAR_M)
         if s["kind"] == "linger":
             if self.state == "at":
                 if near:
