@@ -21,9 +21,14 @@ python3 scripts/map3d/accuracy.py out/ rec/ <house>.truth.json      # the twin o
   42 % of the house mapped): 248 of 296 frames fused; against the twin's
   truth, the floor within 1 cm (median), walls and furniture 2.3 cm
   median, 96 % within 10 cm.
-- The twin's head camera looked backwards (microduck_rl's model):
-  `viewer/body_with_map.py` turns it to face where the depth sensor does
-  (`TWIN_CAMERA_BACKWARD=1` keeps the model's).
+- In the simulator only, the head camera looked backwards: the MJCF
+  camera in microduck_rl's model, not the duck's (robotd's
+  `frames.camera` looks ahead, beside the depth sensor). The fix is half
+  a turn about the camera's x, exactly the step from the OpenCV camera
+  frame (z ahead, y down) to MuJoCo's (looking along -z, y up), so the
+  model's `quat` was most likely written for the former.
+  `viewer/body_with_map.py` applies it (`TWIN_CAMERA_BACKWARD=1` keeps
+  the model's).
 - On the duck: the camera's axes against `frames.camera` and the
   intrinsics (`media.video`) must be checked with the same overlay of the
   depth sensor's returns on the picture.

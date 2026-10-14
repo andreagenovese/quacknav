@@ -76,7 +76,11 @@ def face_cameras_forward(world) -> None:
     behind the duck while the sensor read one 0.35 m ahead). Half a turn
     about the camera's own x puts it beside the sensor, looking ahead,
     with the picture still turned a quarter round as mediad's `rotate` 90
-    says. `TWIN_CAMERA_BACKWARD=1` leaves the model's camera as it is.
+    says. That half turn is exactly OpenCV's camera frame (z ahead, y
+    down) against MuJoCo's (looking along -z, y up): the model's `quat`
+    was most likely written for the former. The duck itself is fine
+    (robotd's `frames.camera` looks ahead); only the MJCF is off.
+    `TWIN_CAMERA_BACKWARD=1` leaves the model's camera as it is.
     """
     if os.environ.get("TWIN_CAMERA_BACKWARD") == "1":
         return
