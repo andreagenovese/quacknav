@@ -715,6 +715,7 @@ mod tests {
             resting: false,
             untrusted: false,
             rest_watch: None,
+            band: None,
         }
     }
 
@@ -2712,7 +2713,7 @@ mod move_guard_tests {
             x_min: -1.0, y_min: -1.0, cell_m: 0.05, rows: rows as u32, cols: cols as u32,
             cells: crate::mapd::wire::b64_encode(&cells),
             n_submaps: 1, n_loops: 0, windows: 5, still: true, seated: false, frozen: false,
-            pose_sigma: None, resting: false, untrusted, rest_watch: None,
+            pose_sigma: None, resting: false, untrusted, rest_watch: None, band: None,
         }
     }
 

@@ -31,6 +31,15 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Added
 
+- **The band: 2.5D at the duck's height** (`maploc::band`, README "Using
+  it"). Per 5 cm cell, ten 2.5 cm slices from 0.05 to 0.30 m, filled by
+  the depth sensor's returns and emptied by the beams that cross them,
+  booked standing with the pose tracked, kept by submap and saved beside
+  the map (`<map>.band`). It rides `map.frame` as `band`, the navigation
+  reads it as wall (`QK_BAND=0`: not), and the twin's viewer draws it in
+  violet. What it fixes: a coffee table's top, a bed, a tub read as free
+  floor on the 2D map. `examples/band` and `scripts/band/band_vs_truth.py`
+  measure it on a recording against a twin scene.
 - Twin: people and pets that move (`TWIN_MOVERS`, `viewer/movers.py`),
   and two houses with them: casa_viva and casa_porta.
 - `twin_ab.py --knobs ARM:K=V,...`: an arm with its own knobs.

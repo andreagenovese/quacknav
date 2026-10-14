@@ -19,7 +19,7 @@ DEV=${DEV_REPO:?a built checkout of the branch}
 TRUTH=$(cd "$(dirname "$0")" && pwd)
 for h in ${=HOUSES:-apartment casa_arredata casa_libera}; do
   mkdir -p $W/E/main/$h $W/E/dev/$h
-  ( export QN_REPO=$MAIN TWIN_WORK=$W MICRODUCK=${MAIN_MICRODUCK:-$MICRODUCK} MICRODUCK_RL=${MAIN_MICRODUCK_RL:-$MICRODUCK_RL} POLICY_DIR=${MAIN_POLICY_DIR:-$POLICY_DIR} GAIT=${MAIN_GAIT:-alpha} VIEWER=off AB_REPO=/nonexistent
+  ( export QN_REPO=$MAIN TWIN_WORK=$W MICRODUCK=${MAIN_MICRODUCK:-$MICRODUCK} MICRODUCK_RL=${MAIN_MICRODUCK_RL:-$MICRODUCK_RL} POLICY_DIR=${MAIN_POLICY_DIR:-$POLICY_DIR} GAIT=${MAIN_GAIT:-alpha} VIEWER=on AB_REPO=/nonexistent
     python3 $MAIN/scripts/twin/houses/final_house.py $h ${MAIN_MICRODUCK_RL:-$MICRODUCK_RL}/src/mjlab_microduck/robot/microduck/scene_$h.xml /tmp/qa 7881 $TRUTH/$h.truth.json $W/E/main/$h ${SESSION_S:-1800} ${SESSIONS:-4} ${ROUNDS:-2} > $W/E/main/$h/run.log 2>&1 ) &
   ( export QN_REPO=$DEV TWIN_WORK=$W MICRODUCK=${DEV_MICRODUCK:-$MICRODUCK} MICRODUCK_RL=${DEV_MICRODUCK_RL:-$MICRODUCK_RL} POLICY_DIR=${DEV_POLICY_DIR:-$POLICY_DIR} GAIT=${DEV_GAIT:-alpha} VIEWER=on AB_REPO=/nonexistent
     python3 $DEV/scripts/twin/houses/final_house.py $h ${DEV_MICRODUCK_RL:-$MICRODUCK_RL}/src/mjlab_microduck/robot/microduck/scene_$h.xml /tmp/qb 7882 $TRUTH/$h.truth.json $W/E/dev/$h ${SESSION_S:-1800} ${SESSIONS:-4} ${ROUNDS:-2} > $W/E/dev/$h/run.log 2>&1 ) &

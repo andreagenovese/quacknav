@@ -38,6 +38,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use duck_ipc_proto as proto;
 use kinematics::tof::{Posture, Reprojector};
+use maploc::band::{AnchoredBand, BandConfig};
 use maploc::mapper::{Mapper, MapperConfig, MapperSample, Note};
 use maploc::pipeline::{Slam, SlamConfig};
 use maploc::record::SessionRecorder;
@@ -67,6 +68,11 @@ const AUTOSAVE_EVERY: Duration = Duration::from_secs(60);
 const PUBLISH_EVERY: Duration = Duration::from_secs(1);
 /// The pose's, between frames (see [`crate::map::MapPose`]).
 const POSE_EVERY: Duration = Duration::from_millis(50);
+
+/// The band's columns within this of the body are struck off as it
+/// stands and walks: the body is there, so it is floor (the drop book's
+/// own strike radius, `explore::books::STRIKE_M`).
+const BAND_STRIKE_M: f32 = 0.06;
 
 /// One tick's worth of the robot's own state, as `robot.state` carries it.
 #[derive(Debug, Clone, Copy)]
@@ -422,6 +428,13 @@ fn worker(
         }
     };
     let mut mapper = Mapper::new(mapper_config(config), slam);
+    // The band (2.5D, maploc's `band`) saved beside the session.
+    let mut band = if config.wipe_on_boot { AnchoredBand::new(BandConfig::default()) } else { load_band(&map_path) };
+    // Whether the band changed since it was last saved, and since it was
+    // last rendered; and the library map it also belongs to while frozen.
+    let (mut band_unsaved, mut band_stale) = (false, true);
+    let mut band_library: Option<PathBuf> = None;
+    let mut band_rendered: Option<String> = None;
 
     if !mapper.tracking() {
         tracing::info!("maploc: resumed map with a suspect pose — confirming before anything inks");
@@ -508,6 +521,10 @@ fn worker(
                     },
                     &mut notes,
                 );
+                if mapper.tracking() && !mapper.untrusted() && !sample.sitting && !sample.fallen {
+                    band.strike(mapper.slam(), BAND_STRIKE_M);
+                    band_stale = true;
+                }
                 latest = Some(sample);
                 recent.push_back(sample);
                 while recent.len() > 128 {
@@ -521,7 +538,7 @@ fn worker(
                         break;
                     }
                     let frame = pending.pop_front().expect("front seen");
-                    ingest(
+                    if ingest(
                         &frame,
                         &sample,
                         &recent,
@@ -529,9 +546,12 @@ fn worker(
                         &mut lag_n,
                         &reprojector,
                         &mut mapper,
+                        &mut band,
                         started.elapsed().as_secs_f32(),
                         &mut n_frames_kept,
-                    );
+                    ) {
+                        (band_unsaved, band_stale) = (true, true);
+                    }
                 }
             }
             Event::Shutdown(ack) => {
@@ -540,6 +560,9 @@ fn worker(
                         Ok(()) => tracing::info!(path = %map_path.display(), "maploc: session saved"),
                         Err(e) => tracing::warn!(error = %e, "maploc: final save failed"),
                     }
+                }
+                if band_unsaved {
+                    save_band(&band, &map_path, mapper.frozen_set().then_some(band_library.as_deref()).flatten());
                 }
                 if let Some(rec) = recorder.as_mut() {
                     let _ = rec.flush();
@@ -555,6 +578,10 @@ fn worker(
                 {
                     tracing::warn!(error = %e, "maploc: wipe could not delete the session file");
                 }
+                band.clear();
+                band_library = None;
+                (band_unsaved, band_stale) = (false, true);
+                let _ = std::fs::remove_file(maploc::band::band_path(&map_path));
                 unsaved = false;
                 rendered = None;
                 render_stale = true;
@@ -580,6 +607,10 @@ fn worker(
                 let result = result
                     .and_then(|()| std::fs::create_dir_all(maps_dir(&map_path)).map_err(|e| format!("cannot create the map library: {e}")))
                     .and_then(|()| mapper.slam().save(&path).map_err(|e| format!("cannot write the map: {e}")));
+                if result.is_ok() {
+                    save_band(&band, &path, None);
+                    band_library = Some(path.clone());
+                }
                 match &result {
                     Ok(()) => tracing::info!(name, path = %path.display(), "maploc: map saved to the library"),
                     Err(e) => tracing::warn!(name, error = %e, "maploc: map not saved"),
@@ -617,6 +648,9 @@ fn worker(
                         fresh_since_boot = false;
                         mapper =
                             Mapper::resumed_lost(mapper_config(config), Slam::from_session(SlamConfig::default(), session));
+                        band = load_band(&path);
+                        band_library = Some(path.clone());
+                        (band_unsaved, band_stale) = (true, true);
                         // The loaded map is now the live one: autosave must
                         // write it to the working path.
                         unsaved = true;
@@ -708,6 +742,9 @@ fn worker(
                         // holds at that moment.
                         slam.set_tracked(pose);
                         mapper = Mapper::new(mapper_config(config), slam);
+                        band = load_band(&path);
+                        band_library = Some(path.clone());
+                        (band_unsaved, band_stale) = (true, true);
                         if config.mode == MaplocMode::Localize {
                             tracing::info!("maploc: localize mode — the loaded map is frozen once the pose is confirmed on it");
                         }
@@ -756,7 +793,7 @@ fn worker(
                     continue;
                 }
                 let sample = latest.expect("checked above");
-                ingest(
+                if ingest(
                     &frame,
                     &sample,
                     &recent,
@@ -764,9 +801,12 @@ fn worker(
                     &mut lag_n,
                     &reprojector,
                     &mut mapper,
+                    &mut band,
                     started.elapsed().as_secs_f32(),
                     &mut n_frames_kept,
-                );
+                ) {
+                    (band_unsaved, band_stale) = (true, true);
+                }
             }
         }
 
@@ -812,12 +852,19 @@ fn worker(
             if render_stale || rendered.is_none() {
                 rendered = render_grid(&mapper);
                 render_stale = false;
+                band_stale = true;
             }
             if let Some(grid) = &rendered {
+                if band_stale {
+                    band_rendered = render_band(&band, &mapper, grid);
+                    band_stale = false;
+                }
                 seq += 1;
                 let seated = latest.as_ref().is_some_and(|s| s.sitting || s.fallen);
                 let now_s = started.elapsed().as_secs_f32();
-                map_tx.send(&Published::Frame(Box::new(frame_from(&mapper, grid, seq, seated, now_s))));
+                let mut frame = frame_from(&mapper, grid, seq, seated, now_s);
+                frame.band = band_rendered.clone();
+                map_tx.send(&Published::Frame(Box::new(frame)));
                 last_pose = Instant::now();
             }
         }
@@ -831,11 +878,20 @@ fn worker(
             map_tx.send(&Published::Pose(pose_from(&mapper, seq, seated)));
         }
 
-        if unsaved && last_save.elapsed() >= AUTOSAVE_EVERY {
+        if (unsaved || band_unsaved) && last_save.elapsed() >= AUTOSAVE_EVERY {
             last_save = Instant::now();
-            match mapper.slam().save(&map_path) {
-                Ok(()) => unsaved = false,
-                Err(e) => tracing::warn!(error = %e, "maploc: autosave failed"),
+            if unsaved {
+                match mapper.slam().save(&map_path) {
+                    Ok(()) => unsaved = false,
+                    Err(e) => tracing::warn!(error = %e, "maploc: autosave failed"),
+                }
+            }
+            if band_unsaved {
+                // A frozen map does not change, so its band is still that
+                // map's: the library's copy learns too (the next boot loads
+                // the map from the library).
+                save_band(&band, &map_path, mapper.frozen_set().then_some(band_library.as_deref()).flatten());
+                band_unsaved = false;
             }
         }
     }
@@ -1075,6 +1131,30 @@ fn render_grid(mapper: &Mapper) -> Option<RenderedGrid> {
     })
 }
 
+/// The band on the rendered grid's cells, base64'd.
+fn render_band(band: &AnchoredBand, mapper: &Mapper, grid: &RenderedGrid) -> Option<String> {
+    let view = band.view(mapper.slam());
+    (!view.is_empty()).then(|| wire::b64_encode(&view.render(grid.x_min, grid.y_min, grid.cell_m, grid.rows as usize, grid.cols as usize)))
+}
+
+/// The band saved beside the session at `session`; empty when there is
+/// none or it cannot be read.
+fn load_band(session: &Path) -> AnchoredBand {
+    AnchoredBand::load(BandConfig::default(), session).unwrap_or_else(|e| {
+        tracing::warn!(error = %e, path = %maploc::band::band_path(session).display(), "maploc: the band is unreadable; starting it afresh");
+        AnchoredBand::new(BandConfig::default())
+    })
+}
+
+/// The band beside the working session, and beside `library` too.
+fn save_band(band: &AnchoredBand, session: &Path, library: Option<&Path>) {
+    for path in std::iter::once(session).chain(library) {
+        if let Err(e) = band.save(path) {
+            tracing::warn!(error = %e, path = %maploc::band::band_path(path).display(), "maploc: the band was not saved");
+        }
+    }
+}
+
 /// The pose fields of [`frame_from`], for the frame `seq`.
 fn pose_from(mapper: &Mapper, seq: u64, seated: bool) -> crate::map::MapPose {
     let f = frame_fields(mapper);
@@ -1121,6 +1201,7 @@ fn frame_from(mapper: &Mapper, grid: &RenderedGrid, seq: u64, seated: bool, now_
         pose_sigma,
         resting: mapper.resting(),
         untrusted: mapper.untrusted(),
+        band: None,
         rest_watch: mapper.last_watch().map(|w| crate::map::RestWatchSeen {
             verdict: w.verdict.as_str().to_string(),
             ago_s: f64::from((now_s - w.at_s).max(0.0)).round(),
@@ -1186,15 +1267,16 @@ fn ingest(
     lag_n: &mut u64,
     reprojector: &Reprojector,
     mapper: &mut Mapper,
+    band: &mut AnchoredBand,
     t_s: f32,
     n_frames_kept: &mut u64,
-) {
+) -> bool {
     // Resting, a frame is reprojected only for a watch's window.
     if !mapper.wants_frames(t_s) {
-        return;
+        return false;
     }
     let Some(ranges) = decode_ranges(frame) else {
-        return;
+        return false;
     };
     // Pair the frame with the head this much later than its stamp — the
     // fixed latency between the depth being taken and `t_ns`.
@@ -1242,13 +1324,24 @@ fn ingest(
     }
     let posture = Posture { gravity: sample.gravity, trunk_height_m: (sample.trunk_z > 0.02).then_some(sample.trunk_z) };
     let flat = maploc::flat::flatten(reprojector, &ranges, sample.head, &posture);
+    // The band books only what a standing body saw with its pose tracked:
+    // walking, the trunk pitches and the frame's pose is a guess (the
+    // cliff guard's rule, and the mapper's own).
+    let booked = !sample.moving
+        && !sample.sitting
+        && !sample.fallen
+        && mapper.still()
+        && mapper.tracking()
+        && !mapper.untrusted()
+        && band.observe(mapper.slam(), &flat.rays);
     if flat.angles_body.is_empty() {
-        return;
+        return booked;
     }
     let scan = Scan::from_polar(&flat.angles_body, &flat.ranges, flat.sensor_xy, 1e-3);
     if mapper.frame(t_s, scan) {
         *n_frames_kept += 1;
     }
+    booked
 }
 
 /// `MAPLOC_HEAD_LEAD_MS`, as robotd read it: 5 ms by default — with 0 the

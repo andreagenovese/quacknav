@@ -35,6 +35,16 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Aggiunto
 
+- **Lo strato (band): 2.5D all'altezza della papera** (`maploc::band`,
+  README "Come si usa"). Per ogni cella di 5 cm, dieci fette di 2,5 cm da 0,05
+  a 0,30 m, riempite dai ritorni del sensore di profondità e svuotate dai
+  raggi che le attraversano, registrato da ferma con la posa fidata, tenuto
+  per submap e salvato accanto alla mappa (`<mappa>.band`). Viaggia in
+  `map.frame` come `band`, la navigazione lo legge come muro (`QK_BAND=0`:
+  no), e il visore del gemello lo disegna in viola. Cosa corregge: il piano
+  di un tavolino, un letto, una vasca risultavano pavimento libero nella
+  mappa 2D. `examples/band` e `scripts/band/band_vs_truth.py` lo misurano
+  su una registrazione contro la scena del gemello.
 - Gemello: persone e animali che si muovono (`TWIN_MOVERS`,
   `viewer/movers.py`), e due case con loro: casa_viva e casa_porta.
 - `twin_ab.py --knobs ARM:K=V,...`: un braccio con le sue manopole.

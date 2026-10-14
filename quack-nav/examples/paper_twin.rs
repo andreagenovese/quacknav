@@ -562,6 +562,7 @@ impl PaperTwin {
             resting: false,
             untrusted: false,
             rest_watch: None,
+            band: None,
         }
     }
 

@@ -236,6 +236,17 @@
    "doc": "`QK_BACK_STEP_S`: [`BACK_STEP_S`] for an experiment."
   },
   {
+   "name": "QK_BAND",
+   "group": "QK",
+   "read_as": "on unless 0",
+   "type": "switch",
+   "default": "1",
+   "where": [
+    "quack-nav/src/map.rs"
+   ],
+   "doc": "`QK_BAND=0`: the band (`MapFrame::band`) is not read as walls."
+  },
+  {
    "name": "QK_BLIND_CONE_LANE",
    "group": "QK",
    "read_as": "on unless 0",
