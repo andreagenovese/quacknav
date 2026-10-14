@@ -151,6 +151,7 @@ def main():
             "n": n, "t": round(now - t0, 3),
             "media": head,
             "pose": pose, "tracking": nav.get("tracking"),
+            "map": (nav.get("house") or {}).get("map"),
             "uncertainty": nav.get("pose_uncertainty"),
             "frames": st["frames"], "imu_quat": st["imu"]["quat"],
             "odom": st["odom"], "joints": st["joints"], "policy": st["policy"],

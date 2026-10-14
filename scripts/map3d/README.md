@@ -7,7 +7,7 @@ Italian: [README.it.md](README.it.md).
 
 ```sh
 python3 scripts/map3d/record.py $STATE rec/ 300 [--sim-port 7872]   # beside an exploring duck
-python3 scripts/map3d/build.py rec/ out/ --voxel 0.02               # iso_*.png, top.png, cloud.ply
+python3 scripts/map3d/build.py rec/ out/ --voxel 0.02               # iso_*.png, top.png, cloud.ply, house3d.bin
 python3 scripts/map3d/accuracy.py out/ rec/ <house>.truth.json      # the twin only
 ```
 
@@ -17,6 +17,10 @@ python3 scripts/map3d/accuracy.py out/ rec/ <house>.truth.json      # the twin o
   sensor's returns seen by the camera fit it to metres, frame by frame;
   the frames are fused in a TSDF on the map's frame with the camera's
   colours, and drawn isometric. Needs torch, transformers, Pillow.
+- `house3d.bin` is the house for quack-control's **3D** tab (its `house3d`
+  service, `/var/lib/quack-control/house3d.bin` on the duck): ~0.5 MB for
+  the first run, with the map's name, so the page draws the live duck on
+  it only on that map. Copy it as quack-control's README says.
 - First run (2026-10-14, casa_arredata, velstand, 5 minutes exploring,
   42 % of the house mapped): 248 of 296 frames fused; against the twin's
   truth, the floor within 1 cm (median), walls and furniture 2.3 cm

@@ -7,7 +7,7 @@ mappa di quack-navd. Inglese: [README.md](README.md).
 
 ```sh
 python3 scripts/map3d/record.py $STATE rec/ 300 [--sim-port 7872]   # accanto a una papera che esplora
-python3 scripts/map3d/build.py rec/ out/ --voxel 0.02               # iso_*.png, top.png, cloud.ply
+python3 scripts/map3d/build.py rec/ out/ --voxel 0.02               # iso_*.png, top.png, cloud.ply, house3d.bin
 python3 scripts/map3d/accuracy.py out/ rec/ <casa>.truth.json       # solo il gemello
 ```
 
@@ -18,6 +18,11 @@ python3 scripts/map3d/accuracy.py out/ rec/ <casa>.truth.json       # solo il ge
   metri, frame per frame; i frame si fondono in un TSDF sul sistema della
   mappa con i colori della camera, e si disegnano in isometrica. Servono
   torch, transformers, Pillow.
+- `house3d.bin` è la casa per la scheda **3D** di quack-control (il suo
+  servizio `house3d`, `/var/lib/quack-control/house3d.bin` sulla papera):
+  ~0,5 MB per la prima prova, con il nome della mappa, così la pagina ci
+  disegna la papera dal vivo solo su quella mappa. Si copia come dice il
+  README di quack-control.
 - Prima prova (2026-10-14, casa_arredata, velstand, 5 minuti di
   esplorazione, 42 % della casa mappato): 248 frame fusi su 296; contro la
   verità del gemello, il pavimento entro 1 cm (mediana), pareti e mobili

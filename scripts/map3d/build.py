@@ -28,7 +28,8 @@ the duck charges); nothing here runs on the duck.
 measuring what the map's pose costs.
 
 Outputs in <out dir>: iso_*.png, top.png, cloud.ply (the surface as
-coloured points) and fit.tsv (each frame's scale fit).
+coloured points), house3d.bin (the same for quack-control's 3D view;
+write_house3d says how) and fit.tsv (each frame's scale fit).
 """
 from __future__ import annotations
 
@@ -36,6 +37,7 @@ import json
 import math
 import os
 import sys
+import time
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
@@ -330,6 +332,25 @@ def write_ply(path, P, C):
             f.write(f"{p[0]:.3f} {p[1]:.3f} {p[2]:.3f} {c[0]} {c[1]} {c[2]}\n")
 
 
+def write_house3d(path, P, C, N, meta):
+    """The surface for quack-control's 3D view, small enough for a phone.
+
+    `QH3D`, a u16 version (1), a u16 header length, the header (JSON:
+    `points`, `voxel_m`, `map`, `frames`, `built`, `path`), padded with
+    spaces to a multiple of 4; then each point in 12 bytes, little-endian:
+    i16 x, y, z in millimetres on the map's frame, u8 r, g, b, and the
+    surface's normal as i8 x, y, z (times 127).
+    """
+    head = json.dumps(dict(meta, points=len(P)), separators=(",", ":")).encode()
+    head += b" " * (-(8 + len(head)) % 4)
+    rec = np.zeros(len(P), dtype=[("p", "<i2", 3), ("c", "u1", 3), ("n", "i1", 3)])
+    rec["p"] = np.clip(np.round(P * 1000), -32767, 32767)
+    rec["c"] = np.clip(np.round(C), 0, 255)
+    rec["n"] = np.clip(np.round(N * 127), -127, 127)
+    with open(path, "wb") as f:
+        f.write(b"QH3D" + np.array([1, len(head)], "<u2").tobytes() + head + rec.tobytes())
+
+
 def main():
     args = sys.argv[1:]
     opts = {"--max": None, "--voxel": "0.025"}
@@ -392,6 +413,13 @@ def main():
     write_ply(f"{out}/cloud.ply", P, C)
     np.savez_compressed(f"{out}/surface.npz", P=P, C=C, N=N)
     way = np.array([[p[3][0], p[3][1], 0.0] for p in poses])
+    maps = [r.get("map") for r in recs if r.get("map")]
+    write_house3d(f"{out}/house3d.bin", P, C, N, {
+        "voxel_m": voxel, "map": max(set(maps), key=maps.count) if maps else None, "frames": used,
+        "built": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        # Where the camera stood, every few frames: the duck's way through the house.
+        "path": [[round(float(x), 2), round(float(y), 2)] for x, y, _ in way[:: max(1, len(way) // 300)]],
+    })
     for name, az in (("ne", 45), ("nw", 135), ("sw", 225), ("se", 315)):
         render(P, C, N, az, 35.264, voxel=voxel, cut=CUT_Z_M,
                title=f"isometric from {name.upper()}, cut at {CUT_Z_M} m - {used} frames fused", path=way).save(f"{out}/iso_{name}.png")
