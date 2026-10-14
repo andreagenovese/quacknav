@@ -66,6 +66,32 @@ def _truth(world):
     return (x, y, yaw)
 
 
+def face_cameras_forward(world) -> None:
+    """Turn each duck's head camera to look where its head looks.
+
+    microduck_rl's model (develop, 2026-10-12) puts `head_camera` at the
+    front of the head looking straight back: the depth sensor beside it
+    looks at +x of the head, the camera at -x (measured 2026-10-14: the
+    two axes opposite to within a degree, and the picture a wall 0.6 m
+    behind the duck while the sensor read one 0.35 m ahead). Half a turn
+    about the camera's own x puts it beside the sensor, looking ahead,
+    with the picture still turned a quarter round as mediad's `rotate` 90
+    says. `TWIN_CAMERA_BACKWARD=1` leaves the model's camera as it is.
+    """
+    if os.environ.get("TWIN_CAMERA_BACKWARD") == "1":
+        return
+    import mujoco
+    import numpy as np
+
+    for body in world.bodies:
+        cam = mujoco.mj_name2id(world.model, mujoco.mjtObj.mjOBJ_CAMERA, f"{body.prefix}head_camera")
+        if cam < 0:
+            continue
+        q = np.zeros(4)
+        mujoco.mju_mulQuat(q, world.model.cam_quat[cam].copy(), np.array([0.0, 1.0, 0.0, 0.0]))
+        world.model.cam_quat[cam] = q
+
+
 def run(world, headless: bool) -> None:
     viewer = None
     if not headless:
@@ -74,6 +100,7 @@ def run(world, headless: bool) -> None:
             world.model, world.data, show_left_ui=False, show_right_ui=False
         )
 
+    face_cameras_forward(world)
     eye = None
     if MEDIA_SOCKET and world.bodies:
         import eye as eye_mod
