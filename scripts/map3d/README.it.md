@@ -22,15 +22,14 @@ python3 scripts/map3d/accuracy.py out/ rec/ <casa>.truth.json       # solo il ge
   esplorazione, 42 % della casa mappato): 248 frame fusi su 296; contro la
   verità del gemello, il pavimento entro 1 cm (mediana), pareti e mobili
   2,3 cm di mediana, il 96 % entro 10 cm.
-- Solo nel simulatore la camera della testa guardava all'indietro: la
-  camera MJCF del modello di microduck_rl, non quella della papera
-  (`frames.camera` di robotd guarda avanti, accanto al sensore di
-  profondità). La correzione è mezzo giro attorno all'x della camera,
-  esattamente il passaggio dal sistema camera di OpenCV (z avanti, y in
-  basso) a quello di MuJoCo (guarda lungo -z, y in alto): il `quat` del
-  modello è stato quasi certamente scritto per il primo.
-  `viewer/body_with_map.py` la corregge (`TWIN_CAMERA_BACKWARD=1` tiene
-  quella del modello).
+- Solo nel simulatore la camera della testa guarda all'indietro: il MJCF
+  di microduck_rl mette `head_camera` a 180 gradi dal sito `tof` (la
+  papera è a posto: `frames.camera` di robotd guarda avanti). Pollen lo
+  sa e la gira nel proprio body_server (`sim/camera.py`, 2026-09-02),
+  lasciando il MJCF com'è; il vecchio body_server del gemello no, quindi
+  `viewer/body_with_map.py` fa lo stesso mezzo giro attorno all'x della
+  camera, solo se la camera guarda ancora lontano dal sensore
+  (`TWIN_CAMERA_BACKWARD=1` tiene quella del modello).
 - Sulla papera: gli assi della camera rispetto a `frames.camera` e gli
   intrinseci (`media.video`) vanno verificati con la stessa
   sovrapposizione dei ritorni del sensore sull'immagine.
