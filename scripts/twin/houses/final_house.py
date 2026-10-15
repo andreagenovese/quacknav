@@ -188,7 +188,7 @@ if ROUNDS_ONLY and done:
 else:
     book_after_explore = json.load(open(f"{state}/ground.json")) if os.path.exists(f"{state}/ground.json") else {}
     json.dump(book_after_explore, open(f"{out}/ground-after-explore.json", "w"))
-    shutil.copytree(f"{state}/maps", f"{out}/maps-after-explore", dirs_exist_ok=True)
+    shutil.copytree(f"{state}/maps", f"{out}/maps-after-explore", dirs_exist_ok=True, ignore=shutil.ignore_patterns("*.tmp"))
 n, real, near, phantom, cover = score_book(book_after_explore)
 say(f"{name}: drop book {n}: rim {real}, near {near}, phantom {len(phantom)} {phantom}; rim covered {cover}")
 
