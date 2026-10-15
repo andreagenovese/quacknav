@@ -47,6 +47,15 @@ fn main() {
         wall_snap_m: envf("BAND_SNAP", d.wall_snap_m),
         ..d
     };
+    // A saved map (`<name>.session` beside its `<name>.band`) is drawn as
+    // it was saved, with no replay.
+    if session.extension().is_some_and(|e| e == "session") {
+        let state = maploc::session::SessionState::load(&session).expect("session").expect("a saved map");
+        let slam = Slam::from_session(SlamConfig::default(), state);
+        let band = AnchoredBand::load(cfg, &session).expect("band");
+        write(&out, &session, &slam, &band);
+        return;
+    }
     let mut band = AnchoredBand::new(cfg);
     let mut latest: Option<maploc::replay::OdomRecord> = None;
     // Experiment: books only frames whose head moved less than this (deg)
@@ -86,9 +95,14 @@ fn main() {
         true
     })
     .expect("replay");
+    println!("{}: {frames} depth frames, {booked} booked in the band", session.display());
+    write(&out, &session, mapper.slam(), &band);
+}
 
-    let band = band.view(mapper.slam());
-    let grid = mapper.slam().render().expect("a map");
+/// The map and the band, drawn on the same cells, into `out`.
+fn write(out: &std::path::Path, session: &std::path::Path, slam: &Slam, band: &AnchoredBand) {
+    let band = band.view(slam);
+    let grid = slam.render().expect("a map");
     let (rows, cols) = (grid.height(), grid.width());
     let mut cells = Vec::with_capacity(rows * cols);
     let mut walls = Vec::with_capacity(rows * cols);
@@ -114,7 +128,7 @@ fn main() {
     let blocked = band.blocked();
     let overhangs = blocked.iter().filter(|b| matches!(b.2, maploc::band::Column::Blocked { under_clear: true, .. })).count();
     println!(
-        "{}: {frames} depth frames, {booked} booked in the band; {} cells touched, {} blocked ({overhangs} with a beam under)",
+        "{}: {} cells touched, {} blocked ({overhangs} with a beam under)",
         session.display(),
         band.len(),
         blocked.len()
