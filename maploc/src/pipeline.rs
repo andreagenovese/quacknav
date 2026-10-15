@@ -195,6 +195,12 @@ impl Slam {
         self.mgr.n_total()
     }
 
+    /// The 2D grid of the submap being inked now, in that submap's own
+    /// frame (the frame [`Slam::anchor`] places).
+    pub fn current_grid(&self) -> Option<&crate::grid::OccupancyGrid> {
+        self.mgr.current().map(|c| c.grid())
+    }
+
     pub fn n_loops(&self) -> usize {
         self.n_loops
     }

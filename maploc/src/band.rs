@@ -32,6 +32,9 @@ use crate::submap::Pose2;
 /// Slices in a cell's column.
 pub const SLICES: usize = 10;
 
+/// A 2D cell's log-odds above this is a wall, as the rendered map draws it.
+const WALL_LOG_ODDS: i16 = 150;
+
 #[derive(Debug, Clone, Copy)]
 pub struct BandConfig {
     /// Cell pitch, metres — the 2D map's.
@@ -61,6 +64,14 @@ pub struct BandConfig {
     /// A beam that hit something clears only up to this short of the
     /// return (the sensor's own spread).
     pub end_margin_m: f32,
+    /// Next to a 2D wall (its cell or the eight around it) a slice is
+    /// occupied only at or above this. A wall's own returns, spread a cell
+    /// either side of its face, otherwise thicken it on the free side;
+    /// `occupied` here leaves the band as it was.
+    pub wall_occupied: i8,
+    /// A return within this of a wall in the submap's own 2D grid is that
+    /// wall's, not the band's, and is not booked (0: every return is).
+    pub wall_snap_m: f32,
 }
 
 impl Default for BandConfig {
@@ -76,6 +87,8 @@ impl Default for BandConfig {
             occupied: 5,
             step_m: 0.02,
             end_margin_m: 0.05,
+            wall_occupied: 5,
+            wall_snap_m: 0.0,
         }
     }
 }
@@ -142,6 +155,12 @@ impl Band {
 
     /// Books one frame's beams, taken with the body at `pose` on the map.
     pub fn observe(&mut self, pose: Pose2, rays: &[Ray]) {
+        self.observe_beside(pose, rays, |_, _| false);
+    }
+
+    /// [`Band::observe`], every return for which `wall(x, y)` holds left
+    /// out (still clearing up to it).
+    pub fn observe_beside(&mut self, pose: Pose2, rays: &[Ray], wall: impl Fn(f32, f32) -> bool) {
         let (c, s) = (pose.2.cos(), pose.2.sin());
         let to_map = |p: [f32; 3]| [pose.0 + c * p[0] - s * p[1], pose.1 + s * p[0] + c * p[1], p[2]];
         let mut hits = Vec::new();
@@ -176,6 +195,7 @@ impl Band {
             if ray.hit
                 && flat <= self.cfg.max_range_m
                 && let Some(k) = self.slice(b[2])
+                && !wall(b[0], b[1])
             {
                 hits.push((self.key(b[0], b[1]), k));
             }
@@ -189,7 +209,11 @@ impl Band {
     }
 
     fn judge(&self, col: &[i8; SLICES]) -> Column {
-        match col.iter().position(|&v| v >= self.cfg.occupied) {
+        self.judge_at(col, self.cfg.occupied)
+    }
+
+    fn judge_at(&self, col: &[i8; SLICES], occupied: i8) -> Column {
+        match col.iter().position(|&v| v >= occupied) {
             Some(lowest) => Column::Blocked { lowest, under_clear: col[..lowest].iter().any(|&v| v < 0) },
             None if col.iter().any(|&v| v < 0) => Column::Clear,
             None => Column::Unseen,
@@ -232,13 +256,22 @@ impl Band {
     /// The band drawn on a grid's geometry (row 0 at `y_min`, row-major):
     /// one byte a cell, 0 unseen, 1 clear, `2 + lowest` blocked from that
     /// slice up, `2 + SLICES + lowest` an overhang (blocked, with a beam
-    /// seen crossing under it).
-    pub fn render(&self, x_min: f32, y_min: f32, cell_m: f32, rows: usize, cols: usize) -> Vec<u8> {
+    /// seen crossing under it). `walls`, the 2D map's walls on the same
+    /// cells, holds the cells beside them to [`BandConfig::wall_occupied`].
+    pub fn render(&self, x_min: f32, y_min: f32, cell_m: f32, rows: usize, cols: usize, walls: Option<&[bool]>) -> Vec<u8> {
+        let walls = walls.filter(|w| w.len() == rows * cols);
+        let beside = |r: usize, c: usize| {
+            walls.is_some_and(|w| {
+                (r.saturating_sub(1)..=(r + 1).min(rows - 1)).any(|i| (c.saturating_sub(1)..=(c + 1).min(cols - 1)).any(|j| w[i * cols + j]))
+            })
+        };
         let mut out = vec![0u8; rows * cols];
         for (r, row) in out.chunks_mut(cols).enumerate() {
             let y = y_min + (r as f32 + 0.5) * cell_m;
             for (c, slot) in row.iter_mut().enumerate() {
-                *slot = match self.at(x_min + (c as f32 + 0.5) * cell_m, y) {
+                let occupied = if beside(r, c) { self.cfg.wall_occupied } else { self.cfg.occupied };
+                let column = self.cells.get(&self.key(x_min + (c as f32 + 0.5) * cell_m, y)).map_or(Column::Unseen, |col| self.judge_at(col, occupied));
+                *slot = match column {
                     Column::Unseen => 0,
                     Column::Clear => 1,
                     Column::Blocked { lowest, under_clear: false } => 2 + lowest as u8,
@@ -288,7 +321,24 @@ impl AnchoredBand {
         while self.layers.len() < n {
             self.layers.push(Band::new(self.cfg));
         }
-        self.layers[n - 1].observe(between(anchor, slam.tracked()), rays);
+        let pose = between(anchor, slam.tracked());
+        match slam.current_grid().filter(|_| self.cfg.wall_snap_m > 0.0) {
+            Some(grid) => {
+                let (r, cell) = (self.cfg.wall_snap_m, grid.cell());
+                let reach = (r / cell).ceil() as i32;
+                let wall = |x: f32, y: f32| {
+                    (-reach..=reach).any(|di| {
+                        (-reach..=reach).any(|dj| {
+                            let (dx, dy) = (dj as f32 * cell, di as f32 * cell);
+                            dx.hypot(dy) <= r + 1e-4
+                                && grid.world_to_idx(x + dx, y + dy).is_some_and(|(i, j)| grid.is_above_threshold(i, j, WALL_LOG_ODDS))
+                        })
+                    })
+                };
+                self.layers[n - 1].observe_beside(pose, rays, wall);
+            }
+            None => self.layers[n - 1].observe(pose, rays),
+        }
         true
     }
 
@@ -468,7 +518,7 @@ mod tests {
         // up — slice 2.
         assert_eq!(band.at(1.025, 3.01), Column::Blocked { lowest: 2, under_clear: false });
         assert_eq!(band.at(1.025, 2.6), Column::Clear);
-        let grid = band.render(0.5, 2.5, 0.05, 12, 20);
+        let grid = band.render(0.5, 2.5, 0.05, 12, 20, None);
         // (1.025, 3.01) sits in row 10, column 10.
         assert_eq!(grid[10 * 20 + 10], 4);
         assert!(grid.contains(&1) && grid.contains(&0));

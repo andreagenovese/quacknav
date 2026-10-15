@@ -32,7 +32,8 @@ fn main() {
     let rp = Reprojector::alpha();
     let mut mapper = Mapper::new(MapperConfig::default(), Slam::new(SlamConfig::default()));
     // Bench knobs, to sweep the band's own: BAND_RANGE, BAND_ZLO, BAND_OCC,
-    // BAND_HIT, BAND_PASS, BAND_MARGIN.
+    // BAND_HIT, BAND_PASS, BAND_MARGIN, BAND_WARY (`wall_occupied`), BAND_SNAP
+    // (`wall_snap_m`).
     let envf = |k: &str, d: f32| std::env::var(k).ok().and_then(|v| v.parse().ok()).unwrap_or(d);
     let d = BandConfig::default();
     let cfg = BandConfig {
@@ -42,19 +43,28 @@ fn main() {
         hit: envf("BAND_HIT", f32::from(d.hit)) as i8,
         pass: envf("BAND_PASS", f32::from(d.pass)) as i8,
         end_margin_m: envf("BAND_MARGIN", d.end_margin_m),
+        wall_occupied: envf("BAND_WARY", f32::from(d.wall_occupied)) as i8,
+        wall_snap_m: envf("BAND_SNAP", d.wall_snap_m),
         ..d
     };
     let mut band = AnchoredBand::new(cfg);
-    let mut latest = None;
+    let mut latest: Option<maploc::replay::OdomRecord> = None;
+    // Experiment: books only frames whose head moved less than this (deg)
+    // since the odometry sample before.
+    let head_still = envf("BAND_HEADSTILL", f32::INFINITY).to_radians();
+    let mut head_moved = false;
     let (mut frames, mut booked) = (0u64, 0u64);
     maploc::bench::replay(&session, &mut mapper, f32::INFINITY, |step| {
         match step.record {
-            Record::Odom(o) => latest = Some(*o),
+            Record::Odom(o) => {
+                head_moved = latest.is_some_and(|p| p.head.iter().zip(o.head.iter()).any(|(a, b)| (a - b).abs() > head_still));
+                latest = Some(*o);
+            }
             Record::Tof(frame) => {
                 frames += 1;
                 let Some(o) = latest else { return true };
                 let m = step.mapper;
-                if o.moving || !m.still() || !m.tracking() || m.untrusted() {
+                if head_moved || o.moving || !m.still() || !m.tracking() || m.untrusted() {
                     return true;
                 }
                 let posture = Posture { gravity: o.gravity.map(f64::from), trunk_height_m: (o.trunk_z > 0.02).then_some(f64::from(o.trunk_z)) };
@@ -81,15 +91,17 @@ fn main() {
     let grid = mapper.slam().render().expect("a map");
     let (rows, cols) = (grid.height(), grid.width());
     let mut cells = Vec::with_capacity(rows * cols);
+    let mut walls = Vec::with_capacity(rows * cols);
     for i in 0..rows {
         for j in 0..cols {
             let lo = grid.log_at(i, j);
             cells.push(if lo > 150 { 2u8 } else if lo < -50 { 1 } else { 0 });
+            walls.push(lo > 150);
         }
     }
     let (x_min, y_min, cell) = (grid.cfg().x_range.0, grid.cfg().y_range.0, grid.cell());
     std::fs::write(out.join("map.u8"), &cells).expect("map");
-    std::fs::write(out.join("band.u8"), band.render(x_min, y_min, cell, rows, cols)).expect("band");
+    std::fs::write(out.join("band.u8"), band.render(x_min, y_min, cell, rows, cols, Some(&walls))).expect("band");
     std::fs::write(
         out.join("band.json"),
         format!(
