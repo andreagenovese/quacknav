@@ -547,6 +547,53 @@ alla volta, il braccio main con le quattro manopole spente):
   faceva andare in panic `evaluate` di `maploc` e usciva una copertura
   vuota; ora valuta fino a lì.
 
+### Lo strato: 2.5D all'altezza della papera (2026-10-14/16)
+
+Lo strato (README "Come si usa", `maploc::band`) è letto dalla
+navigazione come muro. Tre prove sul gemello, velstand, due gemelli alla
+volta, quattro sessioni di 30 minuti di esplorazione da zero poi quattro
+giri di viaggi sulla casa fatta, appartamento e casa_arredata:
+
+| prova | braccio | viaggi appartamento | "al limite" per giro | viaggi casa_arredata | esplorazione dichiarata finita |
+|---|---|---|---|---|---|
+| 1 | main e24c6ef | 24/24, mediana 109 s | 0-1 | 24/24, mediana 104 s | nessuna delle due case in 4 sessioni |
+| 1 | lo strato come prima costruito | 24/24, mediana 99 s | 16-23 (giri 2-4) | 24/24, mediana 94 s | appartamento sessione 2, casa_arredata 4 |
+| 2 | wary: accanto a un muro 2D, lo strato vuole prove sature | 24/24 | 0-17 | 24/24 | casa_arredata 3; l'appartamento "bloccata" due volte |
+| 2 | snap: i ritorni vicino al muro 2D della propria submap lasciati a lui | 24/24, mediana 109 s | 0 | 17/24 (bagno 0/4) | appartamento 3 |
+| 3 | main e24c6ef | 24/24, mediana 114 s | 0 | 24/24, mediana 89 s | casa_arredata 4 |
+| 3 | **snap (unito)** | **24/24, mediana 114 s** | **0** | **24/24, mediana 94 s** | **appartamento 3, casa_arredata 3** |
+
+Nessuna caduta in nessun braccio. "Al limite" conta il pianificatore che
+passa "al limite che il corpo permette" in mancanza di una strada ai
+margini soliti.
+
+- **Perché il primo strato rallentava l'appartamento.** Ingrossava i muri
+  di una o due celle dal lato libero: ripassato, il 67 % delle celle
+  bloccate solo dallo strato toccava un muro della mappa 2D, e le loro
+  prove erano sature, non rumore. Due passaggi si stringevano (il
+  corridoio lungo il muro del bagno, uno sgabello della cucina vicino al
+  muro), e g4 richiedeva 220-231 s invece di circa 110 in due giri.
+- **Wary non è servito:** quasi tutte quelle celle erano sature, così una
+  soglia più severa accanto ai muri le lasciava, i viaggi lenti restavano
+  e la papera si è detta chiusa dentro in pavimento libero due volte.
+- **Snap** le toglie dove conta: nessun passaggio al limite in nessun
+  giro. Nella prova 2 i suoi viaggi in casa_arredata fallivano il bagno
+  4/4 con "nessuna strada sulla mappa"; la mappa congelata ridisegnata
+  (`examples/band` sulla sessione salvata) aveva il bagno raggiungibile
+  con lo strato a 15 cm di margine, e la differenza era il libro dei
+  dislivelli: il buco del corridoio prima della porta del bagno segnato
+  in 3 punti del bordo contro 9. La prova 3, di conferma, aveva il bagno
+  al 94 % dalla prima sessione e 24/24 viaggi.
+- Copertura vera per stanza alla fine, prova 3: appartamento main
+  92-100 %, snap 94-100 %; casa_arredata main 62-100 %, snap 60-99 % (la
+  camera, 62 / 60 %, è altrettanto bassa in ogni braccio delle tre prove).
+- Il sensore di profondità del gemello lancia un raggio per centro di
+  zona (microduck_rl `sim/tof.py`); la zona del sensore vero è larga
+  circa 5,6°. Come una zona larga che sfiora un muro finisce nello strato
+  resta da misurare sull'hardware.
+- Verdetto: nessuna regressione in portata, cadute o tempi dei viaggi, e
+  l'esplorazione finisce prima. Lo strato esce con snap acceso.
+
 ## Limiti noti
 
 - **Un bordo registrato dove lo metteva la posa.** Circa un drop su 50 finisce

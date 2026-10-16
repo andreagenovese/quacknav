@@ -41,9 +41,12 @@ carta, mai su una papera fisica; i dettagli sono in
   raggi che le attraversano, registrato da ferma con la posa fidata, tenuto
   per submap e salvato accanto alla mappa (`<mappa>.band`). Viaggia in
   `map.frame` come `band`, la navigazione lo legge come muro (`QK_BAND=0`:
-  no), e il visore del gemello lo disegna in viola. Cosa corregge: il piano
-  di un tavolino, un letto, una vasca risultavano pavimento libero nella
-  mappa 2D. `examples/band` e `scripts/band/band_vs_truth.py` lo misurano
+  no), e il visore del gemello lo disegna in viola. I ritorni entro 10 cm da
+  un muro della mappa 2D della propria submap sono lasciati alla mappa
+  (`BandConfig::wall_snap_m`), così lo strato non ingrossa i muri. Cosa
+  corregge: il piano di un tavolino, un letto, una vasca risultavano
+  pavimento libero nella mappa 2D. Sul gemello contro main: 48/48 viaggi
+  entrambi, nessuna caduta (docs/results.it.md). `examples/band` e `scripts/band/band_vs_truth.py` lo misurano
   su una registrazione contro la scena del gemello.
 - Gemello: persone e animali che si muovono (`TWIN_MOVERS`,
   `viewer/movers.py`), e due case con loro: casa_viva e casa_porta.

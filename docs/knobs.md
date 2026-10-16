@@ -90,6 +90,7 @@ Every knob needs that restart: the environment is read at the process's start.
 | `BAND_OCC` | number (default f32::from(d.occupied)) | `maploc/examples/band.rs` |  |
 | `BAND_PASS` | number (default f32::from(d.pass)) | `maploc/examples/band.rs` |  |
 | `BAND_RANGE` | number (default d.max_range_m) | `maploc/examples/band.rs` |  |
+| `BAND_SNAP` | number (default d.wall_snap_m) | `maploc/examples/band.rs` |  |
 | `BAND_ZLO` | number (default d.z_lo_m) | `maploc/examples/band.rs` |  |
 | `BOOK` | a value | `quack-nav/examples/drop_replay.rs` | `BOOK=<ground.json>:<map>`: the book's holes too, each checked against the floor strike (explore::books' rule, replayed): which phantoms it would take off, and whether it ever takes a true rim. |
 | `CORR_LOG` | a path, or a value | `maploc/examples/trajectory.rs` | `CORR_LOG=<file>`: every tracking correction a window made, against the truth — which of them moved the pose toward it and which away (casa_arredata, 2026-09-29: the windows pulled the pose 3.5-7 cm north one after the o… |

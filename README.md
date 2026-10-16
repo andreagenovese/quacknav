@@ -127,10 +127,15 @@ that speaks the socket:
   beams that cross them, booked only standing with the pose tracked, kept
   by submap like the map and saved beside it (`<map>.band`). The navigation
   reads what the band holds as wall; a desk at 34 cm is not in it, so the
-  duck still walks under. `QK_BAND=0` turns it off. On the apartment's
-  first 30 minutes on the twin, replayed: 97 % of its cells within 10 cm
-  of the furniture (the map's walls: 98 %); the coffee table, the bed and
-  the tub blocked where the map had 0–4 % of them as wall.
+  duck still walks under. A return within 10 cm of a wall the submap's own
+  2D grid already has is left to the map: booked in the band it thickened
+  the walls on their free side and narrowed passages. `QK_BAND=0` turns
+  it off. On the apartment's first 30 minutes on the twin, replayed: 97 %
+  of its cells within 10 cm of the furniture (the map's walls: 98 %); the
+  coffee table, the bed and the tub blocked where the map had 0–4 % of
+  them as wall. On the twin against main (docs/results.md): 48/48
+  journeys on both sides, no fall, and the exploration declared done
+  sooner.
 
 The design is ADR 0008.
 

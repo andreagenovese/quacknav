@@ -1104,18 +1104,14 @@ struct RenderedGrid {
     rows: u32,
     cols: u32,
     cells: String,
-    /// The wall cells, for the band's own render.
-    walls: Vec<bool>,
 }
 
 fn render_grid(mapper: &Mapper) -> Option<RenderedGrid> {
     let grid = mapper.slam().render()?;
     let mut cells = Vec::with_capacity(grid.width() * grid.height());
-    let mut walls = Vec::with_capacity(grid.width() * grid.height());
     for i in 0..grid.height() {
         for j in 0..grid.width() {
             let lo = grid.log_at(i, j);
-            walls.push(lo > 150);
             cells.push(if lo > 150 {
                 2u8
             } else if lo < -50 {
@@ -1132,14 +1128,13 @@ fn render_grid(mapper: &Mapper) -> Option<RenderedGrid> {
         rows: grid.height() as u32,
         cols: grid.width() as u32,
         cells: wire::b64_encode(&cells),
-        walls,
     })
 }
 
 /// The band on the rendered grid's cells, base64'd.
 fn render_band(band: &AnchoredBand, mapper: &Mapper, grid: &RenderedGrid) -> Option<String> {
     let view = band.view(mapper.slam());
-    (!view.is_empty()).then(|| wire::b64_encode(&view.render(grid.x_min, grid.y_min, grid.cell_m, grid.rows as usize, grid.cols as usize, Some(&grid.walls))))
+    (!view.is_empty()).then(|| wire::b64_encode(&view.render(grid.x_min, grid.y_min, grid.cell_m, grid.rows as usize, grid.cols as usize)))
 }
 
 /// The band saved beside the session at `session`; empty when there is

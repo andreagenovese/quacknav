@@ -518,6 +518,50 @@ time, the main arm with the four knobs off):
   `maploc`'s `evaluate` panic and the coverage come out empty; it now
   evaluates up to it.
 
+### The band: 2.5D at the duck's height (2026-10-14/16)
+
+The band (README "Using it", `maploc::band`) is read by the navigation as
+wall. Three twin runs, velstand, two twins at a time, four sessions of
+30 minutes exploring from nothing then four rounds of journeys on the
+house it made, apartment and casa_arredata:
+
+| run | arm | apartment journeys | "at the tightest" a round | casa_arredata journeys | exploring declared done |
+|---|---|---|---|---|---|
+| 1 | main e24c6ef | 24/24, median 109 s | 0-1 | 24/24, median 104 s | neither house in 4 sessions |
+| 1 | the band as first built | 24/24, median 99 s | 16-23 (rounds 2-4) | 24/24, median 94 s | apartment session 2, casa_arredata 4 |
+| 2 | wary: beside a 2D wall, the band needs saturated evidence | 24/24 | 0-17 | 24/24 | casa_arredata 3; the apartment "stuck" twice |
+| 2 | snap: returns near the submap's own 2D wall left to it | 24/24, median 109 s | 0 | 17/24 (bath 0/4) | apartment 3 |
+| 3 | main e24c6ef | 24/24, median 114 s | 0 | 24/24, median 89 s | casa_arredata 4 |
+| 3 | **snap (merged)** | **24/24, median 114 s** | **0** | **24/24, median 94 s** | **apartment 3, casa_arredata 3** |
+
+No fall in any arm. "At the tightest" counts the planner going through
+"at the tightest the body allows" for want of a way at its usual margins.
+
+- **Why the first band slowed the apartment.** It thickened the walls by
+  a cell or two on their free side: replayed, 67 % of the cells only the
+  band blocked touched a wall of the 2D map, and their evidence was
+  saturated, not noise. Two passages narrowed (the corridor along the
+  bath's wall, a kitchen stool by the wall), and g4 took 220-231 s
+  instead of about 110 in two rounds.
+- **Wary did not help:** most of those cells were saturated, so a
+  stricter threshold beside the walls left them, the slow journeys stayed
+  and the duck declared itself sealed in on open floor twice.
+- **Snap** removed them where it matters: no tight passage in any round.
+  Its casa_arredata journeys in run 2 failed the bath 4/4 with "no way on
+  the map"; the frozen map drawn back (`examples/band` on the saved
+  session) had the bath reachable with the band at 15 cm of clearance, and
+  the difference was the drop book: the corridor's hole before the bath
+  door charted at 3 rim points against 9. Run 3, the confirmation, had
+  the bath at 94 % from the first session and 24/24 journeys.
+- Truth coverage per room at the end, run 3: apartment main 92-100 %,
+  snap 94-100 %; casa_arredata main 62-100 %, snap 60-99 % (the bedroom,
+  62 / 60 %, is as low in every arm of all three runs).
+- The twin's depth sensor casts one ray per zone centre (microduck_rl
+  `sim/tof.py`); the real sensor's zone is about 5.6° wide. How a wide
+  zone grazing a wall lands in the band is unmeasured until hardware.
+- Verdict: no regression in reach, falls or journey time, and the
+  exploration ends sooner. The band ships with snap on.
+
 ## Known limits
 
 - **A rim booked where the pose had it.** About 1 in 50 drops lands 20–35 cm

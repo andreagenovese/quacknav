@@ -64,13 +64,12 @@ pub struct BandConfig {
     /// A beam that hit something clears only up to this short of the
     /// return (the sensor's own spread).
     pub end_margin_m: f32,
-    /// Next to a 2D wall (its cell or the eight around it) a slice is
-    /// occupied only at or above this. A wall's own returns, spread a cell
-    /// either side of its face, otherwise thicken it on the free side;
-    /// `occupied` here leaves the band as it was.
-    pub wall_occupied: i8,
     /// A return within this of a wall in the submap's own 2D grid is that
     /// wall's, not the band's, and is not booked (0: every return is).
+    /// Without it the band thickened the walls on their free side and
+    /// narrowed passages: on the twin's apartment the duck went through
+    /// "at the tightest the body allows" 16-23 times a round of journeys,
+    /// one of them twice as long; with it, never, as on main.
     pub wall_snap_m: f32,
 }
 
@@ -87,8 +86,7 @@ impl Default for BandConfig {
             occupied: 5,
             step_m: 0.02,
             end_margin_m: 0.05,
-            wall_occupied: 5,
-            wall_snap_m: 0.0,
+            wall_snap_m: 0.10,
         }
     }
 }
@@ -209,11 +207,7 @@ impl Band {
     }
 
     fn judge(&self, col: &[i8; SLICES]) -> Column {
-        self.judge_at(col, self.cfg.occupied)
-    }
-
-    fn judge_at(&self, col: &[i8; SLICES], occupied: i8) -> Column {
-        match col.iter().position(|&v| v >= occupied) {
+        match col.iter().position(|&v| v >= self.cfg.occupied) {
             Some(lowest) => Column::Blocked { lowest, under_clear: col[..lowest].iter().any(|&v| v < 0) },
             None if col.iter().any(|&v| v < 0) => Column::Clear,
             None => Column::Unseen,
@@ -256,22 +250,13 @@ impl Band {
     /// The band drawn on a grid's geometry (row 0 at `y_min`, row-major):
     /// one byte a cell, 0 unseen, 1 clear, `2 + lowest` blocked from that
     /// slice up, `2 + SLICES + lowest` an overhang (blocked, with a beam
-    /// seen crossing under it). `walls`, the 2D map's walls on the same
-    /// cells, holds the cells beside them to [`BandConfig::wall_occupied`].
-    pub fn render(&self, x_min: f32, y_min: f32, cell_m: f32, rows: usize, cols: usize, walls: Option<&[bool]>) -> Vec<u8> {
-        let walls = walls.filter(|w| w.len() == rows * cols);
-        let beside = |r: usize, c: usize| {
-            walls.is_some_and(|w| {
-                (r.saturating_sub(1)..=(r + 1).min(rows - 1)).any(|i| (c.saturating_sub(1)..=(c + 1).min(cols - 1)).any(|j| w[i * cols + j]))
-            })
-        };
+    /// seen crossing under it).
+    pub fn render(&self, x_min: f32, y_min: f32, cell_m: f32, rows: usize, cols: usize) -> Vec<u8> {
         let mut out = vec![0u8; rows * cols];
         for (r, row) in out.chunks_mut(cols).enumerate() {
             let y = y_min + (r as f32 + 0.5) * cell_m;
             for (c, slot) in row.iter_mut().enumerate() {
-                let occupied = if beside(r, c) { self.cfg.wall_occupied } else { self.cfg.occupied };
-                let column = self.cells.get(&self.key(x_min + (c as f32 + 0.5) * cell_m, y)).map_or(Column::Unseen, |col| self.judge_at(col, occupied));
-                *slot = match column {
+                *slot = match self.at(x_min + (c as f32 + 0.5) * cell_m, y) {
                     Column::Unseen => 0,
                     Column::Clear => 1,
                     Column::Blocked { lowest, under_clear: false } => 2 + lowest as u8,
@@ -492,6 +477,19 @@ mod tests {
     }
 
     #[test]
+    fn a_return_on_a_wall_the_2d_map_has_is_left_to_it() {
+        // A wall at 1.0 m, the 2D map's; a table top at 0.5 m, not.
+        let wall = |x: f32, _y: f32| (x - 1.0).abs() <= 0.10;
+        let mut band = Band::new(BandConfig::default());
+        for _ in 0..5 {
+            band.observe_beside((0.0, 0.0, 0.0), &fan((0.5, 0.7), (0.14, 0.22)), wall);
+            band.observe_beside((0.0, 0.0, 0.0), &[Ray { from: [0.0, 0.0, 0.24], to: [1.0, 0.0, 0.15], hit: true }], wall);
+        }
+        assert!(matches!(band.at(0.52, 0.0), Column::Blocked { .. }), "the table is the band's");
+        assert!(!matches!(band.at(1.0, 0.0), Column::Blocked { .. }), "the wall is the map's");
+    }
+
+    #[test]
     fn a_desk_above_the_band_is_not_in_the_way() {
         let mut band = Band::new(BandConfig::default());
         for _ in 0..10 {
@@ -518,7 +516,7 @@ mod tests {
         // up — slice 2.
         assert_eq!(band.at(1.025, 3.01), Column::Blocked { lowest: 2, under_clear: false });
         assert_eq!(band.at(1.025, 2.6), Column::Clear);
-        let grid = band.render(0.5, 2.5, 0.05, 12, 20, None);
+        let grid = band.render(0.5, 2.5, 0.05, 12, 20);
         // (1.025, 3.01) sits in row 10, column 10.
         assert_eq!(grid[10 * 20 + 10], 4);
         assert!(grid.contains(&1) && grid.contains(&0));

@@ -37,8 +37,11 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   booked standing with the pose tracked, kept by submap and saved beside
   the map (`<map>.band`). It rides `map.frame` as `band`, the navigation
   reads it as wall (`QK_BAND=0`: not), and the twin's viewer draws it in
-  violet. What it fixes: a coffee table's top, a bed, a tub read as free
-  floor on the 2D map. `examples/band` and `scripts/band/band_vs_truth.py`
+  violet. Returns within 10 cm of a wall in the submap's own 2D grid are
+  left to the map (`BandConfig::wall_snap_m`), so the band does not
+  thicken the walls. What it fixes: a coffee table's top, a bed, a tub
+  read as free floor on the 2D map. On the twin against main: 48/48
+  journeys both, no fall (docs/results.md). `examples/band` and `scripts/band/band_vs_truth.py`
   measure it on a recording against a twin scene.
 - Twin: people and pets that move (`TWIN_MOVERS`, `viewer/movers.py`),
   and two houses with them: casa_viva and casa_porta.
