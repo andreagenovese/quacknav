@@ -301,6 +301,8 @@ impl Oracle {
             frame.rows = m.rows as u32;
             frame.cols = m.cols as u32;
             frame.cells = enc.clone();
+            // The band is the mapper's, on the mapper's cells.
+            frame.band = None;
         }
         if let Some(slot) = &self.pose
             && let Some(((x, y, yaw), at)) = *slot.lock().expect("oracle pose poisoned")

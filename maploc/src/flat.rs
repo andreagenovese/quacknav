@@ -22,6 +22,9 @@ pub struct FlatScan {
     pub ranges: Vec<f32>,
     /// The sensor's levelled body-frame position the ranges start at.
     pub sensor_xy: (f32, f32),
+    /// The same frame in 3D for the band ([`crate::band`]): every beam that
+    /// met something or the floor, levelled, z above the floor.
+    pub rays: Vec<crate::band::Ray>,
 }
 
 /// Reproject one frame and flatten it: every `Hit` zone, levelled by the
@@ -36,14 +39,24 @@ pub fn flatten(
     let zones = rp.project(ranges_m, head_joints, posture);
     let level = level_from_gravity(posture.gravity);
     let sensor = level.rotate(rp.sensor_in_trunk(head_joints).pos);
+    // The trunk origin's height above the floor, as `project` takes it.
+    let up = posture.trunk_height_m.unwrap_or_else(|| kinematics::Model::alpha().trunk_height_m());
+    let lift = |p: [f64; 3]| [p[0] as f32, p[1] as f32, (p[2] + up) as f32];
 
     let mut angles = Vec::with_capacity(N_ZONES);
     let mut ranges = Vec::with_capacity(N_ZONES);
+    let mut rays = Vec::with_capacity(N_ZONES);
     for zone in zones {
-        let Zone::Hit { point, .. } = zone else {
-            continue;
+        let (point, hit) = match zone {
+            Zone::Hit { point, .. } => (point, true),
+            Zone::Floor { point } => (point, false),
+            _ => continue,
         };
         let p = level.rotate(point);
+        rays.push(crate::band::Ray { from: lift(sensor), to: lift(p), hit });
+        if !hit {
+            continue;
+        }
         let (dx, dy) = (p[0] - sensor[0], p[1] - sensor[1]);
         let range = (dx * dx + dy * dy).sqrt();
         if range <= 0.0 {
@@ -56,6 +69,7 @@ pub fn flatten(
         angles_body: angles,
         ranges,
         sensor_xy: (sensor[0] as f32, sensor[1] as f32),
+        rays,
     }
 }
 

@@ -72,8 +72,13 @@ same line until the caller goes:
   `still`, `seated`, `frozen`, `pose_sigma`, `resting` and `untrusted` —
   absent when false — and `rest_watch`, as in `robot.map_status`), the grid (`x_min`, `y_min`,
   `cell_m`, `rows`, `cols`, and `cells`: base64, one byte a cell, 0 unknown,
-  1 free, 2 wall, row-major, row 0 at `y_min`), and `n_submaps`, `n_loops`,
-  `windows`. A jump of tens of submaps is another map (loaded, adopted,
+  1 free, 2 wall, row-major, row 0 at `y_min`), `band` (absent before the
+  duck has looked around standing: the 2.5D band on the same cells, one
+  byte a cell, 0 unseen, 1 clear at the duck's height, 2–11 something in
+  the way from slice `byte − 2` up — 2.5 cm slices from 0.05 m to 0.30 m —
+  and 12–21 the same with a beam seen under it, a table top or a bed's
+  edge; the navigation reads 2–21 as wall, `QK_BAND=0` not), and
+  `n_submaps`, `n_loops`, `windows`. A jump of tens of submaps is another map (loaded, adopted,
   wiped): a trail drawn on the old one means nothing on it.
 - `map.pose`, every 50 ms between frames: `seq` (the frame it belongs to),
   `x`, `y`, `yaw`, `tracking`, `seated`, `pose_sigma`.

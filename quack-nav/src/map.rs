@@ -143,6 +143,25 @@ pub struct MapFrame {
     /// The last watch of a rest, since this mapper began.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub rest_watch: Option<RestWatchSeen>,
+    /// The band (maploc's `band`, 2.5D) on the same cells as `cells`:
+    /// base64 of one byte a cell, 0 unseen, 1 seen clear at the duck's
+    /// height, 2–11 something in the way from that slice up (2.5 cm
+    /// slices from 0.05 m), 12–21 the same with a beam seen under it — a
+    /// table top, a bed, a tub's rim. [`MapFrame::grid`] reads it as wall.
+    /// Absent from a mapper that keeps no band.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub band: Option<String>,
+}
+
+/// The band's cells within this of the duck are not walls: the body stands
+/// there (the band's own strike clears 6 cm; this is the planner's margin
+/// for a cell booked an instant before the duck stepped on it).
+pub const BAND_CLEAR_AROUND_M: f64 = 0.15;
+
+/// `QK_BAND=0`: the band (`MapFrame::band`) is not read as walls.
+pub fn band_on() -> bool {
+    static V: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *V.get_or_init(|| std::env::var("QK_BAND").map_or(true, |v| v != "0"))
 }
 
 /// A rest's watch as the frame carries it: one window judged against the
@@ -192,7 +211,7 @@ impl MapFrame {
             self.rows,
             self.cols
         );
-        let cells = bytes
+        let mut cells: Vec<Cell> = bytes
             .into_iter()
             .map(|b| match b {
                 1 => Cell::Free,
@@ -200,6 +219,24 @@ impl MapFrame {
                 _ => Cell::Unknown,
             })
             .collect();
+        // What stands at the duck's height and the 2D map lets the beams
+        // under it erase — a coffee table's top, a bed — is a wall to
+        // everything that reads the grid. Not under the duck itself.
+        if band_on()
+            && let Some(band) = self.band.as_deref().and_then(b64_decode).filter(|b| b.len() == expected)
+        {
+            let (cell_m, x0, y0) = (f64::from(self.cell_m), f64::from(self.x_min), f64::from(self.y_min));
+            for (i, b) in band.into_iter().enumerate() {
+                if b < 2 || cells[i] == Cell::Wall {
+                    continue;
+                }
+                let (row, col) = (i / self.cols as usize, i % self.cols as usize);
+                let (x, y) = (x0 + (col as f64 + 0.5) * cell_m, y0 + (row as f64 + 0.5) * cell_m);
+                if (x - self.x).hypot(y - self.y) > BAND_CLEAR_AROUND_M {
+                    cells[i] = Cell::Wall;
+                }
+            }
+        }
         Ok(Grid {
             rows: self.rows as usize,
             cols: self.cols as usize,
@@ -767,7 +804,24 @@ mod tests {
             resting: false,
             untrusted: false,
             rest_watch: None,
+            band: None,
         }
+    }
+
+    #[test]
+    fn the_band_is_a_wall_except_under_the_duck() {
+        // 2 rows × 3 cols: unknown free wall / wall wall free; the band has
+        // a table top over (0, 1) and something low over (1, 2).
+        let mut f = frame(1, 1, &[0, 1, 2, 2, 2, 1], 2, 3);
+        f.band = Some(b64_encode(&[0, 13, 1, 0, 0, 3]));
+        let g = f.grid().unwrap();
+        assert_eq!((g.cell(0, 1), g.cell(1, 2), g.cell(0, 0)), (Some(Cell::Wall), Some(Cell::Wall), Some(Cell::Unknown)));
+        // The duck standing on (1, 2): that one is floor.
+        (f.x, f.y) = (0.25, -0.25);
+        assert_eq!(f.grid().unwrap().cell(1, 2), Some(Cell::Free));
+        // A band of the wrong size is ignored, not half read.
+        f.band = Some(b64_encode(&[13, 13]));
+        assert_eq!(f.grid().unwrap().counts(), (1, 2, 3));
     }
 
     #[test]

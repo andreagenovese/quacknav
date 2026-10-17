@@ -75,7 +75,13 @@ connessione finché il chiamante non se ne va:
   `tracking`, `still`, `seated`, `frozen`, `pose_sigma`, `resting` e
   `untrusted` — assenti quando sono falsi — e `rest_watch`, come in `robot.map_status`), la griglia
   (`x_min`, `y_min`, `cell_m`, `rows`, `cols`, e `cells`: base64, un byte
-  per cella, 0 ignota, 1 libera, 2 muro, per righe, riga 0 a `y_min`), e
+  per cella, 0 ignota, 1 libera, 2 muro, per righe, riga 0 a `y_min`),
+  `band` (assente finché la papera non si è guardata intorno da ferma: lo
+  strato 2.5D sulle stesse celle, un byte per cella, 0 non visto, 1 libero
+  all'altezza della papera, 2–11 qualcosa d'ingombro dalla fetta `byte − 2`
+  in su — fette di 2,5 cm da 0,05 m a 0,30 m — e 12–21 lo stesso con un
+  raggio visto passarci sotto, il piano di un tavolino o il bordo di un
+  letto; la navigazione legge 2–21 come muro, `QK_BAND=0` no), e
   `n_submaps`, `n_loops`, `windows`. Un salto di decine di submap è
   un'altra mappa (caricata, adottata, cancellata): una scia disegnata sulla
   vecchia non vuol dire niente sulla nuova.

@@ -21,6 +21,7 @@ Every knob needs that restart: the environment is read at the process's start.
 | `QK_BACK_REORIENT` | on unless 0 | `quack-nav/src/explore/gait.rs` | `QK_BACK_REORIENT=0`: after the step back, head for the most open floor and walk a leg there, as before. |
 | `QK_BACK_S` | number (default 1.5) | `quack-nav/src/explore/gait.rs` | The step back: this gait needs about a second to start moving at all, so a shorter one moves nothing (measured); and no more often than this. |
 | `QK_BACK_STEP_S` | number (default 0.6) | `quack-nav/src/explore/stick.rs` | `QK_BACK_STEP_S`: [`BACK_STEP_S`] for an experiment. |
+| `QK_BAND` | on unless 0 | `quack-nav/src/map.rs` | `QK_BAND=0`: the band (`MapFrame::band`) is not read as walls. |
 | `QK_BLIND_CONE_LANE` | on unless 0 | `quack-nav/src/explore/guarded.rs` | The cone widens at short range to the lane's own angle — at 0.25 m a 12 cm lane is 26°, and a cube 0.25 m ahead at 18° inside the lane was outside the 15° cone, walked over and dragged 1.9 m (sideA016r, 2026-09-22). |
 | `QK_CLIFF_MARGIN_M` | number (default 0.25) | `quack-nav/src/tools.rs` | Stop this far short of a drop's edge — farther than a wall's margin, because an edge is not a bump. |
 | `QK_CLOSE_LOOK` | 1 on, 0 off, else the caller's default | `quack-nav/src/explore/close_look.rs` | `QK_CLOSE_LOOK=0`: no close looks. |
@@ -84,6 +85,13 @@ Every knob needs that restart: the environment is read at the process's start.
 | `ALIGN_RESID` | number (unset: none) | `maploc/examples/align_maps.rs` | `ALIGN_BEAMS` and `ALIGN_RESID` override the two knobs. |
 | `ASK_EVERY_S` | number (default 60.0) | `maploc/examples/wake_match.rs` | The homecoming's map-to-map question, asked offline, with the answer known: a recording replayed from `start_s` into a FRESH map — a duck woken there, its map starting where it stands — and every `ASK_EVERY_S` the fresh … |
 | `ASK_FOR_S` | number (default 900.0) | `maploc/examples/wake_match.rs` | `ASK_EVERY_S` (60) and `ASK_FOR_S` (900) set the cadence and the span. |
+| `BAND_HIT` | number (default f32::from(d.hit)) | `maploc/examples/band.rs` |  |
+| `BAND_MARGIN` | number (default d.end_margin_m) | `maploc/examples/band.rs` |  |
+| `BAND_OCC` | number (default f32::from(d.occupied)) | `maploc/examples/band.rs` |  |
+| `BAND_PASS` | number (default f32::from(d.pass)) | `maploc/examples/band.rs` |  |
+| `BAND_RANGE` | number (default d.max_range_m) | `maploc/examples/band.rs` |  |
+| `BAND_SNAP` | number (default d.wall_snap_m) | `maploc/examples/band.rs` |  |
+| `BAND_ZLO` | number (default d.z_lo_m) | `maploc/examples/band.rs` |  |
 | `BOOK` | a value | `quack-nav/examples/drop_replay.rs` | `BOOK=<ground.json>:<map>`: the book's holes too, each checked against the floor strike (explore::books' rule, replayed): which phantoms it would take off, and whether it ever takes a true rim. |
 | `CORR_LOG` | a path, or a value | `maploc/examples/trajectory.rs` | `CORR_LOG=<file>`: every tracking correction a window made, against the truth — which of them moved the pose toward it and which away (casa_arredata, 2026-09-29: the windows pulled the pose 3.5-7 cm north one after the o… |
 | `CUT_ON_CORR` | number (default mapper_cfg.tracking.cut_on_correction_m) | `maploc/examples/evaluate.rs` |  |

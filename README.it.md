@@ -131,6 +131,24 @@ qualunque cosa parli il socket:
   risposta); dopo uno STOP funzionano subito — su una posa persa o non
   fidata giudicati dal solo sensore di profondità, con la guardia del
   dirupo di `robot.move` accesa.
+- **Tavoli, letti, una vasca.** La mappa è una pianta: quello che la
+  papera incontra alla propria altezza ma che i raggi passano sotto o sopra
+  — il piano di un tavolino a 14–22 cm, il bordo di un letto, quello di una
+  vasca — lì risulta pavimento libero. Così il mapper tiene anche uno
+  **strato** (band): per ogni cella di 5 cm, dieci fette di 2,5 cm da 5 a
+  30 cm, riempite dai ritorni e svuotate, fetta per fetta, dai raggi che le
+  attraversano; registrato solo da ferma con la posa fidata, tenuto per
+  submap come la mappa e salvato accanto a lei (`<mappa>.band`). La
+  navigazione legge come muro quello che lo strato contiene; una scrivania
+  a 34 cm non c'è, e la papera ci passa ancora sotto. Un ritorno entro
+  10 cm da un muro che la mappa 2D della sua stessa submap ha già è
+  lasciato alla mappa: registrato nello strato ingrossava i muri dal lato
+  libero e stringeva i passaggi. `QK_BAND=0` lo spegne. Sui primi 30
+  minuti dell'appartamento sul gemello, ripassati: il 97 % delle sue celle
+  entro 10 cm dai mobili (i muri della mappa: 98 %); il tavolino, il letto
+  e la vasca bloccati dove la mappa ne aveva come muro lo 0–4 %. Sul
+  gemello contro main (docs/results.it.md): 48/48 viaggi da entrambe le
+  parti, nessuna caduta, e l'esplorazione dichiarata finita prima.
 
 Il progetto è l'ADR 0008.
 

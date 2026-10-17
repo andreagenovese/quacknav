@@ -15,6 +15,7 @@
 //! Module map:
 //!
 //!   accumulator    — still-window frame voting: many noisy frames → one scan
+//!   band           — 2.5D: what stands at the duck's own height, per cell
 //!   grid           — 2D log-odds occupancy + cached distance field
 //!   submap         — local grid + SE(2) anchor pose + retained raw scans
 //!   submap_manager — open / freeze submaps based on time + travel
@@ -42,6 +43,7 @@
 
 pub mod accumulator;
 pub mod align;
+pub mod band;
 #[cfg(feature = "kinematics")]
 pub mod bench;
 #[cfg(feature = "kinematics")]

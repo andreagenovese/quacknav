@@ -7,7 +7,9 @@
 The map crosses the process boundary as robotd's `robot.map` stream: JSON-RPC
 `map.frame` notifications on robotd's unix socket, one per second, carrying a
 base64 grid of one byte per cell (0 unknown, 1 free, 2 wall) plus the pose.
-Nothing here knows about SLAM; it decodes MapFrame and emits boxes.
+Nothing here knows about SLAM; it decodes MapFrame and emits boxes. The band
+(2.5D, maploc's `band`), when the frame has one, is drawn as violet boxes at
+the height it holds something: from its lowest slice up to the duck's top.
 
 Two entry points:
   * `MapSource` — a background thread that subscribes to robotd and keeps the
@@ -39,6 +41,9 @@ WALL_H = 0.26
 
 COLOR_FREE = (0.20, 0.55, 0.95, 0.28)
 COLOR_WALL = (1.00, 0.35, 0.15, 0.55)
+COLOR_BAND = (0.65, 0.25, 0.95, 0.70)
+# The band's slices (maploc::band): 2.5 cm from 0.05 m, ten of them.
+BAND_Z0, BAND_SLICE, BAND_SLICES = 0.05, 0.025, 10
 COLOR_POSE = (1.00, 0.90, 0.10, 0.95)
 COLOR_TRAIL = (1.00, 0.20, 0.40, 0.85)
 # quack-nav's plan (asked of quack-navd's socket, or of quacksat's MCP,
@@ -76,6 +81,7 @@ class MapFrame:
     windows: int
     still: bool
     seated: bool
+    band: np.ndarray | None = None  # uint8 like `cells`, or None
 
     @staticmethod
     def from_params(p: dict) -> "MapFrame":
@@ -83,6 +89,7 @@ class MapFrame:
         raw = base64.b64decode(p["cells"])
         if len(raw) != rows * cols:
             raise ValueError(f"cells is {len(raw)} bytes, expected {rows * cols}")
+        band = base64.b64decode(p["band"]) if p.get("band") else b""
         return MapFrame(
             seq=int(p["seq"]),
             x=float(p["x"]), y=float(p["y"]), yaw=float(p["yaw"]),
@@ -96,6 +103,7 @@ class MapFrame:
             windows=int(p.get("windows", 0)),
             still=bool(p.get("still", False)),
             seated=bool(p.get("seated", False)),
+            band=np.frombuffer(band, dtype=np.uint8).reshape(rows, cols) if len(band) == rows * cols else None,
         )
 
     def caption(self) -> str:
@@ -354,6 +362,23 @@ def draw(scn, frame: MapFrame, trail=None, show_free=True, truth=None, plan=None
             _add(scn, mujoco.mjtGeom.mjGEOM_BOX,
                  (length * half, half, WALL_H),
                  (wx, wy, WALL_Z), _rot9, COLOR_WALL)
+
+    # The band: what stands at the duck's height, from its lowest slice up to
+    # the band's top (the byte is 2 + lowest, or 2 + SLICES + lowest with a
+    # beam seen under it).
+    if frame.band is not None:
+        top = BAND_Z0 + BAND_SLICES * BAND_SLICE
+        lowest = np.where(frame.band >= 2, (frame.band.astype(np.int16) - 2) % BAND_SLICES, -1)
+        for r in range(frame.rows):
+            y = frame.y_min + (r + 0.5) * c
+            for k in np.unique(lowest[r]):
+                if k < 0:
+                    continue
+                z0 = BAND_Z0 + k * BAND_SLICE
+                for start, length in _runs(lowest[r], k):
+                    wx, wy = _w(frame.x_min + start * c + length * half, y)
+                    _add(scn, mujoco.mjtGeom.mjGEOM_BOX, (length * half, half * 0.8, (top - z0) / 2),
+                         (wx, wy, (top + z0) / 2), _rot9, COLOR_BAND)
 
     # The tracked path, in the map frame — deliberately separate from odometry,
     # because after a loop closure the two frames differ.
