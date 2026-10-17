@@ -13,7 +13,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: dtolnay/rust-toolchain@stable
 
@@ -46,7 +46,7 @@ jobs:
   aarch64:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -94,7 +94,7 @@ jobs:
           scripts/package.sh "$version" target/aarch64-unknown-linux-gnu/release/quack-navd dist
           tar tzvf dist/quack-nav-"$version"-aarch64-linux.tar.gz
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: quack-navd-aarch64-linux
           path: dist/
@@ -110,9 +110,9 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: quack-navd-aarch64-linux
           path: dist
@@ -124,7 +124,7 @@ jobs:
           python3 scripts/ci/release_body.py "$GITHUB_REF_NAME" "$GITHUB_REPOSITORY" "$RUNNER_TEMP/notes.md"
           echo "NOTES=$RUNNER_TEMP/notes.md" >> "$GITHUB_ENV"
 
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           files: dist/*
           body_path: ${{ env.NOTES }}
