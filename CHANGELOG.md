@@ -43,6 +43,17 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   read as free floor on the 2D map. On the twin against main: 48/48
   journeys both, no fall (docs/results.md). `examples/band` and `scripts/band/band_vs_truth.py`
   measure it on a recording against a twin scene.
+- **A textured 3D house, off board (experimental)** (`scripts/map3d`,
+  its README). `record.py` keeps the head camera's frames, the pose on
+  the map and the depth sensor's ranges beside an exploring duck;
+  `build.py` builds a 3D house with the camera's colours on a Mac or a PC
+  (Depth Anything V2 Small, Apache-2.0, scaled to metres by the depth
+  sensor; fused in a TSDF) and writes `house3d.bin` for quack-control's
+  3D tab; `send.sh` (or `build.py --send user@host`) puts it on the duck.
+  Twin, casa_arredata, 15 minutes exploring: walls and furniture 2.6 cm
+  from the truth (median), 96 % within 10 cm.
+- Twin: the head camera faces forward (`viewer/body_with_map.py`, only
+  while the model's looks away from the depth sensor).
 - Twin: people and pets that move (`TWIN_MOVERS`, `viewer/movers.py`),
   and two houses with them: casa_viva and casa_porta.
 - `twin_ab.py --knobs ARM:K=V,...`: an arm with its own knobs.

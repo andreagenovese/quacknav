@@ -9,6 +9,7 @@ mappa di quack-navd. Inglese: [README.md](README.md).
 python3 scripts/map3d/record.py $STATE rec/ 300 [--sim-port 7872]   # accanto a una papera che esplora
 python3 scripts/map3d/build.py rec/ out/ --voxel 0.02               # iso_*.png, top.png, cloud.ply, house3d.bin
 python3 scripts/map3d/accuracy.py out/ rec/ <casa>.truth.json       # solo il gemello
+scripts/map3d/send.sh microduck@<papera> out/house3d.bin          # sulla papera, per quack-control
 ```
 
 - `record.py` tiene un frame ogni mezzo secondo mentre la papera è ferma.
@@ -21,12 +22,17 @@ python3 scripts/map3d/accuracy.py out/ rec/ <casa>.truth.json       # solo il ge
 - `house3d.bin` è la casa per la scheda **3D** di quack-control (il suo
   servizio `house3d`, `/var/lib/quack-control/house3d.bin` sulla papera):
   ~0,5 MB per la prima prova, con il nome della mappa, così la pagina ci
-  disegna la papera dal vivo solo su quella mappa. Si copia come dice il
-  README di quack-control.
+  disegna la papera dal vivo solo su quella mappa. `send.sh` lo copia
+  sulla papera via ssh (lì serve sudo; `--dry-run` mostra i comandi,
+  `SSH_OPTS` aggiunge opzioni a ssh), oppure `build.py --send
+  microduck@<papera>` subito dopo la costruzione; il ↻ della scheda 3D
+  mostra la casa nuova, non si riavvia niente. Sul gemello, si punta invece
+  `house_file` di quack-control a `out/house3d.bin`.
 - Prima prova (2026-10-14, casa_arredata, velstand, 5 minuti di
   esplorazione, 42 % della casa mappato): 248 frame fusi su 296; contro la
   verità del gemello, il pavimento entro 1 cm (mediana), pareti e mobili
-  2,3 cm di mediana, il 96 % entro 10 cm.
+  2,3 cm di mediana, il 96 % entro 10 cm. Quindici minuti (2026-10-14):
+  857 frame su 889, 1,35 MB, 2,6 cm di mediana, il 96 % entro 10 cm.
 - Solo nel simulatore la camera della testa guarda all'indietro: il MJCF
   di microduck_rl mette `head_camera` a 180 gradi dal sito `tof` (la
   papera è a posto: `frames.camera` di robotd guarda avanti). Pollen lo

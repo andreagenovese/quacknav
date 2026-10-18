@@ -1,4 +1,4 @@
-"""build.py <recording dir> <out dir> [--max N] [--voxel M] [--truth] [--keep-sky]
+"""build.py <recording dir> <out dir> [--max N] [--voxel M] [--truth] [--keep-sky] [--send user@host]
 
 A textured 3D house from what record.py kept: the head camera's frames,
 the pose on the map, the camera's and the depth sensor's place on the
@@ -30,12 +30,14 @@ measuring what the map's pose costs.
 Outputs in <out dir>: iso_*.png, top.png, cloud.ply (the surface as
 coloured points), house3d.bin (the same for quack-control's 3D view;
 write_house3d says how) and fit.tsv (each frame's scale fit).
+`--send user@host` then puts house3d.bin on the duck (send.sh).
 """
 from __future__ import annotations
 
 import json
 import math
 import os
+import subprocess
 import sys
 import time
 
@@ -353,7 +355,7 @@ def write_house3d(path, P, C, N, meta):
 
 def main():
     args = sys.argv[1:]
-    opts = {"--max": None, "--voxel": "0.025"}
+    opts = {"--max": None, "--voxel": "0.025", "--send": None}
     for k in list(opts):
         if k in args:
             i = args.index(k)
@@ -424,6 +426,9 @@ def main():
         render(P, C, N, az, 35.264, voxel=voxel, cut=CUT_Z_M,
                title=f"isometric from {name.upper()}, cut at {CUT_Z_M} m - {used} frames fused", path=way).save(f"{out}/iso_{name}.png")
     render(P, C, N, 270, 89.9, voxel=voxel, cut=CUT_Z_M, title="from above", path=way).save(f"{out}/top.png")
+    if opts["--send"]:
+        here = os.path.dirname(os.path.abspath(__file__))
+        subprocess.run([f"{here}/send.sh", opts["--send"], f"{out}/house3d.bin"], check=True)
 
 
 if __name__ == "__main__":

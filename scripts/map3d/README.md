@@ -9,6 +9,7 @@ Italian: [README.it.md](README.it.md).
 python3 scripts/map3d/record.py $STATE rec/ 300 [--sim-port 7872]   # beside an exploring duck
 python3 scripts/map3d/build.py rec/ out/ --voxel 0.02               # iso_*.png, top.png, cloud.ply, house3d.bin
 python3 scripts/map3d/accuracy.py out/ rec/ <house>.truth.json      # the twin only
+scripts/map3d/send.sh microduck@<duck> out/house3d.bin            # onto the duck, for quack-control
 ```
 
 - `record.py` keeps a frame each half second while the duck stands.
@@ -20,11 +21,16 @@ python3 scripts/map3d/accuracy.py out/ rec/ <house>.truth.json      # the twin o
 - `house3d.bin` is the house for quack-control's **3D** tab (its `house3d`
   service, `/var/lib/quack-control/house3d.bin` on the duck): ~0.5 MB for
   the first run, with the map's name, so the page draws the live duck on
-  it only on that map. Copy it as quack-control's README says.
+  it only on that map. `send.sh` copies it to the duck over ssh (sudo
+  there; `--dry-run` shows the commands, `SSH_OPTS` adds ssh options), or
+  `build.py --send microduck@<duck>` right after building; the 3D tab's
+  ↻ shows the new house, nothing restarts. On the twin, point
+  quack-control's `house_file` at `out/house3d.bin` instead.
 - First run (2026-10-14, casa_arredata, velstand, 5 minutes exploring,
   42 % of the house mapped): 248 of 296 frames fused; against the twin's
   truth, the floor within 1 cm (median), walls and furniture 2.3 cm
-  median, 96 % within 10 cm.
+  median, 96 % within 10 cm. Fifteen minutes (2026-10-14): 857 of 889
+  frames, 1.35 MB, 2.6 cm median, 96 % within 10 cm.
 - In the simulator only, the head camera looks backwards: microduck_rl's
   MJCF has `head_camera` 180 degrees from the `tof` site (the duck itself
   is fine: robotd's `frames.camera` looks ahead). Pollen know it and turn
