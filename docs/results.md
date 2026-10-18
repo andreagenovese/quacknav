@@ -617,7 +617,10 @@ No fall in any arm. "At the tightest" counts the planner going through
   twice in casa_arredata the day before.
 - **"How far along" errs low**: 7–22 points under the truth after a
   session, and high in a new map's first minutes, when the walls it knows are
-  one room's.
+  one room's. At the end of the band's confirmation run (2026-10-18) the
+  houses declared themselves 78–92 % done; what is left unknown is mostly
+  under furniture, and the band covers only 0.7–0.8 m² of it, so counting
+  the band would add about two points: left as it is.
 - **Exploring lingers in corridors** (half of each session in house2), going
   back over known floor to close loops.
 - **Twin only.** None of this has run on a physical duck yet; the gait, the

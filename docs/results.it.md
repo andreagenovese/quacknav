@@ -655,7 +655,11 @@ margini soliti.
   due volte in casa_arredata il giorno prima.
 - **"A che punto sei" sbaglia per difetto**: 7–22 punti sotto la verità dopo
   una sessione, e per eccesso nei primi minuti di una mappa nuova, quando i
-  muri che conosce sono quelli di una stanza.
+  muri che conosce sono quelli di una stanza. Alla fine della prova di conferma
+  dello strato (2026-10-18) le case si sono dichiarate fatte al 78–92 %;
+  l'ignoto che resta è soprattutto sotto i mobili, e lo strato ne copre solo
+  0,7–0,8 m², quindi contarlo aggiungerebbe circa due punti: lasciato
+  com'è.
 - **L'esplorazione si attarda nei corridoi** (metà di ogni sessione in house2),
   ripassando pavimento conosciuto per chiudere i loop.
 - **Solo gemello.** Niente di tutto questo ha ancora girato su una papera
