@@ -11,6 +11,11 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ## [Unreleased]
 
+## [0.3.0-rc2] - 2026-10-18
+
+A fourth release candidate, validated on the MuJoCo and paper twins only.
+Release notes: [docs/release-notes-v0.3.0-rc2.md](docs/release-notes-v0.3.0-rc2.md).
+
 ### Changed
 
 - **Moving obstacles: four rules, on by default** (docs/results.md,

@@ -13,6 +13,11 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ## [Unreleased]
 
+## [0.3.0-rc2] - 2026-10-18
+
+Una quarta release candidate, validata solo sui gemelli MuJoCo e di carta.
+Note di rilascio: [docs/release-notes-v0.3.0-rc2.it.md](docs/release-notes-v0.3.0-rc2.it.md).
+
 ### Modificato
 
 - **Ostacoli in movimento: quattro regole, accese di default**
