@@ -13,6 +13,13 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ## [Unreleased]
 
+### Corretto
+
+- Visore del gemello: una mappa caricata al boot si disegnava al punto di
+  partenza, girata del suo angolo; ora si colloca quando la posa è
+  confermata, come una mappa scambiata (12 risvegli: entro 0,11 m e 4°
+  dall'origine vera).
+
 ## [0.3.0-rc2] - 2026-10-18
 
 Una quarta release candidate, validata solo sui gemelli MuJoCo e di carta.

@@ -4396,8 +4396,10 @@ nothing: it explores and asks.
       casa_arredata run since x18, never on casa_grande. The heading's
       max in `traj_metrics` is inflated by it: read the RMS and the
       median.
-- [ ] The apartment's wakes east of the stairwell are slow: the windows
-      refute a right seed for minutes.
+- [x] The apartment's wakes east of the stairwell are slow: the windows
+      refute a right seed for minutes. 2026-10-18, measured again: 12 of
+      12 right, median 108 s, one of 289 s (boxed in the office); no
+      longer a limit (docs/results.md, Known limits).
 - [ ] 2026-10-01: servo velocity and load (present current) on
       `robot.state` since robotd 0.15 (API v36: `velocities`, rad/s;
       `currents_ma`, mA): study load as a bump detector for obstacles
@@ -4526,8 +4528,9 @@ The rest is deferred, unchanged as the plan:
   holes are booked where the pose has them. Since 2026-10-01 a closure
   turns the heading by 4° at most; why some measure wrong is still
   unknown (§2d).
-- The apartment's wakes east of the stairwell are slow: the windows refute
-  a right seed for minutes (§2d).
+- The apartment's wakes east of the stairwell were slow (the windows
+  refuted a right seed for minutes); measured again 2026-10-18: 12/12
+  right, median 108 s (§2d).
 - Stop-and-scan mapping is deliberate work: somebody has to walk the
   duck around with pauses. Design the guided tour, do not assume it.
 - Cell pitch, map extent and CPU cost on the RK3566 are to be measured
