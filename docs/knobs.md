@@ -152,6 +152,7 @@ Every knob needs that restart: the environment is read at the process's start.
 | `TRACK_MIN_BEFORE` | number (default mapper_cfg.tracking.min_residual_before_m) | `maploc/examples/evaluate.rs` |  |
 | `TRACK_PRIOR_XY` | number (default mapper_cfg.tracking.prior_sigma_xy) | `maploc/examples/evaluate.rs` |  |
 | `TRUTH_HOLES` | a value | `quack-nav/examples/route_on_map.rs` | with `TRUTH_HOLES=<truth.json>` (the twin's truth) also to a true hole, and with `ROUTE_POINTS=1` the route. |
+| `TWIN_CAMERA_BACKWARD` | a value (script) | `scripts/twin/viewer/body_with_map.py` |  |
 | `TWIN_MOVERS` | a value (script) | `scripts/twin/viewer/body_with_map.py` |  |
 | `TWIN_MOVERS_SEED` | a value (script) | `scripts/twin/viewer/movers.py` |  |
 | `TWIN_REPO` | a value (script) | `scripts/rl/twin_ab.py` |  |
