@@ -66,6 +66,42 @@ def _truth(world):
     return (x, y, yaw)
 
 
+def face_cameras_forward(world) -> None:
+    """Turn each duck's head camera to look where its depth sensor looks.
+
+    microduck_rl's MJCF (develop, 2026-10-12) puts `head_camera` looking
+    straight back, 180 degrees from the `tof` site; the duck itself is
+    fine (robotd's `frames.camera` looks ahead). Pollen know: since
+    2026-09-02 their own body_server's camera (`sim/camera.py`, apirrone)
+    turns it at load, and they chose to leave the MJCF alone. The old
+    body_server this wrapper runs has no such turn, so it is done here:
+    half a turn about the camera's own x, the same as theirs, which keeps
+    the picture a quarter turn round as mediad's `rotate` 90 says.
+
+    Only a camera that still looks away from its sensor is turned, so a
+    model or a body_server that has already done it is left alone rather
+    than turned back. `TWIN_CAMERA_BACKWARD=1` leaves every camera as is.
+    """
+    if os.environ.get("TWIN_CAMERA_BACKWARD") == "1":
+        return
+    import mujoco
+    import numpy as np
+
+    data = mujoco.MjData(world.model)
+    mujoco.mj_forward(world.model, data)
+    for body in world.bodies:
+        cam = mujoco.mj_name2id(world.model, mujoco.mjtObj.mjOBJ_CAMERA, f"{body.prefix}head_camera")
+        tof = mujoco.mj_name2id(world.model, mujoco.mjtObj.mjOBJ_SITE, f"{body.prefix}tof")
+        if cam < 0 or tof < 0:
+            continue
+        looks = -data.cam_xmat[cam].reshape(3, 3)[:, 2]
+        if looks @ data.site_xmat[tof].reshape(3, 3)[:, 0] > 0:
+            continue
+        q = np.zeros(4)
+        mujoco.mju_mulQuat(q, world.model.cam_quat[cam].copy(), np.array([0.0, 1.0, 0.0, 0.0]))
+        world.model.cam_quat[cam] = q
+
+
 def run(world, headless: bool) -> None:
     viewer = None
     if not headless:
@@ -74,6 +110,7 @@ def run(world, headless: bool) -> None:
             world.model, world.data, show_left_ui=False, show_right_ui=False
         )
 
+    face_cameras_forward(world)
     eye = None
     if MEDIA_SOCKET and world.bodies:
         import eye as eye_mod

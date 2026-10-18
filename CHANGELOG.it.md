@@ -48,6 +48,18 @@ carta, mai su una papera fisica; i dettagli sono in
   pavimento libero nella mappa 2D. Sul gemello contro main: 48/48 viaggi
   entrambi, nessuna caduta (docs/results.it.md). `examples/band` e `scripts/band/band_vs_truth.py` lo misurano
   su una registrazione contro la scena del gemello.
+- **Una casa 3D con texture, fuori dalla papera (sperimentale)**
+  (`scripts/map3d`, il suo README). `record.py` tiene i frame della camera
+  della testa, la posa sulla mappa e le distanze del sensore di profondità
+  accanto a una papera che esplora; `build.py` costruisce una casa 3D con
+  i colori della camera su un Mac o un PC (Depth Anything V2 Small,
+  Apache-2.0, portato in metri dal sensore di profondità; fuso in un TSDF)
+  e scrive `house3d.bin` per la scheda 3D di quack-control; `send.sh` (o
+  `build.py --send utente@host`) lo mette sulla papera. Gemello,
+  casa_arredata, 15 minuti di esplorazione: muri e mobili a 2,6 cm dalla
+  verità (mediana), 96 % entro 10 cm.
+- Gemello: la camera della testa guarda avanti (`viewer/body_with_map.py`,
+  solo finché quella del modello guarda lontano dal sensore di profondità).
 - Gemello: persone e animali che si muovono (`TWIN_MOVERS`,
   `viewer/movers.py`), e due case con loro: casa_viva e casa_porta.
 - `twin_ab.py --knobs ARM:K=V,...`: un braccio con le sue manopole.
