@@ -228,6 +228,10 @@ pub struct NavdConfig {
     pub socket: String,
     /// Where robotd listens.
     pub robotd_socket: String,
+    /// Which of Pollen's daemons robotd is (`quack_duck::daemon`): "auto"
+    /// (the default) asks robotd at start; "0.16", "0.17" or a release
+    /// ("0.16.1", "0.17.6") names it. The walk's numbers follow it.
+    pub daemon: quack_duck::daemon::Choice,
     /// The knobs' env file (`nav.knobs` writes it, see [`crate::knobs`]):
     /// the same path as the unit's `EnvironmentFile=-`, read at start.
     pub knobs_env: String,
@@ -250,6 +254,7 @@ impl Default for NavdConfig {
         Self {
             socket: "/run/quack-nav/nav.sock".into(),
             robotd_socket: "/run/robotd.sock".into(),
+            daemon: quack_duck::daemon::Choice::Auto,
             knobs_env: "/var/lib/quack-nav/knobs.env".into(),
             map: MapConfig::default(),
             gait: quack_duck::gait::GaitConfig::default(),
@@ -259,7 +264,28 @@ impl Default for NavdConfig {
     }
 }
 
+/// What must be known before the rest of the file is read: `[gait]`'s
+/// defaults follow the daemon, which may have to be asked first.
+#[derive(Debug, Clone, Default, serde::Deserialize)]
+#[serde(default)]
+pub struct DaemonHead {
+    pub daemon: quack_duck::daemon::Choice,
+    pub robotd_socket: Option<String>,
+}
+
 impl NavdConfig {
+    /// The file's `daemon` and `robotd_socket` alone (the defaults when
+    /// there is no file); [`NavdConfig::load`] reads the rest once the line
+    /// is set.
+    pub fn daemon_head(path: &str) -> anyhow::Result<(quack_duck::daemon::Choice, String)> {
+        let head: DaemonHead = match std::fs::read_to_string(path) {
+            Ok(text) => toml::from_str(&text).with_context(|| format!("the config file {path} does not parse"))?,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => DaemonHead::default(),
+            Err(e) => return Err(e).with_context(|| format!("cannot read the config file {path} (is it readable by this user?)")),
+        };
+        Ok((head.daemon, head.robotd_socket.unwrap_or_else(|| Self::default().robotd_socket)))
+    }
+
     /// Read the file, or take the defaults when there is none: a daemon
     /// that cannot be started because a file is missing is a daemon
     /// somebody has to know about before the duck can walk.
@@ -288,5 +314,26 @@ mod tests {
         let e = format!("{:#}", NavdConfig::load(path).unwrap_err());
         assert!(e.contains(path), "{e}");
         assert!(e.contains("not_a_key"), "{e}");
+    }
+
+    #[test]
+    fn the_daemon_is_one_line_and_an_old_file_still_reads() {
+        use quack_duck::daemon::{Choice, Line};
+        let dir = tempfile::tempdir().unwrap();
+        // A file from before `daemon` existed: auto, and robotd's socket.
+        let old = dir.path().join("old.toml");
+        std::fs::write(&old, "robotd_socket = \"/tmp/r.sock\"\n[gait]\nprofile = \"velstand\"\n").unwrap();
+        let old = old.to_str().unwrap();
+        assert_eq!(NavdConfig::daemon_head(old).unwrap(), (Choice::Auto, "/tmp/r.sock".into()));
+        assert_eq!(NavdConfig::load(old).unwrap().daemon, Choice::Auto);
+        // One line chooses it.
+        let new = dir.path().join("new.toml");
+        std::fs::write(&new, "daemon = \"0.16.1\"\n").unwrap();
+        let new = new.to_str().unwrap();
+        assert_eq!(NavdConfig::daemon_head(new).unwrap(), (Choice::Line(Line::V0_16), "/run/robotd.sock".into()));
+        assert_eq!(NavdConfig::load(new).unwrap().daemon, Choice::Line(Line::V0_16));
+        // No file: the defaults.
+        let none = dir.path().join("none.toml");
+        assert_eq!(NavdConfig::daemon_head(none.to_str().unwrap()).unwrap().0, Choice::Auto);
     }
 }

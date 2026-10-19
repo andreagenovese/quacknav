@@ -14,7 +14,7 @@
 # quack-navd's environment, as the unit's EnvironmentFile= is on the duck.
 #
 # Needs (see README.md):
-#   MICRODUCK     pollen-robotics/microduck at daemon-v0.16.1, with
+#   MICRODUCK     pollen-robotics/microduck at daemon-v0.17.6 (or v0.16.1), with
 #                 `cargo build -p robotd -p tof` done (target/debug)
 #   MICRODUCK_RL  pollen-robotics/microduck_rl, with its .venv
 #   POLICY_DIR    alpha_walking.onnx (or velstand.onnx), alpha_stand.onnx, alpha_sitstand.onnx,
@@ -30,6 +30,8 @@
 #   STATE         runtime directory (default /tmp/quack-twin)
 #   PORT          the simulator's port (default 7872)
 #   GAIT          alpha (default) or velstand: the walk robotd runs
+#   DAEMON        quack-navd's `daemon` (default auto: it asks robotd, so the
+#                 MICRODUCK checkout decides); 0.16 or 0.17 to name it
 #   MAPLOC_MODE   stop_and_scan (default) or localize
 #   HOMECOMING    on or off (default off)
 #   RESUME        on: progressive exploration — home on a map still being
@@ -106,6 +108,7 @@ TOML
   cat > $STATE/quack-nav.toml <<TOML
 socket = "$STATE/nav.sock"
 robotd_socket = "$SOCK"
+daemon = "${DAEMON:-auto}"
 knobs_env = "$STATE/knobs.env"
 
 [map]

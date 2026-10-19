@@ -68,7 +68,7 @@ impl From<RawGaitConfig> for GaitConfig {
 /// constants the code had then: a profile never changes the other one.
 /// `velstand` is the duck's default walk since Pollen's policy set v5 (one
 /// network that walks on a twist and stands at zero), measured on the
-/// MuJoCo twin with set v8 (see [`VELSTAND`]).
+/// MuJoCo twin on each daemon line (`crate::daemon`, a file per line).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Profile {
@@ -119,7 +119,8 @@ pub struct Numbers {
 }
 
 impl Profile {
-    pub const fn numbers(self) -> Numbers {
+    /// This walk's numbers; velstand's are the daemon line's ([`crate::daemon`]).
+    pub fn numbers(self) -> Numbers {
         match self {
             Profile::Alpha => Numbers {
                 m_per_s: 0.12,
@@ -133,34 +134,10 @@ impl Profile {
                 yaw_gain_right: 1.0,
                 yaw_max: YAW_MAX,
             },
-            Profile::Velstand => VELSTAND,
+            Profile::Velstand => crate::daemon::active().velstand(),
         }
     }
 }
-
-/// velstand, Hub policy set v8 (daemon-v0.16.2 on: Pollen's #393, "tracks
-/// yaw commands"), on the MuJoCo twin at daemon-v0.17.6
-/// (`scripts/twin/gaitprobe.py`, the arena, three trials each, beside set v7
-/// on daemon-v0.16.1 under the same load, 2026-10-19): 0.095 m/s at vx 0.3
-/// (v7 0.115); 11-24° of veer to the left in 10 s straight (v7 a few degrees
-/// either way), so a trim of -0.03; 1.1 rad/s per unit of yaw while walking
-/// (v7 0.62); a turn in place at ±1.0 of 63-68°/s, where v7 barely moved, and
-/// at ±1.5 of 89-108°/s — so a turn asks 1.0, about the rate v7 turned at
-/// 1.5 and every scan and window was tuned on, and the most Pollen's own pad
-/// asks since #393; 12-23° of coast after a spin at 1.0, the prior's 0.3 rad.
-/// Still within 0.4 s of the twist's end, as v7.
-const VELSTAND: Numbers = Numbers {
-    m_per_s: 0.095,
-    yaw_rate_per_unit: 1.1,
-    turn_in_place_rad_s: 1.0,
-    max_turn_in_place_rad_s: 1.1,
-    coast_prior_rad: 0.3,
-    settle_s: 0.6,
-    yaw_trim: -0.03,
-    yaw_gain_left: 1.0,
-    yaw_gain_right: 1.0,
-    yaw_max: YAW_MAX,
-};
 
 /// Whether a body robotd labels `policy` is walking. alpha has a standing
 /// network, so its label says it ("walk" or not). velstand has none: it
@@ -180,11 +157,14 @@ pub fn walking(policy: &str, applied: [f64; 3]) -> bool {
 const STILL_TWIST: f64 = 1e-3;
 
 /// How long velstand's body goes on once the twist is gone: 0.1-0.55 s on
-/// the twin (`scripts/twin/settleprobe.py`, set v7, 2026-10-08; alpha 0-0.3).
+/// the twin (`scripts/twin/settleprobe.py`, set v7, 2026-10-08; alpha 0-0.3;
+/// set v8 within 0.4 s, 2026-10-19).
 /// The mapper's still windows began in that, smeared, and agreed with the
 /// map too little to correct the pose: 9 corrections a round against
 /// alpha's 30, and the pose 0.3-0.5 m off in long journeys.
-pub const VELSTAND_SETTLE_NS: u64 = (VELSTAND.settle_s * 1e9) as u64;
+fn velstand_settle_ns() -> u64 {
+    (Profile::Velstand.numbers().settle_s * 1e9) as u64
+}
 
 /// [`walking`] with velstand's settle: a stream's own memory of the last
 /// tick that had a twist (alpha: the label, as [`walking`]).
@@ -203,7 +183,7 @@ impl Stillness {
             self.last_twist_ns = Some(t_ns);
             return true;
         }
-        self.last_twist_ns.is_some_and(|t| t_ns.saturating_sub(t) < VELSTAND_SETTLE_NS)
+        self.last_twist_ns.is_some_and(|t| t_ns.saturating_sub(t) < velstand_settle_ns())
     }
 }
 
@@ -233,7 +213,7 @@ pub fn numbers() -> Numbers {
 }
 
 /// The clamp every gait measured so far was run under.
-const YAW_MAX: f64 = 0.9;
+pub(crate) const YAW_MAX: f64 = 0.9;
 
 impl GaitConfig {
     /// The yaw actually sent for a wanted yaw while walking at `vx`.
@@ -271,8 +251,8 @@ mod profile_tests {
         let g: GaitConfig = serde_json::from_str(r#"{"profile": "velstand", "yaw_trim": 0.05}"#).unwrap();
         assert_eq!(g.profile, Profile::Velstand);
         assert_eq!(g.yaw_trim, 0.05);
-        assert_eq!(g.yaw_gain_left, VELSTAND.yaw_gain_left);
-        assert_eq!(g.yaw_max, VELSTAND.yaw_max);
+        assert_eq!(g.yaw_gain_left, Profile::Velstand.numbers().yaw_gain_left);
+        assert_eq!(g.yaw_max, Profile::Velstand.numbers().yaw_max);
         let a: GaitConfig = serde_json::from_str(r#"{"profile": "alpha", "yaw_trim": 0.08}"#).unwrap();
         assert_eq!((a.profile, a.yaw_trim, a.yaw_gain_left), (Profile::Alpha, 0.08, 1.0));
         assert!(serde_json::from_str::<GaitConfig>(r#"{"profile": "roller"}"#).is_err());
