@@ -13,12 +13,39 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ## [Unreleased]
 
+### Aggiunto
+
+- **`daemon`: una sola chiave sceglie il daemon di Pollen** (README, "Il
+  daemon"). `"auto"`, il default e ciò che ha una configurazione senza la
+  chiave, lo chiede a robotd all'avvio (`daemon_version` di `hello`) e
+  prende la linea più nuova se robotd non risponde entro 30 s; `"0.16"`
+  (fino alla daemon-v0.16.1, set di policy v7) o `"0.17"` (dalla
+  daemon-v0.16.2, set v8) — o una release, `"0.17.6"` — lo dice. I numeri
+  di velstand sono quelli della linea, un file per linea
+  (`quack-duck/src/daemon/`); quelli di alpha sono uguali su ogni linea.
+  Il gemello: `DAEMON`, auto di default.
+- Un pilota dice la linea di daemon su cui è stato addestrato
+  (`meta.daemon`, 0.16 se non la dice; `DAEMON=` per `calibrate.sh`); un
+  pilota velstand vola solo sulla sua linea, e la cartella di
+  `QK_RL_POLICY` può tenerne uno per linea (`0.17/velstand/pilot.json`).
+
+### Cambiato
+
+- Compilato contro la daemon-v0.17.6 (API 44; le aggiunte dalla v0.16.1
+  sono facoltative sul filo, quindi la stessa compilazione gira su ogni
+  daemon dalla v0.14.4). velstand sulla linea 0.17 (set v8, misurato sul
+  gemello): 0,095 m/s a vx 0,3, 1,1 rad/s per unità di rotazione in
+  cammino, una rotazione sul posto chiesta a 1,0 (circa 65°/s), una
+  correzione di -0,03 per la sua deriva a sinistra.
+
 ### Corretto
 
 - Visore del gemello: una mappa caricata al boot si disegnava al punto di
   partenza, girata del suo angolo; ora si colloca quando la posa è
   confermata, come una mappa scambiata (12 risvegli: entro 0,11 m e 4°
   dall'origine vera).
+- Gemello: `twin.sh` con il visore spento si fermava su `TWIN_MOVERS`
+  non impostata.
 
 ## [0.3.0-rc2] - 2026-10-18
 

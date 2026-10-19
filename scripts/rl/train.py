@@ -46,6 +46,15 @@ def calib_gait(path):
     return (v.get("calib", v).get("gait")) or "alpha"
 
 
+def calib_daemon(path):
+    """The daemon line a calibration is of (its "daemon"; 0.16 when it names none)."""
+    if not path:
+        return "0.16"
+    with open(path) as f:
+        v = json.load(f)
+    return (v.get("calib", v).get("daemon")) or "0.16"
+
+
 def bench(net, out, tag, args, meta, probe=None):
     path = os.path.join(out, f"{tag}.json")
     P.export_json(net, path, meta, probe=probe)
@@ -98,7 +107,7 @@ def cmd_bc(args):
                 acc += (lg.argmax(-1) == Yt[idx]).float().sum().item()
         log(args.out, f"bc it {it} beta {beta:.2f}: {n} samples, loss {tot / n:.3f}, agree {100 * acc / n:.1f} %, {time.time() - t0:.0f} s | driving: {tally.summary(last=400)}")
     env.close()
-    meta = {"obs_version": env.obs_version, "gait": calib_gait(args.calib), "stage": "bc", "iters": args.iters, "samples": int(len(data_y) * env.n), "calib": args.calib, "spread": args.spread}
+    meta = {"obs_version": env.obs_version, "gait": calib_gait(args.calib), "daemon": calib_daemon(args.calib), "stage": "bc", "iters": args.iters, "samples": int(len(data_y) * env.n), "calib": args.calib, "spread": args.spread}
     P.save(net, os.path.join(args.out, "bc.pt"), meta)
     probe = np.concatenate(data_o)[:: max(1, len(data_o) * env.n // 4)][:4]
     P.export_json(net, os.path.join(args.out, "bc.json"), meta, probe=probe)
@@ -114,7 +123,7 @@ def cmd_ppo(args):
     best = None
     T, N = args.steps, env.n
     gamma, lam = 0.99, 0.95
-    meta = dict(meta0, stage="ppo", init=args.init, calib=args.calib, spread=args.spread, gait=calib_gait(args.calib))
+    meta = dict(meta0, stage="ppo", init=args.init, calib=args.calib, spread=args.spread, gait=calib_gait(args.calib), daemon=calib_daemon(args.calib))
     for u in range(args.updates):
         t0 = time.time()
         bc_coef = max(args.bc_floor, args.bc0 * max(0.0, 1.0 - u / max(1, args.bc_decay)))

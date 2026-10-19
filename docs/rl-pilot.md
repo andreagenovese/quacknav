@@ -39,7 +39,7 @@ for each scenario, then `python3 scripts/rl/pages.py t1.json t2.json ...`.
 
 | knob | what |
 |---|---|
-| `QK_RL_POLICY=/var/lib/quack-nav/pilots` | a directory with one pilot per walk (`alpha/pilot.json`, `velstand/pilot.json`: the install package puts them there), the one of `[gait] profile` taken — or a single pilot file; unset, the stick. A pilot flies only the walk it was trained on (its `meta.gait`; alpha when it names none), else the stick drives; a file that does not load (another observation version, a broken file) is said in the log and the stick drives |
+| `QK_RL_POLICY=/var/lib/quack-nav/pilots` | a directory with one pilot per walk (`alpha/pilot.json`, `velstand/pilot.json`: the install package puts them there), the one of `[gait] profile` taken, and `0.17/velstand/pilot.json` before `velstand/pilot.json` on a daemon of that line ([README, The daemon](../README.md#the-daemon)) — or a single pilot file; unset, the stick. A pilot flies only the walk it was trained on (its `meta.gait`; alpha when it names none) and, under velstand, only the daemon line it was trained on (its `meta.daemon`; 0.16 when it names none: `DAEMON=0.17 GAIT=velstand calibrate.sh` writes it), else the stick drives; a file that does not load (another observation version, a broken file) is said in the log and the stick drives |
 | `QK_RL_TRACE=/var/lib/quack-nav/rl-traces` | every leg, stand and fall recorded for the calibration (below), one JSONL file per start of quack-navd |
 
 Both go in `/var/lib/quack-nav/knobs.env` (quack-control's knobs page

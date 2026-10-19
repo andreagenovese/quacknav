@@ -40,7 +40,7 @@ per ogni scenario, poi `python3 scripts/rl/pages.py t1.json t2.json ...`.
 
 | manopola | cosa |
 |---|---|
-| `QK_RL_POLICY=/var/lib/quack-nav/pilots` | una cartella con un pilota per camminata (`alpha/pilot.json`, `velstand/pilot.json`: il pacchetto d'installazione li mette lì), preso quello di `[gait] profile`, oppure un singolo file pilota; non impostata, lo stick. Un pilota guida solo la camminata su cui è stato addestrato (il suo `meta.gait`; alpha se non ne nomina una), altrimenti guida lo stick; un file che non si carica (un'altra versione dell'osservazione, un file rotto) lo dice nel log e guida lo stick |
+| `QK_RL_POLICY=/var/lib/quack-nav/pilots` | una cartella con un pilota per camminata (`alpha/pilot.json`, `velstand/pilot.json`: il pacchetto d'installazione li mette lì), preso quello di `[gait] profile`, e `0.17/velstand/pilot.json` prima di `velstand/pilot.json` su un daemon di quella linea ([README, Il daemon](../README.it.md#il-daemon)), oppure un singolo file pilota; non impostata, lo stick. Un pilota guida solo la camminata su cui è stato addestrato (il suo `meta.gait`; alpha se non ne nomina una) e, con velstand, solo la linea di daemon su cui è stato addestrato (il suo `meta.daemon`; 0.16 se non ne nomina una: lo scrive `DAEMON=0.17 GAIT=velstand calibrate.sh`), altrimenti guida lo stick; un file che non si carica (un'altra versione dell'osservazione, un file rotto) lo dice nel log e guida lo stick |
 | `QK_RL_TRACE=/var/lib/quack-nav/rl-traces` | ogni passo, sosta e caduta registrati per la taratura (sotto), un file JSONL a ogni avvio di quack-navd |
 
 Entrambe vanno in `/var/lib/quack-nav/knobs.env` (la pagina delle manopole

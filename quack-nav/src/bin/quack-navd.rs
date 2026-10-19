@@ -30,6 +30,10 @@ fn main() -> anyhow::Result<()> {
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env().add_directive(tracing::Level::INFO.into()))
         .init();
     let path = std::env::args().nth(1).unwrap_or_else(|| "/etc/robot/quack-nav.toml".into());
+    // Which daemon robotd is (`daemon`, "auto" asks it) before the rest of
+    // the file: `[gait]`'s defaults are that daemon's walk.
+    let (choice, robotd_socket) = NavdConfig::daemon_head(&path)?;
+    quack_duck::daemon::set_active(quack_duck::daemon::resolve(choice, &robotd_socket));
     let config = NavdConfig::load(&path)?;
     tracing::info!(config = %path, socket = %config.socket, robotd = %config.robotd_socket, "quack-navd");
     // The walk robotd runs: the explorer's gait model and `[gait]`'s

@@ -10,7 +10,9 @@
 # 4. gate.py: it flies only if it never falls and is no worse than either.
 #
 # UPDATES (default 150) sets the training's length; GAIT (alpha, velstand)
-# the walk the traces are of — the pilot then flies that walk only.
+# the walk the traces are of — the pilot then flies that walk only — and
+# DAEMON (0.16, 0.17) the daemon line they were walked on, which a velstand
+# pilot then flies only.
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 OUT=$1; RUN=$2; shift 2
@@ -19,12 +21,17 @@ cargo build --release -p quack-rl
 mkdir -p "$OUT/train"
 target/release/rl_calib --out "$OUT" "$@"
 # GAIT=velstand: the traces are of that walk (quack-navd's [gait] profile).
-if [[ -n "${GAIT:-}" ]]; then
-  $PY - "$OUT/calib.json" "$GAIT" <<'PYEOF'
+# DAEMON=0.17: on that daemon line (quack-navd's `daemon`).
+if [[ -n "${GAIT:-}${DAEMON:-}" ]]; then
+  $PY - "$OUT/calib.json" "${GAIT:-}" "${DAEMON:-}" <<'PYEOF'
 import json, sys
-p, g = sys.argv[1], sys.argv[2]
+p, g, d = sys.argv[1], sys.argv[2], sys.argv[3]
 v = json.load(open(p))
-(v["calib"] if "calib" in v else v)["gait"] = g
+c = v["calib"] if "calib" in v else v
+if g:
+    c["gait"] = g
+if d:
+    c["daemon"] = d
 json.dump(v, open(p, "w"), indent=1)
 PYEOF
 fi

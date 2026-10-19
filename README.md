@@ -254,7 +254,8 @@ Everything — the design, the shields, the numbers, the limits:
 ## Running it
 
 Rust 1.89 or newer; the first build fetches Pollen's `duck-ipc-proto` and
-`kinematics` crates from GitHub (tag daemon-v0.16.1).
+`kinematics` crates from GitHub (tag daemon-v0.17.6). One build runs on
+every daemon from v0.14.4: what changed since is optional on the wire.
 
 ```sh
 git clone https://github.com/andreagenovese/quacknav.git && cd quacknav
@@ -286,6 +287,9 @@ map_path = "/var/lib/quack-nav/maploc.session"
 profile = "velstand"    # the walk robotd runs: "velstand" (Pollen's default since
                         # policy set v5) or "alpha" (alpha_walking + alpha_stand)
 ```
+
+The example leaves `daemon` out: quack-navd asks robotd which daemon it is
+([The daemon](#the-daemon)).
 
 With `[maploc]` on, `quack-navd` runs Pollen's `maploc` itself (the
 `maploc` crate in this workspace): it reads `robot.state` and tofd's
@@ -369,12 +373,37 @@ duck; what to look at on a real one:
 | `[map] places_path` | `/var/lib/quack-nav/places.json` | the named places |
 | `[homecoming] enabled`, `resume_explore` | `true`, `true` | off: the duck does nothing on its own at boot, nor explores on after a charge |
 | `socket` | `/run/quack-nav/nav.sock` | where quacksat and quack-control find quack-navd |
+| `daemon` | left out (`"auto"`) | `"0.16"` or `"0.17"` to name Pollen's daemon instead of asking robotd (see below) |
 | `[gait] profile` | `"velstand"` | `"alpha"` when robotd walks with `alpha_walking` + `alpha_stand` (see below) |
 
 Paths must stay under `/var/lib/quack-nav/` or `/run/quack-nav/`: the unit
 lets the daemon write nowhere else. A key the daemon does not know stops
 it with a message naming the key (`journalctl -u quack-navd`). Every key
 and its default: `quack-nav/src/config.rs`.
+
+### The daemon
+
+Pollen's daemons do not all walk alike: from daemon-v0.16.2 the duck runs
+policy set v8, whose velstand is slower forward (0.095 m/s against 0.115)
+and turns about twice as fast (a turn in place at 1.0 is 65°/s, where set
+v7's barely moved). One key chooses which daemon quack-navd drives for:
+
+```toml
+daemon = "auto"     # the default: robotd says which it is at start
+daemon = "0.16"     # up to daemon-v0.16.1 (policy set v7)
+daemon = "0.17"     # daemon-v0.16.2 on (policy set v8)
+```
+
+A release works as well (`"0.16.1"`, `"0.17.6"`). With `"auto"` — or no
+`daemon` at all, as in every config written before it — quack-navd asks
+robotd at start (`hello`) and, if robotd says nothing within 30 s, takes
+the newest line, since Pollen's ducks update themselves; the log names the
+line taken (`journalctl -u quack-navd | grep daemon:`). A named line wins
+over robotd, which is only said in the log when it disagrees. The daemon
+sets velstand's numbers and which pilot may fly
+([docs/rl-pilot.md](docs/rl-pilot.md)); alpha is the same on every line.
+Each line's numbers live in a file of their own,
+`quack-duck/src/daemon/v0_16.rs` and `v0_17.rs`.
 
 ### The walk
 
