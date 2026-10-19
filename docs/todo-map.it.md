@@ -4711,8 +4711,10 @@ qui sopra. Rifiutare non costa nulla: esplora e chiede.
       entro 5 cm). Visto in ogni corsa di casa_arredata da x18, mai in
       casa_grande. Il massimo dell'angolo di `traj_metrics` ne è gonfiato:
       leggere l'RMS e la mediana.
-- [ ] I risvegli dell'apartment a est del vano scala sono lenti: le
-      finestre rifiutano per minuti un seme giusto.
+- [x] I risvegli dell'apartment a est del vano scala sono lenti: le
+      finestre rifiutano per minuti un seme giusto. 2026-10-18, rimisurati:
+      12 su 12 giusti, mediana 108 s, uno di 289 s (chiusa nell'ufficio);
+      non più un limite (docs/results.it.md, Limiti noti).
 - [ ] 2026-10-01: velocità e carico (corrente presente) dei servo su
       `robot.state` da robotd 0.15 (API v36: `velocities`, rad/s;
       `currents_ma`, mA): studiare il carico come rilevatore d'urto per
@@ -4854,8 +4856,9 @@ usa ([control-contract.it.md](control-contract.it.md); studio, "Decisione
   buchi fantasma si registrano dove li mette la posa. Dal 2026-10-01 una
   chiusura gira l'angolo di 4° al massimo; perché alcune misurino male
   resta ignoto (§2d).
-- I risvegli dell'apartment a est del vano scala sono lenti: le finestre
-  rifiutano per minuti un seme giusto (§2d).
+- I risvegli dell'apartment a est del vano scala erano lenti (le finestre
+  rifiutavano per minuti un seme giusto); rimisurati il 2026-10-18: 12/12
+  giusti, mediana 108 s (§2d).
 - La mappatura stop-and-scan è lavoro deliberato: qualcuno deve portare
   l'anatra in giro con delle pause. Progettare il giro guidato, non darlo
   per scontato.

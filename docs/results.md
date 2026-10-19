@@ -570,6 +570,11 @@ No fall in any arm. "At the tightest" counts the planner going through
   planner, and house2's goal beyond the stairwell (g4) was missed in all
   three rounds — by `main`'s build too, on the same book. A passage the duck
   has walked stays open (the lanes), but not one it has only looked at.
+  Counted again on 2026-10-18, the four explorations of the band's
+  confirmation run: one book (main, the apartment) has 6 rim points 13–28
+  cm into the passage east of the stairwell, the other three none beyond
+  16 cm, and every journey arrived. Not fixed: moving a booked rim on later
+  sightings would let the same pose error take a true hole off the books.
 - **Fixed after the release (2026-09-25): a resumed session could break
   the map.** casa_arredata's second session took its walls from 3.8 to 17
   cm off the truth. The cause was not the pose it came home with but a
@@ -589,8 +594,12 @@ No fall in any arm. "At the tightest" counts the planner going through
   bathroom half mapped) two boots of seventeen stood down after 16 minutes.
   Since 2026-09-29 the shadow map gives the windows a seed: 23 of 24
   wakes on the twin's bench confirmed right, none wrong, medians 87–123 s
-  against 126–192 s before. Still slow: the apartment's duck woken east of
-  the stairwell, where the windows refute a right seed for minutes.
+  against 126–192 s before. The apartment's duck woken east of the
+  stairwell, once slow (the windows refuted a right seed for minutes),
+  measured again on 2026-10-18 (velstand, the map of the band's
+  confirmation run, four spots by three headings): 12 of 12 right, none
+  wrong, median 108 s, 78–144 s but one: 289 s in the office facing
+  north, boxed in five times before a window refuted a first fit.
 - **Some loop closures measure the heading wrong** — a few degrees, and
   the live pose drifts with it: phantom holes north of casa_arredata's
   stairwell (x13) came from a pose 35 cm off after a closure 5° wrong, and
@@ -598,7 +607,9 @@ No fall in any arm. "At the tightest" counts the planner going through
   still unknown — nothing a closure carries tells a wrong one — but since
   2026-10-01 a closure turns the heading by 4° at most (was 26°): on the
   twin the heading's median error went from 0.97–1.26° to 0.63–0.92°,
-  map and journeys unchanged.
+  map and journeys unchanged. In the journeys of the band's confirmation
+  run (2026-10-18, both arms, both houses) the heading's error is 0.9–1.8°
+  (median), 3.3–4.5° (95th percentile).
 - **Slower than `main`.** A journey's median is 106–111 s against `main`'s
   66–101 s; on open floor (casa_libera) 1.7 times as long. It is the price of
   walking the planned route (the string pulled 0.6 m at most, none beside a
@@ -606,7 +617,10 @@ No fall in any arm. "At the tightest" counts the planner going through
   twice in casa_arredata the day before.
 - **"How far along" errs low**: 7–22 points under the truth after a
   session, and high in a new map's first minutes, when the walls it knows are
-  one room's.
+  one room's. At the end of the band's confirmation run (2026-10-18) the
+  houses declared themselves 78–92 % done; what is left unknown is mostly
+  under furniture, and the band covers only 0.7–0.8 m² of it, so counting
+  the band would add about two points: left as it is.
 - **Exploring lingers in corridors** (half of each session in house2), going
   back over known floor to close loops.
 - **Twin only.** None of this has run on a physical duck yet; the gait, the

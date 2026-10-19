@@ -602,7 +602,12 @@ margini soliti.
   per il pianificatore, e la meta di house2 oltre il vano scala (g4) è stata
   mancata in tutti e tre i giri — anche dalla build di `main`, con lo stesso
   libro. Un passaggio che la papera ha percorso resta aperto (le corsie), ma
-  non uno che ha solo guardato.
+  non uno che ha solo guardato. Ricontato il 2026-10-18, sulle quattro
+  esplorazioni della prova di conferma dello strato: un libro (main,
+  l'apartment) ha 6 punti di bordo 13–28 cm dentro il passaggio a est del
+  vano scala, gli altri tre nessuno oltre 16 cm, e ogni viaggio è arrivato.
+  Non corretto: spostare un bordo registrato con avvistamenti successivi
+  lascerebbe allo stesso errore di posa togliere dal libro un buco vero.
 - **Corretto dopo la release (2026-09-25): una sessione ripresa poteva
   rompere la mappa.** La seconda sessione di casa_arredata ha portato i suoi
   muri da 3.8 a 17 cm dalla verità. La causa non era la posa con cui era
@@ -625,8 +630,13 @@ margini soliti.
   diciassette si sono fermati dopo 16 minuti. Dal 2026-09-29 la mappa ombra
   dà un seme alle finestre: 23 risvegli su 24 al banco del gemello
   confermati giusti, nessuno sbagliato, mediane di 87–123 s contro 126–192 s
-  di prima. Resta lento: la papera dell'apartment svegliata a est del vano
-  scala, dove le finestre rifiutano per minuti un seme giusto.
+  di prima. La papera dell'apartment svegliata a est del vano scala, un
+  tempo lenta (le finestre rifiutavano per minuti un seme giusto),
+  rimisurata il 2026-10-18 (velstand, la mappa della prova di conferma
+  dello strato, quattro punti per tre direzioni): 12 su 12 giusti, nessuno
+  sbagliato, mediana 108 s, 78–144 s tranne uno: 289 s nell'ufficio
+  girata a nord, chiusa cinque volte prima che una finestra rifiutasse un
+  primo accordo.
 - **Alcune chiusure di loop misurano male l'angolo** — di qualche grado, e
   la posa dal vivo deriva con loro: i buchi fantasma a nord del vano scala
   di casa_arredata (x13) venivano da una posa 35 cm fuori dopo una chiusura
@@ -635,7 +645,9 @@ margini soliti.
   chiusura porta ne tradisce una sbagliata — ma dal 2026-10-01 una
   chiusura gira l'angolo di 4° al massimo (erano 26°): sul gemello
   l'errore mediano dell'angolo è sceso da 0.97–1.26° a 0.63–0.92°, mappa
-  e viaggi invariati.
+  e viaggi invariati. Nei viaggi della prova di conferma dello strato
+  (2026-10-18, entrambi i bracci, entrambe le case) l'errore d'angolo è 0,9–1,8°
+  (mediana), 3,3–4,5° (95° percentile).
 - **Più lenta di `main`.** La mediana di un viaggio è 106–111 s contro i 66–101 s
   di `main`; su pavimento libero (casa_libera) 1.7 volte tanto. È il prezzo del
   seguire la rotta pianificata (il filo teso al massimo 0.6 m, mai accanto a un
@@ -643,7 +655,11 @@ margini soliti.
   due volte in casa_arredata il giorno prima.
 - **"A che punto sei" sbaglia per difetto**: 7–22 punti sotto la verità dopo
   una sessione, e per eccesso nei primi minuti di una mappa nuova, quando i
-  muri che conosce sono quelli di una stanza.
+  muri che conosce sono quelli di una stanza. Alla fine della prova di conferma
+  dello strato (2026-10-18) le case si sono dichiarate fatte al 78–92 %;
+  l'ignoto che resta è soprattutto sotto i mobili, e lo strato ne copre solo
+  0,7–0,8 m², quindi contarlo aggiungerebbe circa due punti: lasciato
+  com'è.
 - **L'esplorazione si attarda nei corridoi** (metà di ogni sessione in house2),
   ripassando pavimento conosciuto per chiudere i loop.
 - **Solo gemello.** Niente di tutto questo ha ancora girato su una papera

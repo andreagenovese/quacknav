@@ -282,7 +282,6 @@ _unsettled = False
 # those coordinates start meaning somewhere else.
 reseats = 0
 SWAP_SUBMAPS = 20
-RESEAT_M = 1.0
 
 
 def _spawn():
@@ -298,22 +297,22 @@ def _reseat(frame: MapFrame, truth) -> None:
     global _origin, _submaps, _unsettled
     if _origin is None:
         _origin = _spawn()
-    swapped = _submaps is not None and abs(frame.n_submaps - _submaps) >= SWAP_SUBMAPS
+    # A map the daemon loaded at boot comes with its submaps already: its
+    # frame is where the run that built it started, not this spawn, so it
+    # is placed as an exchanged map is (drawing it at the spawn turned and
+    # moved a reloaded house by the spawn's own yaw).
+    swapped = (abs(frame.n_submaps - _submaps) >= SWAP_SUBMAPS if _submaps is not None
+               else frame.n_submaps >= SWAP_SUBMAPS)
     _submaps = frame.n_submaps
     if swapped:
         _unsettled = True
-    if truth is None or not _unsettled:
+    # Wait for the mapper to trust the pose, then settle once on it: a map
+    # just loaded reports the pose its own last run ended at, and drawing on
+    # that put the house where nobody stands, turned (-39 deg on a wake of
+    # 2026-10-18 that a 1 m tolerance then kept).
+    if truth is None or not _unsettled or not frame.tracking:
         return
-    # Keep re-deriving until the mapper trusts the pose again, then stop:
-    # a map just loaded reports the pose its own last run ended at, and
-    # settling on that draws the house at a place nobody is standing.
-    if frame.tracking:
-        _unsettled = False
-    ox, oy, oyaw = _origin
-    c, s = np.cos(oyaw), np.sin(oyaw)
-    drawn = (ox + c * frame.x - s * frame.y, oy + s * frame.x + c * frame.y)
-    if np.hypot(drawn[0] - truth[0], drawn[1] - truth[1]) <= RESEAT_M:
-        return
+    _unsettled = False
     # truth = origin ∘ believed, solved for origin.
     global reseats
     reseats += 1

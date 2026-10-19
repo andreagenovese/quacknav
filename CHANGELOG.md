@@ -11,6 +11,12 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ## [Unreleased]
 
+### Fixed
+
+- Twin viewer: a map loaded at boot was drawn at the spawn, turned by
+  its yaw; it is now placed once the pose is confirmed, as an exchanged
+  map is (12 wakes: within 0.11 m and 4° of the true origin).
+
 ## [0.3.0-rc2] - 2026-10-18
 
 A fourth release candidate, validated on the MuJoCo and paper twins only.
