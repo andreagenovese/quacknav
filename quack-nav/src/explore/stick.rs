@@ -100,8 +100,9 @@ impl Job {
         let yaw_now = |robot: &dyn Body| odom_pose(robot).map(|p| p.2).or_else(|| robot.frame().map(|f| f.yaw));
         let Some(yaw0) = yaw_now(&*robot) else { return 0.0 };
         // On a journey, short of the goal by the coast measured on the
-        // turns before (see `learn_coast`).
-        let coast = if self.stick_books { 0.0 } else { self.stick_coast };
+        // turns before (see `learn_coast`); exploring too on a walk that
+        // coasts far (`coast_while_exploring`).
+        let coast = if self.learns_coast() { self.stick_coast } else { 0.0 };
         let goal = (want - TURN_LEAD_RAD - coast).max(0.05);
         let vyaw = quack_duck::gait::numbers().turn_in_place_rad_s * sign;
         let started = robot.now();
@@ -117,6 +118,12 @@ impl Job {
             }
         }
         turned
+    }
+
+    /// Whether this travel's turns stop short by the coast: a journey's
+    /// always; the exploration's on a walk that coasts far.
+    fn learns_coast(&self) -> bool {
+        !self.stick_books || quack_duck::gait::numbers().coast_while_exploring
     }
 
     /// What the body turned past the odometry's word on the last turn in
@@ -262,7 +269,7 @@ impl Job {
             }
             let want = if stalled || booked_touch { err.abs().max(0.35) } else { err.abs() };
             let turned = self.stick_turn(robot, err.signum(), want);
-            if !self.stick_books {
+            if self.learns_coast() {
                 self.stick_turn_probe = Some((yaw, err.signum(), turned));
             }
             tracing::info!(at = ?(x, y, yaw), look = ?look, err_deg = format!("{:.0}", err.to_degrees()), turned_deg = format!("{:.0}", turned.to_degrees()), "map explore: stick: turn");

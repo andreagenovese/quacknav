@@ -16,6 +16,7 @@ pub(super) const VELSTAND: Numbers = Numbers {
     turn_in_place_rad_s: 1.5,
     max_turn_in_place_rad_s: 1.6,
     coast_prior_rad: 0.3,
+    coast_while_exploring: false,
     settle_s: 0.6,
     yaw_trim: 0.02,
     yaw_gain_left: 1.0,

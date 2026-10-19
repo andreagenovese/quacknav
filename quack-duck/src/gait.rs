@@ -108,6 +108,9 @@ pub struct Numbers {
     pub max_turn_in_place_rad_s: f64,
     /// A journey's turn-in-place coast before it has measured one (rad).
     pub coast_prior_rad: f64,
+    /// Whether the exploration's turns in place stop short by the coast
+    /// too, learned as a journey's are (journeys always do).
+    pub coast_while_exploring: bool,
     /// How long the body goes on once no twist is applied, and so what a
     /// stand adds before it is still for the mapper (s).
     pub settle_s: f64,
@@ -128,6 +131,7 @@ impl Profile {
                 turn_in_place_rad_s: 1.5,
                 max_turn_in_place_rad_s: 1.6,
                 coast_prior_rad: 0.3,
+                coast_while_exploring: false,
                 settle_s: 0.0,
                 yaw_trim: 0.0,
                 yaw_gain_left: 1.0,
