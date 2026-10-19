@@ -670,7 +670,7 @@ il comportamento e dargli le forme del settore:
 Misurato sul gemello MuJoCo (`microduck_rl` + robotd); la papera fisica
 arriva a dicembre 2026. Due modi di farlo girare:
 
-- **robotd ufficiale** (daemon-v0.16.1) con `[maploc] enabled`: il
+- **robotd ufficiale** (daemon-v0.17.6, o v0.16.1) con `[maploc] enabled`: il
   mapper sta in `quack-navd`. È la configurazione della preview; i numeri
   di [`docs/results.it.md`](docs/results.it.md) sono stati misurati sulla
   daemon-v0.14.4.
@@ -678,7 +678,10 @@ arriva a dicembre 2026. Due modi di farlo girare:
   più la libreria di mappe di `docs/study/upstream-asks.md` §5, che vive su
   un fork di `pollen-robotics/microduck` — con `[maploc]` spento.
 
-`main` è fissato a daemon-v0.16.1 (API 41) dal 2026-10-08, validato sul
+Il ramo `daemon-0.17` è compilato contro la daemon-v0.17.6 (API 44) e
+validato sul gemello su entrambe le linee di daemon ([docs/results.it.md](docs/results.it.md),
+"daemon 0.17.6 e set di policy v8": nessuna regressione in arrivi, cadute
+o risvegli; più lento per la camminata del set v8). `main` è fissato a daemon-v0.16.1 (API 41) dal 2026-10-08, validato sul
 gemello con entrambe le camminate (branch `microduck-016`: quattro giri
 per casa, nessuna regressione con alpha; velstand altrettanto bene);
 prima a daemon-v0.15.0 (API 37) dal 2026-10-01. Le sue aggiunte sono facoltative sul filo,

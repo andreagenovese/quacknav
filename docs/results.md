@@ -562,6 +562,66 @@ No fall in any arm. "At the tightest" counts the planner going through
 - Verdict: no regression in reach, falls or journey time, and the
   exploration ends sooner. The band ships with snap on.
 
+### daemon 0.17.6 and policy set v8 (2026-10-19)
+
+Pollen's daemon-v0.16.2 (#393) moved the policy floor to set v8, whose
+velstand "tracks yaw commands"; ducks update themselves, so a duck in
+December runs 0.17.x. Branch `daemon-0.17`: built against daemon-v0.17.6
+(API 44), velstand's numbers per daemon line (`quack-duck/src/daemon/`),
+`daemon = "auto"` choosing the line from robotd's `hello`. Frozen `main`
+(7844b26) on daemon-v0.16.1 + set v7 against the branch on daemon-v0.17.6
++ set v8, velstand both, two twins at a time.
+
+- **Set v8 measured** (`gaitprobe.py`, the arena, three trials, beside v7
+  under the same load): 0.095 m/s at vx 0.3 (v7 0.115); 11–24° of veer to
+  the left in 10 s straight; 1.1 rad/s per unit of yaw walking (v7 0.62);
+  a turn in place at ±1.0 of 63–68°/s, where v7 barely moved, at ±1.5 of
+  89–108°/s; 12–23° of coast after a spin. Still within 0.4 s of the
+  twist's end, as v7. The 0.17 line asks 1.0 for a turn, trims -0.03.
+- **The exploration first dithered on v8.** Its turns in place were closed
+  on odometry with no coast, and v8's go on further (journeys: closed at
+  30°, 77° round by the map; v7 64°): the duck overshot past its own
+  threshold and turned back, 256 turns to v7's 112 in a first session,
+  the apartment 58 % mapped against 83 %. On the 0.17 line the exploration
+  now learns the coast as journeys do (`coast_while_exploring`; off on
+  0.16 and for alpha). The numbers below are with it.
+
+| test | main, 0.16.1 + v7 | branch, 0.17.6 + v8 |
+|---|---|---|
+| journeys, apartment, four rounds | 24/24, median 114 s | 24/24, median 124 s |
+| journeys, casa_arredata, four rounds | 24/24, median 94 s | 24/24, median 104 s |
+| journeys, casa_ingombra, two rounds | 12/12, mean 116 s | 12/12, mean 119 s |
+| casa_viva (three movers), four rounds | 24/24, mean 95 s, 19 bump episodes | 24/24, mean 108 s, 29 |
+| casa_porta (a person in a door), four rounds | 24/24, mean 83 s, 7 bump episodes | 24/24, mean 89 s, 10 |
+| exploring from nothing: apartment | 92 %, done at session 3 | 80 %, stuck at session 3 (a 4.7 m² piece unreached) |
+| exploring from nothing: casa_arredata | 65 %, stuck | 75 %, stuck |
+| exploring from nothing: casa_libera | 99 %, done at session 1 | 98 %, done at session 1 |
+| journeys on the house it made (apartment / arredata / libera) | 12/12, 10/12, 10/10 | 12/12, 12/12, 10/10 |
+| wake-ups, apartment / casa_arredata (localize) | 6/6, 6/6; median 117 / 111 s | 6/6, 6/6; median 144 / 108 s |
+
+No fall in any test on either side.
+
+- **Slower by the walk**: v8 is 17 % slower forward, and the journeys took
+  6–15 s more.
+- **More bumps with movers** (29 against 19 in casa_viva, 10 against 7 in
+  casa_porta), all with the person walking the corridor; per minute 0.67
+  against 0.50. Earlier runs of the same test gave 18–22 on one side, so
+  this is at the edge of the noise; it is the one figure to watch.
+- **Exploring**: the floor known per room by the truth is level (the
+  apartment 93–100 % against 92–100 % after session 2); the apartment's
+  80 % is the duck's own share, held down by one unknown piece it found no
+  way to; in casa_arredata the branch mapped more and reached the bath
+  main's map had no way to.
+- **The same build on daemon-v0.16.1** (`daemon = "auto"` took 0.16 from
+  robotd): two rounds of apartment journeys, 12/12, median 119 s, no fall.
+- Harness fixes found on the way: `twin.sh down` now stops what a lost pid
+  file left (a robotd left over owned the socket, and the next one
+  exited); `explore_ab.sh` starts each house from an empty state.
+- Verdict: no regression in reach, falls or wake-ups on daemon 0.17.6;
+  slower by the walk; the bumps with movers to be watched. The pilot was
+  trained on v7 and does not fly on the 0.17 line until retrained there
+  (`DAEMON=0.17 GAIT=velstand calibrate.sh`); the stick drives.
+
 ## Known limits
 
 - **A rim booked where the pose had it.** About 1 in 50 drops lands 20–35 cm

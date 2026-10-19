@@ -33,14 +33,22 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   v0.14.4). velstand on the 0.17 line (set v8, measured on the twin):
   0.095 m/s at vx 0.3, 1.1 rad/s per unit of yaw walking, a turn in
   place asked at 1.0 (about 65°/s), a trim of -0.03 for its veer to the
-  left.
+  left. On that line the exploration's turns in place stop short by the
+  learned coast too (set v8 turns on further; without it the exploration
+  turned back and forth). Twin A/B against main on daemon-v0.16.1:
+  no regression in reach, falls or wake-ups (docs/results.md, "daemon
+  0.17.6 and policy set v8").
 
 ### Fixed
 
 - Twin viewer: a map loaded at boot was drawn at the spawn, turned by
   its yaw; it is now placed once the pose is confirmed, as an exchanged
   map is (12 wakes: within 0.11 m and 4° of the true origin).
-- Twin: `twin.sh` with the viewer off stopped on `TWIN_MOVERS` unset.
+- Twin: `twin.sh` with the viewer off stopped on `TWIN_MOVERS` unset;
+  `twin.sh down` now also stops what a lost pid file left on the state's
+  sockets (a robotd left over owned the socket and the next one exited).
+- Twin harness: `explore_ab.sh` starts each house from an empty state (a
+  map left from the house before cost one arm a session).
 
 ## [0.3.0-rc2] - 2026-10-18
 

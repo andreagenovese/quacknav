@@ -36,7 +36,12 @@ carta, mai su una papera fisica; i dettagli sono in
   daemon dalla v0.14.4). velstand sulla linea 0.17 (set v8, misurato sul
   gemello): 0,095 m/s a vx 0,3, 1,1 rad/s per unità di rotazione in
   cammino, una rotazione sul posto chiesta a 1,0 (circa 65°/s), una
-  correzione di -0,03 per la sua deriva a sinistra.
+  correzione di -0,03 per la sua deriva a sinistra. Su quella linea
+  anche le rotazioni sul posto dell'esplorazione si fermano prima della
+  coda imparata (il set v8 gira più a lungo; senza, l'esplorazione girava
+  avanti e indietro). A/B sul gemello contro main su daemon-v0.16.1:
+  nessuna regressione in arrivi, cadute o risvegli (docs/results.it.md,
+  "daemon 0.17.6 e set di policy v8").
 
 ### Corretto
 
@@ -45,7 +50,11 @@ carta, mai su una papera fisica; i dettagli sono in
   confermata, come una mappa scambiata (12 risvegli: entro 0,11 m e 4°
   dall'origine vera).
 - Gemello: `twin.sh` con il visore spento si fermava su `TWIN_MOVERS`
-  non impostata.
+  non impostata; `twin.sh down` ora ferma anche ciò che un file pid perso
+  ha lasciato sui socket dello stato (un robotd rimasto teneva il socket
+  e il successivo usciva).
+- Banco del gemello: `explore_ab.sh` comincia ogni casa da uno stato vuoto
+  (una mappa rimasta dalla casa prima costava una sessione a un lato).
 
 ## [0.3.0-rc2] - 2026-10-18
 

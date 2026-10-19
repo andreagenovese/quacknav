@@ -639,14 +639,17 @@ behaviour and put it in the field's shapes:
 Measured on the MuJoCo twin (`microduck_rl` + robotd); the physical duck
 arrives in December 2026. Two ways to run it:
 
-- **Released robotd** (daemon-v0.16.1) with `[maploc] enabled`: the
+- **Released robotd** (daemon-v0.17.6, or v0.16.1) with `[maploc] enabled`: the
   mapper in `quack-navd`. This is the preview's configuration; the numbers
   in [`docs/results.md`](docs/results.md) were measured on daemon-v0.14.4.
 - **A robotd that hosts maploc** — upstream PR 127, still open, plus the
   map library of `docs/study/upstream-asks.md` §5, which lives on a fork
   of `pollen-robotics/microduck` — with `[maploc]` off.
 
-`main` is pinned to daemon-v0.16.1 (API 41) since 2026-10-08, validated
+The branch `daemon-0.17` is built against daemon-v0.17.6 (API 44) and
+validated on the twin on both daemon lines ([docs/results.md](docs/results.md),
+"daemon 0.17.6 and policy set v8": no regression in reach, falls or
+wake-ups; slower by set v8's walk). `main` is pinned to daemon-v0.16.1 (API 41) since 2026-10-08, validated
 on the twin with both walks (branch `microduck-016`: four rounds per
 house, no regression with alpha; velstand as good); before that to
 daemon-v0.15.0 (API 37) from 2026-10-01. Its additions are optional on the wire, so the

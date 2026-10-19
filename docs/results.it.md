@@ -594,6 +594,74 @@ margini soliti.
 - Verdetto: nessuna regressione in portata, cadute o tempi dei viaggi, e
   l'esplorazione finisce prima. Lo strato esce con snap acceso.
 
+### daemon 0.17.6 e set di policy v8 (2026-10-19)
+
+La daemon-v0.16.2 di Pollen (#393) ha portato il minimo delle policy al
+set v8, il cui velstand "segue i comandi di rotazione"; le papere si
+aggiornano da sole, quindi a dicembre una papera userà la 0.17.x. Ramo
+`daemon-0.17`: compilato contro la daemon-v0.17.6 (API 44), i numeri di
+velstand per linea di daemon (`quack-duck/src/daemon/`), `daemon =
+"auto"` che sceglie la linea dall'`hello` di robotd. `main` congelato
+(7844b26) su daemon-v0.16.1 + set v7 contro il ramo su daemon-v0.17.6 +
+set v8, velstand per entrambi, due gemelli alla volta.
+
+- **Il set v8 misurato** (`gaitprobe.py`, l'arena, tre prove, accanto al
+  v7 con lo stesso carico): 0,095 m/s a vx 0,3 (v7 0,115); 11–24° di
+  deriva a sinistra in 10 s dritto; 1,1 rad/s per unità di rotazione in
+  cammino (v7 0,62); una rotazione sul posto a ±1,0 di 63–68°/s, dove il
+  v7 quasi non si muoveva, a ±1,5 di 89–108°/s; 12–23° di coda dopo una
+  rotazione. Fermo entro 0,4 s dalla fine del comando, come il v7. La
+  linea 0.17 chiede 1,0 per girare e corregge di -0,03.
+- **All'inizio l'esplorazione sul v8 oscillava.** Chiudeva le rotazioni
+  sul posto sull'odometria senza coda, e quelle del v8 vanno più in là
+  (viaggi: chiuse a 30°, 77° sulla mappa; v7 64°): la papera superava la
+  sua soglia e tornava indietro, 256 rotazioni contro 112 del v7 in una
+  prima sessione, l'appartamento mappato al 58 % contro l'83 %. Sulla
+  linea 0.17 ora anche l'esplorazione impara la coda, come i viaggi
+  (`coast_while_exploring`; spento sulla 0.16 e per alpha). I numeri qui
+  sotto sono con questo.
+
+| prova | main, 0.16.1 + v7 | ramo, 0.17.6 + v8 |
+|---|---|---|
+| viaggi, appartamento, quattro giri | 24/24, mediana 114 s | 24/24, mediana 124 s |
+| viaggi, casa_arredata, quattro giri | 24/24, mediana 94 s | 24/24, mediana 104 s |
+| viaggi, casa_ingombra, due giri | 12/12, media 116 s | 12/12, media 119 s |
+| casa_viva (tre in movimento), quattro giri | 24/24, media 95 s, 19 episodi d'urto | 24/24, media 108 s, 29 |
+| casa_porta (una persona in una porta), quattro giri | 24/24, media 83 s, 7 episodi d'urto | 24/24, media 89 s, 10 |
+| esplorazione da zero: appartamento | 92 %, finita alla sessione 3 | 80 %, bloccata alla sessione 3 (un pezzo di 4,7 m² mai raggiunto) |
+| esplorazione da zero: casa_arredata | 65 %, bloccata | 75 %, bloccata |
+| esplorazione da zero: casa_libera | 99 %, finita alla sessione 1 | 98 %, finita alla sessione 1 |
+| viaggi sulla casa che ha fatto (appartamento / arredata / libera) | 12/12, 10/12, 10/10 | 12/12, 12/12, 10/10 |
+| risvegli, appartamento / casa_arredata (localize) | 6/6, 6/6; mediana 117 / 111 s | 6/6, 6/6; mediana 144 / 108 s |
+
+Nessuna caduta in nessuna prova, da nessuna delle due parti.
+
+- **Più lento per la camminata**: il v8 va il 17 % più piano in avanti, e
+  i viaggi hanno impiegato 6–15 s in più.
+- **Più urti con chi si muove** (29 contro 19 in casa_viva, 10 contro 7 in
+  casa_porta), tutti con la persona che percorre il corridoio; al minuto
+  0,67 contro 0,50. Prove precedenti dello stesso test davano 18–22 da una
+  parte sola, quindi è al limite del rumore; è il numero da tenere
+  d'occhio.
+- **Esplorazione**: il pavimento noto per stanza secondo la verità è pari
+  (l'appartamento 93–100 % contro 92–100 % dopo la sessione 2); l'80 %
+  dell'appartamento è la stima della papera, frenata da un pezzo ignoto
+  che non ha trovato modo di raggiungere; in casa_arredata il ramo ha
+  mappato di più e ha raggiunto il bagno, che la mappa di main non
+  raggiungeva.
+- **La stessa compilazione sulla daemon-v0.16.1** (`daemon = "auto"` ha
+  preso la 0.16 da robotd): due giri di viaggi nell'appartamento, 12/12,
+  mediana 119 s, nessuna caduta.
+- Correzioni al banco trovate per strada: `twin.sh down` ora ferma ciò che
+  un file pid perso ha lasciato (un robotd rimasto teneva il socket, e il
+  successivo usciva); `explore_ab.sh` comincia ogni casa da uno stato
+  vuoto.
+- Verdetto: nessuna regressione in arrivi, cadute o risvegli sulla daemon
+  0.17.6; più lento per la camminata; gli urti con chi si muove da
+  tenere d'occhio. Il pilota è addestrato sul v7 e non vola sulla linea
+  0.17 finché non lo si riaddestra lì (`DAEMON=0.17 GAIT=velstand
+  calibrate.sh`); guida lo stick.
+
 ## Limiti noti
 
 - **Un bordo registrato dove lo metteva la posa.** Circa un drop su 50 finisce
