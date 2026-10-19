@@ -190,6 +190,13 @@ down)
     if ps -p $p >/dev/null 2>&1; then echo "stop $n ($p)"; kill $p; fi
     rm -f $STATE/$n.pid
   done
+  # What a lost pid file left behind (an `up` cut short and retried, a run
+  # killed): anything still on this state's sockets or the simulator's port.
+  # A robotd left over owns the socket, and the next one exits ("another
+  # robotd owns this socket") while the duck stands still.
+  for pat in "$STATE/robotd.sock" "$STATE/tof.sock" "$STATE/quack-nav.toml" "$STATE/map.sock" "body_server --port $PORT "; do
+    pkill -f -- "$pat" 2>/dev/null && echo "stop what was left on $pat"
+  done
   ;;
 *) echo "usage: $0 {up|enable|restart-navd|down}"; exit 2 ;;
 esac
