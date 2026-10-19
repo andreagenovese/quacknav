@@ -143,7 +143,7 @@ TOML
     ( cd $MICRODUCK_RL && PYTHONPATH=src MAP_FALLBACK= QUACK_NAV_SOCKET=$STATE/nav.sock \
         detach $STATE/body.log $MICRODUCK_RL/.venv/bin/mjpython $VIEWER_DIR/body_with_map.py \
         --port $PORT --ducks 1 --keyframe SIT --scene $scene --robot-socket $STATE/map.sock --media-socket $STATE/media.sock ) > $STATE/body.pid
-  elif [ -n "$TWIN_MOVERS" ]; then
+  elif [ -n "${TWIN_MOVERS:-}" ]; then
     # Things that move (TWIN_MOVERS, viewer/movers.py) need the wrapper's
     # loop, without its window.
     ( cd $MICRODUCK_RL && PYTHONPATH=src MAP_FALLBACK= QUACK_NAV_SOCKET=$STATE/nav.sock \

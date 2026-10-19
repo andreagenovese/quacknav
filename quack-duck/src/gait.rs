@@ -68,7 +68,7 @@ impl From<RawGaitConfig> for GaitConfig {
 /// constants the code had then: a profile never changes the other one.
 /// `velstand` is the duck's default walk since Pollen's policy set v5 (one
 /// network that walks on a twist and stands at zero), measured on the
-/// MuJoCo twin with set v7 (see [`VELSTAND`]).
+/// MuJoCo twin with set v8 (see [`VELSTAND`]).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Profile {
@@ -138,21 +138,25 @@ impl Profile {
     }
 }
 
-/// velstand, Hub policy set v7, on the MuJoCo twin at daemon-v0.16.1
-/// (`scripts/twin/gaitprobe.py`, the arena, three trials each, 2026-10-08):
-/// 0.115 m/s at vx 0.3 (alpha 0.119); 6° of veer in 10 s straight (alpha
-/// 25°: v7 trained its yaw bias out, so set v5's trim 0.16 and gains
-/// 1.63 / 1.58 would now steer it); 0.62 rad/s per unit of yaw while
-/// walking, about even both ways; a turn in place at ±1.5 of 44-51°/s, the
-/// dead zone at ±1.0 as alpha's; 9° of coast after a spin.
+/// velstand, Hub policy set v8 (daemon-v0.16.2 on: Pollen's #393, "tracks
+/// yaw commands"), on the MuJoCo twin at daemon-v0.17.6
+/// (`scripts/twin/gaitprobe.py`, the arena, three trials each, beside set v7
+/// on daemon-v0.16.1 under the same load, 2026-10-19): 0.095 m/s at vx 0.3
+/// (v7 0.115); 11-24° of veer to the left in 10 s straight (v7 a few degrees
+/// either way), so a trim of -0.03; 1.1 rad/s per unit of yaw while walking
+/// (v7 0.62); a turn in place at ±1.0 of 63-68°/s, where v7 barely moved, and
+/// at ±1.5 of 89-108°/s — so a turn asks 1.0, about the rate v7 turned at
+/// 1.5 and every scan and window was tuned on, and the most Pollen's own pad
+/// asks since #393; 12-23° of coast after a spin at 1.0, the prior's 0.3 rad.
+/// Still within 0.4 s of the twist's end, as v7.
 const VELSTAND: Numbers = Numbers {
-    m_per_s: 0.115,
-    yaw_rate_per_unit: 0.62,
-    turn_in_place_rad_s: 1.5,
-    max_turn_in_place_rad_s: 1.6,
+    m_per_s: 0.095,
+    yaw_rate_per_unit: 1.1,
+    turn_in_place_rad_s: 1.0,
+    max_turn_in_place_rad_s: 1.1,
     coast_prior_rad: 0.3,
     settle_s: 0.6,
-    yaw_trim: 0.02,
+    yaw_trim: -0.03,
     yaw_gain_left: 1.0,
     yaw_gain_right: 1.0,
     yaw_max: YAW_MAX,
