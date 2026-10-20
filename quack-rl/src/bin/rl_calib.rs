@@ -17,7 +17,12 @@
 //! through the simulator's gait with the prior and with the fit, and
 //! reports how far each lands from what the duck did.
 //!
-//!     rl_calib [--prior calib.json] [--out DIR] TRACE.jsonl...
+//!     rl_calib [--prior calib.json] [--gait G] [--daemon D] [--out DIR] TRACE.jsonl...
+//!
+//! `--gait` (alpha, velstand) and `--daemon` (0.16, 0.17) name the walk
+//! and the daemon line the traces were walked on: the prior is theirs
+//! (`Calib::for_walk`), the turns in place are told by what that walk asks,
+//! and the fit carries both, so a pilot trained on it flies only there.
 //!
 //! Writes DIR/calib.json (`{"calib": {...}, "fit": {...}, "replay": {...}}`,
 //! what `rl_env`/`rl_eval --calib` read) and DIR/calib.md.
@@ -217,6 +222,7 @@ fn predict(c: &Calib, act: &str, vx: f64, vyaw: f64, secs: f64) -> (f64, f64) {
 fn main() -> anyhow::Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let mut prior_path = None;
+    let (mut gait, mut daemon) = (None, None);
     let mut out_dir = std::path::PathBuf::from("calib-out");
     let mut files = Vec::new();
     let mut i = 0;
@@ -224,6 +230,14 @@ fn main() -> anyhow::Result<()> {
         match args[i].as_str() {
             "--prior" => {
                 prior_path = args.get(i + 1).cloned();
+                i += 1;
+            }
+            "--gait" => {
+                gait = args.get(i + 1).cloned();
+                i += 1;
+            }
+            "--daemon" => {
+                daemon = args.get(i + 1).cloned();
                 i += 1;
             }
             "--out" => {
@@ -234,11 +248,19 @@ fn main() -> anyhow::Result<()> {
         }
         i += 1;
     }
-    anyhow::ensure!(!files.is_empty(), "usage: rl_calib [--prior calib.json] [--out DIR] TRACE.jsonl...");
-    let prior = match &prior_path {
+    anyhow::ensure!(!files.is_empty(), "usage: rl_calib [--prior calib.json] [--gait G] [--daemon D] [--out DIR] TRACE.jsonl...");
+    if let Some(g) = gait.as_deref() {
+        quack_duck::gait::set_active(quack_duck::gait::Profile::from_name(g).ok_or_else(|| anyhow::anyhow!("--gait {g:?} is alpha or velstand"))?);
+    }
+    if let Some(d) = daemon.as_deref() {
+        quack_duck::daemon::set_active(quack_duck::daemon::Line::parse(d).ok_or_else(|| anyhow::anyhow!("--daemon {d:?} is 0.16 or 0.17"))?);
+    }
+    let mut prior = match &prior_path {
         Some(p) => Calib::load(p)?,
-        None => Calib::default(),
+        None => Calib::for_walk(),
     };
+    prior.gait = gait.or(prior.gait);
+    prior.daemon = daemon.or(prior.daemon);
     let mut maps: Vec<MapGrid> = Vec::new();
     let mut legs: Vec<Leg> = Vec::new();
     let mut stands: Vec<StandRec> = Vec::new();
@@ -342,12 +364,13 @@ fn main() -> anyhow::Result<()> {
     let ypu = { let mut s = long.clone(); median(&mut s) };
     c.yaw_per_unit = fit.set("yaw_per_unit", prior.yaw_per_unit, Some((ypu, long.len(), mad_sd(&long))), "median yaw rate per unit of vyaw over curving legs longer than 0.8 s (the pilot's and the stick's steps are 0.6 s: rarely seen)");
     // Turns in place: the rate over the move's own duration.
+    let turn_from = quack_rl::calib::turn_in_place_from();
     let turns = |sign: f64| -> Vec<f64> {
-        legs.iter().filter(|l| l.act.starts_with("turn") && l.vx.abs() < 0.05 && l.vyaw * sign >= 1.45 && l.dur > 0.1).map(|l| dyaw(l) * sign / l.dur).filter(|r| *r > 0.0).collect()
+        legs.iter().filter(|l| l.act.starts_with("turn") && l.vx.abs() < 0.05 && l.vyaw * sign >= turn_from && l.dur > 0.1).map(|l| dyaw(l) * sign / l.dur).filter(|r| *r > 0.0).collect()
     };
     let (tl, tr) = (turns(1.0), turns(-1.0));
     let (ml, mr) = ({ let mut s = tl.clone(); median(&mut s) }, { let mut s = tr.clone(); median(&mut s) });
-    c.turn_left_rad_s = fit.set("turn_left_rad_s", prior.turn_left_rad_s, Some((ml, tl.len(), mad_sd(&tl))), "median rate of the turns in place to the left (vyaw ≥ 1.45), by odometry over the turn's duration");
+    c.turn_left_rad_s = fit.set("turn_left_rad_s", prior.turn_left_rad_s, Some((ml, tl.len(), mad_sd(&tl))), "median rate of the turns in place to the left (vyaw at the walk's turn), by odometry over the turn's duration");
     c.turn_right_rad_s = fit.set("turn_right_rad_s", prior.turn_right_rad_s, Some((mr, tr.len(), mad_sd(&tr))), "the same to the right");
     let all_turns: Vec<f64> = tl.iter().map(|r| r / ml).chain(tr.iter().map(|r| r / mr)).collect();
     c.turn_sd = fit.set("turn_sd", prior.turn_sd, Some((mad_sd(&all_turns), all_turns.len(), 0.0)), "their spread, relative");
