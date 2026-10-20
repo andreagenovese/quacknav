@@ -268,7 +268,11 @@ fn main() -> anyhow::Result<()> {
     let mut events = 0usize;
     let mut falls = 0usize;
     let mut chain = 0usize;
+    // A turn in place's coast: the yaw from its stop (odometry) to the end
+    // of the stand or wait right after it, the turn's way.
+    let mut coasts: Vec<f64> = Vec::new();
     for f in &files {
+        let mut turn_end: Option<(f64, f64)> = None;
         let text = std::fs::read_to_string(f)?;
         let mut cur_map: Option<usize> = None;
         chain += 1;
@@ -290,6 +294,18 @@ fn main() -> anyhow::Result<()> {
                 }
                 Some(kind @ ("leg" | "stand")) => {
                     events += 1;
+                    let ended = turn_end.take();
+                    let odom1 = triple(&v["odom1"]);
+                    let is_turn = kind == "leg" && v["what"]["act"].as_str().is_some_and(|a| a.starts_with("turn")) && v["what"]["vx"].as_f64().unwrap_or(0.0).abs() < 0.05;
+                    if let (Some((sign, yaw)), Some(o1)) = (ended, odom1)
+                        && (kind == "stand" || v["what"]["act"].as_str() == Some("wait"))
+                    {
+                        coasts.push(wrap(o1.2 - yaw) * sign);
+                    }
+                    if is_turn && let Some(o1) = odom1 {
+                        let sign = v["what"]["vyaw"].as_f64().map_or(1.0, f64::signum);
+                        turn_end = Some((sign, o1.2));
+                    }
                     let frames: Vec<Value> = v["frames"].as_array().cloned().unwrap_or_default();
                     let ts: Vec<f64> = frames.iter().filter_map(|f| f["t"].as_f64()).collect();
                     frame_dts.extend(ts.windows(2).map(|w| w[1] - w[0]).filter(|d| *d > 0.0 && *d < 0.5));
@@ -372,6 +388,8 @@ fn main() -> anyhow::Result<()> {
     let (ml, mr) = ({ let mut s = tl.clone(); median(&mut s) }, { let mut s = tr.clone(); median(&mut s) });
     c.turn_left_rad_s = fit.set("turn_left_rad_s", prior.turn_left_rad_s, Some((ml, tl.len(), mad_sd(&tl))), "median rate of the turns in place to the left (vyaw at the walk's turn), by odometry over the turn's duration");
     c.turn_right_rad_s = fit.set("turn_right_rad_s", prior.turn_right_rad_s, Some((mr, tr.len(), mad_sd(&tr))), "the same to the right");
+    let ct = { let mut s = coasts.clone(); median(&mut s) };
+    c.turn_coast_rad = fit.set("turn_coast_rad", prior.turn_coast_rad, Some((ct.max(0.0), coasts.len(), mad_sd(&coasts))), "median yaw past a turn in place's stop, by odometry to the end of the stand or wait right after it");
     let all_turns: Vec<f64> = tl.iter().map(|r| r / ml).chain(tr.iter().map(|r| r / mr)).collect();
     c.turn_sd = fit.set("turn_sd", prior.turn_sd, Some((mad_sd(&all_turns), all_turns.len(), 0.0)), "their spread, relative");
     let backs: Vec<f64> = legs.iter().filter(|l| l.vx < -0.05 && l.secs > 0.0).map(|l| (l.pose1.0 - l.pose0.0).hypot(l.pose1.1 - l.pose0.1) / l.secs).collect();

@@ -36,6 +36,11 @@ pub struct Calib {
     pub spin_rate: f64,
     /// Turn-to-turn spread of the in-place rate, relative.
     pub turn_sd: f64,
+    /// What the body turns on after a turn in place stops, rad: set v8
+    /// carries a 23° turn to ~56° (the pilot's turns on the twin, stopped at
+    /// 9° by odometry, 2026-10-20). Unset (0): the turn stops dead, as the
+    /// simulator always had it for alpha and set v7.
+    pub turn_coast_rad: f64,
     // --- the pose
     /// Odometry's drift: metres of error per metre walked (a random walk),
     /// and radians per radian turned.
@@ -109,6 +114,7 @@ impl Default for Calib {
             turn_left_slow_rad_s: 30f64.to_radians(),
             spin_rate: 0.52,
             turn_sd: 0.1,
+            turn_coast_rad: 0.0,
             odom_xy_per_m: 0.05,
             odom_yaw_per_rad: 0.015,
             pose_jitter_m: 0.01,
@@ -186,6 +192,7 @@ impl Calib {
             c.yaw_per_unit = n.yaw_rate_per_unit;
             c.turn_left_rad_s = 65f64.to_radians();
             c.turn_right_rad_s = 65f64.to_radians();
+            c.turn_coast_rad = n.coast_prior_rad;
         }
         c
     }

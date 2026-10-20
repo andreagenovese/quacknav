@@ -31,6 +31,9 @@ const KEEP_S: f64 = 3.5;
 const STAND_CORRECTS_S: f64 = 1.5;
 /// The head's sweep at a stand.
 const SWEEP: f64 = 0.8;
+/// A turn's coast is given out with this time constant (the twin's
+/// coasts are over within ~0.4 s of the twist's end).
+const COAST_TAU_S: f64 = 0.15;
 
 /// What the body did since the brain last asked (the reward's terms).
 #[derive(Debug, Clone, Default)]
@@ -62,6 +65,9 @@ pub struct Sim {
     pub min_hole_m: f64,
     pub min_static_m: f64,
     last_walk: Option<f64>,
+    /// The turn still due after a turn in place stopped (rad, signed):
+    /// given out over the next ticks, whatever the body is told then.
+    coast_due: f64,
     // the map's pose: truth + err + bias, published every map_period_s
     err: (f64, f64, f64),
     pub bias: (f64, f64),
@@ -128,6 +134,7 @@ impl Sim {
             min_hole_m: f64::INFINITY,
             min_static_m: f64::INFINITY,
             last_walk: None,
+            coast_due: 0.0,
             err: (0.0, 0.0, 0.0),
             bias: s.bias,
             shown: (0.0, 0.0, 0.0),
@@ -309,8 +316,13 @@ impl Sim {
             } else {
                 (0.0, 0.0)
             };
+            let in_place = v == 0.0 && w != 0.0;
+            let w = if in_place { w } else { w + self.coast(dt) };
             let walking = v.abs() > 0.0 || w.abs() > 0.0;
             self.tick(dt, v, w, walking);
+            if in_place {
+                self.coast_due = c.turn_coast_rad * w.signum() * turn_k;
+            }
             if v > 0.0 {
                 self.since.walked_forward_s += dt;
             } else if v < 0.0 {
@@ -339,7 +351,8 @@ impl Sim {
             // The head: centre, left, right, centre over the stand.
             let phase = if secs >= STAND_CORRECTS_S { (k as f64 * dt / secs * std::f64::consts::TAU).sin() } else { 0.0 };
             self.head = SWEEP * phase;
-            self.tick(dt, 0.0, 0.0, false);
+            let w = self.coast(dt);
+            self.tick(dt, 0.0, w, w != 0.0);
             self.since.stood_s += dt;
         }
         self.head = 0.0;
@@ -348,6 +361,17 @@ impl Sim {
             self.err = (self.err.0 * k, self.err.1 * k, self.err.2 * k);
             self.publish_map();
         }
+    }
+
+    /// The coast's share of this tick, as a yaw rate: most of it within
+    /// [`COAST_TAU_S`] × 3 of the turn's stop.
+    fn coast(&mut self, dt: f64) -> f64 {
+        if self.coast_due == 0.0 {
+            return 0.0;
+        }
+        let part = if self.coast_due.abs() < 1e-3 { self.coast_due } else { self.coast_due * (dt / COAST_TAU_S).min(1.0) };
+        self.coast_due -= part;
+        part / dt
     }
 
     /// Down against something: the run ends as a fall's does.
@@ -505,5 +529,24 @@ mod tests {
         assert!(crate::wrap(b.yaw - y0).abs() < 1e-9);
         b.walk(0.0, 1.5, 1.0);
         assert!(crate::wrap(b.yaw - y0) > 0.5);
+    }
+
+    #[test]
+    fn a_turn_coasts_on_once_stopped() {
+        let s = generate(3, 0, Some("clutter"));
+        let c = Calib { turn_sd: 0.0, turn_coast_rad: 0.5, ..Calib::default() };
+        let mut b = Sim::new(&s, c, 1);
+        let y0 = b.yaw;
+        b.walk(0.0, 1.5, 0.5);
+        let stopped = crate::wrap(b.yaw - y0);
+        b.stand(0.6);
+        let coasted = crate::wrap(b.yaw - y0) - stopped;
+        assert!((coasted - 0.5).abs() < 0.02, "{coasted}");
+        // None without it: the turn stops dead, as alpha's and set v7's did.
+        let mut b = Sim::new(&s, Calib { turn_sd: 0.0, ..Calib::default() }, 1);
+        b.walk(0.0, 1.5, 0.5);
+        let y1 = b.yaw;
+        b.stand(0.6);
+        assert_eq!(b.yaw, y1);
     }
 }
