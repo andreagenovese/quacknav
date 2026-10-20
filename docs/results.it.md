@@ -662,6 +662,38 @@ Nessuna caduta in nessuna prova, da nessuna delle due parti.
   0.17 finché non lo si riaddestra lì (`DAEMON=0.17 GAIT=velstand
   calibrate.sh`); guida lo stick.
 
+#### Riaddestrare il pilota sulla linea 0.17 (2026-10-20)
+
+Le tracce dello stick sulla daemon-v0.17.6 + set v8 (casa_ingombra e
+casa_arredata, tre giri ciascuna, 34/36) sono passate da `DAEMON=0.17
+GAIT=velstand calibrate.sh`. Prima sono emersi due difetti del simulatore:
+
+- **Girava sul posto solo da |vyaw| 1,45** (quanto chiede il set v7):
+  sulla linea 0.17 una girata chiede 1,0, quindi la papera simulata non
+  girava da ferma, e `rl_calib` non trovava girate nelle tracce. Le soglie
+  ora seguono il `turn_in_place_rad_s` della camminata (alpha e set v7
+  invariati), `rl_calib` accetta `--gait`/`--daemon` e il suo prior su
+  velstand 0.17 è quello della sonda di camminata (0,095 m/s, 1,1 rad/s per
+  unità, 65°/s).
+- **Le tracce dello stick sottostimano i passi in curva del pilota**: la
+  stima su di esse dava 0,66 rad/s per unità di yaw su un passo breve,
+  mentre i passi del pilota (±0,35, ±0,7) sul gemello girano 0,88. Il
+  secondo giro è stato calibrato sulle tracce del primo pilota.
+
+| braccio (gemello, daemon-v0.17.6 + set v8) | casa_ingombra | casa_arredata |
+|---|---|---|
+| stick | 24/24, mediana 110 s (un passaggio precedente 22/24) | 24/24, 97 s |
+| primo pilota (tracce dello stick) | 19/24, media 134 s | — |
+| secondo pilota (tracce proprie) | 22/24, 114 s | 24/24, 105 s |
+
+Nessuna caduta. Sul banco (il simulatore calibrato) entrambi hanno
+passato il cancello (94,3 % e 94,5 % contro il 92,9 % e il 91,2 % dello
+stick), sul gemello nessuno ha battuto lo stick: il primo oscillava nei due
+passaggi stretti (girate a sinistra e a destra, attese, retromarce), il
+secondo ha mancato due viaggi per tempo. Non rilasciati: sulla linea 0.17
+guida lo stick, come nell'A/B sopra. I piloti restano in
+`rl-runs/calib-v8{,b}`.
+
 ## Limiti noti
 
 - **Un bordo registrato dove lo metteva la posa.** Circa un drop su 50 finisce

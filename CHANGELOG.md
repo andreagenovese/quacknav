@@ -41,6 +41,11 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Fixed
 
+- quack-rl's simulator turned in place only from |vyaw| 1.45, set v7's
+  ask: on the 0.17 line (a turn asks 1.0) the simulated duck could not
+  turn from a standstill and `rl_calib` found no turns. The thresholds
+  follow the walk; `rl_calib` takes `--gait`/`--daemon` and starts from
+  the line's prior (`calibrate.sh` passes `GAIT`/`DAEMON`).
 - Twin viewer: a map loaded at boot was drawn at the spawn, turned by
   its yaw; it is now placed once the pose is confirmed, as an exchanged
   map is (12 wakes: within 0.11 m and 4° of the true origin).

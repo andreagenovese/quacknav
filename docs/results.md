@@ -622,6 +622,36 @@ No fall in any test on either side.
   trained on v7 and does not fly on the 0.17 line until retrained there
   (`DAEMON=0.17 GAIT=velstand calibrate.sh`); the stick drives.
 
+#### Retraining the pilot on the 0.17 line (2026-10-20)
+
+The stick's traces on daemon-v0.17.6 + set v8 (casa_ingombra and
+casa_arredata, three tours each, 34/36) went through `DAEMON=0.17
+GAIT=velstand calibrate.sh`. Two faults of the simulator's showed first:
+
+- **It turned in place only from |vyaw| 1.45** (set v7's ask): on the 0.17
+  line a turn asks 1.0, so the simulated duck could not turn from a
+  standstill, and `rl_calib` found no turns in the traces. The thresholds
+  now follow the walk's `turn_in_place_rad_s` (alpha and set v7 unchanged),
+  `rl_calib` takes `--gait`/`--daemon` and its prior on velstand 0.17 is
+  the gait probe's (0.095 m/s, 1.1 rad/s per unit, 65°/s).
+- **The stick's traces understate the pilot's curving steps**: a fit on
+  them gave 0.66 rad/s per unit of yaw on a short step, where the pilot's
+  own steps (±0.35, ±0.7) turn 0.88 on the twin. The second round was
+  calibrated on the first pilot's traces.
+
+| arm (twin, daemon-v0.17.6 + set v8) | casa_ingombra | casa_arredata |
+|---|---|---|
+| stick | 24/24, median 110 s (an earlier pass 22/24) | 24/24, 97 s |
+| first pilot (stick's traces) | 19/24, mean 134 s | — |
+| second pilot (its own traces) | 22/24, 114 s | 24/24, 105 s |
+
+No fall anywhere. On the bench (the calibrated simulator) both passed
+the gate (94.3 % and 94.5 % against the stick's 92.9 % and 91.2 %), on the
+twin neither beat the stick: the first dithered at the two narrow
+passages (turns left and right, waits, back-offs), the second missed two
+journeys on time. Not shipped: on the 0.17 line the stick drives, as it
+did through the A/B above. The pilots stay in `rl-runs/calib-v8{,b}`.
+
 ## Known limits
 
 - **A rim booked where the pose had it.** About 1 in 50 drops lands 20–35 cm

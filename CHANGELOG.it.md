@@ -45,6 +45,11 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Corretto
 
+- Il simulatore di quack-rl girava sul posto solo da |vyaw| 1,45, quanto
+  chiede il set v7: sulla linea 0.17 (una girata chiede 1,0) la papera
+  simulata non girava da ferma e `rl_calib` non trovava girate. Le soglie
+  seguono la camminata; `rl_calib` accetta `--gait`/`--daemon` e parte dal
+  prior della linea (`calibrate.sh` passa `GAIT`/`DAEMON`).
 - Visore del gemello: una mappa caricata al boot si disegnava al punto di
   partenza, girata del suo angolo; ora si colloca quando la posa è
   confermata, come una mappa scambiata (12 risvegli: entro 0,11 m e 4°
