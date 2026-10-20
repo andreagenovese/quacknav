@@ -87,6 +87,11 @@ pub struct Calib {
     /// in the simulator runs that walk's rules, and a pilot trained on it
     /// says so (its `meta.gait`). Unset: alpha.
     pub gait: Option<String>,
+    /// The daemon line the traces were walked on (`quack_duck::daemon`,
+    /// "0.16" or "0.17"): velstand's numbers follow it, and a pilot trained
+    /// on it says so (its `meta.daemon`). Unset: 0.16.
+    #[serde(default)]
+    pub daemon: Option<String>,
 }
 
 impl Default for Calib {
@@ -128,6 +133,7 @@ impl Default for Calib {
             spur_median_m: 0.45,
             spur_sigma: 0.8,
             gait: None,
+            daemon: None,
         }
     }
 }
@@ -175,6 +181,10 @@ impl Calib {
         if let Some(g) = calib.gait.as_deref() {
             let walk = quack_duck::gait::Profile::from_name(g).ok_or_else(|| anyhow::anyhow!("{path}: gait {g:?} is alpha or velstand"))?;
             quack_duck::gait::set_active(walk);
+        }
+        if let Some(d) = calib.daemon.as_deref() {
+            let line = quack_duck::daemon::Line::parse(d).ok_or_else(|| anyhow::anyhow!("{path}: daemon {d:?} is 0.16 or 0.17"))?;
+            quack_duck::daemon::set_active(line);
         }
         Ok(calib)
     }

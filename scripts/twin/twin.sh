@@ -14,7 +14,7 @@
 # quack-navd's environment, as the unit's EnvironmentFile= is on the duck.
 #
 # Needs (see README.md):
-#   MICRODUCK     pollen-robotics/microduck at daemon-v0.16.1, with
+#   MICRODUCK     pollen-robotics/microduck at daemon-v0.17.6 (or v0.16.1), with
 #                 `cargo build -p robotd -p tof` done (target/debug)
 #   MICRODUCK_RL  pollen-robotics/microduck_rl, with its .venv
 #   POLICY_DIR    alpha_walking.onnx (or velstand.onnx), alpha_stand.onnx, alpha_sitstand.onnx,
@@ -30,6 +30,8 @@
 #   STATE         runtime directory (default /tmp/quack-twin)
 #   PORT          the simulator's port (default 7872)
 #   GAIT          alpha (default) or velstand: the walk robotd runs
+#   DAEMON        quack-navd's `daemon` (default auto: it asks robotd, so the
+#                 MICRODUCK checkout decides); 0.16 or 0.17 to name it
 #   MAPLOC_MODE   stop_and_scan (default) or localize
 #   HOMECOMING    on or off (default off)
 #   RESUME        on: progressive exploration — home on a map still being
@@ -106,6 +108,7 @@ TOML
   cat > $STATE/quack-nav.toml <<TOML
 socket = "$STATE/nav.sock"
 robotd_socket = "$SOCK"
+daemon = "${DAEMON:-auto}"
 knobs_env = "$STATE/knobs.env"
 
 [map]
@@ -143,7 +146,7 @@ TOML
     ( cd $MICRODUCK_RL && PYTHONPATH=src MAP_FALLBACK= QUACK_NAV_SOCKET=$STATE/nav.sock \
         detach $STATE/body.log $MICRODUCK_RL/.venv/bin/mjpython $VIEWER_DIR/body_with_map.py \
         --port $PORT --ducks 1 --keyframe SIT --scene $scene --robot-socket $STATE/map.sock --media-socket $STATE/media.sock ) > $STATE/body.pid
-  elif [ -n "$TWIN_MOVERS" ]; then
+  elif [ -n "${TWIN_MOVERS:-}" ]; then
     # Things that move (TWIN_MOVERS, viewer/movers.py) need the wrapper's
     # loop, without its window.
     ( cd $MICRODUCK_RL && PYTHONPATH=src MAP_FALLBACK= QUACK_NAV_SOCKET=$STATE/nav.sock \
@@ -189,6 +192,13 @@ down)
     p=$(cat $STATE/$n.pid)
     if ps -p $p >/dev/null 2>&1; then echo "stop $n ($p)"; kill $p; fi
     rm -f $STATE/$n.pid
+  done
+  # What a lost pid file left behind (an `up` cut short and retried, a run
+  # killed): anything still on this state's sockets or the simulator's port.
+  # A robotd left over owns the socket, and the next one exits ("another
+  # robotd owns this socket") while the duck stands still.
+  for pat in "$STATE/robotd.sock" "$STATE/tof.sock" "$STATE/quack-nav.toml" "$STATE/map.sock" "body_server --port $PORT "; do
+    pkill -f -- "$pat" 2>/dev/null && echo "stop what was left on $pat"
   done
   ;;
 *) echo "usage: $0 {up|enable|restart-navd|down}"; exit 2 ;;

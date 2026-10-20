@@ -5,6 +5,9 @@
 
 socket = "/run/quack-nav/nav.sock"
 robotd_socket = "/run/robotd.sock"
+daemon = "auto"         # which of Pollen's daemons robotd is: "auto" asks it at
+                        # start; "0.16" (up to daemon-v0.16.1) or "0.17"
+                        # (daemon-v0.16.2 on) names it
 
 [map]
 enabled = true

@@ -357,6 +357,24 @@ impl Pilot {
             .unwrap_or(quack_duck::gait::Profile::Alpha)
     }
 
+    /// The daemon line it was trained on (`meta.daemon`; 0.16, the only one
+    /// before 2026-10-19, when it says none).
+    pub fn daemon(&self) -> quack_duck::daemon::Line {
+        self.file
+            .meta
+            .get("daemon")
+            .and_then(|d| d.as_str())
+            .and_then(quack_duck::daemon::Line::parse)
+            .unwrap_or(quack_duck::daemon::Line::V0_16)
+    }
+
+    /// Whether it flies this walk on this daemon line: the walk it was
+    /// trained on, and under velstand the line too (alpha's policies are the
+    /// same on every line; velstand's set v8 turns twice as fast as v7).
+    pub fn fits(&self, walk: quack_duck::gait::Profile, line: quack_duck::daemon::Line) -> bool {
+        self.gait() == walk && (walk == quack_duck::gait::Profile::Alpha || self.daemon() == line)
+    }
+
     pub fn load(path: &Path) -> anyhow::Result<Self> {
         let text = std::fs::read_to_string(path).map_err(|e| anyhow::anyhow!("cannot read the pilot {}: {e}", path.display()))?;
         let file: PilotFile = serde_json::from_str(&text).map_err(|e| anyhow::anyhow!("the pilot {} is not a pilot file: {e}", path.display()))?;
@@ -412,25 +430,34 @@ impl Pilot {
 }
 
 /// `QK_RL_POLICY`: the pilot (docs/rl-pilot.md) that flies the stick's legs; unset, the stick.
-/// A file, or a directory holding one per walk, `<dir>/<profile>/pilot.json`
+/// A file, or a directory holding one per walk: `<dir>/<line>/<profile>/pilot.json`
+/// for the daemon line robotd is (`0.17/velstand/`), else `<dir>/<profile>/pilot.json`
 /// (`alpha/`, `velstand/`), the one of `[gait] profile` taken. A pilot flies
 /// only the walk it was trained on (its `meta.gait`, alpha when it says
-/// none): a velstand duck with an alpha pilot is driven by the stick.
-/// Loaded once; a pilot that does not load is said in the log and the
+/// none) and, under velstand, only the daemon line (`meta.daemon`, 0.16 when
+/// it says none): a velstand duck on 0.17 with a 0.16 pilot is driven by the
+/// stick. Loaded once; a pilot that does not load is said in the log and the
 /// stick drives.
 pub fn from_env() -> Option<Arc<dyn Brain>> {
     static P: OnceLock<Option<Arc<Pilot>>> = OnceLock::new();
     P.get_or_init(|| {
         let given = std::env::var("QK_RL_POLICY").ok().filter(|p| !p.is_empty())?;
-        let walk = quack_duck::gait::active();
-        let path = if Path::new(&given).is_dir() { format!("{given}/{}/pilot.json", walk.name()) } else { given };
+        let (walk, line) = (quack_duck::gait::active(), quack_duck::daemon::active());
+        let path = pilot_path(&given, walk, line);
         match Pilot::load(Path::new(&path)) {
-            Ok(p) if p.gait() != walk => {
-                tracing::warn!(path, pilot = p.gait().name(), walk = walk.name(), "rl pilot: trained on another walk; the stick drives");
+            Ok(p) if !p.fits(walk, line) => {
+                tracing::warn!(
+                    path,
+                    pilot = p.gait().name(),
+                    pilot_daemon = p.daemon().name(),
+                    walk = walk.name(),
+                    daemon = line.name(),
+                    "rl pilot: trained on another walk or daemon; the stick drives"
+                );
                 None
             }
             Ok(p) => {
-                tracing::info!(path, walk = walk.name(), "rl pilot: loaded; the stick's legs are the pilot's");
+                tracing::info!(path, walk = walk.name(), daemon = line.name(), "rl pilot: loaded; the stick's legs are the pilot's");
                 Some(Arc::new(p))
             }
             Err(e) => {
@@ -441,6 +468,15 @@ pub fn from_env() -> Option<Arc<dyn Brain>> {
     })
     .clone()
     .map(|p| p as Arc<dyn Brain>)
+}
+
+/// The file `QK_RL_POLICY` names for this walk on this daemon line.
+fn pilot_path(given: &str, walk: quack_duck::gait::Profile, line: quack_duck::daemon::Line) -> String {
+    if !Path::new(given).is_dir() {
+        return given.to_owned();
+    }
+    let per_line = format!("{given}/{}/{}/pilot.json", line.name(), walk.name());
+    if Path::new(&per_line).is_file() { per_line } else { format!("{given}/{}/pilot.json", walk.name()) }
 }
 
 /// How long a frame stays in the observation.
@@ -544,5 +580,39 @@ mod tests {
         bad.obs_dim = 7;
         std::fs::write(&p, serde_json::to_string(&bad).unwrap()).unwrap();
         assert!(Pilot::load(&p).is_err());
+    }
+
+    #[test]
+    fn a_pilot_flies_its_walk_on_its_daemon_line() {
+        use quack_duck::daemon::Line;
+        use quack_duck::gait::Profile;
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().to_str().unwrap();
+        for sub in ["velstand", "0.17/velstand", "alpha"] {
+            std::fs::create_dir_all(format!("{root}/{sub}")).unwrap();
+            std::fs::write(format!("{root}/{sub}/pilot.json"), "{}").unwrap();
+        }
+        // The line's own directory first, the walk's otherwise.
+        assert_eq!(pilot_path(root, Profile::Velstand, Line::V0_17), format!("{root}/0.17/velstand/pilot.json"));
+        assert_eq!(pilot_path(root, Profile::Velstand, Line::V0_16), format!("{root}/velstand/pilot.json"));
+        assert_eq!(pilot_path(root, Profile::Alpha, Line::V0_17), format!("{root}/alpha/pilot.json"));
+        assert_eq!(pilot_path("/a/pilot.json", Profile::Alpha, Line::V0_17), "/a/pilot.json");
+
+        let pilot = |meta: serde_json::Value| {
+            let mut p = Pilot { file: serde_json::from_value(serde_json::json!({
+                "format": "quack-pilot", "obs_version": 0, "obs_dim": 0, "n_actions": 0,
+                "obs_mean": [], "obs_std": [], "layers": [], "meta": {}
+            })).unwrap(), path: String::new() };
+            p.file.meta = meta;
+            p
+        };
+        // Before `meta.daemon`: a 0.16 pilot.
+        let old = pilot(serde_json::json!({"gait": "velstand"}));
+        assert!(old.fits(Profile::Velstand, Line::V0_16) && !old.fits(Profile::Velstand, Line::V0_17));
+        let new = pilot(serde_json::json!({"gait": "velstand", "daemon": "0.17"}));
+        assert!(new.fits(Profile::Velstand, Line::V0_17) && !new.fits(Profile::Velstand, Line::V0_16));
+        // alpha's policies never changed: any line.
+        let alpha = pilot(serde_json::json!({}));
+        assert!(alpha.fits(Profile::Alpha, Line::V0_17) && !alpha.fits(Profile::Velstand, Line::V0_16));
     }
 }

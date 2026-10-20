@@ -273,7 +273,9 @@ Tutto — il progetto, gli scudi, i numeri, i limiti:
 ## Farlo girare
 
 Rust 1.89 o più recente; la prima compilazione scarica da GitHub i crate
-`duck-ipc-proto` e `kinematics` di Pollen (tag daemon-v0.16.1).
+`duck-ipc-proto` e `kinematics` di Pollen (tag daemon-v0.17.6). Una sola
+compilazione gira su ogni daemon dalla v0.14.4: ciò che è cambiato dopo è
+facoltativo sul filo.
 
 ```sh
 git clone https://github.com/andreagenovese/quacknav.git && cd quacknav
@@ -305,6 +307,9 @@ map_path = "/var/lib/quack-nav/maploc.session"
 profile = "velstand"    # the walk robotd runs: "velstand" (Pollen's default since
                         # policy set v5) or "alpha" (alpha_walking + alpha_stand)
 ```
+
+L'esempio non mette `daemon`: quack-navd chiede a robotd quale daemon è
+([Il daemon](#il-daemon)).
 
 Con `[maploc]` acceso, `quack-navd` fa girare da sé il `maploc` di Pollen
 (il crate `maploc` di questo workspace): legge `robot.state` e lo stream
@@ -387,6 +392,7 @@ standard; cosa guardare su una vera:
 | `[map] places_path` | `/var/lib/quack-nav/places.json` | i luoghi con un nome |
 | `[homecoming] enabled`, `resume_explore` | `true`, `true` | spenti: la papera non fa nulla da sé all'avvio, né riprende a esplorare dopo una ricarica |
 | `socket` | `/run/quack-nav/nav.sock` | dove quacksat e quack-control trovano quack-navd |
+| `daemon` | assente (`"auto"`) | `"0.16"` o `"0.17"` per dire quale daemon di Pollen invece di chiederlo a robotd (vedi sotto) |
 | `[gait] profile` | `"velstand"` | `"alpha"` quando robotd cammina con `alpha_walking` + `alpha_stand` (vedi sotto) |
 
 I percorsi devono restare sotto `/var/lib/quack-nav/` o `/run/quack-nav/`:
@@ -394,6 +400,31 @@ l'unità non lascia scrivere il demone altrove. Una chiave che il demone non
 conosce lo ferma con un messaggio che la nomina (`journalctl -u
 quack-navd`). Tutte le chiavi e i loro predefiniti:
 `quack-nav/src/config.rs`.
+
+### Il daemon
+
+I daemon di Pollen non camminano tutti allo stesso modo: dalla
+daemon-v0.16.2 la papera usa il set di policy v8, il cui velstand è più
+lento in avanti (0,095 m/s contro 0,115) e gira circa il doppio (una
+rotazione sul posto a 1,0 fa 65°/s, dove quello del set v7 quasi non si
+muoveva). Una sola chiave sceglie per quale daemon guida quack-navd:
+
+```toml
+daemon = "auto"     # il default: robotd dice quale è all'avvio
+daemon = "0.16"     # fino alla daemon-v0.16.1 (set di policy v7)
+daemon = "0.17"     # dalla daemon-v0.16.2 (set di policy v8)
+```
+
+Va bene anche una release (`"0.16.1"`, `"0.17.6"`). Con `"auto"` — o senza
+`daemon`, come in ogni configurazione scritta prima — quack-navd lo chiede
+a robotd all'avvio (`hello`) e, se robotd non risponde entro 30 s, prende
+la linea più nuova, perché le papere di Pollen si aggiornano da sole; il
+log dice quale ha preso (`journalctl -u quack-navd | grep daemon:`). Una
+linea scritta vince su robotd, che è solo detto nel log quando non
+coincide. Il daemon decide i numeri di velstand e quale pilota può volare
+([docs/rl-pilot.it.md](docs/rl-pilot.it.md)); alpha è uguale su ogni
+linea. I numeri di ogni linea stanno in un file a sé,
+`quack-duck/src/daemon/v0_16.rs` e `v0_17.rs`.
 
 ### La camminata
 
@@ -639,7 +670,7 @@ il comportamento e dargli le forme del settore:
 Misurato sul gemello MuJoCo (`microduck_rl` + robotd); la papera fisica
 arriva a dicembre 2026. Due modi di farlo girare:
 
-- **robotd ufficiale** (daemon-v0.16.1) con `[maploc] enabled`: il
+- **robotd ufficiale** (daemon-v0.17.6, o v0.16.1) con `[maploc] enabled`: il
   mapper sta in `quack-navd`. È la configurazione della preview; i numeri
   di [`docs/results.it.md`](docs/results.it.md) sono stati misurati sulla
   daemon-v0.14.4.
@@ -647,7 +678,10 @@ arriva a dicembre 2026. Due modi di farlo girare:
   più la libreria di mappe di `docs/study/upstream-asks.md` §5, che vive su
   un fork di `pollen-robotics/microduck` — con `[maploc]` spento.
 
-`main` è fissato a daemon-v0.16.1 (API 41) dal 2026-10-08, validato sul
+Il ramo `daemon-0.17` è compilato contro la daemon-v0.17.6 (API 44) e
+validato sul gemello su entrambe le linee di daemon ([docs/results.it.md](docs/results.it.md),
+"daemon 0.17.6 e set di policy v8": nessuna regressione in arrivi, cadute
+o risvegli; più lento per la camminata del set v8). `main` è fissato a daemon-v0.16.1 (API 41) dal 2026-10-08, validato sul
 gemello con entrambe le camminate (branch `microduck-016`: quattro giri
 per casa, nessuna regressione con alpha; velstand altrettanto bene);
 prima a daemon-v0.15.0 (API 37) dal 2026-10-01. Le sue aggiunte sono facoltative sul filo,

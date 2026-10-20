@@ -1,12 +1,13 @@
 # The twin, on the released robotd
 
 Everything needed to run quack-nav on the MuJoCo twin with Pollen's
-**released** robotd (daemon-v0.16.1) and the mapper hosted in
+**released** robotd (daemon-v0.17.6, or v0.16.1) and the mapper hosted in
 `quack-navd` (`[maploc]`, see ADR 0007) — and to repeat the measurements
 of 2026-09-23 (on daemon-v0.14.4) that say it behaves like the robotd fork.
 
-`GAIT=velstand` runs Pollen's default walk (policy set v7: `velstand.onnx`
-in `POLICY_DIR`, no standing network) and writes `[gait] profile =
+`GAIT=velstand` runs Pollen's default walk (`velstand.onnx` in
+`POLICY_DIR`, no standing network: policy set v8 with daemon-v0.16.2 and
+on, v7 before) and writes `[gait] profile =
 "velstand"` into quack-navd's config; `GAIT=alpha`, the default, the pair
 every older number came from. `MICRODUCK_RL` at upstream's `develop`
 (2026-10-08) plus the body server's spawn commit. `gaitprobe.py`,
@@ -19,7 +20,9 @@ the body takes to stand still after a stop.
 ```sh
 # Pollen's daemon at the release, robotd and tofd built for the simulator
 git clone https://github.com/pollen-robotics/microduck && cd microduck
-git checkout daemon-v0.16.1 && cargo build -p robotd -p tof
+git checkout daemon-v0.17.6 && cargo build -p robotd -p tof   # or daemon-v0.16.1
+# its policy set, from the Hugging Face Hub (v8 at this tag, v7 at 0.16.1)
+sh scripts/seed-policies.sh ~/policies && ln -sfn ~/policies/current ~/policies-set
 
 # the simulator (its README sets up the .venv)
 git clone https://github.com/pollen-robotics/microduck_rl
@@ -29,15 +32,20 @@ cargo build --release
 ```
 
 ```sh
-export MICRODUCK=~/src/microduck          # at daemon-v0.16.1, built
+export MICRODUCK=~/src/microduck          # at daemon-v0.17.6 (or v0.16.1), built
 export MICRODUCK_RL=~/src/microduck_rl    # with its .venv
 export POLICY_DIR=~/policies              # the alpha set: alpha_walking.onnx, alpha_stand.onnx,
                                           # alpha_sitstand.onnx, alpha_ground_pick.onnx,
                                           # ball_kick_left.onnx, ball_kick_right.onnx, roulade.onnx
 ```
 
-The numbers here were measured with the alpha set; Pollen publishes the
-shipped policies on the Hugging Face Hub.
+The older numbers here were measured with the alpha set; Pollen publishes
+the shipped policies on the Hugging Face Hub (`seed-policies.sh` fetches
+the set its daemon pins).
+
+Which daemon quack-navd drives for follows the `MICRODUCK` checkout:
+`twin.sh` writes `daemon = "auto"` and quack-navd asks robotd. `DAEMON=0.16`
+or `DAEMON=0.17` names it instead ([README, The daemon](../../README.md#the-daemon)).
 
 The viewer draws the map, the route, the depth sensor's rays and the
 guard's lane (`viewer/`: PR 202's `sim-maploc` overlay, by Peter Schade,
