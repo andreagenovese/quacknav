@@ -1438,6 +1438,12 @@ pub struct Job {
     pilot_scuffs: u32,
     /// The pilot's turns in place in a row.
     pilot_turns: u32,
+    /// The shortest route to the stand the pilot has reached, and when
+    /// (see `PILOT_NO_PROGRESS`) ...
+    pilot_best: Option<(f64, Instant)>,
+    /// ... and, once it went that long without shortening it, the route
+    /// and the time when the stick took over.
+    stick_holds: Option<(f64, Instant)>,
     /// A goal walked as the exploration's travel (see `as_exploration_travel`).
     exploration_travel: bool,
     /// Walls looked at from near, and how many (see `close_look.rs`).
@@ -1590,6 +1596,8 @@ impl Job {
             pilot_refused: 0,
             pilot_scuffs: 0,
             pilot_turns: 0,
+            pilot_best: None,
+            stick_holds: None,
             exploration_travel: false,
             looked: Vec::new(),
             close_looks: 0,

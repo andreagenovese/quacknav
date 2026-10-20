@@ -238,7 +238,37 @@ impl Job {
         // ... and when it only turns: a policy can settle in turning one way
         // and back (the bench's first pilot with the twin's noisy sensor
         // turned 319 times in one journey, 2026-10-06).
-        let pilot = self.pilot.clone().filter(|_| self.pilot_refused < PILOT_REFUSED_TO_STICK && self.pilot_turns < PILOT_TURNS_TO_STICK);
+        // ... and when it does not get on: a route to the stand no shorter
+        // by [`PILOT_PROGRESS_M`] in [`PILOT_NO_PROGRESS`], and the stick
+        // walks the legs until it is [`STICK_PAST_M`] shorter than where it
+        // took over, or [`STICK_HOLD_MAX`] has gone. The pilot is never worse
+        // than the stick for long: the MuJoCo twin's pilot for daemon 0.17
+        // lost all of its time to the stick before casa_ingombra's bag and
+        // basket in the corridor, the map's not, short turns and waits
+        // between the steps (+15 s and +10 s a journey, the rest of the
+        // house even; 22/24 arrived against 24/24, 2026-10-20).
+        if self.pilot.is_some() {
+            let (route_m, now) = (route_to_stand((x, y), f), robot.now());
+            if let Some((from_m, since)) = self.stick_holds {
+                if route_m <= from_m - STICK_PAST_M || now.saturating_duration_since(since) >= STICK_HOLD_MAX {
+                    tracing::info!(at = ?(x, y, yaw), route_m = format!("{route_m:.2}"), from_m = format!("{from_m:.2}"), "map explore: pilot: past it; the pilot flies again");
+                    self.stick_holds = None;
+                    self.pilot_best = None;
+                }
+            }
+            if self.stick_holds.is_none() {
+                match self.pilot_best {
+                    Some((best, _)) if route_m < best - PILOT_PROGRESS_M => self.pilot_best = Some((route_m, now)),
+                    Some((best, since)) if now.saturating_duration_since(since) >= PILOT_NO_PROGRESS => {
+                        tracing::info!(at = ?(x, y, yaw), route_m = format!("{route_m:.2}"), best_m = format!("{best:.2}"), "map explore: pilot: no nearer for a while; the stick takes the legs");
+                        self.stick_holds = Some((route_m.min(best), now));
+                    }
+                    None => self.pilot_best = Some((route_m, now)),
+                    _ => {}
+                }
+            }
+        }
+        let pilot = self.pilot.clone().filter(|_| self.stick_holds.is_none() && self.pilot_refused < PILOT_REFUSED_TO_STICK && self.pilot_turns < PILOT_TURNS_TO_STICK);
         if self.pilot.is_some() && pilot.is_none() {
             tracing::info!(at = ?(x, y, yaw), refused = self.pilot_refused, turns = self.pilot_turns, "map explore: pilot: refused twice, or only turning; the stick takes the leg");
             self.pilot_refused = 0;
@@ -565,6 +595,28 @@ impl Job {
 pub(super) const PILOT_REFUSED_TO_STICK: u32 = 2;
 /// The pilot's turns in place in a row before the stick takes a leg.
 pub(super) const PILOT_TURNS_TO_STICK: u32 = 4;
+/// The pilot's route to the stand shorter by less than this in this long,
+/// and the stick takes the legs ...
+const PILOT_PROGRESS_M: f64 = 0.15;
+const PILOT_NO_PROGRESS: std::time::Duration = std::time::Duration::from_secs(12);
+/// ... until the route is this much shorter than where it took over, or
+/// for this long at most.
+const STICK_PAST_M: f64 = 0.5;
+const STICK_HOLD_MAX: std::time::Duration = std::time::Duration::from_secs(30);
+
+/// The route's length from `at` to the frontier's stand.
+fn route_to_stand(at: (f64, f64), f: &Frontier) -> f64 {
+    let mut m = 0.0;
+    let mut p = at;
+    for q in &f.path {
+        m += dist2(p, *q);
+        p = *q;
+        if *q == f.stand {
+            return m;
+        }
+    }
+    m + dist2(p, f.stand)
+}
 
 /// The pilot's legs that did not move the body before a step against
 /// something ahead within [`PUSH_AHEAD_M`] is refused.
