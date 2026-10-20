@@ -171,6 +171,25 @@ impl Spread {
 }
 
 impl Calib {
+    /// The prior for the walk and daemon line this process drives
+    /// (`quack_duck::gait::active`, `quack_duck::daemon::active`): the
+    /// defaults, which are alpha's and set v7's, but for velstand on the
+    /// 0.17 line, set v8's numbers as the gait probe measured them
+    /// (`quack_duck::daemon` v0_17): 0.095 m/s, 1.1 rad/s per unit of yaw,
+    /// a turn in place at ±1.0 of 63-68°/s.
+    pub fn for_walk() -> Self {
+        use quack_duck::{daemon, gait};
+        let mut c = Self::default();
+        if gait::active() == gait::Profile::Velstand && daemon::active() >= daemon::Line::V0_17 {
+            let n = gait::numbers();
+            c.speed_at_03 = n.m_per_s;
+            c.yaw_per_unit = n.yaw_rate_per_unit;
+            c.turn_left_rad_s = 65f64.to_radians();
+            c.turn_right_rad_s = 65f64.to_radians();
+        }
+        c
+    }
+
     pub fn load(path: &str) -> anyhow::Result<Self> {
         let text = std::fs::read_to_string(path)?;
         // A calibration report carries the numbers under "calib".
@@ -217,13 +236,22 @@ impl Calib {
     }
 
     /// Turning in place from a standstill, as the gait answers `vyaw`
-    /// (the paper twin's `in_place_rate`, its numbers here).
+    /// (the paper twin's `in_place_rate`, its numbers here): the turn the
+    /// walk asks for (`turn_in_place_rad_s`: 1.5 on alpha and set v7, 1.0 on
+    /// set v8) at the full rate, and on the left a band below it, 0.3 wide,
+    /// at the slow one.
     pub fn in_place_rate(&self, vyaw: f64) -> Option<f64> {
+        let full = turn_in_place_from();
         match vyaw {
-            v if v >= 1.45 => Some(self.turn_left_rad_s),
-            v if v >= 1.15 => Some(self.turn_left_slow_rad_s),
-            v if v <= -1.45 => Some(-self.turn_right_rad_s),
+            v if v >= full => Some(self.turn_left_rad_s),
+            v if v >= full - 0.3 => Some(self.turn_left_slow_rad_s),
+            v if v <= -full => Some(-self.turn_right_rad_s),
             _ => None,
         }
     }
+}
+
+/// The least |vyaw| that is the walk's turn in place (its ask, less 0.05).
+pub fn turn_in_place_from() -> f64 {
+    quack_duck::gait::numbers().turn_in_place_rad_s - 0.05
 }
