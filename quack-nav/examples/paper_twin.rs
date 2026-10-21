@@ -316,6 +316,7 @@ impl PaperTwin {
                     obstacles.push(Obstacle {
                         bearing,
                         range_m: hit,
+                        trunk_m: hit,
                     });
                 }
                 // A low box just past the beak: the floor rows that land on

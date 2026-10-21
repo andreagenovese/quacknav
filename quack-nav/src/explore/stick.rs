@@ -197,8 +197,8 @@ impl Job {
             self.stick_stalls = STALLS_TURN;
             booked_touch = true;
             let a = yaw + o.bearing;
-            let at = (x + (o.range_m + OBSTACLE_RADIUS_M) * a.cos(), y + (o.range_m + OBSTACLE_RADIUS_M) * a.sin());
-            let book = self.touch_bookable(&*robot, (x + o.range_m * a.cos(), y + o.range_m * a.sin()), at);
+            let at = (x + (o.trunk_m + OBSTACLE_RADIUS_M) * a.cos(), y + (o.trunk_m + OBSTACLE_RADIUS_M) * a.sin());
+            let book = self.touch_bookable(&*robot, (x + o.trunk_m * a.cos(), y + o.trunk_m * a.sin()), at);
             if book {
                 self.remember_local(at, OBSTACLE_RADIUS_M);
             }
@@ -496,7 +496,7 @@ impl Job {
                 && let Some(o) = cliff.as_ref().and_then(|c| c.obstacle_in_lane_walking(now, 0.0, BLIND_DROP_LANE_M, PUSH_AHEAD_M, std::time::Duration::from_millis(600), 3))
             {
                 let a = pose.2 + o.bearing;
-                let at = (pose.0 + (o.range_m + OBSTACLE_RADIUS_M) * a.cos(), pose.1 + (o.range_m + OBSTACLE_RADIUS_M) * a.sin());
+                let at = (pose.0 + (o.trunk_m + OBSTACLE_RADIUS_M) * a.cos(), pose.1 + (o.trunk_m + OBSTACLE_RADIUS_M) * a.sin());
                 if !self.local.iter().any(|(q, _)| dist2(*q, at) < LOCAL_DEDUP_M) {
                     self.remember_local(at, OBSTACLE_RADIUS_M);
                     tracing::info!(at = ?pose, booked = ?at, "map explore: pilot: what stops it goes on the books");
@@ -782,7 +782,7 @@ impl Job {
         let Some(o) = c.obstacle_in_lane_walking(now, 0.0, BLIND_DROP_LANE_M, reach, SEEN_WITHIN, 3) else { return };
         let Some(grid) = robot.frame().and_then(|f| f.grid().ok()) else { return };
         let a = yaw + o.bearing;
-        let face = (x + o.range_m * a.cos(), y + o.range_m * a.sin());
+        let face = (x + o.trunk_m * a.cos(), y + o.trunk_m * a.sin());
         // The map has it already (a wall, the map's furniture), or the pose
         // is a few centimetres off a wall the map has: the route keeps off it
         // as it is. A point booked beside a mapped wall only pushes the route
@@ -794,7 +794,7 @@ impl Job {
         if mapped {
             return;
         }
-        let at = (x + (o.range_m + OBSTACLE_RADIUS_M) * a.cos(), y + (o.range_m + OBSTACLE_RADIUS_M) * a.sin());
+        let at = (x + (o.trunk_m + OBSTACLE_RADIUS_M) * a.cos(), y + (o.trunk_m + OBSTACLE_RADIUS_M) * a.sin());
         // Beside a booked drop an obstacle on the books narrows the one way
         // past the hole and pushes the route toward the rim: the bump keeps
         // its own booking there.
@@ -939,7 +939,7 @@ mod tests {
                 moving: true,
                 drops: vec![],
                 floors: vec![],
-                obstacles: h.map(|(range_m, bearing)| Obstacle { bearing, range_m }).into_iter().collect(),
+                obstacles: h.map(|(range_m, bearing)| Obstacle { bearing, range_m, trunk_m: range_m }).into_iter().collect(),
                 floor_beams: 0,
                 judged: 0,
             })

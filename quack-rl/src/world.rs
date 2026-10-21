@@ -398,9 +398,13 @@ impl World {
                 let met = hits.iter().find(|(t, h, _)| *t <= d && *h >= low_m && *t >= d * (1.0 - h / HEAD_H));
                 if let Some((t, _, what)) = met {
                     if !rng.chance(if *t > 1.4 { calib.tof_dropout_far } else { calib.tof_dropout }) {
-                        let range = (t + calib.tof_range_bias + calib.tof_range_sd * rng.gauss()).max(0.02);
+                        // `tof_range_bias` is quack-nav's `range_m` short of
+                        // the trunk's distance: kinematics measures it from
+                        // the sensor (pollen-robotics/microduck#430).
+                        let trunk = (t + calib.tof_range_sd * rng.gauss()).max(0.02);
+                        let range = (trunk + calib.tof_range_bias).max(0.02);
                         if range < calib.tof_range_max {
-                            obstacles.push(Obstacle { bearing, range_m: range });
+                            obstacles.push(Obstacle { bearing, range_m: range, trunk_m: trunk });
                         }
                     }
                     // A low box just past the beak: its floor rows read a
@@ -437,7 +441,7 @@ impl World {
                     let c = z % COLS;
                     let bearing = head_yaw + COL_FOV * ((c as f64 + 0.5) / COLS as f64 - 0.5);
                     let range = (calib.spur_median_m * (calib.spur_sigma * rng.gauss()).exp()).clamp(0.1, calib.tof_range_max - 0.01);
-                    obstacles.push(Obstacle { bearing, range_m: range });
+                    obstacles.push(Obstacle { bearing, range_m: range, trunk_m: range - calib.tof_range_bias });
                 }
             }
         }

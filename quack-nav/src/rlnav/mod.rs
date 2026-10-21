@@ -517,7 +517,7 @@ mod tests {
             moving: true,
             drops: vec![],
             floors: vec![],
-            obstacles: vec![Obstacle { bearing: 0.0, range_m: 0.55 }],
+            obstacles: vec![Obstacle { bearing: 0.0, range_m: 0.55, trunk_m: 0.55 }],
             floor_beams: 0,
             judged: 0,
         });

@@ -115,13 +115,33 @@ pub struct Drop {
 pub struct Obstacle {
     /// Radians, positive to the left, from the body's forward axis.
     pub bearing: f64,
-    /// Horizontal distance from the trunk, metres.
+    /// Horizontal distance from the sensor, metres: `kinematics`' `range`,
+    /// which its doc calls the trunk's but measures from the sensor, 6-8 cm
+    /// ahead of it (pollen-robotics/microduck#430). Every threshold on it
+    /// was tuned on the duck and the twin as it is, and keeps it.
     pub range_m: f64,
+    /// ... and from the trunk's vertical axis, metres: where the thing is,
+    /// for what goes on the books. On the MuJoCo twin `range_m` put things
+    /// 7.8 cm nearer the body than they are (32k zones at the stands,
+    /// daemon 0.17.6, 2026-10-21), and a box seen in the corridor was booked
+    /// across the way past it.
+    pub trunk_m: f64,
 }
 
 /// Half of the sensor's field of view, radians: what one frame covers
 /// around the head's yaw.
 pub const HALF_FOV_RAD: f64 = 0.39;
+
+/// A trunk-frame point's distance from the trunk's vertical axis: its part
+/// across `gravity` (straight down; the trunk's own -z when the IMU gives
+/// none).
+fn horizontal_from_trunk(p: [f64; 3], gravity: [f64; 3]) -> f64 {
+    let n = (gravity[0] * gravity[0] + gravity[1] * gravity[1] + gravity[2] * gravity[2]).sqrt();
+    let d = if n > 1e-6 { [gravity[0] / n, gravity[1] / n, gravity[2] / n] } else { [0.0, 0.0, -1.0] };
+    let along = p[0] * d[0] + p[1] * d[1] + p[2] * d[2];
+    let h = [p[0] - along * d[0], p[1] - along * d[1], p[2] - along * d[2]];
+    (h[0] * h[0] + h[1] * h[1] + h[2] * h[2]).sqrt()
+}
 
 /// For the walking guard (`hole_in_lane_walking`): an obstacle explains a
 /// drop at its bearing (a box's edge) only when it stands no farther than
@@ -377,6 +397,7 @@ pub fn analyze(
             Zone::Hit { point, range } => Some(Obstacle {
                 bearing: point[1].atan2(point[0]),
                 range_m: range,
+                trunk_m: horizontal_from_trunk(point, body.gravity),
             }),
             _ => None,
         })
@@ -989,4 +1010,14 @@ mod tests {
         let bits: StateBits = serde_json::from_value(v).unwrap();
         assert_eq!(bits.head_joints(), [0.237, 0.494, -0.632, 0.026]);
     }
+    #[test]
+    fn a_hit_lies_where_it_is_from_the_trunk() {
+        // Level: the point's own horizontal norm, not the sensor's range.
+        assert!((horizontal_from_trunk([0.3, 0.4, 0.1], [0.0, 0.0, -1.0]) - 0.5).abs() < 1e-9);
+        // No gravity to trust: the trunk's -z.
+        assert!((horizontal_from_trunk([0.3, 0.4, 0.1], [0.0; 3]) - 0.5).abs() < 1e-9);
+        // Pitched: what is along gravity is not horizontal.
+        assert!(horizontal_from_trunk([0.0, 0.0, 1.0], [1.0, 0.0, 0.0]) > 0.99);
+    }
+
 }
