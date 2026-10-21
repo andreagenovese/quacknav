@@ -43,6 +43,8 @@ pub struct Since {
     pub bumps: u32,
     pub mover_bumps: u32,
     pub stood_s: f64,
+    /// Tip-overs the duck got up from (see `Calib::getup_s`).
+    pub tips: u32,
 }
 
 pub struct Sim {
@@ -61,6 +63,13 @@ pub struct Sim {
     contact_free: bool,
     pub bumps: u32,
     pub mover_bumps: u32,
+    /// Tip-overs the duck got up from.
+    pub tips: u32,
+    /// A tip-over this tick, to get up from once the move stops.
+    down: bool,
+    /// Until then the mapper does not correct the pose (it lost it in the
+    /// fall: see [`POSE_BACK_S`]).
+    lost_until: f64,
     pub path_m: f64,
     pub min_hole_m: f64,
     pub min_static_m: f64,
@@ -97,6 +106,10 @@ pub struct Sim {
     pub deadline_s: f64,
 }
 
+/// How long after getting up the pose was the map's again: the MuJoCo
+/// twin's nine falls, the one never found again as the 300 s budget.
+const POSE_BACK_S: [f64; 9] = [7.6, 8.0, 8.9, 9.6, 10.4, 27.4, 101.5, 300.0, 321.4];
+
 pub fn b64(bytes: &[u8]) -> String {
     const T: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
@@ -130,6 +143,9 @@ impl Sim {
             contact_free: true,
             bumps: 0,
             mover_bumps: 0,
+            tips: 0,
+            down: false,
+            lost_until: 0.0,
             path_m: 0.0,
             min_hole_m: f64::INFINITY,
             min_static_m: f64::INFINITY,
@@ -226,7 +242,11 @@ impl Sim {
             }
         }
         if tip {
-            self.tip_over();
+            if self.calib.getup_s > 0.0 {
+                self.down = true;
+            } else {
+                self.tip_over();
+            }
             self.contacts.push((self.t, "tip", self.x, self.y));
         }
         let ds = dist(to, (self.x, self.y));
@@ -331,6 +351,10 @@ impl Sim {
             if self.fell {
                 break;
             }
+            if self.down {
+                self.get_up();
+                break;
+            }
         }
         if vx.abs() > 0.05 {
             self.last_walk = Some(self.t);
@@ -356,7 +380,7 @@ impl Sim {
             self.since.stood_s += dt;
         }
         self.head = 0.0;
-        if secs >= STAND_CORRECTS_S {
+        if secs >= STAND_CORRECTS_S && self.t >= self.lost_until {
             let k = self.calib.stand_keep;
             self.err = (self.err.0 * k, self.err.1 * k, self.err.2 * k);
             self.publish_map();
@@ -372,6 +396,33 @@ impl Sim {
         let part = if self.coast_due.abs() < 1e-3 { self.coast_due } else { self.coast_due * (dt / COAST_TAU_S).min(1.0) };
         self.coast_due -= part;
         part / dt
+    }
+
+    /// Down against something, and up again after `getup_s`: the body
+    /// lies still meanwhile and stands up turned, and the map's pose is off
+    /// by what the fall did until the mapper finds it again. On the MuJoCo
+    /// twin the pose was 0.2-0.4 m off after a fall (casa_ingombra's stick,
+    /// relocalized 0.37 m from where it thought it was, 2026-10-21).
+    fn get_up(&mut self) {
+        self.down = false;
+        self.tips += 1;
+        self.since.tips += 1;
+        self.tipped = true;
+        self.coast_due = 0.0;
+        let n = (self.calib.getup_s / DT).ceil() as usize;
+        for _ in 0..n {
+            self.tick(DT, 0.0, 0.0, false);
+            if self.fell {
+                return;
+            }
+        }
+        let turn = 0.5 * self.rng.gauss();
+        self.yaw = crate::wrap(self.yaw + turn);
+        self.odom.2 = crate::wrap(self.odom.2 + turn);
+        self.err.0 += 0.2 * self.rng.gauss();
+        self.err.1 += 0.2 * self.rng.gauss();
+        self.err.2 -= turn;
+        self.lost_until = self.t + POSE_BACK_S[self.rng.pick(POSE_BACK_S.len())];
     }
 
     /// Down against something: the run ends as a fall's does.
@@ -548,5 +599,28 @@ mod tests {
         let y1 = b.yaw;
         b.stand(0.6);
         assert_eq!(b.yaw, y1);
+    }
+
+    #[test]
+    fn a_tip_over_gets_up_on_the_0_17_line() {
+        let s = generate(3, 0, Some("clutter"));
+        let walk_into_something = |getup_s: f64| {
+            let c = Calib { bump_fall_p: 1.0, post_fall_p: 1.0, mover_fall_p: 1.0, getup_s, ..Calib::default() };
+            let mut b = Sim::new(&s, c, 1);
+            for _ in 0..2000 {
+                if b.bumps + b.mover_bumps > 0 || b.fell {
+                    break;
+                }
+                b.walk(0.3, 0.0, 0.6);
+            }
+            b
+        };
+        // Up again, a few seconds down and the pose lost a while: walks on.
+        let b = walk_into_something(4.0);
+        assert!(!b.fell && b.tipped && b.tips == 1, "fell {} tips {}", b.fell, b.tips);
+        assert!(b.lost_until > b.t);
+        // Without it the journey ends there, as on the 0.16 line.
+        let b = walk_into_something(0.0);
+        assert!(b.fell && b.tipped && b.tips == 0);
     }
 }

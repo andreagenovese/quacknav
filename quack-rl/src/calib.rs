@@ -64,6 +64,11 @@ pub struct Calib {
     pub bump_fall_p: f64,
     pub post_fall_p: f64,
     pub mover_fall_p: f64,
+    /// How long a tip-over keeps the duck down before it gets up and walks
+    /// on, s: daemon 0.17's fall handling stands the duck up again (the
+    /// MuJoCo twin, nine falls: up in 2.0-6.0 s, 2026-10-20/21). 0: the
+    /// duck stays down and the journey ends, as on the 0.16 line.
+    pub getup_s: f64,
     // --- the depth sensor
     pub tof_hz: f64,
     pub tof_range_max: f64,
@@ -126,6 +131,7 @@ impl Default for Calib {
             bump_fall_p: 0.006,
             post_fall_p: 0.03,
             mover_fall_p: 0.02,
+            getup_s: 0.0,
             tof_hz: 15.0,
             tof_range_max: 2.2,
             tof_range_sd: 0.02,
@@ -193,6 +199,7 @@ impl Calib {
             c.turn_left_rad_s = 65f64.to_radians();
             c.turn_right_rad_s = 65f64.to_radians();
             c.turn_coast_rad = n.coast_prior_rad;
+            c.getup_s = 4.0;
         }
         c
     }

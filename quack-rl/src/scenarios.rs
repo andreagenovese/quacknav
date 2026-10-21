@@ -20,6 +20,8 @@
 //!
 //! - `passers`: two rooms, someone standing in the doorway when the duck
 //!   gets there, who leaves 2-12 s later; and a pet or feet about.
+//! - `twin:<house>`: a journey of the MuJoCo twin's tour in one of its
+//!   houses (see [`twin_house`]).
 //!
 //! The levels are the curriculum: 0 the plain ones, 3 everything with the
 //! map off and the sensor at its noisiest.
@@ -267,6 +269,9 @@ fn passable(s: &Scenario) -> bool {
 
 /// A scenario of `family` (or one the level allows, at random) at `level`.
 pub fn generate(seed: u64, level: u32, family: Option<&str>) -> Scenario {
+    if let Some(house) = family.and_then(|f| f.strip_prefix("twin:")) {
+        return twin_house(house, seed).unwrap_or_else(|e| panic!("twin:{house}: {e}"));
+    }
     let mut rng = Rng::new(seed ^ 0x5EED_CAFE);
     for attempt in 0..50 {
         let fam = family.map(str::to_string).unwrap_or_else(|| {
@@ -459,4 +464,61 @@ mod tests {
         let b = serde_json::to_string(&generate(7, 2, None)).unwrap();
         assert_eq!(a, b);
     }
+}
+
+/// The MuJoCo twin's tour, in the order `scripts/rl/twin_ab.py` walks it:
+/// each journey starts where the one before arrived.
+const TWIN_TOUR: [&str; 6] = ["kitchen", "living", "bedroom", "office", "bath", "home"];
+
+/// A journey of the twin's tour in one of its houses (`--families
+/// twin:casa_ingombra`), from the house's `scripts/twin/houses/<name>.truth.json`
+/// (`gen.py`): its walls and furniture on the map, what was put down since
+/// (`unmapped`) not, its holes' rims on the books as the twin's oracle has
+/// them, the map drawn whole. The seed picks the journey (seed % 6) and the
+/// heading it starts at: the bench then walks the twin's own journeys, and
+/// a pilot better there than the stick should be better on the twin.
+pub fn twin_house(name: &str, seed: u64) -> anyhow::Result<Scenario> {
+    #[derive(Deserialize)]
+    struct Truth {
+        boxes: Vec<(String, f64, f64, f64, f64, f64)>,
+        holes: Vec<[f64; 4]>,
+        goals: std::collections::BTreeMap<String, [f64; 2]>,
+        #[serde(default)]
+        unmapped: Vec<serde_json::Value>,
+    }
+    let dir = std::env::var("QK_RL_HOUSES").unwrap_or_else(|_| concat!(env!("CARGO_MANIFEST_DIR"), "/../scripts/twin/houses").into());
+    let t: Truth = serde_json::from_str(&std::fs::read_to_string(format!("{dir}/{name}.truth.json"))?)?;
+    let mut w = World::default();
+    let mut b = [f64::INFINITY, f64::NEG_INFINITY, f64::INFINITY, f64::NEG_INFINITY];
+    for (_, x0, x1, y0, y1, h) in &t.boxes {
+        if *h <= 0.02 {
+            continue;
+        }
+        w.rects.push(Rect { height: *h, ..Rect::new(*x0, *x1, *y0, *y1) });
+        b = [b[0].min(*x0), b[1].max(*x1), b[2].min(*y0), b[3].max(*y1)];
+    }
+    w.bounds = b;
+    for u in &t.unmapped {
+        let u = u.as_array().ok_or_else(|| anyhow::anyhow!("an unmapped thing is not a list"))?;
+        let f = |i: usize| u.get(i).and_then(serde_json::Value::as_f64).unwrap_or(0.0);
+        match u.get(1).and_then(serde_json::Value::as_str) {
+            Some("box") => w.rects.push(Rect { height: f(6), mapped: false, ..Rect::new(f(2), f(3), f(4), f(5)) }),
+            _ => w.posts.push(Post { x: f(2), y: f(3), r: f(4), height: f(5), mapped: false }),
+        }
+    }
+    w.holes = t.holes.iter().map(|h| Hole { x0: h[0], x1: h[1], y0: h[2], y1: h[3], booked: true }).collect();
+    let k = (seed % TWIN_TOUR.len() as u64) as usize;
+    let at = |g: &str| t.goals.get(g).map(|p| (p[0], p[1])).ok_or_else(|| anyhow::anyhow!("no goal {g}"));
+    let from = at(TWIN_TOUR[(k + TWIN_TOUR.len() - 1) % TWIN_TOUR.len()])?;
+    let goal = at(TWIN_TOUR[k])?;
+    let mut rng = Rng::new(seed ^ 0x7417);
+    Ok(Scenario {
+        family: format!("twin:{name}"),
+        level: 3,
+        seed,
+        world: w,
+        start: (from.0, from.1, rng.range(-std::f64::consts::PI, std::f64::consts::PI)),
+        goal,
+        bias: (0.0, 0.0),
+    })
 }
