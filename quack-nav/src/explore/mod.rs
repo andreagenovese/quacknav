@@ -1444,6 +1444,8 @@ pub struct Job {
     /// ... and, once it went that long without shortening it, the route
     /// and the time when the stick took over.
     stick_holds: Option<(f64, Instant)>,
+    /// When the last turn in place ended (see `SEEN_AFTER_TURN`).
+    turned_at: Option<Instant>,
     /// A goal walked as the exploration's travel (see `as_exploration_travel`).
     exploration_travel: bool,
     /// Walls looked at from near, and how many (see `close_look.rs`).
@@ -1598,6 +1600,7 @@ impl Job {
             pilot_turns: 0,
             pilot_best: None,
             stick_holds: None,
+            turned_at: None,
             exploration_travel: false,
             looked: Vec::new(),
             close_looks: 0,

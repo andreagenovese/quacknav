@@ -117,6 +117,7 @@ impl Job {
                 }
             }
         }
+        self.turned_at = Some(robot.now());
         turned
     }
 
@@ -747,6 +748,13 @@ fn seen_ahead_m() -> f64 {
     *V.get_or_init(|| std::env::var("QK_SEEN_AHEAD_M").ok().and_then(|v| v.parse().ok()).unwrap_or(SEEN_AHEAD_M))
 }
 
+/// Nothing seen ahead is booked this soon after a turn in place: on the
+/// MuJoCo twin's casa_ingombra (daemon 0.17, 446 bookings, 2026-10-20) a
+/// quarter of those booked within 1 s of one were 0.15 m or more off any
+/// object, 0-6 % of the others — a point beside the corridor's bag closed
+/// it and the route went round through the living room, 3.25 -> 7.85 m.
+const SEEN_AFTER_TURN: std::time::Duration = std::time::Duration::from_millis(1500);
+
 /// A map wall this near the point seen means the map has it already, give
 /// or take the pose: nothing goes on the books.
 const SEEN_WALL_NEAR_M: f64 = 0.15;
@@ -761,6 +769,12 @@ impl Job {
     fn book_seen_ahead(&mut self, robot: &dyn Body, (x, y, yaw): (f64, f64, f64)) {
         let Some(c) = robot.cliff() else { return };
         let now = robot.now();
+        // Not straight after a turn in place: the body coasts on, the
+        // lane's frames were seen on different headings and the map's yaw
+        // lags the turn (see `stick_turn`).
+        if self.turned_at.is_some_and(|t| now.saturating_duration_since(t) < SEEN_AFTER_TURN) {
+            return;
+        }
         let reach = if mover_ahead_m() > 0.0 && approaching(&c, now) { mover_ahead_m().max(seen_ahead_m()) } else { seen_ahead_m() };
         if !seen_in_lane(&c, now, reach) {
             return;
