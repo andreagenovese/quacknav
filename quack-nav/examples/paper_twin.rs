@@ -380,6 +380,7 @@ impl PaperTwin {
                 obstacles,
                 floor_beams: 40,
                 judged: 64,
+                odom: None,
             }
         }
     }

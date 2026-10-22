@@ -250,12 +250,12 @@ impl Job {
         // house even; 22/24 arrived against 24/24, 2026-10-20).
         if self.pilot.is_some() {
             let (route_m, now) = (route_to_stand((x, y), f), robot.now());
-            if let Some((from_m, since)) = self.stick_holds {
-                if route_m <= from_m - STICK_PAST_M || now.saturating_duration_since(since) >= STICK_HOLD_MAX {
-                    tracing::info!(at = ?(x, y, yaw), route_m = format!("{route_m:.2}"), from_m = format!("{from_m:.2}"), "map explore: pilot: past it; the pilot flies again");
-                    self.stick_holds = None;
-                    self.pilot_best = None;
-                }
+            if let Some((from_m, since)) = self.stick_holds
+                && (route_m <= from_m - STICK_PAST_M || now.saturating_duration_since(since) >= STICK_HOLD_MAX)
+            {
+                tracing::info!(at = ?(x, y, yaw), route_m = format!("{route_m:.2}"), from_m = format!("{from_m:.2}"), "map explore: pilot: past it; the pilot flies again");
+                self.stick_holds = None;
+                self.pilot_best = None;
             }
             if self.stick_holds.is_none() {
                 match self.pilot_best {
@@ -269,12 +269,22 @@ impl Job {
                 }
             }
         }
-        let pilot = self.pilot.clone().filter(|_| self.stick_holds.is_none() && self.pilot_refused < PILOT_REFUSED_TO_STICK && self.pilot_turns < PILOT_TURNS_TO_STICK);
-        if self.pilot.is_some() && pilot.is_none() {
+        // ... and beside a hole: there the MuJoCo twin's pilot turned,
+        // stepped back and turned again in the passage by casa_arredata's
+        // stairwell (+28 s to the bath, +33 s home against the stick; the
+        // bench's pilot never did), so the stick walks the legs within
+        // [`PILOT_HOLE_NEAR_M`] of a booked rim.
+        let by_hole = self.pilot.is_some() && self.local.iter().any(|(p, r)| *r >= DROP_RADIUS_M && dist2(*p, (x, y)) < PILOT_HOLE_NEAR_M);
+        let pilot = self.pilot.clone().filter(|_| !by_hole && self.stick_holds.is_none() && self.pilot_refused < PILOT_REFUSED_TO_STICK && self.pilot_turns < PILOT_TURNS_TO_STICK);
+        if self.pilot.is_some() && pilot.is_none() && !by_hole && self.stick_holds.is_none() {
             tracing::info!(at = ?(x, y, yaw), refused = self.pilot_refused, turns = self.pilot_turns, "map explore: pilot: refused twice, or only turning; the stick takes the leg");
             self.pilot_refused = 0;
             self.pilot_turns = 0;
         }
+        if by_hole && !self.stick_by_hole {
+            tracing::info!(at = ?(x, y, yaw), "map explore: pilot: a hole near; the stick takes the legs");
+        }
+        self.stick_by_hole = by_hole;
         if let Some(pilot) = pilot {
             what = self.pilot_move(handle, robot, (x, y, yaw), f, &*pilot, guard_margin);
         } else if err.abs() > turn_first || self.stick_stalls >= STALLS_TURN {
@@ -493,10 +503,13 @@ impl Job {
             // where the stick bumped, booked and took the other door).
             if pushing
                 && ahead_within(PUSH_AHEAD_M)
-                && let Some(o) = cliff.as_ref().and_then(|c| c.obstacle_in_lane_walking(now, 0.0, BLIND_DROP_LANE_M, PUSH_AHEAD_M, std::time::Duration::from_millis(600), 3))
+                && let Some(c) = cliff.as_ref()
+                && let Some((o, then)) = c.obstacle_in_lane_walking_seen(now, 0.0, BLIND_DROP_LANE_M, PUSH_AHEAD_M, std::time::Duration::from_millis(600), 3)
             {
-                let a = pose.2 + o.bearing;
-                let at = (pose.0 + (o.trunk_m + OBSTACLE_RADIUS_M) * a.cos(), pose.1 + (o.trunk_m + OBSTACLE_RADIUS_M) * a.sin());
+                // From where the frame saw it (`book_seen_ahead`).
+                let seen = c.pose_when_seen(pose, then);
+                let a = seen.2 + o.bearing;
+                let at = (seen.0 + (o.trunk_m + OBSTACLE_RADIUS_M) * a.cos(), seen.1 + (o.trunk_m + OBSTACLE_RADIUS_M) * a.sin());
                 if !self.local.iter().any(|(q, _)| dist2(*q, at) < LOCAL_DEDUP_M) {
                     self.remember_local(at, OBSTACLE_RADIUS_M);
                     tracing::info!(at = ?pose, booked = ?at, "map explore: pilot: what stops it goes on the books");
@@ -604,6 +617,8 @@ const PILOT_NO_PROGRESS: std::time::Duration = std::time::Duration::from_secs(12
 /// for this long at most.
 const STICK_PAST_M: f64 = 0.5;
 const STICK_HOLD_MAX: std::time::Duration = std::time::Duration::from_secs(30);
+/// A booked rim this near the body, and the stick walks the legs.
+const PILOT_HOLE_NEAR_M: f64 = 0.5;
 
 /// The route's length from `at` to the frontier's stand.
 fn route_to_stand(at: (f64, f64), f: &Frontier) -> f64 {
@@ -779,10 +794,14 @@ impl Job {
         if !seen_in_lane(&c, now, reach) {
             return;
         }
-        let Some(o) = c.obstacle_in_lane_walking(now, 0.0, BLIND_DROP_LANE_M, reach, SEEN_WITHIN, 3) else { return };
+        let Some((o, then)) = c.obstacle_in_lane_walking_seen(now, 0.0, BLIND_DROP_LANE_M, reach, SEEN_WITHIN, 3) else { return };
         let Some(grid) = robot.frame().and_then(|f| f.grid().ok()) else { return };
-        let a = yaw + o.bearing;
-        let face = (x + o.trunk_m * a.cos(), y + o.trunk_m * a.sin());
+        // From where the frame saw it: the nearest of 0.6 s of frames, its
+        // bearing put on the heading of now, booked a box 0.55 rad round
+        // the body into the passage beside it (the bench, a curving step).
+        let (sx, sy, syaw) = c.pose_when_seen((x, y, yaw), then);
+        let a = syaw + o.bearing;
+        let face = (sx + o.trunk_m * a.cos(), sy + o.trunk_m * a.sin());
         // The map has it already (a wall, the map's furniture), or the pose
         // is a few centimetres off a wall the map has: the route keeps off it
         // as it is. A point booked beside a mapped wall only pushes the route
@@ -794,7 +813,7 @@ impl Job {
         if mapped {
             return;
         }
-        let at = (x + (o.trunk_m + OBSTACLE_RADIUS_M) * a.cos(), y + (o.trunk_m + OBSTACLE_RADIUS_M) * a.sin());
+        let at = (sx + (o.trunk_m + OBSTACLE_RADIUS_M) * a.cos(), sy + (o.trunk_m + OBSTACLE_RADIUS_M) * a.sin());
         // Beside a booked drop an obstacle on the books narrows the one way
         // past the hole and pushes the route toward the rim: the bump keeps
         // its own booking there.
@@ -942,6 +961,7 @@ mod tests {
                 obstacles: h.map(|(range_m, bearing)| Obstacle { bearing, range_m, trunk_m: range_m }).into_iter().collect(),
                 floor_beams: 0,
                 judged: 0,
+                odom: None,
             })
             .collect();
         CliffStatus { recent, ..Default::default() }

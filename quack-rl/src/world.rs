@@ -29,6 +29,9 @@ pub const HEAD_H: f64 = 0.25;
 pub const CELL: f64 = 0.05;
 /// A low box's floor rows read a drop up to this far past its face.
 const PHANTOM_DEPTH_M: f64 = 0.5;
+/// Kinematics' `Reprojector::MIN_RANGE_M`: a return nearer than this,
+/// measured from the sensor, is the sensor's own crosstalk and no hit.
+const TOF_MIN_RANGE_M: f64 = 0.10;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Rect {
@@ -403,7 +406,9 @@ impl World {
                         // the sensor (pollen-robotics/microduck#430).
                         let trunk = (t + calib.tof_range_sd * rng.gauss()).max(0.02);
                         let range = (trunk + calib.tof_range_bias).max(0.02);
-                        if range < calib.tof_range_max {
+                        // Under `TOF_MIN_RANGE_M` kinematics calls the return
+                        // `Zone::TooClose`, no hit: nothing reaches quack-nav.
+                        if (TOF_MIN_RANGE_M..calib.tof_range_max).contains(&range) {
                             obstacles.push(Obstacle { bearing, range_m: range, trunk_m: trunk });
                         }
                     }
@@ -445,7 +450,7 @@ impl World {
                 }
             }
         }
-        CliffFrame { moving: walking, seq, at, head_yaw, drops, floors, obstacles, floor_beams: 40, judged: 64 }
+        CliffFrame { moving: walking, seq, at, head_yaw, drops, floors, obstacles, floor_beams: 40, judged: 64, odom: None }
     }
 
     /// The map as the duck holds it, in the map's frame (the world moved

@@ -291,7 +291,8 @@ impl Sim {
             self.seq += 1;
             let at = self.t0 + Duration::from_secs_f64(self.next_frame_t);
             let mut rng = self.rng.clone();
-            let f = self.world.sense((self.x, self.y, self.yaw), self.head, walking, &self.calib, &mut rng, self.seq, at);
+            let mut f = self.world.sense((self.x, self.y, self.yaw), self.head, walking, &self.calib, &mut rng, self.seq, at);
+            f.odom = Some(self.odom);
             self.rng = rng;
             self.cliff.frames += 1;
             self.cliff.recent.push(f);

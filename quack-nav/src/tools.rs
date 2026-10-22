@@ -2650,6 +2650,7 @@ mod move_guard_tests {
             obstacles: Vec::new(),
             floor_beams: 0,
             judged: 16,
+            odom: None,
         }
     }
 

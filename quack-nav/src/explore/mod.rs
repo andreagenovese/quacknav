@@ -1446,6 +1446,8 @@ pub struct Job {
     stick_holds: Option<(f64, Instant)>,
     /// When the last turn in place ended (see `SEEN_AFTER_TURN`).
     turned_at: Option<Instant>,
+    /// The stick walks the legs beside a hole (`stick::PILOT_HOLE_NEAR_M`).
+    stick_by_hole: bool,
     /// A goal walked as the exploration's travel (see `as_exploration_travel`).
     exploration_travel: bool,
     /// Walls looked at from near, and how many (see `close_look.rs`).
@@ -1601,6 +1603,7 @@ impl Job {
             pilot_best: None,
             stick_holds: None,
             turned_at: None,
+            stick_by_hole: false,
             exploration_travel: false,
             looked: Vec::new(),
             close_looks: 0,
