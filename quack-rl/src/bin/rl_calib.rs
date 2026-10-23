@@ -36,6 +36,8 @@ use serde_json::{Value, json};
 
 /// Fewer samples than this and a number keeps its prior.
 const MIN_N: usize = 8;
+/// The depth sensor's noise drawn afresh each frame, at most: see the fit.
+const TOF_FRAME_SD_MAX: f64 = 0.02;
 
 #[derive(Clone)]
 struct MapGrid {
@@ -493,7 +495,18 @@ fn main() -> anyhow::Result<()> {
     let bias = { let mut r = residuals.clone(); median(&mut r) };
     let sd = mad_sd(&residuals);
     c.tof_range_bias = fit.set("tof_range_bias", prior.tof_range_bias, Some((bias, residuals.len(), sd)), "median of (range − the map's ray) at the stands, inliers within 0.3 m");
-    c.tof_range_sd = fit.set("tof_range_sd", prior.tof_range_sd, Some((sd, residuals.len(), 0.0)), "their spread (MAD)");
+    // Their spread is the pose's and the map's error as much as the
+    // sensor's, and it holds frame after frame; drawn afresh each frame it
+    // books things short, quack-nav taking the nearest of many (0.04 m put
+    // the bench's bookings inside the twin's furniture, 0.02 m where the
+    // twin's went, 2026-10-21): an upper bound, kept at most
+    // `TOF_FRAME_SD_MAX`.
+    c.tof_range_sd = fit.set(
+        "tof_range_sd",
+        prior.tof_range_sd,
+        Some((sd.min(TOF_FRAME_SD_MAX), residuals.len(), sd)),
+        "their spread (MAD), at most TOF_FRAME_SD_MAX: per frame the rest is the pose's and the map's",
+    );
     let dropout = if expected_cols > 0 { 1.0 - seen_cols as f64 / expected_cols as f64 } else { f64::NAN };
     fit.set("tof_dropout", prior.tof_dropout, None, "near (under 1.4 m) several rows meet a wall and a column's silence says little of one zone: prior kept");
     c.tof_dropout_far = fit.set("tof_dropout_far", prior.tof_dropout_far, Some((dropout, expected_cols, 0.0)), "columns whose ray meets a mapped wall 1.4-1.95 m off (one row reaches it) with no return there");
