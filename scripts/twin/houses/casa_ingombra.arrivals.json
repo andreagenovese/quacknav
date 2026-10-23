@@ -1,0 +1,35 @@
+{
+ "_how": "where the MuJoCo twin's journeys of the tour stopped, goal by goal: the true position (the twin's oracle, median) and the map's heading at the next journey's first leg (circular mean), over the stick's and the pilot's journeys of P8/AB4-AB11 (daemon 0.17.6, 2026-10-24); rl's twin:<house> journeys start here",
+ "arrivals": {
+  "kitchen": [
+   -2.834,
+   1.762,
+   1.822
+  ],
+  "living": [
+   1.242,
+   1.18,
+   0.006
+  ],
+  "bedroom": [
+   -2.265,
+   -1.068,
+   -0.207
+  ],
+  "office": [
+   -0.607,
+   -1.135,
+   -1.485
+  ],
+  "bath": [
+   3.308,
+   -1.032,
+   -1.532
+  ],
+  "home": [
+   0.168,
+   0.024,
+   3.109
+  ]
+ }
+}

@@ -469,6 +469,9 @@ mod tests {
 /// The MuJoCo twin's tour, in the order `scripts/rl/twin_ab.py` walks it:
 /// each journey starts where the one before arrived.
 const TWIN_TOUR: [&str; 6] = ["kitchen", "living", "bedroom", "office", "bath", "home"];
+/// The spread of the twin's stops' heading about its mean: MAD 7-28°
+/// (2026-10-24).
+const ARRIVAL_YAW_SD: f64 = 0.25;
 
 /// A journey of the twin's tour in one of its houses (`--families
 /// twin:casa_ingombra`), from the house's `scripts/twin/houses/<name>.truth.json`
@@ -512,12 +515,32 @@ pub fn twin_house(name: &str, seed: u64) -> anyhow::Result<Scenario> {
     let from = at(TWIN_TOUR[(k + TWIN_TOUR.len() - 1) % TWIN_TOUR.len()])?;
     let goal = at(TWIN_TOUR[k])?;
     let mut rng = Rng::new(seed ^ 0x7417);
+    // Where the twin's journey before this one stopped, when it was
+    // measured (`<name>.arrivals.json`): short of the goal and facing the
+    // way it came. Out of casa_ingombra's office the twin's duck faces the
+    // wall and turns round by the basket, where its pilot lost 38 legs to
+    // the stick; from the goal at a heading drawn anew, the bench's 16.
+    #[derive(Deserialize)]
+    struct Arrivals {
+        arrivals: std::collections::BTreeMap<String, [f64; 3]>,
+    }
+    let came = TWIN_TOUR[(k + TWIN_TOUR.len() - 1) % TWIN_TOUR.len()];
+    let arrived = std::fs::read_to_string(format!("{dir}/{name}.arrivals.json"))
+        .ok()
+        .and_then(|s| serde_json::from_str::<Arrivals>(&s).ok())
+        .and_then(|a| a.arrivals.get(came).copied());
+    let start = match arrived {
+        // Where it stopped, to the centimetre: casa_ingombra's bedroom stop
+        // clears the toy by 8 mm, and a jittered start inside it never moved.
+        Some([x, y, yaw]) => (x, y, yaw + ARRIVAL_YAW_SD * rng.gauss()),
+        None => (from.0, from.1, rng.range(-std::f64::consts::PI, std::f64::consts::PI)),
+    };
     Ok(Scenario {
         family: format!("twin:{name}"),
         level: 3,
         seed,
         world: w,
-        start: (from.0, from.1, rng.range(-std::f64::consts::PI, std::f64::consts::PI)),
+        start,
         goal,
         bias: (0.0, 0.0),
     })

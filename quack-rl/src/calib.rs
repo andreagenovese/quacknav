@@ -20,13 +20,21 @@ pub struct Calib {
     /// The yaw the gait drifts by walking "straight" (|vyaw| < 0.1), rad/s.
     pub straight_veer: f64,
     /// A short curving pulse (≤ 0.8 s, |vyaw| > 0.3) turns by this gain of
-    /// the yaw asked, mean and spread (the MuJoCo turnprobe: 13° ± 10°).
+    /// the yaw asked, mean and spread (the MuJoCo turnprobe: 13° ± 10°);
+    /// the mean is the left's when `pulse_gain_right` is set.
     pub pulse_gain_mean: f64,
     pub pulse_gain_sd: f64,
+    /// The same gain to the right (vyaw < 0); unset (0), `pulse_gain_mean`.
+    /// The MuJoCo twin's right steps turn more than its left: the pilot's
+    /// hard steps 25° and 20°, by odometry to its next move (2026-10-23).
+    pub pulse_gain_right: f64,
     /// Step-to-step spread of the forward speed, relative.
     pub speed_sd: f64,
     /// Backing speed, m/s.
     pub back_speed: f64,
+    /// Yaw rate per unit of vyaw while backing, rad/s (the paper twin's
+    /// 0.6; the MuJoCo twin's pilot backs turning 23°, 0.9).
+    pub back_yaw_per_unit: f64,
     /// Turning in place from a standstill at |vyaw| 1.5, rad/s per side;
     /// and at +1.2 (the right side's threshold is higher: nothing there).
     pub turn_left_rad_s: f64,
@@ -72,6 +80,10 @@ pub struct Calib {
     // --- the depth sensor
     pub tof_hz: f64,
     pub tof_range_max: f64,
+    /// Where the sensor's rows look, the field's centre in radians above
+    /// the horizon, as the walk carries the head; unset, the rows look at
+    /// the floor `world::ROW_FLOOR_M` ahead (the paper twin's).
+    pub tof_pitch_rad: Option<f64>,
     pub tof_range_sd: f64,
     pub tof_range_bias: f64,
     /// A beam that should see something and does not; beyond 1.4 m, where
@@ -112,8 +124,10 @@ impl Default for Calib {
             straight_veer: -0.05,
             pulse_gain_mean: 0.85,
             pulse_gain_sd: 0.65,
+            pulse_gain_right: 0.0,
             speed_sd: 0.1,
             back_speed: 0.08,
+            back_yaw_per_unit: 0.6,
             turn_left_rad_s: 51f64.to_radians(),
             turn_right_rad_s: 58f64.to_radians(),
             turn_left_slow_rad_s: 30f64.to_radians(),
@@ -134,6 +148,7 @@ impl Default for Calib {
             getup_s: 0.0,
             tof_hz: 15.0,
             tof_range_max: 2.2,
+            tof_pitch_rad: None,
             tof_range_sd: 0.02,
             tof_range_bias: 0.0,
             tof_dropout: 0.02,
@@ -232,6 +247,8 @@ impl Calib {
         rel(&mut c.yaw_per_unit, s.gait);
         rel(&mut c.back_speed, s.gait);
         rel(&mut c.pulse_gain_mean, s.gait);
+        rel(&mut c.pulse_gain_right, s.gait);
+        rel(&mut c.back_yaw_per_unit, s.gait);
         rel(&mut c.turn_left_rad_s, s.turn);
         rel(&mut c.turn_right_rad_s, s.turn);
         rel(&mut c.turn_left_slow_rad_s, s.turn);
@@ -254,6 +271,11 @@ impl Calib {
     /// walk asks for (`turn_in_place_rad_s`: 1.5 on alpha and set v7, 1.0 on
     /// set v8) at the full rate, and on the left a band below it, 0.3 wide,
     /// at the slow one.
+    /// A short curving pulse's mean gain, by its side.
+    pub fn pulse_gain(&self, vyaw: f64) -> f64 {
+        if vyaw < 0.0 && self.pulse_gain_right > 0.0 { self.pulse_gain_right } else { self.pulse_gain_mean }
+    }
+
     pub fn in_place_rate(&self, vyaw: f64) -> Option<f64> {
         let full = turn_in_place_from();
         match vyaw {

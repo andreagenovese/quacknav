@@ -21,8 +21,15 @@ use crate::{Rng, dist};
 
 pub const COLS: usize = 8;
 pub const COL_FOV: f64 = 0.78;
-/// Floor distances the eight rows look at, metres ahead (head 0.25 m up).
+/// Floor distances the eight rows look at, metres ahead (head 0.25 m up),
+/// when the calibration sets no `tof_pitch_rad`.
 pub const ROW_FLOOR_M: [f64; 8] = [0.25, 0.32, 0.42, 0.55, 0.75, 1.0, 1.4, 2.0];
+/// With one: the rows evenly across the sensor's field (kinematics'
+/// `FOV_DEG`, the zones' centres half a zone in from its edges) ...
+pub const ROWS: usize = 8;
+pub const ROW_FOV: f64 = 0.785;
+/// ... and a return this near the floor, in the sensor's height, is floor.
+const TOF_FLOOR_SAFETY: f64 = 0.85;
 /// The sensor's height above the floor (the rows' floor distances assume it).
 pub const HEAD_H: f64 = 0.25;
 /// The map's cells, as the duck's.
@@ -389,6 +396,17 @@ impl World {
         let mut drops = Vec::new();
         let mut floors = Vec::new();
         let low_m = if walking { calib.tof_low_walk_m } else { 0.0 };
+        // The rows, lowest first: each one's slope (rise per metre ahead)
+        // and where it meets the floor (none at or above the horizon).
+        let rows: Vec<(f64, f64)> = match calib.tof_pitch_rad {
+            Some(p) => (0..ROWS)
+                .map(|r| {
+                    let slope = (p + ROW_FOV * ((r as f64 + 0.5) / ROWS as f64 - 0.5)).tan();
+                    (slope, if slope < 0.0 { HEAD_H / -slope } else { f64::INFINITY })
+                })
+                .collect(),
+            None => ROW_FLOOR_M.iter().map(|d| (-HEAD_H / d, *d)).collect(),
+        };
         for c in 0..COLS {
             let bearing = head_yaw + COL_FOV * ((c as f64 + 0.5) / COLS as f64 - 0.5);
             let a = yaw + bearing;
@@ -396,9 +414,14 @@ impl World {
             let mut edge: Option<(f64, f64)> = None;
             let mut beyond: Option<f64> = None;
             let mut floor_rows = Vec::new();
-            for (r, d) in ROW_FLOOR_M.iter().copied().enumerate() {
-                let prev = if r == 0 { 0.0 } else { ROW_FLOOR_M[r - 1] };
-                let met = hits.iter().find(|(t, h, _)| *t <= d && *h >= low_m && *t >= d * (1.0 - h / HEAD_H));
+            for (r, (slope, d)) in rows.iter().copied().enumerate() {
+                let prev = if r == 0 { 0.0 } else { rows[r - 1].1 };
+                // The beam at `t` ahead is `HEAD_H + slope t` up: it meets a
+                // thing that tall before the floor ...
+                let met = hits.iter().find(|(t, h, _)| *t <= d && *h >= low_m && HEAD_H + slope * t <= *h);
+                // ... and kinematics reads a return this near the floor as
+                // floor (`Reprojector::FLOOR_SAFETY`, 0.85 of the height).
+                let met = met.filter(|(t, ..)| calib.tof_pitch_rad.is_none() || HEAD_H + slope * t >= (1.0 - TOF_FLOOR_SAFETY) * HEAD_H);
                 if let Some((t, _, what)) = met {
                     if !rng.chance(if *t > 1.4 { calib.tof_dropout_far } else { calib.tof_dropout }) {
                         // `tof_range_bias` is quack-nav's `range_m` short of
@@ -417,6 +440,10 @@ impl World {
                     if matches!(what, Hit::Rect(i) if self.rects[*i].low) && d > *t && d <= t + PHANTOM_DEPTH_M && rng.chance(calib.phantom_p) {
                         drops.push(Drop { bearing, range_m: d, edge_min_m: prev, floor_beyond_m: 0.0, kind: DropKind::Deep });
                     }
+                    continue;
+                }
+                // Above the horizon, or the floor out of range: no return.
+                if d >= calib.tof_range_max {
                     continue;
                 }
                 // The floor, or a hole where the floor should be.

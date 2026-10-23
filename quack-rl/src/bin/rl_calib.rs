@@ -167,6 +167,9 @@ struct Leg {
     pose1: (f64, f64, f64),
     odom0: Option<(f64, f64, f64)>,
     odom1: Option<(f64, f64, f64)>,
+    /// Odometry at the next leg's start: what the move turned, the gait's
+    /// coast and the stand after it in.
+    odom_next: Option<(f64, f64, f64)>,
     /// The nearest obstacle seen ahead during it (a bump's suspect).
     near_ahead: f64,
     /// Legs between two stands share a chain.
@@ -211,12 +214,12 @@ fn predict(c: &Calib, act: &str, vx: f64, vyaw: f64, secs: f64) -> (f64, f64) {
         return (0.0, rate * secs);
     }
     if vx > 0.05 {
-        let gain = if secs <= 0.8 && vyaw.abs() > 0.3 { c.pulse_gain_mean } else { 1.0 };
+        let gain = if secs <= 0.8 && vyaw.abs() > 0.3 { c.pulse_gain(vyaw) } else { 1.0 };
         let w = c.yaw_per_unit * vyaw * gain + if vyaw.abs() < 0.1 { c.straight_veer } else { 0.0 };
         return (c.speed_at_03 * vx / 0.3 * secs, w * secs);
     }
     if vx < -0.05 {
-        return (c.back_speed * secs, 0.6 * vyaw * secs);
+        return (c.back_speed * secs, c.back_yaw_per_unit * vyaw * secs);
     }
     (0.0, 0.0)
 }
@@ -274,6 +277,7 @@ fn main() -> anyhow::Result<()> {
     // of the stand or wait right after it, the turn's way.
     let mut coasts: Vec<f64> = Vec::new();
     for f in &files {
+        let first_leg = legs.len();
         let mut turn_end: Option<(f64, f64)> = None;
         let text = std::fs::read_to_string(f)?;
         let mut cur_map: Option<usize> = None;
@@ -340,12 +344,16 @@ fn main() -> anyhow::Result<()> {
                         pose1,
                         odom0: triple(&v["odom0"]),
                         odom1: triple(&v["odom1"]),
+                        odom_next: None,
                         near_ahead,
                         chain,
                     });
                 }
                 _ => {}
             }
+        }
+        for i in first_leg + 1..legs.len() {
+            legs[i - 1].odom_next = legs[i].odom0;
         }
     }
     let mut fit = Fit::default();
@@ -374,10 +382,28 @@ fn main() -> anyhow::Result<()> {
     let straight: Vec<f64> = free_steps.iter().filter(|l| l.vyaw.abs() < 0.1).map(|l| dyaw(l) / l.secs).collect();
     let veer = { let mut s = straight.clone(); median(&mut s) };
     c.straight_veer = fit.set("straight_veer", prior.straight_veer, Some((veer, straight.len(), mad_sd(&straight))), "median yaw rate of the straight steps (|vyaw| < 0.1)");
-    let pulses: Vec<f64> = free_steps.iter().filter(|l| l.vyaw.abs() > 0.3 && l.secs <= 0.8).map(|l| dyaw(l) / l.secs / (c.yaw_per_unit * l.vyaw)).collect();
-    let g = { let mut s = pulses.clone(); median(&mut s) };
-    c.pulse_gain_mean = fit.set("pulse_gain_mean", prior.pulse_gain_mean, Some((g, pulses.len(), mad_sd(&pulses))), "median of (yaw turned) / (yaw_per_unit × vyaw × secs) over the curving steps ≤ 0.8 s");
-    c.pulse_gain_sd = fit.set("pulse_gain_sd", prior.pulse_gain_sd, Some((mad_sd(&pulses), pulses.len(), 0.0)), "their spread (MAD)");
+    // A pulse's yaw by odometry to the next move: the gait turns on for a
+    // moment once the command ends, and what the next move starts from is
+    // what the pulse did (the twin's pilot steps, in the leg 23° to the
+    // right, by the next 25°). By side: the twin's right turns more.
+    let to_next = |l: &Leg| match (l.odom0, l.odom_next) {
+        (Some(a), Some(b)) => Some(wrap(b.2 - a.2)),
+        _ => None,
+    };
+    let pulses_by = |right: bool| -> Vec<f64> {
+        free_steps
+            .iter()
+            .filter(|l| l.vyaw.abs() > 0.3 && l.secs <= 0.8 && (l.vyaw < 0.0) == right)
+            .filter_map(|l| Some(to_next(l)? / l.secs / (c.yaw_per_unit * l.vyaw)))
+            .collect()
+    };
+    let (pl, pr) = (pulses_by(false), pulses_by(true));
+    let (gl, gr) = ({ let mut s = pl.clone(); median(&mut s) }, { let mut s = pr.clone(); median(&mut s) });
+    c.pulse_gain_mean = fit.set("pulse_gain_mean", prior.pulse_gain_mean, Some((gl, pl.len(), mad_sd(&pl))), "median of (yaw by odometry to the next move) / (yaw_per_unit × vyaw × secs) over the curving steps ≤ 0.8 s to the left");
+    c.pulse_gain_right = fit.set("pulse_gain_right", prior.pulse_gain(-1.0), Some((gr, pr.len(), mad_sd(&pr))), "the same to the right");
+    let pulses: Vec<f64> = pl.iter().map(|g| g / gl).chain(pr.iter().map(|g| g / gr)).collect();
+    let psd = mad_sd(&pulses) * (gl + gr) / 2.0;
+    c.pulse_gain_sd = fit.set("pulse_gain_sd", prior.pulse_gain_sd, Some((psd, pulses.len(), 0.0)), "their spread (MAD, each side's about its median), in gain");
     let long: Vec<f64> = free_steps.iter().filter(|l| l.vyaw.abs() > 0.3 && l.secs > 0.8).map(|l| dyaw(l) / l.secs / l.vyaw).collect();
     let ypu = { let mut s = long.clone(); median(&mut s) };
     c.yaw_per_unit = fit.set("yaw_per_unit", prior.yaw_per_unit, Some((ypu, long.len(), mad_sd(&long))), "median yaw rate per unit of vyaw over curving legs longer than 0.8 s (the pilot's and the stick's steps are 0.6 s: rarely seen)");
@@ -397,6 +423,9 @@ fn main() -> anyhow::Result<()> {
     let backs: Vec<f64> = legs.iter().filter(|l| l.vx < -0.05 && l.secs > 0.0).map(|l| (l.pose1.0 - l.pose0.0).hypot(l.pose1.1 - l.pose0.1) / l.secs).collect();
     let bk = { let mut s = backs.clone(); median(&mut s) };
     c.back_speed = fit.set("back_speed", prior.back_speed, Some((bk, backs.len(), mad_sd(&backs))), "median speed of the back-offs");
+    let back_yaws: Vec<f64> = legs.iter().filter(|l| l.vx < -0.05 && l.secs > 0.0 && l.vyaw.abs() > 0.1).filter_map(|l| Some(to_next(l)? / l.secs / l.vyaw)).collect();
+    let by = { let mut s = back_yaws.clone(); median(&mut s) };
+    c.back_yaw_per_unit = fit.set("back_yaw_per_unit", prior.back_yaw_per_unit, Some((by, back_yaws.len(), mad_sd(&back_yaws))), "median yaw by odometry to the next move per unit of vyaw × secs over the back-offs");
     // --- odometry against the map's pose over the walks between two
     // stands: the simulator's per-tick random walk (k × the tick's metres)
     // leaves an error of variance k² · D · d_tick over D walked, the

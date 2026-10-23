@@ -317,7 +317,7 @@ impl Sim {
         let c = self.calib.clone();
         let spinning = vx.abs() < 0.05;
         let can_spin = self.last_walk.is_some_and(|w| self.t - w < 1.5);
-        let pulse_gain = if vx > 0.05 && secs <= 0.8 && vyaw.abs() > 0.3 { (c.pulse_gain_mean + c.pulse_gain_sd * self.rng.gauss()).clamp(-0.6, 2.2) } else { 1.0 };
+        let pulse_gain = if vx > 0.05 && secs <= 0.8 && vyaw.abs() > 0.3 { (c.pulse_gain(vyaw) + c.pulse_gain_sd * self.rng.gauss()).clamp(-0.6, 2.2) } else { 1.0 };
         let speed_k = (1.0 + c.speed_sd * self.rng.gauss()).clamp(0.5, 1.5);
         let turn_k = (1.0 + c.turn_sd * self.rng.gauss()).clamp(0.5, 1.5);
         self.head = 0.0;
@@ -329,7 +329,7 @@ impl Sim {
             let (v, w) = if vx > 0.05 {
                 (c.speed_at_03 * vx / 0.3 * speed_k, c.yaw_per_unit * vyaw * pulse_gain + if vyaw.abs() < 0.1 { c.straight_veer } else { 0.0 })
             } else if vx < -0.05 {
-                if vyaw > 0.3 || can_spin { (-c.back_speed * speed_k, 0.6 * vyaw) } else { (0.0, 0.0) }
+                if vyaw > 0.3 || can_spin { (-c.back_speed * speed_k, c.back_yaw_per_unit * vyaw) } else { (0.0, 0.0) }
             } else if let Some(w) = spinning.then(|| c.in_place_rate(vyaw)).flatten() {
                 (0.0, w * turn_k)
             } else if spinning && can_spin && vyaw.abs() > 0.3 {
