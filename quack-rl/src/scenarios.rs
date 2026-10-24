@@ -272,6 +272,9 @@ pub fn generate(seed: u64, level: u32, family: Option<&str>) -> Scenario {
     if let Some(house) = family.and_then(|f| f.strip_prefix("twin:")) {
         return twin_house(house, seed).unwrap_or_else(|e| panic!("twin:{house}: {e}"));
     }
+    if let Some(house) = family.and_then(|f| f.strip_prefix("twinlike:")) {
+        return twin_like(house, seed).unwrap_or_else(|e| panic!("twinlike:{house}: {e}"));
+    }
     let mut rng = Rng::new(seed ^ 0x5EED_CAFE);
     for attempt in 0..50 {
         let fam = family.map(str::to_string).unwrap_or_else(|| {
@@ -466,21 +469,11 @@ mod tests {
     }
 }
 
-/// The MuJoCo twin's tour, in the order `scripts/rl/twin_ab.py` walks it:
-/// each journey starts where the one before arrived.
-const TWIN_TOUR: [&str; 6] = ["kitchen", "living", "bedroom", "office", "bath", "home"];
-/// The spread of the twin's stops' heading about its mean: MAD 7-28°
-/// (2026-10-24).
-const ARRIVAL_YAW_SD: f64 = 0.25;
-
-/// A journey of the twin's tour in one of its houses (`--families
-/// twin:casa_ingombra`), from the house's `scripts/twin/houses/<name>.truth.json`
-/// (`gen.py`): its walls and furniture on the map, what was put down since
-/// (`unmapped`) not, its holes' rims on the books as the twin's oracle has
-/// them, the map drawn whole. The seed picks the journey (seed % 6) and the
-/// heading it starts at: the bench then walks the twin's own journeys, and
-/// a pilot better there than the stick should be better on the twin.
-pub fn twin_house(name: &str, seed: u64) -> anyhow::Result<Scenario> {
+/// A twin house's world from its `scripts/twin/houses/<name>.truth.json`
+/// (`gen.py`): walls and furniture on the map, what was put down since
+/// (`unmapped`) not, the holes' rims on the books; its goals, and the
+/// directory it came from.
+fn twin_world(name: &str) -> anyhow::Result<(World, std::collections::BTreeMap<String, [f64; 2]>, String)> {
     #[derive(Deserialize)]
     struct Truth {
         boxes: Vec<(String, f64, f64, f64, f64, f64)>,
@@ -510,8 +503,93 @@ pub fn twin_house(name: &str, seed: u64) -> anyhow::Result<Scenario> {
         }
     }
     w.holes = t.holes.iter().map(|h| Hole { x0: h[0], x1: h[1], y0: h[2], y1: h[3], booked: true }).collect();
+    Ok((w, t.goals, dir))
+}
+
+/// A journey for training in one of the twin's other houses (`--focus
+/// twinlike:casa_viva`): between two of its goals, started where a journey
+/// from a third would have stopped — short of the goal by the twin's
+/// `ARRIVAL_SHORT_M`, facing the way it came — with things put down since
+/// on the way and, now and then, one beside the stop. The bench's own
+/// journeys start in open floor at a heading drawn anew; the twin's start
+/// facing a wall by the basket, and there its pilot lost the bath to the
+/// stick (casa_ingombra, 2026-10-24). casa_ingombra and casa_arredata, the
+/// twin's A/B houses, are left for the bench.
+pub fn twin_like(name: &str, seed: u64) -> anyhow::Result<Scenario> {
+    let (base, goals, _) = twin_world(name)?;
+    let goals: Vec<(f64, f64)> = goals.values().map(|p| (p[0], p[1])).collect();
+    anyhow::ensure!(goals.len() >= 3, "{name}: fewer than three goals");
+    let mut rng = Rng::new(seed ^ 0x71E5);
+    for _ in 0..30 {
+        let (a, b, c) = (rng.pick(goals.len()), rng.pick(goals.len()), rng.pick(goals.len()));
+        if a == b || b == c || a == c {
+            continue;
+        }
+        let (prev, from, goal) = (goals[a], goals[b], goals[c]);
+        let mut w = base.clone();
+        let n = rng.pick(4);
+        unmapped_on_the_way(&mut w, &mut rng, from, goal, n);
+        if rng.chance(0.5) {
+            let (bearing, d) = (rng.range(-std::f64::consts::PI, std::f64::consts::PI), rng.range(0.3, 0.45));
+            let (cx, cy) = (from.0 + d * bearing.cos(), from.1 + d * bearing.sin());
+            let (sx, sy) = (rng.range(0.15, 0.3), rng.range(0.15, 0.3));
+            let mut r = Rect::new(cx - sx / 2.0, cx + sx / 2.0, cy - sy / 2.0, cy + sy / 2.0);
+            r.mapped = false;
+            r.height = rng.range(0.1, 0.4);
+            w.rects.push(r);
+        }
+        // Down the way from the third goal until short of this one.
+        let field = Field::build(&w, from, 0.11, false);
+        let (mut p, mut heading) = (prev, None);
+        for _ in 0..400 {
+            if dist(p, from) <= ARRIVAL_SHORT_M {
+                break;
+            }
+            let Some(q) = field.descend(p.0, p.1, 0.05) else { break };
+            if dist(q, p) < 1e-6 {
+                break;
+            }
+            heading = Some((q.1 - p.1).atan2(q.0 - p.0));
+            p = q;
+        }
+        let Some(yaw) = heading.filter(|_| dist(p, from) <= ARRIVAL_SHORT_M + 0.05) else { continue };
+        let s = Scenario {
+            family: format!("twinlike:{name}"),
+            level: 3,
+            seed,
+            world: w,
+            start: (p.0, p.1, yaw + ARRIVAL_YAW_SD * rng.gauss()),
+            goal,
+            bias: (0.0, 0.0),
+        };
+        if passable(&s) {
+            return Ok(s);
+        }
+    }
+    anyhow::bail!("{name}: no journey in 30 draws")
+}
+
+/// The MuJoCo twin's tour, in the order `scripts/rl/twin_ab.py` walks it:
+/// each journey starts where the one before arrived.
+const TWIN_TOUR: [&str; 6] = ["kitchen", "living", "bedroom", "office", "bath", "home"];
+/// The spread of the twin's stops' heading about its mean: MAD 7-28°
+/// (2026-10-24).
+const ARRIVAL_YAW_SD: f64 = 0.25;
+/// How far short of a goal the twin's journeys stopped: 0.17 m, give or
+/// take 0.03 (`<name>.arrivals.json`).
+const ARRIVAL_SHORT_M: f64 = 0.17;
+
+/// A journey of the twin's tour in one of its houses (`--families
+/// twin:casa_ingombra`), from the house's `scripts/twin/houses/<name>.truth.json`
+/// (`gen.py`): its walls and furniture on the map, what was put down since
+/// (`unmapped`) not, its holes' rims on the books as the twin's oracle has
+/// them, the map drawn whole. The seed picks the journey (seed % 6) and the
+/// heading it starts at: the bench then walks the twin's own journeys, and
+/// a pilot better there than the stick should be better on the twin.
+pub fn twin_house(name: &str, seed: u64) -> anyhow::Result<Scenario> {
+    let (w, goals, dir) = twin_world(name)?;
     let k = (seed % TWIN_TOUR.len() as u64) as usize;
-    let at = |g: &str| t.goals.get(g).map(|p| (p[0], p[1])).ok_or_else(|| anyhow::anyhow!("no goal {g}"));
+    let at = |g: &str| goals.get(g).map(|p| (p[0], p[1])).ok_or_else(|| anyhow::anyhow!("no goal {g}"));
     let from = at(TWIN_TOUR[(k + TWIN_TOUR.len() - 1) % TWIN_TOUR.len()])?;
     let goal = at(TWIN_TOUR[k])?;
     let mut rng = Rng::new(seed ^ 0x7417);
