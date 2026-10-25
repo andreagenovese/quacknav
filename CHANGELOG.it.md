@@ -70,7 +70,8 @@ carta, mai su una papera fisica; i dettagli sono in
   in cammino (4 a lettura contro 10, alle posizioni vere del gemello registrate dal nuovo
   `TOF_TRUTH_LOG` del corpo); ora incontra anche il piano superiore e
   restituisce quanto il gemello (10 contro 10). `examples/tof_vs_twin` rifà
-  nel simulatore le letture di una traccia del gemello.
+  nel simulatore le letture di una traccia del gemello; `rl_trace` accetta
+  `--reckless KIND` (il test degli scudi di finalize, un seed) e `--log DIR`.
 - Visore del gemello: una mappa caricata al boot si disegnava al punto di
   partenza, girata del suo angolo; ora si colloca quando la posa è
   confermata, come una mappa scambiata (12 risvegli: entro 0,11 m e 4°
