@@ -45,6 +45,12 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Corretto
 
+- Lo stick che prende il controllo da un pilota che non si avvicina lo
+  restituiva dopo 30 s anche se era ancora nel punto dove lo aveva preso. Ora
+  lo restituisce solo a 0,3 m da lì (`STICK_AWAY_M`). Sul gemello il pilota
+  aveva consumato il tempo di un viaggio intero davanti al cesto vicino alla
+  porta dello studio di casa_ingombra, riprendendosi il controllo cinque volte;
+  con la correzione è arrivato in 48 viaggi su 48.
 - Il simulatore di quack-rl girava sul posto solo da |vyaw| 1,45, quanto
   chiede il set v7: sulla linea 0.17 (una girata chiede 1,0) la papera
   simulata non girava da ferma e `rl_calib` non trovava girate. Le soglie

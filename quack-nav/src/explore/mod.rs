@@ -1441,9 +1441,9 @@ pub struct Job {
     /// The shortest route to the stand the pilot has reached, and when
     /// (see `PILOT_NO_PROGRESS`) ...
     pilot_best: Option<(f64, Instant)>,
-    /// ... and, once it went that long without shortening it, the route
-    /// and the time when the stick took over.
-    stick_holds: Option<(f64, Instant)>,
+    /// ... and, once it went that long without shortening it, the route,
+    /// the time and the place where the stick took over.
+    stick_holds: Option<(f64, Instant, (f64, f64))>,
     /// When the last turn in place ended (see `SEEN_AFTER_TURN`).
     turned_at: Option<Instant>,
     /// The stick walks the legs beside a hole (`stick::PILOT_HOLE_NEAR_M`).

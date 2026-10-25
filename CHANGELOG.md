@@ -41,6 +41,11 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Fixed
 
+- The stick that took the legs from a pilot that got no nearer gave them back
+  after 30 s even where it took them: now only 0.3 m from there
+  (`STICK_AWAY_M`). On the twin the pilot had spent a whole journey's budget
+  at casa_ingombra's basket by the office door, taking the legs back five
+  times; with the fix 48/48 arrived.
 - quack-rl's simulator turned in place only from |vyaw| 1.45, set v7's
   ask: on the 0.17 line (a turn asks 1.0) the simulated duck could not
   turn from a standstill and `rl_calib` found no turns. The thresholds
