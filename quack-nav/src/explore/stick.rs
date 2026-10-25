@@ -281,16 +281,7 @@ impl Job {
         // stairwell (+28 s to the bath, +33 s home against the stick; the
         // bench's pilot never did), so the stick walks the legs within
         // [`PILOT_HOLE_NEAR_M`] of a booked rim.
-        // ... and beside a thing the map does not have, booked on the
-        // journey: there the twin's pilot v8l turned, stepped back and
-        // waited ten times a journey before casa_ingombra's bag and
-        // basket, where the stick takes the re-planned route round them
-        // (+12 s to the kitchen, +7 s to the bath, the rest of the house
-        // faster than the stick; AB13+AB14, 2026-10-25). On the bench,
-        // with such things on the way in training and in the same house,
-        // it does not (twin:casa_ingombra, 111 s against the stick's 116).
-        let by_thing = self.pilot.is_some() && self.local.iter().any(|(p, r)| *r < DROP_RADIUS_M && dist2(*p, (x, y)) < PILOT_THING_NEAR_M);
-        let by_hole = by_thing || (self.pilot.is_some() && self.local.iter().any(|(p, r)| *r >= DROP_RADIUS_M && dist2(*p, (x, y)) < PILOT_HOLE_NEAR_M));
+        let by_hole = self.pilot.is_some() && self.local.iter().any(|(p, r)| *r >= DROP_RADIUS_M && dist2(*p, (x, y)) < PILOT_HOLE_NEAR_M);
         let pilot = self.pilot.clone().filter(|_| !by_hole && self.stick_holds.is_none() && self.pilot_refused < PILOT_REFUSED_TO_STICK && self.pilot_turns < PILOT_TURNS_TO_STICK);
         if self.pilot.is_some() && pilot.is_none() && !by_hole && self.stick_holds.is_none() {
             tracing::info!(at = ?(x, y, yaw), refused = self.pilot_refused, turns = self.pilot_turns, "map explore: pilot: refused twice, or only turning; the stick takes the leg");
@@ -298,11 +289,7 @@ impl Job {
             self.pilot_turns = 0;
         }
         if by_hole && !self.stick_by_hole {
-            if by_thing {
-                tracing::info!(at = ?(x, y, yaw), "map explore: pilot: a booked thing near; the stick takes the legs");
-            } else {
-                tracing::info!(at = ?(x, y, yaw), "map explore: pilot: a hole near; the stick takes the legs");
-            }
+            tracing::info!(at = ?(x, y, yaw), "map explore: pilot: a hole near; the stick takes the legs");
         }
         self.stick_by_hole = by_hole;
         if let Some(pilot) = pilot {
@@ -640,8 +627,6 @@ const STICK_HOLD_MAX: std::time::Duration = std::time::Duration::from_secs(30);
 const STICK_AWAY_M: f64 = 0.3;
 /// A booked rim this near the body, and the stick walks the legs.
 const PILOT_HOLE_NEAR_M: f64 = 0.5;
-/// A booked obstacle this near the body, and the stick walks the legs.
-const PILOT_THING_NEAR_M: f64 = 0.5;
 
 /// The route's length from `at` to the frontier's stand.
 fn route_to_stand(at: (f64, f64), f: &Frontier) -> f64 {
