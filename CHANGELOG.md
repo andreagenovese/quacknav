@@ -46,6 +46,13 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   (`STICK_AWAY_M`). On the twin the pilot had spent a whole journey's budget
   at casa_ingombra's basket by the office door, taking the legs back five
   times; with the fix 48/48 arrived.
+- The pilot kept the legs beside a thing the map does not have, booked on
+  the journey: on the twin it turned, stepped back and waited about ten
+  times a journey before casa_ingombra's bag and basket. Now the stick walks
+  the legs within 0.5 m of a booked obstacle (`PILOT_THING_NEAR_M`), as it
+  already did beside a rim. Twin A/B, 4 rounds a house: 48/48 arrived, no
+  falls; the pilot arm 5.2 s faster than the stick in casa_ingombra (was
+  2.2) and 6.2 s in casa_arredata (was 4.4); the time at the bag 23 → 12 s.
 - quack-rl's simulator turned in place only from |vyaw| 1.45, set v7's
   ask: on the 0.17 line (a turn asks 1.0) the simulated duck could not
   turn from a standstill and `rl_calib` found no turns. The thresholds

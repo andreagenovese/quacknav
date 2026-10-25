@@ -51,6 +51,14 @@ carta, mai su una papera fisica; i dettagli sono in
   aveva consumato il tempo di un viaggio intero davanti al cesto vicino alla
   porta dello studio di casa_ingombra, riprendendosi il controllo cinque volte;
   con la correzione è arrivato in 48 viaggi su 48.
+- Il pilota teneva il controllo accanto a un oggetto che la mappa non ha,
+  registrato durante il viaggio: sul gemello girava, arretrava e aspettava
+  circa dieci volte a viaggio davanti alla borsa e al cesto di
+  casa_ingombra. Ora lo stick prende il controllo entro 0,5 m da un ostacolo
+  registrato (`PILOT_THING_NEAR_M`), come già faceva accanto a un bordo.
+  A/B sul gemello, 4 giri per casa: 48 arrivi su 48, nessuna caduta; il
+  pilota 5,2 s più veloce dello stick in casa_ingombra (prima 2,2) e 6,2 s
+  in casa_arredata (prima 4,4); il tempo davanti alla borsa da 23 a 12 s.
 - Il simulatore di quack-rl girava sul posto solo da |vyaw| 1,45, quanto
   chiede il set v7: sulla linea 0.17 (una girata chiede 1,0) la papera
   simulata non girava da ferma e `rl_calib` non trovava girate. Le soglie
