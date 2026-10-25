@@ -64,6 +64,13 @@ carta, mai su una papera fisica; i dettagli sono in
   simulata non girava da ferma e `rl_calib` non trovava girate. Le soglie
   seguono la camminata; `rl_calib` accetta `--gait`/`--daemon` e parte dal
   prior della linea (`calibrate.sh` passa `GAIT`/`DAEMON`).
+- Il sensore di quack-rl vedeva un oggetto basso solo sul lato: un raggio che
+  scendeva sopra di esso proseguiva fino al pavimento. Entro 0,2 m dalla borsa
+  di casa_ingombra il simulatore restituiva un terzo dei ritorni del gemello
+  in cammino (4 a lettura contro 10, alle posizioni vere del gemello registrate dal nuovo
+  `TOF_TRUTH_LOG` del corpo); ora incontra anche il piano superiore e
+  restituisce quanto il gemello (10 contro 10). `examples/tof_vs_twin` rifà
+  nel simulatore le letture di una traccia del gemello.
 - Visore del gemello: una mappa caricata al boot si disegnava al punto di
   partenza, girata del suo angolo; ora si colloca quando la posa è
   confermata, come una mappa scambiata (12 risvegli: entro 0,11 m e 4°

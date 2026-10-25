@@ -58,6 +58,12 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   turn from a standstill and `rl_calib` found no turns. The thresholds
   follow the walk; `rl_calib` takes `--gait`/`--daemon` and starts from
   the line's prior (`calibrate.sh` passes `GAIT`/`DAEMON`).
+- quack-rl's sensor saw a low thing only on its face: a beam that came down
+  over it went on to the floor. Within 0.2 m of casa_ingombra's bag the
+  simulator returned a third of the twin's hits walking (4 a frame against 10, at
+  the twin's true poses from the body's new `TOF_TRUTH_LOG`); now it meets
+  the top too and returns about what the twin does (10 against 10).
+  `examples/tof_vs_twin` re-senses a twin trace in the simulator.
 - Twin viewer: a map loaded at boot was drawn at the spawn, turned by
   its yaw; it is now placed once the pose is confirmed, as an exchanged
   map is (12 wakes: within 0.11 m and 4° of the true origin).

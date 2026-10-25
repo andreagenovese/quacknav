@@ -69,6 +69,11 @@ impl Rect {
     }
     /// The ray's entry distance, if it meets the box within `max`.
     pub fn ray(&self, x: f64, y: f64, dx: f64, dy: f64, max: f64) -> Option<f64> {
+        self.span(x, y, dx, dy, max).map(|(t, _)| t)
+    }
+
+    /// Where a ray from (x, y) along (dx, dy) goes in and comes out.
+    pub fn span(&self, x: f64, y: f64, dx: f64, dy: f64, max: f64) -> Option<(f64, f64)> {
         let (mut t0, mut t1) = (0.0_f64, max);
         for (o, d, lo, hi) in [(x, dx, self.x0, self.x1), (y, dy, self.y0, self.y1)] {
             if d.abs() < 1e-12 {
@@ -84,7 +89,7 @@ impl Rect {
             t0 = t0.max(ta);
             t1 = t1.min(tb);
         }
-        (t0 <= t1).then_some(t0.max(0.0))
+        (t0 <= t1).then_some((t0.max(0.0), t1))
     }
 }
 
@@ -110,6 +115,15 @@ fn ray_circle(x: f64, y: f64, dx: f64, dy: f64, cx: f64, cy: f64, r: f64, max: f
     }
     let t = -b - disc.sqrt();
     (t >= 0.0 && t <= max).then_some(t)
+}
+
+/// Where a ray goes in a circle and comes out.
+fn span_circle(x: f64, y: f64, dx: f64, dy: f64, cx: f64, cy: f64, r: f64, max: f64) -> Option<(f64, f64)> {
+    let t = ray_circle(x, y, dx, dy, cx, cy, r, max)?;
+    let (fx, fy) = (x - cx, y - cy);
+    let b = fx * dx + fy * dy;
+    let disc = (b * b - (fx * fx + fy * fy - r * r)).max(0.0);
+    Some((t, (-b + disc.sqrt()).min(max)))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -294,24 +308,24 @@ impl World {
 
     /// Everything a ray meets within `max`, nearest first: (distance,
     /// height, what).
-    pub fn ray_all(&self, x: f64, y: f64, a: f64, max: f64) -> Vec<(f64, f64, Hit)> {
+    pub fn ray_all(&self, x: f64, y: f64, a: f64, max: f64) -> Vec<(f64, f64, f64, Hit)> {
         let (dx, dy) = (a.cos(), a.sin());
         let mut out = Vec::new();
         for (i, b) in self.rects.iter().enumerate() {
             if b.present
-                && let Some(t) = b.ray(x, y, dx, dy, max)
+                && let Some((t, u)) = b.span(x, y, dx, dy, max)
             {
-                out.push((t, b.height, Hit::Rect(i)));
+                out.push((t, u, b.height, Hit::Rect(i)));
             }
         }
         for (i, p) in self.posts.iter().enumerate() {
-            if let Some(t) = ray_circle(x, y, dx, dy, p.x, p.y, p.r, max) {
-                out.push((t, p.height, Hit::Post(i)));
+            if let Some((t, u)) = span_circle(x, y, dx, dy, p.x, p.y, p.r, max) {
+                out.push((t, u, p.height, Hit::Post(i)));
             }
         }
         for (i, m) in self.movers.iter().enumerate() {
-            if let Some(t) = ray_circle(x, y, dx, dy, m.x, m.y, m.r, max) {
-                out.push((t, m.height, Hit::Mover(i)));
+            if let Some((t, u)) = span_circle(x, y, dx, dy, m.x, m.y, m.r, max) {
+                out.push((t, u, m.height, Hit::Mover(i)));
             }
         }
         out.sort_by(|a, b| a.0.total_cmp(&b.0));
@@ -417,12 +431,23 @@ impl World {
             for (r, (slope, d)) in rows.iter().copied().enumerate() {
                 let prev = if r == 0 { 0.0 } else { rows[r - 1].1 };
                 // The beam at `t` ahead is `HEAD_H + slope t` up: it meets a
-                // thing that tall before the floor ...
-                let met = hits.iter().find(|(t, h, _)| *t <= d && *h >= low_m && HEAD_H + slope * t <= *h);
+                // thing that tall before the floor, on its face or, coming
+                // down over it, on its top (the twin's bag: twice the sim's
+                // returns within 0.2 m before this, 2026-10-25) ...
+                let met = hits.iter().find_map(|(t, u, h, what)| {
+                    if *t > d || *h < low_m {
+                        return None;
+                    }
+                    if HEAD_H + slope * t <= *h {
+                        return Some((*t, *h, *what));
+                    }
+                    let top = (*h - HEAD_H) / slope;
+                    (slope < 0.0 && top <= u.min(d)).then_some((top, *h, *what))
+                });
                 // ... and kinematics reads a return this near the floor as
                 // floor (`Reprojector::FLOOR_SAFETY`, 0.85 of the height).
                 let met = met.filter(|(t, ..)| calib.tof_pitch_rad.is_none() || HEAD_H + slope * t >= (1.0 - TOF_FLOOR_SAFETY) * HEAD_H);
-                if let Some((t, _, what)) = met {
+                if let Some((t, _, what)) = &met {
                     if !rng.chance(if *t > 1.4 { calib.tof_dropout_far } else { calib.tof_dropout }) {
                         // `tof_range_bias` is quack-nav's `range_m` short of
                         // the trunk's distance: kinematics measures it from
