@@ -64,7 +64,8 @@ Release attuale: **v0.3.0-rc2**, una release candidate validata sui gemelli —
 > 2. **Ha un modello neurale di navigazione, facoltativo.** Una piccola
 >    rete (un MLP, esportato in ONNX ed eseguito in Rust puro) può scegliere
 >    ogni passo di un viaggio al posto delle regole scritte a mano, un
->    modello per camminata; scudi rigidi attorno la tengono lontana dai
+>    modello per camminata (e, per velstand, per linea del daemon); scudi
+>    rigidi attorno la tengono lontana dai
 >    buchi. Spento di default: impostate
 >    `QK_RL_POLICY=/var/lib/quack-nav/pilots` per usarlo. [Il pilota](#il-pilota).
 
@@ -239,7 +240,7 @@ vero fa a un passaggio).
 
 ## Il pilota
 
-**Un modello neurale di navigazione, uno per camminata, facoltativo.** Una piccola rete che sceglie le mosse dello stick dalla rotta davanti,
+**Un modello neurale di navigazione, uno per camminata e linea del daemon, facoltativo.** Una piccola rete che sceglie le mosse dello stick dalla rotta davanti,
 dall'ultimo secondo del sensore di profondità e dalla mappa attorno al
 corpo, addestrata su centinaia di migliaia di viaggi simulati in case
 generate con ciò che la mappa non sa lungo la strada (cose posate dopo,
@@ -379,7 +380,7 @@ la scheda, l'unità, l'utente di servizio, la configurazione d'esempio,
 shasum.
 
 ```sh
-V=0.2.0-rc2     # il tag della release senza la v
+V=0.3.0-rc2     # il tag della release senza la v
 gh release download "v$V" --repo andreagenovese/quacknav \
     --pattern "quack-nav-$V-aarch64-linux.tar.gz*"
 # oppure: curl -LO https://github.com/andreagenovese/quacknav/releases/download/v$V/quack-nav-$V-aarch64-linux.tar.gz
@@ -658,7 +659,7 @@ del settore.
   e i recuperi in un behavior tree. Qui: Dijkstra, un filo teso, gambe a
   stop-and-go, e recuperi sparsi nell'esploratore. Il libro dei drop è uno
   strato di costmap in tutto tranne che nel nome.
-- **Test.** 180 test che passano e 1 ignorato (2026-10-02). Il gemello di carta gira in CI
+- **Test.** 223 test che passano e 1 ignorato (2026-10-26). Il gemello di carta gira in CI
   come soglia su semi fissi (esplorazione 40 × 1200 s, `go_to` 30;
   `.github/workflows/ci.yml`, `scripts/ci/paper_twin_gate.py`); oltre a
   quello, il comportamento si verifica con giri di ore, non deterministici,
@@ -688,9 +689,9 @@ Misurato sul gemello MuJoCo (`microduck_rl` + robotd); la papera fisica
 arriva a dicembre 2026. Due modi di farlo girare:
 
 - **robotd ufficiale** (daemon-v0.17.6, o v0.16.1) con `[maploc] enabled`: il
-  mapper sta in `quack-navd`. È la configurazione della preview; i numeri
-  di [`docs/results.it.md`](docs/results.it.md) sono stati misurati sulla
-  daemon-v0.14.4.
+  mapper sta in `quack-navd`. È la configurazione rilasciata; i numeri di
+  [`docs/results.it.md`](docs/results.it.md) sono stati misurati dalla
+  daemon-v0.14.4 alla v0.17.6, ogni sezione dice quale.
 - **Un robotd che ospita maploc** — la PR 127 upstream, ancora aperta,
   più la libreria di mappe di `docs/study/upstream-asks.md` §5, che vive su
   un fork di `pollen-robotics/microduck` — con `[maploc]` spento.

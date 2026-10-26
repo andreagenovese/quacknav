@@ -56,7 +56,8 @@ Current release: **v0.3.0-rc2**, a release candidate validated on the twins —
 >    duck misjudge its own steps. [The walk](#the-walk).
 > 2. **It has a neural navigation model, optional.** A small network (an
 >    MLP, exported to ONNX and run in pure Rust) can choose each step of a
->    journey in place of the hand-written rules, one model per walk; hard
+>    journey in place of the hand-written rules, one model per walk (and,
+>    for velstand, per daemon line); hard
 >    shields around it keep it off holes. Off by default: set
 >    `QK_RL_POLICY=/var/lib/quack-nav/pilots` to fly it. [The pilot](#the-pilot).
 
@@ -221,7 +222,7 @@ does to a passage).
 
 ## The pilot
 
-**A neural navigation model, one per walk, optional.** A small network that picks the stick's moves from the route ahead, the
+**A neural navigation model, one per walk and daemon line, optional.** A small network that picks the stick's moves from the route ahead, the
 depth sensor's last second and the map around the body, trained on
 hundreds of thousands of simulated journeys through generated houses with
 what the map does not know on the way (things put down since, pets and
@@ -360,7 +361,7 @@ microduck first (robotd, tofd, the `robot` group); your computer needs
 ssh, scp, tar and shasum.
 
 ```sh
-V=0.2.0-rc2     # the release's tag without its v
+V=0.3.0-rc2     # the release's tag without its v
 gh release download "v$V" --repo andreagenovese/quacknav \
     --pattern "quack-nav-$V-aarch64-linux.tar.gz*"
 # or: curl -LO https://github.com/andreagenovese/quacknav/releases/download/v$V/quack-nav-$V-aarch64-linux.tar.gz
@@ -628,7 +629,7 @@ prototype, not a navigation stack to the standards of the field.
   behaviour tree. Here: Dijkstra, a string pulled taut, stop-and-go legs, and
   recoveries spread through the explorer. The drop book is a costmap layer in
   all but name.
-- **Tests.** 180 tests passing and 1 ignored (2026-10-02). The paper twin runs in CI as a
+- **Tests.** 223 tests passing and 1 ignored (2026-10-26). The paper twin runs in CI as a
   gate on fixed seeds (explore 40 × 1200 s, `go_to` 30;
   `.github/workflows/ci.yml`, `scripts/ci/paper_twin_gate.py`); beyond it,
   behaviour is verified by hours-long, non-deterministic runs on the MuJoCo
@@ -657,8 +658,9 @@ Measured on the MuJoCo twin (`microduck_rl` + robotd); the physical duck
 arrives in December 2026. Two ways to run it:
 
 - **Released robotd** (daemon-v0.17.6, or v0.16.1) with `[maploc] enabled`: the
-  mapper in `quack-navd`. This is the preview's configuration; the numbers
-  in [`docs/results.md`](docs/results.md) were measured on daemon-v0.14.4.
+  mapper in `quack-navd`. This is the released configuration; the numbers
+  in [`docs/results.md`](docs/results.md) were measured on daemon-v0.14.4
+  up to v0.17.6, each section saying which.
 - **A robotd that hosts maploc** — upstream PR 127, still open, plus the
   map library of `docs/study/upstream-asks.md` §5, which lives on a fork
   of `pollen-robotics/microduck` — with `[maploc]` off.
