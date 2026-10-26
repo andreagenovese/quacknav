@@ -4900,7 +4900,7 @@ usa ([control-contract.it.md](control-contract.it.md); studio, "Decisione
   CPU che il robot possa fare", e la wake word di quacksat condivide gli
   stessi quattro core.
 - Più anatre: una mappa per robot per ora; una mappa condivisa è un
-  problema a monte, se mai verrà.
+  problema di upstream, se mai arriverà.
 - Nessun file di licenza su `microduck_maploc_rs`; il codice dentro il
   repo Pollen è Apache-2.0. ~~Lo consumiamo via IPC, non lo incorporiamo.~~
   Dall'ADR 0007 `maploc` è incluso come crate del workspace (il
