@@ -15,6 +15,29 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Aggiunto
 
+- **Persone che camminano fra le stanze, sul gemello e sul banco allo
+  stesso modo.** `casa_gente` (`scripts/twin/houses/gen.py`) è
+  casa_arredata con quattro persone che percorrono tragitti fra le stanze
+  — per le porte della cucina e della camera, del soggiorno e dello
+  studio, del bagno e il passaggio accanto alla scala, il corridoio — e il
+  gatto di casa_viva. I mover del gemello (`scripts/twin/viewer/movers.py`)
+  e il nuovo `MoverKind::Patrol` di quack-rl seguono la stessa regola con
+  gli stessi numeri: aspettano mentre la papera è entro 0,35 m davanti a
+  loro; dopo 3 s di attesa si spostano di 0,5 m di lato dove la casa lascia
+  spazio; dove non ce n'è (una porta, il passaggio accanto alla scala)
+  tornano al punto del tragitto da cui venivano e si fermano lì. quack-rl
+  legge i `movers` di una casa dalla sua verità, così `twin:` e `twinlike:`
+  casa_viva, casa_porta e casa_gente hanno le loro persone sul banco e in
+  addestramento. Nella casa_gente del banco (192 viaggi) il pilota v8l-s3
+  arriva l'89 % delle volte con 2,2 contatti con le persone a viaggio, lo
+  stick l'84 % con 8,0: quello che si perde è la papera che urta qualcuno
+  che aspetta in una porta. La casa_viva del banco corrisponde al gemello
+  (lo stick circa 0,7 episodi di contatto a viaggio contro 0,9 del
+  gemello). Le sette famiglie del banco sono invariate viaggio per
+  viaggio. `rl_trace` registra dove stavano i mover, e
+  `scripts/rl/trace_gif.py` disegna una traccia come GIF, stick e pilota
+  affiancati.
+
 - **`daemon`: una sola chiave sceglie il daemon di Pollen** (README, "Il
   daemon"). `"auto"`, il default e ciò che ha una configurazione senza la
   chiave, lo chiede a robotd all'avvio (`daemon_version` di `hello`) e

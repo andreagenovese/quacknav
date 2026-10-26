@@ -13,6 +13,28 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Added
 
+- **People walking between the rooms, on the twin and on the bench alike.**
+  `casa_gente` (`scripts/twin/houses/gen.py`) is casa_arredata with four
+  people walking paths between its rooms — through the kitchen's and the
+  bedroom's doors, the living's and the office's, the bath's and the
+  passage by the stairwell, the corridor — and casa_viva's cat. The twin's
+  movers (`scripts/twin/viewer/movers.py`) and quack-rl's new
+  `MoverKind::Patrol` walk the same rule with the same numbers: they wait
+  while the duck is within 0.35 m ahead; waited 3 s, they step 0.5 m to
+  the side where the house leaves room; where there is none (a door, the
+  passage by the stairwell) they step back to the point of the path they
+  came from and pause there. quack-rl reads a house's `movers` from its
+  truth, so `twin:` and `twinlike:` casa_viva, casa_porta and casa_gente
+  have their people on the bench and in training. On the bench's
+  casa_gente (192 journeys) pilot v8l-s3 arrives 89 % of the time with
+  2.2 contacts with people a journey, the stick 84 % and 8.0: what is
+  lost is the duck bumping someone who waits in a door. casa_viva on the
+  bench matches the twin (the stick about 0.7 contact episodes a journey
+  against the twin's 0.9). The bench's seven families are unchanged to the
+  journey. `rl_trace` records where the movers stood, and
+  `scripts/rl/trace_gif.py` draws a trace as a GIF, the stick and the
+  pilot side by side.
+
 - **`daemon`: one key chooses Pollen's daemon** (README, "The daemon").
   `"auto"`, the default and what a config without the key gets, asks
   robotd at start (`hello`'s `daemon_version`) and takes the newest line

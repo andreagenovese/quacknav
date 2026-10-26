@@ -147,7 +147,9 @@ fn movers(w: &mut World, rng: &mut Rng, a: (f64, f64), b: (f64, f64), n: usize) 
             continue;
         }
         let height = if kind == MoverKind::StopGo { 1.0 } else { rng.range(0.15, 0.4) };
-        w.movers.push(Mover { x, y, r, heading, speed, kind, timer: rng.range(0.5, 3.0), still: kind == MoverKind::StopGo && rng.chance(0.5), height, woken: false });
+        let timer = rng.range(0.5, 3.0);
+        let still = kind == MoverKind::StopGo && rng.chance(0.5);
+        w.movers.push(Mover::new(x, y, r, heading, speed, kind, timer, still, height));
     }
 }
 
@@ -371,18 +373,11 @@ pub fn generate(seed: u64, level: u32, family: Option<&str>) -> Scenario {
                 let xm = (l[1] + r[0]) / 2.0;
                 let pet = rng.chance(0.3);
                 let radius = if pet { rng.range(0.08, 0.14) } else { rng.range(0.12, 0.2) }.min((y1 - y0) / 2.0 - 0.01);
-                w.movers.push(Mover {
-                    x: xm,
-                    y: (y0 + y1) / 2.0 + rng.range(-0.25, 0.25) * (y1 - y0 - 2.0 * radius).max(0.0),
-                    r: radius,
-                    heading: 0.0,
-                    speed: rng.range(0.2, 0.5),
-                    kind: MoverKind::Lingerer,
-                    timer: rng.range(2.0, 12.0),
-                    still: true,
-                    height: if pet { rng.range(0.15, 0.3) } else { 1.0 },
-                    woken: false,
-                });
+                let y = (y0 + y1) / 2.0 + rng.range(-0.25, 0.25) * (y1 - y0 - 2.0 * radius).max(0.0);
+                let speed = rng.range(0.2, 0.5);
+                let timer = rng.range(2.0, 12.0);
+                let height = if pet { rng.range(0.15, 0.3) } else { 1.0 };
+                w.movers.push(Mover::new(xm, y, radius, 0.0, speed, MoverKind::Lingerer, timer, true, height));
                 let n = rng.pick(2);
                 movers(&mut w, &mut rng, a, b, n);
                 (w, a, b)
@@ -481,6 +476,8 @@ fn twin_world(name: &str) -> anyhow::Result<(World, std::collections::BTreeMap<S
         goals: std::collections::BTreeMap<String, [f64; 2]>,
         #[serde(default)]
         unmapped: Vec<serde_json::Value>,
+        #[serde(default)]
+        movers: Vec<serde_json::Value>,
     }
     let dir = std::env::var("QK_RL_HOUSES").unwrap_or_else(|_| concat!(env!("CARGO_MANIFEST_DIR"), "/../scripts/twin/houses").into());
     let t: Truth = serde_json::from_str(&std::fs::read_to_string(format!("{dir}/{name}.truth.json"))?)?;
@@ -503,6 +500,32 @@ fn twin_world(name: &str) -> anyhow::Result<(World, std::collections::BTreeMap<S
         }
     }
     w.holes = t.holes.iter().map(|h| Hole { x0: h[0], x1: h[1], y0: h[2], y1: h[3], booked: true }).collect();
+    // The people and pets that move (casa_viva's, casa_gente's), as the
+    // twin's movers.py walks them: `patrol` as it is; `linger` as the
+    // bench's [`MoverKind::Lingerer`], which steps off into the room and
+    // wanders after its countdown rather than walking to `away` and back.
+    for m in &t.movers {
+        let f = |k: &str| m.get(k).and_then(serde_json::Value::as_f64).unwrap_or(0.0);
+        let pair = |k: &str| {
+            let v = m.get(k).and_then(serde_json::Value::as_array);
+            let at = |i: usize| v.and_then(|v| v.get(i)).and_then(serde_json::Value::as_f64).unwrap_or(0.0);
+            (at(0), at(1))
+        };
+        let (r, height, speed) = (f("r"), f("h"), f("speed"));
+        match m.get("kind").and_then(serde_json::Value::as_str) {
+            Some("patrol") => {
+                let path: Vec<(f64, f64)> = m.get("path").and_then(serde_json::Value::as_array).map(|p| p.iter().map(|q| (q[0].as_f64().unwrap_or(0.0), q[1].as_f64().unwrap_or(0.0))).collect()).unwrap_or_default();
+                anyhow::ensure!(path.len() >= 2, "{name}: a patrol with fewer than two points");
+                w.movers.push(Mover::patrol(path, r, height, speed, pair("pause_s")));
+            }
+            Some("linger") => {
+                let (x, y) = pair("at");
+                let linger = pair("linger_s");
+                w.movers.push(Mover::new(x, y, r, 0.0, speed, MoverKind::Lingerer, (linger.0 + linger.1) / 2.0, true, height));
+            }
+            other => anyhow::bail!("{name}: a mover of kind {other:?}"),
+        }
+    }
     Ok((w, t.goals, dir))
 }
 

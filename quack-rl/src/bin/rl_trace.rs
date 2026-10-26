@@ -86,6 +86,8 @@ fn main() -> anyhow::Result<()> {
         runs.push(json!({
             "name": name, "result": r,
             "track": sim.track, "contacts": sim.contacts,
+            "movers": sim.world.movers.iter().map(|m| json!({"r": m.r, "height": m.height, "kind": m.kind})).collect::<Vec<_>>(),
+            "mover_track": sim.mover_track.iter().map(|ms| ms.iter().map(|p| json!([p.0 - b.0, p.1 - b.1])).collect::<Vec<_>>()).collect::<Vec<_>>(),
             "events": events(&log).into_iter().map(|mut e| { e["x"] = json!(e["x"].as_f64().unwrap() - b.0); e["y"] = json!(e["y"].as_f64().unwrap() - b.1); e }).collect::<Vec<_>>(),
             "books": j.books.iter().map(|(p, r)| json!([p.0 - b.0, p.1 - b.1, r])).collect::<Vec<_>>(),
             "route": j.route.iter().map(|p| json!([p.0 - b.0, p.1 - b.1])).collect::<Vec<_>>(),

@@ -101,6 +101,8 @@ pub struct Sim {
     /// the contacts (t, kind, x, y).
     pub track: Vec<(f64, f64, f64, f64)>,
     pub contacts: Vec<(f64, &'static str, f64, f64)>,
+    /// Where the movers stood at each point of the track.
+    pub mover_track: Vec<Vec<(f64, f64)>>,
     /// Ends the journey at a fall or past the deadline.
     pub handle: Option<ExploreHandle>,
     pub deadline_s: f64,
@@ -169,6 +171,7 @@ impl Sim {
             since: Since::default(),
             track: Vec::new(),
             contacts: Vec::new(),
+            mover_track: Vec::new(),
             handle: None,
             deadline_s: f64::INFINITY,
         };
@@ -272,6 +275,7 @@ impl Sim {
         self.err.2 += eyaw * g6;
         if self.track.last().is_none_or(|p| self.t - p.0 >= 0.2) {
             self.track.push((self.t, self.x, self.y, self.yaw));
+            self.mover_track.push(self.world.movers.iter().map(|m| (m.x, m.y)).collect());
         }
         if !self.fell && self.world.in_hole(self.x, self.y) {
             self.contacts.push((self.t, "hole", self.x, self.y));

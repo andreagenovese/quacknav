@@ -175,10 +175,26 @@ pub enum MoverKind {
     /// the rooms and wanders (someone talking on the threshold, a pet lying
     /// there). The `passers` family's (see `scenarios`).
     Lingerer,
+    /// Walks its `path` there and back (round it when it has more than two
+    /// points), pausing `pause` seconds at each end or corner, and waits
+    /// while the duck is in its way: the twin's `patrol`
+    /// (`scripts/twin/viewer/movers.py`), the people and the cat of
+    /// casa_viva and casa_gente, read from the house's truth.
+    Patrol,
 }
 
 /// The duck this near wakes a [`MoverKind::Lingerer`]'s countdown.
 pub const LINGER_NEAR_M: f64 = 0.9;
+/// A [`MoverKind::Patrol`] waits while the duck is this near ahead of it
+/// (the twin's `YIELD_M`): a person does not walk into a duck. Waited
+/// [`WAIT_ROUND_S`], it steps [`ROUND_M`] to the side where the house
+/// leaves room, and goes on from there; where there is none (a door, the
+/// passage by the stairwell) it steps back to the path's point it came
+/// from and pauses there, out of the way (the twin's movers.py, the same
+/// numbers).
+pub const YIELD_M: f64 = 0.35;
+pub const WAIT_ROUND_S: f64 = 3.0;
+pub const ROUND_M: f64 = 0.5;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Mover {
@@ -197,10 +213,43 @@ pub struct Mover {
     /// A [`MoverKind::Lingerer`] the duck came near: its countdown runs.
     #[serde(default)]
     pub woken: bool,
+    /// A [`MoverKind::Patrol`]'s way: the points it walks between, the
+    /// one it walks to now, whether it walks them backwards, and how long
+    /// it pauses at each (`timer` counts the pause down).
+    #[serde(default)]
+    pub path: Vec<(f64, f64)>,
+    #[serde(default)]
+    pub leg: usize,
+    #[serde(default)]
+    pub back: bool,
+    #[serde(default)]
+    pub pause: (f64, f64),
+    /// How long it has waited for the duck in its way, and the point it
+    /// steps aside to once it has waited [`WAIT_ROUND_S`].
+    #[serde(default)]
+    pub waited: f64,
+    #[serde(default)]
+    pub detour: Option<(f64, f64)>,
+    /// The detour is a step back to the path's point it came from.
+    #[serde(default)]
+    pub retreat: bool,
 }
 
 fn mover_height() -> f64 {
     0.3
+}
+
+impl Mover {
+    /// A [`MoverKind::Patrol`] at its path's start.
+    pub fn patrol(path: Vec<(f64, f64)>, r: f64, height: f64, speed: f64, pause: (f64, f64)) -> Self {
+        let (x, y) = path.first().copied().unwrap_or_default();
+        Mover { x, y, r, heading: 0.0, speed, kind: MoverKind::Patrol, timer: 0.0, still: false, height, woken: false, path, leg: 1, back: false, pause, waited: 0.0, detour: None, retreat: false }
+    }
+
+    /// Everything else, at `(x, y)` with no path.
+    pub fn new(x: f64, y: f64, r: f64, heading: f64, speed: f64, kind: MoverKind, timer: f64, still: bool, height: f64) -> Self {
+        Mover { x, y, r, heading, speed, kind, timer, still, height, woken: false, path: Vec::new(), leg: 0, back: false, pause: (0.0, 0.0), waited: 0.0, detour: None, retreat: false }
+    }
 }
 
 /// How the map draws the house: real maps ink what the rays met — a band
@@ -349,6 +398,67 @@ impl World {
                     // Out of the doorway into one of the rooms.
                     m.heading += if rng.chance(0.5) { 0.0 } else { std::f64::consts::PI } + rng.range(-0.4, 0.4);
                     m.timer = rng.range(2.0, 4.0);
+                }
+                self.movers[i] = m;
+                continue;
+            }
+            if m.kind == MoverKind::Patrol {
+                // As the twin's movers.py: a pause counts down, then the
+                // next point of the path, waiting while the duck is near
+                // ahead; at the point a pause, and the next leg — back
+                // along the path, or round it when it has more than two.
+                m.timer -= dt;
+                if m.timer <= 0.0
+                    && let Some(&goal) = m.path.get(m.leg)
+                {
+                    let aside = m.detour;
+                    let goal = aside.unwrap_or(goal);
+                    let (dx, dy) = (goal.0 - m.x, goal.1 - m.y);
+                    let d = dx.hypot(dy);
+                    let (ux, uy) = if d > 1e-9 { (dx / d, dy / d) } else { (0.0, 0.0) };
+                    let (ox, oy) = (duck.0 - m.x, duck.1 - m.y);
+                    let yields = ox.hypot(oy) < m.r + YIELD_M && ox * ux + oy * uy > 0.0;
+                    m.still = yields;
+                    if yields {
+                        m.waited += dt;
+                        if m.waited >= WAIT_ROUND_S && aside.is_none() {
+                            let [bx0, bx1, by0, by1] = self.bounds;
+                            let room = |p: (f64, f64)| !self.static_collides(p.0, p.1, m.r) && !self.in_hole(p.0, p.1) && p.0 - m.r > bx0 && p.0 + m.r < bx1 && p.1 - m.r > by0 && p.1 + m.r < by1;
+                            m.detour = [1.0, -1.0].into_iter().map(|side| (m.x - side * uy * ROUND_M, m.y + side * ux * ROUND_M)).find(|p| room(*p) && room(((m.x + p.0) / 2.0, (m.y + p.1) / 2.0)));
+                            let came_from = if m.back { m.leg + 1 } else { m.leg.wrapping_sub(1) };
+                            if m.detour.is_none()
+                                && let Some(&from) = m.path.get(came_from)
+                            {
+                                m.detour = Some(from);
+                                m.retreat = true;
+                            }
+                        }
+                    } else {
+                        m.waited = 0.0;
+                        let step = d.min(m.speed * dt);
+                        m.x += ux * step;
+                        m.y += uy * step;
+                        m.heading = uy.atan2(ux);
+                        if step >= d - 1e-9 && aside.is_some() {
+                            m.detour = None;
+                            if m.retreat {
+                                m.retreat = false;
+                                m.timer = rng.range(m.pause.0, m.pause.1);
+                            }
+                        } else if step >= d - 1e-9 {
+                            m.timer = rng.range(m.pause.0, m.pause.1);
+                            let n = m.path.len();
+                            let next = if m.back { m.leg.checked_sub(1) } else { Some(m.leg + 1).filter(|k| *k < n) };
+                            m.leg = match next {
+                                Some(k) => k,
+                                None if n > 2 && m.path[0] != m.path[n - 1] => 0,
+                                None => {
+                                    m.back = !m.back;
+                                    if m.back { m.leg - 1 } else { m.leg + 1 }
+                                }
+                            };
+                        }
+                    }
                 }
                 self.movers[i] = m;
                 continue;
@@ -568,12 +678,38 @@ mod tests {
         assert!((w.ray(0.0, 0.0, 0.0, 2.2, 0.0).0 - 1.0).abs() < 1e-9);
         w.posts.push(Post { x: 0.5, y: 0.0, r: 0.03, height: 0.7, mapped: false });
         assert!((w.ray(0.0, 0.0, 0.0, 2.2, 0.0).0 - 0.47).abs() < 1e-9);
-        w.movers.push(Mover { x: 0.3, y: 0.0, r: 0.1, heading: 0.0, speed: 0.0, kind: MoverKind::Wanderer, timer: 1.0, still: true, height: 0.3, woken: false });
+        w.movers.push(Mover::new(0.3, 0.0, 0.1, 0.0, 0.0, MoverKind::Wanderer, 1.0, true, 0.3));
         assert!((w.ray(0.0, 0.0, 0.0, 2.2, 0.0).0 - 0.2).abs() < 1e-9);
         // Low things are lost while walking.
         w.movers.clear();
         w.posts[0].height = 0.05;
         assert!((w.ray(0.0, 0.0, 0.0, 2.2, 0.09).0 - 1.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn a_patrol_walks_its_path_there_and_back_and_waits_for_the_duck() {
+        let mut w = World { bounds: [-2.0, 2.0, -2.0, 2.0], ..Default::default() };
+        w.movers.push(Mover::patrol(vec![(0.0, 0.0), (1.0, 0.0)], 0.14, 0.9, 0.5, (1.0, 1.0)));
+        let mut rng = Rng::new(3);
+        let far = (5.0, 5.0);
+        // 2 s at 0.5 m/s: at the far end, pausing.
+        for _ in 0..20 {
+            w.step_movers(0.1, &mut rng, far, 0.11);
+        }
+        let m = &w.movers[0];
+        assert!((m.x - 1.0).abs() < 1e-9 && m.timer > 0.0 && m.back, "{m:?}");
+        // The pause over, back toward the start.
+        for _ in 0..15 {
+            w.step_movers(0.1, &mut rng, far, 0.11);
+        }
+        let m = &w.movers[0];
+        assert!(m.x < 0.9 && m.x > 0.5, "{m:?}");
+        // The duck right ahead on its way: it waits; behind it: it walks on.
+        let x = m.x;
+        w.step_movers(0.1, &mut rng, (x - 0.3, 0.0), 0.11);
+        assert!((w.movers[0].x - x).abs() < 1e-9 && w.movers[0].still, "{:?}", w.movers[0]);
+        w.step_movers(0.1, &mut rng, (x + 0.3, 0.0), 0.11);
+        assert!(w.movers[0].x < x - 0.04, "{:?}", w.movers[0]);
     }
 
     #[test]
