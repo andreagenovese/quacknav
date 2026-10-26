@@ -695,22 +695,31 @@ arriva a dicembre 2026. Due modi di farlo girare:
   più la libreria di mappe di `docs/study/upstream-asks.md` §5, che vive su
   un fork di `pollen-robotics/microduck` — con `[maploc]` spento.
 
-Il ramo `daemon-0.17` è compilato contro la daemon-v0.17.6 (API 44) e
-validato sul gemello su entrambe le linee di daemon ([docs/results.it.md](docs/results.it.md),
-"daemon 0.17.6 e set di policy v8": nessuna regressione in arrivi, cadute
-o risvegli; più lento per la camminata del set v8). `main` è fissato a daemon-v0.16.1 (API 41) dal 2026-10-08, validato sul
-gemello con entrambe le camminate (branch `microduck-016`: quattro giri
-per casa, nessuna regressione con alpha; velstand altrettanto bene);
-prima a daemon-v0.15.0 (API 37) dal 2026-10-01. Le sue aggiunte sono facoltative sul filo,
-quindi lo stesso `quack-navd` gira anche su una scheda ancora alla
-daemon-v0.14.4.
+`main` gira contro entrambe le linee di daemon di Pollen — daemon-v0.17.6
+(API 44, set di policy v8) e daemon-v0.16.1 (API 41); la chiave `daemon`
+ne nomina una o lascia decidere robotd — validato sul gemello su ciascuna
+con entrambe le camminate ([docs/results.it.md](docs/results.it.md):
+quattro giri per casa, nessuna regressione in arrivi, cadute o risvegli;
+la linea 0.17 più lenta per la camminata del set v8). Le sue aggiunte
+sono facoltative sul filo, quindi lo stesso `quack-navd` gira anche su
+una scheda ancora alla daemon-v0.14.4.
 
-Dove siamo al 2026-10-26, e cosa viene dopo — fatto, da fare, desiderato
-— è lo stato datato in cima a [docs/todo-map.it.md](docs/todo-map.it.md);
-le misure dietro ci sono in [docs/results.it.md](docs/results.it.md)
-("Secondo giro sulla linea 0.17") e il confronto con le tecniche
-consolidate del settore in [docs/study/nav-survey.md](docs/study/nav-survey.md)
-(in inglese).
+**Fatto** dal 2026-10-20 (ramo `pilot-why`, in `main` dal 2026-10-26):
+il pilota sulla linea 0.17 smontato differenza per differenza sul
+gemello; il sensore e le case del simulatore resi quelli del gemello; il
+pilota v8l-s3 rilasciato per velstand su quella linea (48/48 sul gemello
+contro lo stick del `main` congelato, 4 s a viaggio più veloce, nessuna
+caduta); persone che camminano fra le stanze sul gemello e sul banco allo
+stesso modo (casa_gente); uno studio delle tecniche del settore contro le
+nostre. **Da fare**, in ordine: un drop prenotato dove ci si aspettava il
+pavimento invece che al ciglio; un pilota addestrato con le persone nelle
+case; le cose sotto i 12 cm incontrate camminando, misurate sul gemello;
+le prime raccomandazioni dello studio; poi la prima sessione sulla papera
+vera. Il dettaglio datato è lo stato in cima a
+[docs/todo-map.it.md](docs/todo-map.it.md); le misure sono in
+[docs/results.it.md](docs/results.it.md) ("Secondo giro sulla linea
+0.17") e il confronto con le tecniche consolidate del settore in
+[docs/study/nav-survey.md](docs/study/nav-survey.md) (in inglese).
 
 La prima sessione sulla papera vera — sicurezza, installazione, misure,
 prove a fasi e cosa riportare per il banco — è una checklist:

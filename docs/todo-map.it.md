@@ -20,7 +20,7 @@ quacksat è solo il front end vocale: inoltra i comandi a voce
 dell'utente agli strumenti di quack-nav e non fa navigazione.
 
 Stato al 2026-10-26 (ramo `pilot-why`, locale; `main` è a dcafd35,
-daemon 0.17): **fatto** dal 2026-10-20 — il pilota sulla linea 0.17
+daemon 0.17; in `main` dal 2026-10-26): **fatto** dal 2026-10-20 — il pilota sulla linea 0.17
 smontato differenza per differenza sul gemello (prenotazioni 7,8 cm troppo
 vicine, prenotazioni dalla posa del fotogramma, lo stick accanto a un
 bordo e le regole del passaggio di mano), il sensore del simulatore
@@ -47,11 +47,10 @@ qualcuno in una porta; le cose sotto i 12 cm incontrate camminando,
 misurate sul gemello; le prime raccomandazioni dello studio — intervalli
 di confidenza su ogni tasso, un valutatore di rollout stile DWA sulle
 azioni del pilota come baseline spiegabile, i libri come strato di costmap
-con decadimento nel tempo, una randomizzazione più larga del simulatore.
-**Desiderato** dopo: più anatre nella stessa casa (§6), un calcio alle
-cose piccole quando l'anatra saprà cosa incontra (§7), e la prima sessione
-sulla papera vera ([first-duck-session.it.md](first-duck-session.it.md)),
-prima della quale nessuno dei numeri sopra è più di quello del gemello.
+con decadimento nel tempo, una randomizzazione più larga del simulatore;
+poi la prima sessione sulla papera vera
+([first-duck-session.it.md](first-duck-session.it.md)), prima della quale
+nessuno dei numeri sopra è più di quello del gemello.
 
 Manopole citate nelle voci qui sotto che non esistono più: `QK_COMMIT`,
 `QK_FOLLOW_ROUTE`, `QK_GOAL_LOOKAHEAD_M`, `QK_MOUTH_AIM`, `QK_TRUSTED_KICK`
@@ -4852,53 +4851,6 @@ usa ([control-contract.it.md](control-contract.it.md); studio, "Decisione
 - [ ] 2026-10-01: `rename_place`, e letture che un `map_step` in corso
       non blocca (studio §7 fase 1, colonna quack-navd).
 
-## 6. Più anatre nella stessa casa (idea, 2026-10-26)
-
-La direzione dell'utente, da studiare dopo il lavoro sulle persone (gli
-ostacoli in movimento di §2d, l'A/B di `casa_gente`): più di un'anatra
-nella stessa casa.
-
-- **Mappare insieme**: ogni anatra mappa per conto suo; quando due si
-  incontrano si scambiano quello che hanno, così ognuna finisce con la
-  casa intera. I pezzi da decidere: un riferimento comune (l'origine
-  della mappa è il primo stand; due anatre hanno bisogno di
-  rilocalizzare una mappa nell'altra, come fa il ritorno a casa con una
-  mappa salvata), una fusione che tenga "una mappa, tenuta vera" (§2b: le
-  sottomappe e le loro chiusure, non una media di celle), e cosa viaggia
-  (pose e celle delle sottomappe, i luoghi, le prenotazioni).
-- **Non scontrarsi**: ogni anatra dice alle altre dove si trova (posa e
-  direzione al ritmo della mappa, sulla rete di casa, o via Bluetooth
-  quando sono vicine), così un'anatra è una cosa in movimento che le
-  altre possono tracciare, non una cosa da prenotare col solo sensore.
-  Le regole sugli ostacoli in movimento guadagnano allora una classe
-  tracciata: un mover con posizione, velocità e dimensione note, da
-  aggirare in anticipo (evitamento reciproco, ognuna cede metà;
-  l'approccio consolidato è lo stile ORCA/RVO, vedi lo studio del
-  2026-10-26).
-- **Prima nel simulatore**: il mondo di `quack-rl` con due o più corpi,
-  ognuno un mover per gli altri; il banco dice se il pilota impara a
-  cedere il passo; il gemello MuJoCo avrebbe bisogno di due robot in
-  una scena.
-- Aperto: chi è la casa per ciascuna, un registro dei luoghi condiviso,
-  e cosa fa un'anatra quando la mappa dell'altra non concorda con la sua.
-
-## 7. Calciare via una cosa piccola (idea, 2026-10-26)
-
-La domanda dell'utente: una cosa piccola sulla strada si potrebbe
-calciare via. Cosa c'è: il `microduck_rl` di Pollen addestra una policy
-`BallKick` (una palla da 70 mm e 15 g, l'attore non vede la palla),
-accanto a quelle di cammino; quack-nav guida l'anatra solo con il
-`robot.move` di robotd (vx, vy, vyaw per un tempo) e non sceglie mai una
-policy né un giunto. Un calcio richiederebbe quindi (1) che robotd
-esponga il calcio come una mossa, o un'animazione dei giunti, e (2) che
-quack-nav decida che ciò che ha davanti è piccolo e leggero — cosa che il
-sensore di profondità non sa fare: una scatola di 6 cm, un cavo, un
-bicchiere, la zampa di un gatto e il bordo di un gradino si somigliano a
-8 × 8 zone, e un calcio a quello sbagliato è una caduta o un oggetto
-rotto. La pratica consolidata per i robot piccoli è aggirare o
-indietreggiare (il paraurti-e-ritirata degli aspirapolvere); calciare
-no. Resta un'idea finché l'anatra non sa cosa incontra (una camera, §4).
-
 ## Rischi e domande aperte
 - **Il maploc dal vivo scivola dove il suo stesso replay non scivola
   (2026-09-05).** Sul gemello, con una mappa da 94 sottomappe ereditata da
@@ -4947,8 +4899,8 @@ no. Resta un'idea finché l'anatra non sa cosa incontra (una camera, §4).
   misurati sull'hardware (dicembre); maploc è "la cosa più affamata di
   CPU che il robot possa fare", e la wake word di quacksat condivide gli
   stessi quattro core.
-- Più anatre: una mappa per robot per ora; mappare insieme e non
-  scontrarsi è §6 (2026-10-26).
+- Più anatre: una mappa per robot per ora; una mappa condivisa è un
+  problema a monte, se mai verrà.
 - Nessun file di licenza su `microduck_maploc_rs`; il codice dentro il
   repo Pollen è Apache-2.0. ~~Lo consumiamo via IPC, non lo incorporiamo.~~
   Dall'ADR 0007 `maploc` è incluso come crate del workspace (il

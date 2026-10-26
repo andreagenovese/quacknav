@@ -663,21 +663,29 @@ arrives in December 2026. Two ways to run it:
   map library of `docs/study/upstream-asks.md` §5, which lives on a fork
   of `pollen-robotics/microduck` — with `[maploc]` off.
 
-The branch `daemon-0.17` is built against daemon-v0.17.6 (API 44) and
-validated on the twin on both daemon lines ([docs/results.md](docs/results.md),
-"daemon 0.17.6 and policy set v8": no regression in reach, falls or
-wake-ups; slower by set v8's walk). `main` is pinned to daemon-v0.16.1 (API 41) since 2026-10-08, validated
-on the twin with both walks (branch `microduck-016`: four rounds per
-house, no regression with alpha; velstand as good); before that to
-daemon-v0.15.0 (API 37) from 2026-10-01. Its additions are optional on the wire, so the
-same `quack-navd` runs against a board still on daemon-v0.14.4.
+`main` runs against both of Pollen's daemon lines — daemon-v0.17.6 (API
+44, policy set v8) and daemon-v0.16.1 (API 41); the `daemon` key names
+one or leaves it to robotd — validated on the twin on each with both
+walks ([docs/results.md](docs/results.md): four rounds per house, no
+regression in reach, falls or wake-ups; the 0.17 line slower by set v8's
+walk). Its additions are optional on the wire, so the same `quack-navd`
+runs against a board still on daemon-v0.14.4.
 
-Where it stands on 2026-10-26, and what comes next — done, remaining,
-wanted — is the dated status at the top of
-[docs/todo-map.md](docs/todo-map.md); the measurements behind it are in
-[docs/results.md](docs/results.md) ("Round two on the 0.17 line") and
-the comparison with the field's established techniques in
-[docs/study/nav-survey.md](docs/study/nav-survey.md).
+**Done** since 2026-10-20 (branch `pilot-why`, in `main` since
+2026-10-26): the pilot on the 0.17 line taken apart difference by
+difference on the twin; the simulator's sensor and houses made the
+twin's; pilot v8l-s3 shipped for velstand on that line (48/48 on the
+twin against frozen `main`'s stick, 4 s a journey faster, no fall);
+people walking between the rooms on the twin and on the bench alike
+(casa_gente); a survey of the field's techniques against ours.
+**Remaining**, in order: a drop booked where the floor was expected
+instead of at the rim; a pilot trained with people in the houses;
+things under 12 cm met walking, measured on the twin; the survey's first
+recommendations; then the first session on the physical duck. The dated
+detail is the status at the top of [docs/todo-map.md](docs/todo-map.md);
+the measurements are in [docs/results.md](docs/results.md) ("Round two
+on the 0.17 line") and the comparison with the field's established
+techniques in [docs/study/nav-survey.md](docs/study/nav-survey.md).
 
 The first session on the physical duck — safety, install, measurements,
 staged tests and what to bring back for the bench — is a checklist:
