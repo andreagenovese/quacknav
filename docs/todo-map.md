@@ -4496,6 +4496,48 @@ The rest is deferred, unchanged as the plan:
 - [ ] 2026-10-01: `rename_place`, and reads that a running `map_step`
       does not block (study §7 phase 1, quack-navd column).
 
+## 6. Several ducks in one house (idea, 2026-10-26)
+
+The user's direction, to study after the people work (§2d's moving
+obstacles, the `casa_gente` A/B): more than one duck in the same house.
+
+- **Mapping together**: each duck maps on its own; when two meet they
+  exchange what they have, so each one ends with the whole house. The
+  pieces to settle: a common frame (the map's origin is the first
+  stand's; two ducks need a relocalization of one map in the other, as
+  the homecoming does with a saved map), a merge that keeps "one map,
+  kept true" (§2b: the submaps and their closures, not a cell average),
+  and what travels (submap poses and cells, places, the books).
+- **Not walking into each other**: every duck tells the others where it
+  is (pose and heading at the map's rate, over the house's network, or
+  over Bluetooth when they are near), so a duck is a moving thing the
+  others can track, not a thing to book from the sensor alone. The
+  moving-obstacle rules then get a tracked class: a mover with a known
+  position, velocity and size, to be routed round ahead of time
+  (reciprocal avoidance, each one yielding half; the established
+  approach is ORCA/RVO-style, see the survey of 2026-10-26).
+- **In the simulator first**: `quack-rl`'s world with two or more bodies,
+  each a mover to the others; the bench says whether the pilot learns
+  to give way; the MuJoCo twin would need two robots in one scene.
+- Open: who is the home for each one, a shared place registry, and what
+  a duck does when the other one's map disagrees with its own.
+
+## 7. Kicking a small thing out of the way (idea, 2026-10-26)
+
+The user's question: a small thing in the way could be kicked aside.
+What is there: Pollen's `microduck_rl` trains a `BallKick` policy (a
+70 mm, 15 g ball, the actor ball-blind), beside the walking policies;
+quack-nav drives the duck only through robotd's `robot.move` (vx, vy,
+vyaw for a time) and never chooses a policy or a joint. So a kick would
+need (1) robotd to expose the kick as a move, or a joint animation, and
+(2) quack-nav to decide that what is ahead is small and light — which
+the depth sensor cannot: a 6 cm box, a cable, a glass, a cat's paw and a
+step's edge all look alike at 8 × 8 zones, and a kick at the wrong one
+is a fall or a broken thing. The established practice for small robots
+is to go round or back off (the vacuums' bumper-and-retreat); kicking is
+not. Left as an idea until the duck can tell what it meets (a camera,
+§4).
+
 ## Risks and open questions
 - **Live maploc drifts where its own replay does not (2026-09-05).** On the
   twin, with a 94-submap map inherited from a human tour, the live
@@ -4536,8 +4578,8 @@ The rest is deferred, unchanged as the plan:
 - Cell pitch, map extent and CPU cost on the RK3566 are to be measured
   on hardware (December); maploc is "the most CPU-hungry thing the robot
   can do", and quacksat's wake word shares the same four cores.
-- Multiple ducks: one map per robot for now; a shared map is upstream's
-  problem if it ever comes.
+- Multiple ducks: one map per robot for now; mapping together and
+  keeping out of each other's way is §6 (2026-10-26).
 - No license file on `microduck_maploc_rs`; the code inside the Pollen
   repo is Apache-2.0. ~~We consume it over IPC, we do not vendor it.~~
   Since ADR 0007 `maploc` is vendored as a workspace crate (the fork's
