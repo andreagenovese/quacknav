@@ -13,6 +13,18 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Added
 
+- **The simulator's houses are the twin's** (`quack-rl`): `--families
+  twin:<house>` walks the MuJoCo twin's tour from
+  `scripts/twin/houses/<house>.truth.json` — each journey starting where
+  the twin's last one stopped, its things put down since unmapped, its
+  people and pets moving — and `twinlike:<house>` trains in the twin's
+  other houses (`--focus`). A tip-over gets up after 4 s on the 0.17 line
+  with its pose lost a while, instead of ending the journey; a turn in
+  place coasts on after its stop as set v8 does (`turn_coast_rad`,
+  fitted by `rl_calib`); the sensor's rows sit where the walk carries the
+  head and where the calibration's pitch puts them (`tof_pitch_rad`);
+  steps turn by side and back-offs as measured; the gate also refuses
+  more timeouts, tip-overs or seconds a journey than the stick.
 - **People walking between the rooms, on the twin and on the bench alike.**
   `casa_gente` (`scripts/twin/houses/gen.py`) is casa_arredata with four
   people walking paths between its rooms — through the kitchen's and the
@@ -48,8 +60,29 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   its own line, and `QK_RL_POLICY`'s directory may hold one per line
   (`0.17/velstand/pilot.json`).
 
+- **Pilot v8l-s3 ships for velstand on the 0.17 line**
+  (`quack-rl/pilots/v8l-s3-velstand/`, the install package's
+  `pilots/0.17/velstand/`, which the loader takes before `velstand/` on
+  that line): trained on the twin's traces and houses with the
+  simulator's sensor made to see as the twin's. On the twin, four tours
+  of casa_ingombra and casa_arredata: 48/48 against the stick on the same
+  build (2.2 and 4.4 s a journey faster), 48/48 against frozen `main`'s
+  stick (4.2 and 3.9 s faster), no fall; on the bench 98.6 % arrived
+  against the stick's 98.3 %, 6 tip-overs against 18. The first pilot on
+  the 0.17 line not slower than the stick ([docs/rl-pilot.md](docs/rl-pilot.md),
+  [docs/results.md](docs/results.md)).
+
 ### Changed
 
+- **The handover between the pilot and the stick.** The stick takes the
+  legs from a pilot that gets no nearer the goal by 0.15 m in 12 s and
+  keeps them until the body is 0.3 m from where it took over (30 s at
+  most); within 0.5 m of a booked rim the stick walks the legs (on the
+  twin the pilot had dithered in the passage by casa_arredata's
+  stairwell, +28 s to the bath); nothing seen ahead is booked within
+  1.5 s of a turn in place. Pilot v8l-s3 on the 0.17 line: 48/48 on the
+  twin, 2.2 and 4.4 s a journey faster than the stick (docs/results.md,
+  "Round two on the 0.17 line").
 - Built against daemon-v0.17.6 (API 44; the additions since v0.16.1 are
   optional on the wire, so the same build runs on every daemon from
   v0.14.4). velstand on the 0.17 line (set v8, measured on the twin):
@@ -63,6 +96,13 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Fixed
 
+- **Things seen were booked 7.8 cm nearer the body than they are.**
+  kinematics measures a hit's range from the sensor, not from the trunk
+  axis its doc names (pollen-robotics/microduck#430); an obstacle now
+  carries its distance from the trunk too, and the books use it. And a
+  thing seen is booked from the pose of the frame that saw it, not from
+  the body's pose up to a curving step later (a bag booked 0.55 rad
+  round, into the passage beside it).
 - The stick that took the legs from a pilot that got no nearer gave them back
   after 30 s even where it took them: now only 0.3 m from there
   (`STICK_AWAY_M`). On the twin the pilot had spent a whole journey's budget

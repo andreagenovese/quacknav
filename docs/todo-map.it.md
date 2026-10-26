@@ -19,6 +19,40 @@ dicono quacksat per ciò che oggi è quack-nav (ADR 0006). Da allora
 quacksat è solo il front end vocale: inoltra i comandi a voce
 dell'utente agli strumenti di quack-nav e non fa navigazione.
 
+Stato al 2026-10-26 (ramo `pilot-why`, locale; `main` è a dcafd35,
+daemon 0.17): **fatto** dal 2026-10-20 — il pilota sulla linea 0.17
+smontato differenza per differenza sul gemello (prenotazioni 7,8 cm troppo
+vicine, prenotazioni dalla posa del fotogramma, lo stick accanto a un
+bordo e le regole del passaggio di mano), il sensore del simulatore
+misurato contro la verità del gemello e corretto (i raggi incontrano la
+cima di una cosa bassa; l'inclinazione), le case del gemello sul banco e
+in addestramento, il pilota v8l-s3 48/48 e più veloce dello stick, una
+regola sulle cose prenotate provata e ritirata per una regressione sul
+banco, persone che camminano fra le stanze (casa_gente, gli stessi mover
+su gemello e banco), uno studio delle nostre tecniche contro quelle del
+settore ([docs/study/nav-survey.md](study/nav-survey.md), riassunto in
+[nav-survey.it.md](study/nav-survey.it.md)): in linea quasi ovunque, la
+guardia del dirupo e il simulatore calibrato cose nostre, il guadagno del
+pilota non provato sull'hardware, l'A/B di casa_gente sul gemello (AB16:
+il pilota incontra le persone con meno spinte, 33 episodi di contatto
+contro 41), l'A/B contro il main congelato (AB17: 48/48 da entrambe le
+parti, il pilota 4 s a viaggio più veloce) e v8l-s3 rilasciato come pilota
+velstand della linea 0.17 (`pilots/0.17/velstand/`). **Da fare**, in
+ordine: il ciglio prenotato dove ci si aspettava il pavimento invece che
+al bordo
+(12–42 cm dentro un buco, fatto vedere dal sensore corretto; anche in
+`main`) corretto in un giro a parte; un pilota addestrato con le persone
+nelle case (`twinlike:casa_gente`) che aspetta o indietreggia davanti a
+qualcuno in una porta; le cose sotto i 12 cm incontrate camminando,
+misurate sul gemello; le prime raccomandazioni dello studio — intervalli
+di confidenza su ogni tasso, un valutatore di rollout stile DWA sulle
+azioni del pilota come baseline spiegabile, i libri come strato di costmap
+con decadimento nel tempo, una randomizzazione più larga del simulatore.
+**Desiderato** dopo: più anatre nella stessa casa (§6), un calcio alle
+cose piccole quando l'anatra saprà cosa incontra (§7), e la prima sessione
+sulla papera vera ([first-duck-session.it.md](first-duck-session.it.md)),
+prima della quale nessuno dei numeri sopra è più di quello del gemello.
+
 Manopole citate nelle voci qui sotto che non esistono più: `QK_COMMIT`,
 `QK_FOLLOW_ROUTE`, `QK_GOAL_LOOKAHEAD_M`, `QK_MOUTH_AIM`, `QK_TRUSTED_KICK`
 (tolte in b6c32fa), `QK_FAST`, `QK_FAST_GOAL`, `QK_FAST_STAND_S`,

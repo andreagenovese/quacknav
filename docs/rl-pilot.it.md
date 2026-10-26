@@ -35,6 +35,12 @@ sono in inglese):
 
 Per rigenerarle: `target/release/rl_trace --seed S --family F --pilot P --out t.json`
 per ogni scenario, poi `python3 scripts/rl/pages.py t1.json t2.json ...`.
+`rl_trace` accetta anche `--reckless KIND` al posto del pilota (il test
+delle scudature di finalize, un seme: `random`, `back`, `straight`),
+`--log DIR` per il log di quack-navd di ogni camminata, e registra dove
+stavano i mover della casa; `python3 scripts/rl/trace_gif.py t.json
+out.gif` disegna una traccia come GIF, stick e pilota affiancati, persone
+e animali compresi.
 
 ## Sulla papera
 
@@ -50,7 +56,10 @@ quack-navd`. I piloti rilasciati sono `quack-rl/pilots/v3-r7-mujoco/`
 tarato sulle tracce alpha del gemello MuJoCo) e
 `quack-rl/pilots/v3-r7-velstand/` (lo stesso v3-r7 tarato sulle tracce
 velstand del gemello, `GAIT=velstand calibrate.sh`): la prova generale di
-ciò che faranno le tracce della papera. Sul banco tarato su velstand
+ciò che faranno le tracce della papera — e, per velstand sulla linea
+0.17, `quack-rl/pilots/v8l-s3-velstand/` (v8l-s3, sotto: "Sulla linea
+0.17"), che il pacchetto mette in `pilots/0.17/velstand/` e il caricatore
+prende prima di `velstand/` su quella linea. Sul banco tarato su velstand
 arriva al 95,2 % contro il 94,8 % dello stick, 4 ribaltamenti contro 18;
 sul gemello MuJoCo, casa_ingombra, 12 su 12 senza cadute (lo stick, lo
 stesso pomeriggio: 4 su 5, poi un ribaltamento contro un oggetto). La rete è un MLP 351 → 256 → 256 → 9 calcolato in Rust puro
@@ -135,6 +144,14 @@ questi cervelli. Da allora: nessuna in 3.760 viaggi.
   passers`): due stanze, e una persona o un animale fermo nella porta tra
   loro, che se ne va qualche secondo dopo che la papera si è avvicinata —
   la prova delle regole per gli ostacoli in movimento (2026-10-12).
+  E le case del gemello MuJoCo, da `scripts/twin/houses/<nome>.truth.json`:
+  `--families twin:<casa>` percorre il giro del gemello (ogni viaggio
+  parte dove l'ultimo del gemello si è fermato, le cose posate dopo non
+  mappate, le persone e gli animali dei `movers` della verità che
+  camminano come sul gemello), così un pilota migliore lì dello stick
+  dovrebbe esserlo sul gemello; `twinlike:<casa>` è la stessa casa per
+  l'addestramento (`--focus`), un viaggio fra due delle sue mete che parte
+  poco prima di una terza.
 - **Il corpo** (`body.rs`) è il modello del gemello di carta, i suoi numeri
   in una [`Calib`](../quack-rl/src/calib.rs): velocità per vx, lo yaw per
   unità, la deriva del passo dritto, il guadagno casuale dell'impulso
@@ -142,7 +159,10 @@ questi cervelli. Da allora: nessuna in 3.760 viaggi.
   lato, la retromarcia; odometria e posa della mappa che derivano, la posa
   corretta alle soste e pubblicata ogni 50 ms (`map.pose`); un urto
   scivola lungo la faccia e può **ribaltare la papera** (per urto contro
-  una scatola, un palo sottile, qualcosa che si muove).
+  una scatola, un palo sottile, qualcosa che si muove); sulla linea 0.17
+  una papera ribaltata si rialza dopo 4 s con la posa persa per un po', e
+  una girata sul posto prosegue dopo lo stop come fa il set v8
+  (`turn_coast_rad`, stimato dalle tracce).
 - **Il sensore** (`world.rs`) risponde zona per zona, 8 × 8, come quello
   vero: ogni riga guarda il pavimento a 0,25-2,0 m da 0,25 m d'altezza, e
   incontra una cosa alta H a distanza D quando la sua distanza dal
@@ -150,6 +170,14 @@ questi cervelli. Da allora: nessuna in 3.760 viaggi.
   molte zone, una scatola bassa in una o due, una buca dove dovrebbe
   esserci il pavimento è un dislivello. Rumore e bias della distanza,
   buchi di lettura (vicini e oltre 1,4 m), ritorni spuri isolati, drop fantasma.
+  Con `tof_pitch_rad` nella calibrazione le righe stanno dove le mette il
+  sensore inclinato (quello del gemello, registrato dal suo body server,
+  cammina a −8,5° e sta fermo a −11°; i −6° della calibrazione coincidono
+  con le sue zone a pavimento in cammino), e un raggio che scende sopra
+  una cosa bassa ne incontra la cima, non solo la faccia —
+  `examples/tof_vs_twin` ri-sente una traccia del gemello nel simulatore
+  per verificarlo (2026-10-25: 10 ritorni a fotogramma entro 0,2 m dalla
+  borsa di casa_ingombra da entrambe le parti).
 - **Il ciclo è quello di quack-navd.** Ogni viaggio d'addestramento esegue
   `Job::to_goal` — la rotta, il libro, le soste, gli scudi — sul corpo
   simulato; il cervello sui passi dello stick risponde dal learner
@@ -342,6 +370,28 @@ precedente della stessa casa lo stick si era ribaltato una volta su dodici
 sensore pulito — era arrivato a 3 mete su 5, girando sul posto accanto alle
 cose non mappate. Le tracce di quel pilota sono ciò da cui la taratura ha imparato.
 
+### Sulla linea 0.17: pilota v8l-s3 (2026-10-26)
+
+Daemon-v0.17.6 + set v8, velstand. Il pilota `rl-runs/calib-v8l/s3.json`,
+addestrato sulle tracce del gemello e sulle sue case (`twinlike:`), lo
+stick contro di lui sullo stesso build, quattro giri di ogni casa (AB14,
+`docs/results.md`, "Secondo giro sulla linea 0.17"):
+
+| | casa_ingombra | casa_arredata |
+|---|---|---|
+| **pilota** | **24 / 24, media 110 s** | **24 / 24, media 96 s** |
+| stick | 24 / 24, media 112 s | 24 / 24, media 101 s |
+
+Nessuna caduta da nessuna parte; appaiato per viaggio il pilota è 2,2 e
+4,4 s più veloce. Banco (420 viaggi, semi da 200000): pilota 98,6 % di
+arrivi con 6 ribaltamenti e 1,47 urti a viaggio, lo stick 98,3 %, 18 e
+3,08. Contro lo stick del main congelato (`dcafd35`, AB17, 2026-10-26: lo
+stick di main su un gemello, questo pilota sull'altro): 24/24 da entrambe
+le parti in entrambe le case, nessuna caduta; il pilota in media 113 s
+contro 117 su casa_ingombra, 96 contro 100 su casa_arredata, appaiato 4,2
+e 3,9 s più veloce. Rilasciato come `quack-rl/pilots/v8l-s3-velstand/`,
+`pilots/0.17/velstand/` del pacchetto d'installazione.
+
 ## Limiti
 
 - Misurato solo su simulatori: le case generate e il gemello MuJoCo. La
@@ -349,7 +399,10 @@ cose non mappate. Le tracce di quel pilota sono ciò da cui la taratura ha impar
 - La policy di camminata è quella di Pollen, invariata: scavalcare le cose
   non è compito del pilota (servirebbe riaddestrare la camminata con il
   terreno nella sua osservazione).
-- Gli ostacoli in movimento esistono nelle case generate, non sul gemello MuJoCo.
+- Cose che si muovono: i mover delle case generate, e sul gemello MuJoCo
+  le persone e il gatto di casa_viva e casa_gente, che aspettano la papera,
+  si spostano di lato o indietro (`scripts/twin/viewer/movers.py`); nessuno
+  le va addosso, e nessuno ha fretta.
 - Le cadute per urto sono eventi rari: il gemello ne ha data una in circa
   130 urti; le tracce della papera diranno la sua, lentamente.
 - Il pilota è una policy reattiva con 1,4 s di memoria del sensore: non

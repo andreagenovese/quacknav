@@ -19,6 +19,36 @@ for what is now quack-nav (ADR 0006). Since then quacksat is the voice
 front end only: it relays the user's spoken commands to quack-nav's
 tools and does no navigation.
 
+Status 2026-10-26 (branch `pilot-why`, local; `main` is at dcafd35,
+daemon 0.17): **done** since 2026-10-20 — the pilot on the 0.17 line taken
+apart difference by difference on the twin (bookings 7.8 cm too near,
+bookings from the frame's pose, the stick beside a rim and the handover
+rules), the simulator's sensor measured against the twin's truth and
+corrected (beams meet a low thing's top; the pitch), the twin's houses on
+the bench and in training, pilot v8l-s3 48/48 and faster than the stick,
+a booked-thing rule tried and reverted for a bench regression, people
+walking between the rooms (casa_gente, the same movers on twin and bench),
+a survey of our techniques against the field's
+([docs/study/nav-survey.md](study/nav-survey.md)): in line nearly
+everywhere, the cliff guard and the calibrated simulator our own, the
+pilot's gain unproven on hardware, the twin's casa_gente A/B (AB16: the
+pilot meets people with fewer pushes, 33 contact episodes against 41),
+the A/B against frozen main (AB17: 48/48 both sides, the pilot 4 s a
+journey faster) and v8l-s3 shipped as the 0.17 velstand pilot
+(`pilots/0.17/velstand/`). **Remaining**, in order: the rim booked at the
+expected floor instead of the edge (12–42 cm inside a hole, shown up by
+the corrected sensor; `main` too) fixed in a round of its own; a pilot
+trained with people in the houses (`twinlike:casa_gente`) that waits or
+backs off for someone in a door; things under 12 cm met walking, measured
+on the twin; the survey's first recommendations — confidence intervals on
+every rate, a DWA-style rollout scorer over the pilot's actions as the
+explainable baseline, the books as a costmap layer with time decay, a
+wider randomisation of the simulator. **Wanted** after that: several
+ducks in one house (§6), a kick for small things once the duck can tell
+what it meets (§7), and the first session on the physical duck
+([first-duck-session.md](first-duck-session.md)), before which none of
+the numbers above is more than the twin's.
+
 Knobs named in the entries below that no longer exist: `QK_COMMIT`,
 `QK_FOLLOW_ROUTE`, `QK_GOAL_LOOKAHEAD_M`, `QK_MOUTH_AIM`, `QK_TRUSTED_KICK`
 (removed in b6c32fa), `QK_FAST`, `QK_FAST_GOAL`, `QK_FAST_STAND_S`,

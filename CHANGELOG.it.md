@@ -15,6 +15,19 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Aggiunto
 
+- **Le case del simulatore sono quelle del gemello** (`quack-rl`):
+  `--families twin:<casa>` percorre il giro del gemello MuJoCo da
+  `scripts/twin/houses/<casa>.truth.json` — ogni viaggio parte dove
+  l'ultimo del gemello si è fermato, le sue cose posate dopo non mappate,
+  le sue persone e animali in movimento — e `twinlike:<casa>` addestra
+  nelle altre case del gemello (`--focus`). Un ribaltamento si rialza dopo
+  4 s sulla linea 0.17 con la posa persa per un po', invece di chiudere il
+  viaggio; una girata sul posto prosegue dopo lo stop come fa il set v8
+  (`turn_coast_rad`, stimato da `rl_calib`); le righe del sensore stanno
+  dove il cammino porta la testa e dove le mette l'inclinazione della
+  calibrazione (`tof_pitch_rad`); i passi girano per lato e le retromarce
+  come misurate; il cancello rifiuta anche più timeout, ribaltamenti o
+  secondi a viaggio dello stick.
 - **Persone che camminano fra le stanze, sul gemello e sul banco allo
   stesso modo.** `casa_gente` (`scripts/twin/houses/gen.py`) è
   casa_arredata con quattro persone che percorrono tragitti fra le stanze
@@ -51,9 +64,30 @@ carta, mai su una papera fisica; i dettagli sono in
   (`meta.daemon`, 0.16 se non la dice; `DAEMON=` per `calibrate.sh`); un
   pilota velstand vola solo sulla sua linea, e la cartella di
   `QK_RL_POLICY` può tenerne uno per linea (`0.17/velstand/pilot.json`).
+- **Il pilota v8l-s3 rilasciato per velstand sulla linea 0.17**
+  (`quack-rl/pilots/v8l-s3-velstand/`, `pilots/0.17/velstand/` del
+  pacchetto d'installazione, che il caricatore prende prima di
+  `velstand/` su quella linea): addestrato sulle tracce e sulle case del
+  gemello con il sensore del simulatore messo a vedere come quello del
+  gemello. Sul gemello, quattro giri di casa_ingombra e casa_arredata:
+  48/48 contro lo stick sulla stessa build (2,2 e 4,4 s a viaggio più
+  veloce), 48/48 contro lo stick del `main` congelato (4,2 e 3,9 s più
+  veloce), nessuna caduta; sul banco 98,6 % di arrivi contro il 98,3 %
+  dello stick, 6 ribaltamenti contro 18. Il primo pilota sulla linea 0.17
+  non più lento dello stick ([docs/rl-pilot.it.md](docs/rl-pilot.it.md),
+  [docs/results.it.md](docs/results.it.md)).
 
 ### Cambiato
 
+- **Il passaggio di mano fra pilota e stick.** Lo stick prende le gambe a
+  un pilota che non si avvicina alla meta di 0,15 m in 12 s e le tiene
+  finché il corpo non è a 0,3 m da dove le ha prese (30 s al massimo);
+  entro 0,5 m da un bordo prenotato lo stick cammina le gambe (sul gemello
+  il pilota tentennava nel passaggio accanto alla scala di casa_arredata,
+  +28 s verso il bagno); niente di visto davanti è prenotato entro 1,5 s
+  da una girata sul posto. Pilota v8l-s3 sulla linea 0.17: 48/48 sul
+  gemello, 2,2 e 4,4 s a viaggio più veloce dello stick
+  (docs/results.it.md, "Secondo giro sulla linea 0.17").
 - Compilato contro la daemon-v0.17.6 (API 44; le aggiunte dalla v0.16.1
   sono facoltative sul filo, quindi la stessa compilazione gira su ogni
   daemon dalla v0.14.4). velstand sulla linea 0.17 (set v8, misurato sul
@@ -68,6 +102,14 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Corretto
 
+- **Le cose viste venivano prenotate 7,8 cm più vicine al corpo di
+  quanto fossero.** kinematics misura la distanza di un ritorno dal
+  sensore, non dall'asse del tronco che la sua documentazione nomina
+  (pollen-robotics/microduck#430); un ostacolo ora porta anche la sua
+  distanza dal tronco, e i libri usano quella. E una cosa vista è
+  prenotata dalla posa del fotogramma che l'ha vista, non da quella del
+  corpo fino a un passo curvo dopo (una borsa prenotata 0,55 rad più in
+  là, dentro il passaggio accanto).
 - Lo stick che prende il controllo da un pilota che non si avvicina lo
   restituiva dopo 30 s anche se era ancora nel punto dove lo aveva preso. Ora
   lo restituisce solo a 0,3 m da lì (`STICK_AWAY_M`). Sul gemello il pilota

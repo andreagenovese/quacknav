@@ -211,6 +211,14 @@ breve:
 - **Cose per terra**: un cubetto di 7 cm accanto a una gamba cieca
   viene visto e aggirato; sotto i ~9 cm la soglia del pavimento del
   sensore lo perde mentre cammina.
+- **Persone che camminano fra le stanze** (2026-10-26, casa_gente:
+  quattro persone su tragitti per le porte e il passaggio accanto alla
+  scala, e un gatto, gli stessi mover sul gemello e sul banco): sul banco
+  il pilota arriva l'89 % delle volte con 2,2 contatti con le persone a
+  viaggio, lo stick l'84 % con 8,0; quello che si perde è la papera che
+  urta qualcuno fermo in una porta invece di aspettare o indietreggiare —
+  la lezione del prossimo pilota ([docs/results.it.md](docs/results.it.md),
+  "Secondo giro sulla linea 0.17").
 
 ## Il gemello di carta
 
@@ -251,11 +259,13 @@ essi, riaddestra, e fa volare il pilota nuovo solo se lì batte lo stick.
   quack-navd stesso, tarato sulle tracce del gemello MuJoCo, esportato come
   `pilot.json` (ciò che carica quack-navd, Rust puro) e `pilot.onnx` (la
   stessa rete, per qualunque runtime ONNX).
-- **Uno per camminata**: `pilots/alpha/` (v3-r7-mujoco) e
-  `pilots/velstand/` (v3-r7-velstand) sono nel pacchetto d'installazione,
-  in `/var/lib/quack-nav/pilots/`. Con `QK_RL_POLICY` che nomina quella
-  cartella, quack-navd prende quello di `[gait] profile`; un pilota non
-  guida mai una camminata su cui non è stato addestrato (guida lo stick).
+- **Uno per camminata, e per linea del daemon**: `pilots/alpha/`
+  (v3-r7-mujoco), `pilots/velstand/` (v3-r7-velstand, linea 0.16) e
+  `pilots/0.17/velstand/` (v8l-s3-velstand, linea 0.17) sono nel pacchetto
+  d'installazione, in `/var/lib/quack-nav/pilots/`. Con `QK_RL_POLICY` che
+  nomina quella cartella, quack-navd prende quello di `[gait] profile`
+  sulla linea del daemon in uso; un pilota non guida mai una camminata o
+  una linea su cui non è stato addestrato (guida lo stick).
 - **Gli scudi**: la guardia dei buchi, nessun passo attraverso un drop sul
   libro, niente retromarcia alla cieca, niente spinte; due mosse rifiutate
   o quattro svolte di fila e il passo è dello stick. Un pilota si rilascia
@@ -265,6 +275,13 @@ essi, riaddestra, e fa volare il pilota nuovo solo se lì batte lo stick.
   97,1 %, 3 ribaltamenti, lo stick al 93,3 %, 20. Sul simulatore tarato su
   velstand 95,2 % contro 94,8 %, 4 ribaltamenti contro 18. Sul gemello
   MuJoCo, casa_ingombra, velstand: il pilota 12 su 12, nessuna caduta.
+  Sulla linea 0.17 (daemon-v0.17.6 + set v8) il pilota v8l-s3, addestrato
+  sulle tracce e sulle case del gemello con il sensore del simulatore
+  messo a vedere come quello del gemello: 48/48 sul gemello, nessuna
+  caduta, 2,2 e 4,4 s a viaggio più veloce dello stick (casa_ingombra,
+  casa_arredata; 2026-10-25), e contro lo stick del `main` congelato di
+  nuovo 48/48, 4,2 e 3,9 s più veloce (AB17, 2026-10-26) — il primo su
+  quella linea non più lento dello stick, e quello rilasciato per essa.
   Per ora solo i gemelli: su una papera va prima tarato.
 
 Tutto — il progetto, gli scudi, i numeri, i limiti:
@@ -687,6 +704,13 @@ per casa, nessuna regressione con alpha; velstand altrettanto bene);
 prima a daemon-v0.15.0 (API 37) dal 2026-10-01. Le sue aggiunte sono facoltative sul filo,
 quindi lo stesso `quack-navd` gira anche su una scheda ancora alla
 daemon-v0.14.4.
+
+Dove siamo al 2026-10-26, e cosa viene dopo — fatto, da fare, desiderato
+— è lo stato datato in cima a [docs/todo-map.it.md](docs/todo-map.it.md);
+le misure dietro ci sono in [docs/results.it.md](docs/results.it.md)
+("Secondo giro sulla linea 0.17") e il confronto con le tecniche
+consolidate del settore in [docs/study/nav-survey.md](docs/study/nav-survey.md)
+(in inglese).
 
 La prima sessione sulla papera vera — sicurezza, installazione, misure,
 prove a fasi e cosa riportare per il banco — è una checklist:

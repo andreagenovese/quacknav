@@ -193,6 +193,14 @@ shape of it:
 - **Things on the floor**: a 7 cm cube beside a blind leg is seen and
   gone round; under ~9 cm the sensor's own floor threshold loses it
   while walking.
+- **People walking between the rooms** (2026-10-26, casa_gente: four
+  people on paths through the doors and the passage by the stairwell,
+  and a cat, the same movers on the twin and on the bench): on the bench
+  the pilot arrives 89 % of the time with 2.2 contacts with people a
+  journey, the stick 84 % and 8.0; what is lost is the duck bumping
+  someone who waits in a door instead of waiting or backing off — the
+  next pilot's lesson ([docs/results.md](docs/results.md), "Round two on
+  the 0.17 line").
 
 ## The paper twin
 
@@ -233,11 +241,13 @@ beats the stick there.
   on the MuJoCo twin's traces, exported as `pilot.json` (what quack-navd
   loads, pure Rust) and `pilot.onnx` (the same network, for any ONNX
   runtime).
-- **One per walk**: `pilots/alpha/` (v3-r7-mujoco) and `pilots/velstand/`
-  (v3-r7-velstand) ship in the install package, under
-  `/var/lib/quack-nav/pilots/`. With `QK_RL_POLICY` naming that directory,
-  quack-navd takes the one of `[gait] profile`; a pilot never flies a walk
-  it was not trained on (the stick drives then).
+- **One per walk, and per daemon line**: `pilots/alpha/` (v3-r7-mujoco),
+  `pilots/velstand/` (v3-r7-velstand, the 0.16 line) and
+  `pilots/0.17/velstand/` (v8l-s3-velstand, the 0.17 line) ship in the
+  install package, under `/var/lib/quack-nav/pilots/`. With `QK_RL_POLICY`
+  naming that directory, quack-navd takes the one of `[gait] profile` on
+  the daemon line it runs; a pilot never flies a walk or a line it was
+  not trained on (the stick drives then).
 - **The shields**: the hole guard, no step across a booked drop, no blind
   back-off, no pushing on; two refused moves or four turns in a row and
   the stick takes the leg. A pilot is released only if no brain — not
@@ -245,8 +255,15 @@ beats the stick there.
 - **Measured**: test bench, 420 journeys, alpha's numbers: the pilot 97.1 %
   arrived, 3 tip-overs, the stick 93.3 %, 20. On the velstand-tuned
   simulator 95.2 % against 94.8 %, 4 tip-overs against 18. On the MuJoCo
-  twin, casa_ingombra, velstand: the pilot 12 of 12, no fall. Only the
-  twins so far: on a duck, calibrate it first.
+  twin, casa_ingombra, velstand: the pilot 12 of 12, no fall. On the 0.17
+  line (daemon-v0.17.6 + set v8) the pilot v8l-s3, trained on the twin's
+  traces and houses with the simulator's sensor made to see as the
+  twin's: 48/48 on the twin, no fall, 2.2 and 4.4 s a journey faster than
+  the stick (casa_ingombra, casa_arredata; 2026-10-25), and against
+  frozen `main`'s stick 48/48 again, 4.2 and 3.9 s faster (AB17,
+  2026-10-26) — the first on that line not slower than the stick, and
+  the one shipped for it. Only the twins so far: on a duck, calibrate it
+  first.
 
 Everything — the design, the shields, the numbers, the limits:
 [docs/rl-pilot.md](docs/rl-pilot.md).
@@ -654,6 +671,13 @@ on the twin with both walks (branch `microduck-016`: four rounds per
 house, no regression with alpha; velstand as good); before that to
 daemon-v0.15.0 (API 37) from 2026-10-01. Its additions are optional on the wire, so the
 same `quack-navd` runs against a board still on daemon-v0.14.4.
+
+Where it stands on 2026-10-26, and what comes next — done, remaining,
+wanted — is the dated status at the top of
+[docs/todo-map.md](docs/todo-map.md); the measurements behind it are in
+[docs/results.md](docs/results.md) ("Round two on the 0.17 line") and
+the comparison with the field's established techniques in
+[docs/study/nav-survey.md](docs/study/nav-survey.md).
 
 The first session on the physical duck — safety, install, measurements,
 staged tests and what to bring back for the bench — is a checklist:
