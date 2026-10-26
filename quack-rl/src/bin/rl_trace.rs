@@ -4,7 +4,7 @@
 //! and the shields' interventions, the books, the last route. JSON for a
 //! page to draw.
 //!
-//!     rl_trace --seed N --family F [--level 3] --pilot FILE [--calib FILE] --out FILE
+//!     rl_trace --seed N --family F [--level 3] (--pilot FILE | --reckless KIND) [--calib FILE] --out FILE
 use std::io::Write;
 use std::sync::{Arc, Mutex};
 
@@ -61,7 +61,11 @@ fn main() -> anyhow::Result<()> {
         Some(p) => Calib::load(&p)?,
         None => Calib::default(),
     };
-    let pilot: Arc<dyn Brain> = Arc::new(Pilot::load(std::path::Path::new(&opt("--pilot").expect("--pilot FILE")))?);
+    // `--reckless KIND` in the pilot's place: finalize's shield test, one seed.
+    let pilot: Arc<dyn Brain> = match opt("--reckless") {
+        Some(k) => Arc::new(quack_rl::brains::Reckless::new(&k, seed)),
+        None => Arc::new(Pilot::load(std::path::Path::new(&opt("--pilot").expect("--pilot FILE")))?),
+    };
     let buf = Buf::default();
     let w = buf.clone();
     tracing_subscriber::fmt().with_env_filter("quack_nav=info").with_ansi(false).with_writer(move || w.clone()).init();
@@ -73,11 +77,17 @@ fn main() -> anyhow::Result<()> {
         j.exploration_travel = explore;
         let r = j.run(brain);
         let log = String::from_utf8_lossy(&buf.0.lock().unwrap()).to_string();
+        // `--log DIR`: each walk's log as quack-navd wrote it.
+        if let Some(dir) = opt("--log") {
+            std::fs::write(format!("{dir}/{name}.log"), &log)?;
+        }
         let sim = j.body.lock();
         let b = s.bias;
         runs.push(json!({
             "name": name, "result": r,
             "track": sim.track, "contacts": sim.contacts,
+            "movers": sim.world.movers.iter().map(|m| json!({"r": m.r, "height": m.height, "kind": m.kind})).collect::<Vec<_>>(),
+            "mover_track": sim.mover_track.iter().map(|ms| ms.iter().map(|p| json!([p.0 - b.0, p.1 - b.1])).collect::<Vec<_>>()).collect::<Vec<_>>(),
             "events": events(&log).into_iter().map(|mut e| { e["x"] = json!(e["x"].as_f64().unwrap() - b.0); e["y"] = json!(e["y"].as_f64().unwrap() - b.1); e }).collect::<Vec<_>>(),
             "books": j.books.iter().map(|(p, r)| json!([p.0 - b.0, p.1 - b.1, r])).collect::<Vec<_>>(),
             "route": j.route.iter().map(|p| json!([p.0 - b.0, p.1 - b.1])).collect::<Vec<_>>(),

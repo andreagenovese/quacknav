@@ -135,8 +135,15 @@ fn main() -> anyhow::Result<()> {
         let bumps = rs.iter().map(|r| f64::from(r.bumps)).sum::<f64>() / n;
         let mbumps = rs.iter().map(|r| f64::from(r.mover_bumps)).sum::<f64>() / n;
         let rim = rs.iter().map(|r| r.min_hole_m).filter(|v| v.is_finite()).fold(f64::INFINITY, f64::min);
-        let tipped = rs.iter().filter(|r| r.outcome == Outcome::Fell && r.tipped).count();
-        let holes = count(Outcome::Fell) - tipped;
+        // A tip-over the duck got up from is a journey with `tipped` set
+        // that did not end in a fall (`Calib::getup_s`): counted the same.
+        let tipped = rs.iter().filter(|r| r.tipped).count();
+        let tips: u32 = rs.iter().map(|r| r.tips.max(u32::from(r.tipped))).sum();
+        let tipped_down = rs.iter().filter(|r| r.outcome == Outcome::Fell && r.tipped).count();
+        // Every journey's time, a timeout's the budget it spent: an arrival
+        // mean alone hides the journeys that never got there.
+        let secs_all = rs.iter().map(|r| r.secs).sum::<f64>() / n;
+        let holes = count(Outcome::Fell) - tipped_down;
         println!(
             "{fam:<10} {w:<14} {:>4} {:>7.1} {:>5} {:>5} {:>5} {:>5} {:>5} {:>7.1} {:>6.2} {:>6.2} {:>7.3}",
             rs.len(),
@@ -151,7 +158,7 @@ fn main() -> anyhow::Result<()> {
             mbumps,
             if rim.is_finite() { rim } else { -1.0 }
         );
-        summary.push(json!({"family": fam, "brain": w, "n": rs.len(), "arrived": arrived.len(), "fell": count(Outcome::Fell), "fell_hole": holes, "tipped": tipped,
+        summary.push(json!({"family": fam, "brain": w, "n": rs.len(), "arrived": arrived.len(), "fell": count(Outcome::Fell), "fell_hole": holes, "tipped": tipped, "tips": tips, "mean_secs_all": secs_all,
             "arrived_off": count(Outcome::ArrivedOff), "timeout": count(Outcome::Timeout), "failed": count(Outcome::Failed),
             "mean_secs_arrived": secs, "bumps_per_ep": bumps, "mover_bumps_per_ep": mbumps, "min_rim_m": if rim.is_finite() { rim } else { -1.0 }}));
     }

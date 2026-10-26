@@ -115,13 +115,33 @@ pub struct Drop {
 pub struct Obstacle {
     /// Radians, positive to the left, from the body's forward axis.
     pub bearing: f64,
-    /// Horizontal distance from the trunk, metres.
+    /// Horizontal distance from the sensor, metres: `kinematics`' `range`,
+    /// which its doc calls the trunk's but measures from the sensor, 6-8 cm
+    /// ahead of it (pollen-robotics/microduck#430). Every threshold on it
+    /// was tuned on the duck and the twin as it is, and keeps it.
     pub range_m: f64,
+    /// ... and from the trunk's vertical axis, metres: where the thing is,
+    /// for what goes on the books. On the MuJoCo twin `range_m` put things
+    /// 7.8 cm nearer the body than they are (32k zones at the stands,
+    /// daemon 0.17.6, 2026-10-21), and a box seen in the corridor was booked
+    /// across the way past it.
+    pub trunk_m: f64,
 }
 
 /// Half of the sensor's field of view, radians: what one frame covers
 /// around the head's yaw.
 pub const HALF_FOV_RAD: f64 = 0.39;
+
+/// A trunk-frame point's distance from the trunk's vertical axis: its part
+/// across `gravity` (straight down; the trunk's own -z when the IMU gives
+/// none).
+fn horizontal_from_trunk(p: [f64; 3], gravity: [f64; 3]) -> f64 {
+    let n = (gravity[0] * gravity[0] + gravity[1] * gravity[1] + gravity[2] * gravity[2]).sqrt();
+    let d = if n > 1e-6 { [gravity[0] / n, gravity[1] / n, gravity[2] / n] } else { [0.0, 0.0, -1.0] };
+    let along = p[0] * d[0] + p[1] * d[1] + p[2] * d[2];
+    let h = [p[0] - along * d[0], p[1] - along * d[1], p[2] - along * d[2]];
+    (h[0] * h[0] + h[1] * h[1] + h[2] * h[2]).sqrt()
+}
 
 /// For the walking guard (`hole_in_lane_walking`): an obstacle explains a
 /// drop at its bearing (a box's edge) only when it stands no farther than
@@ -152,6 +172,10 @@ pub struct CliffFrame {
     pub floor_beams: usize,
     /// Beams that looked down enough to be judged at all.
     pub judged: usize,
+    /// The odometry pose (x, y, yaw) when the frame was judged: what it
+    /// saw is where it saw it from, not from where the body is a few
+    /// steps and a turn later ([`CliffStatus::pose_when_seen`]).
+    pub odom: Option<(f64, f64, f64)>,
 }
 
 /// The body as the geometry needs it, from `robot.state`.
@@ -377,6 +401,7 @@ pub fn analyze(
             Zone::Hit { point, range } => Some(Obstacle {
                 bearing: point[1].atan2(point[0]),
                 range_m: range,
+                trunk_m: horizontal_from_trunk(point, body.gravity),
             }),
             _ => None,
         })
@@ -391,8 +416,12 @@ pub fn analyze(
         obstacles,
         floor_beams,
         judged,
+        odom: None,
     })
 }
+
+/// An obstacle and the odometry pose of the frame that saw it.
+pub type SeenObstacle = (Obstacle, Option<(f64, f64, f64)>);
 
 /// Whether the depth stream is there at all.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -422,8 +451,13 @@ pub struct CliffStatus {
 }
 
 impl CliffStatus {
-    pub fn absorb(&mut self, frame: CliffFrame) {
+    pub fn absorb(&mut self, mut frame: CliffFrame) {
         let now = frame.at;
+        if frame.odom.is_none()
+            && let (Some((x, y)), Some(yaw)) = (self.odom_xy, self.odom_yaw)
+        {
+            frame.odom = Some((x, y, yaw));
+        }
         self.frames += 1;
         self.recent.push(frame);
         // Kept for [`KEEP`]: every judgement here filters by [`MEMORY`],
@@ -534,7 +568,13 @@ impl CliffStatus {
     /// decimetres it is worth on a wall two metres off; `reach` keeps
     /// it near.
     pub fn obstacle_in_lane_walking(&self, now: Instant, heading: f64, half_width: f64, reach: f64, within: Duration, min_frames: usize) -> Option<Obstacle> {
-        let mut hits: Vec<Obstacle> = Vec::new();
+        self.obstacle_in_lane_walking_seen(now, heading, half_width, reach, within, min_frames).map(|(o, _)| o)
+    }
+
+    /// [`Self::obstacle_in_lane_walking`], with the odometry pose of the
+    /// frame that saw it ([`CliffFrame::odom`]).
+    pub fn obstacle_in_lane_walking_seen(&self, now: Instant, heading: f64, half_width: f64, reach: f64, within: Duration, min_frames: usize) -> Option<SeenObstacle> {
+        let mut hits: Vec<SeenObstacle> = Vec::new();
         for f in self.recent.iter().filter(|f| now.duration_since(f.at) <= within) {
             let nearest = f
                 .obstacles
@@ -545,13 +585,29 @@ impl CliffStatus {
                 })
                 .min_by(|a, b| a.range_m.total_cmp(&b.range_m));
             if let Some(o) = nearest {
-                hits.push(*o);
+                hits.push((*o, f.odom));
             }
         }
         if hits.len() < min_frames {
             return None;
         }
-        hits.into_iter().min_by(|a, b| a.range_m.total_cmp(&b.range_m))
+        hits.into_iter().min_by(|a, b| a.0.range_m.total_cmp(&b.0.range_m))
+    }
+
+    /// The map pose the body had when a frame judged at odometry pose
+    /// `then` was seen, from its map pose `now` and the newest odometry:
+    /// the odometry's motion since, taken back off. Without both
+    /// odometries, `now` as it is.
+    pub fn pose_when_seen(&self, now: (f64, f64, f64), then: Option<(f64, f64, f64)>) -> (f64, f64, f64) {
+        let (Some(then), Some((ox, oy)), Some(oyaw)) = (then, self.odom_xy, self.odom_yaw) else {
+            return now;
+        };
+        // `then` in the body frame of the newest odometry pose.
+        let (dx, dy) = (then.0 - ox, then.1 - oy);
+        let (s, c) = oyaw.sin_cos();
+        let (bx, by) = (c * dx + s * dy, -s * dx + c * dy);
+        let (s, c) = now.2.sin_cos();
+        (now.0 + c * bx - s * by, now.1 + s * bx + c * by, wrap(now.2 + then.2 - oyaw))
     }
 
     pub fn hole_in_lane_walking(&self, now: Instant, heading: f64, half_width: f64, reach: f64, within: Duration, min_frames: usize) -> Option<Drop> {
@@ -989,4 +1045,28 @@ mod tests {
         let bits: StateBits = serde_json::from_value(v).unwrap();
         assert_eq!(bits.head_joints(), [0.237, 0.494, -0.632, 0.026]);
     }
+    #[test]
+    fn a_frame_seen_before_a_turn_is_placed_where_it_was_seen() {
+        // Walked 0.1 m and turned 0.5 rad left since the frame: the frame's
+        // pose is 0.1 m back along the old heading, 0.5 rad to the right.
+        let c = CliffStatus { odom_xy: Some((5.0, 5.0)), odom_yaw: Some(0.5), ..Default::default() };
+        let then = Some((5.0 - 0.1, 5.0, 0.0));
+        let (x, y, yaw) = c.pose_when_seen((1.0, 0.0, std::f64::consts::FRAC_PI_2), then);
+        let back = (std::f64::consts::FRAC_PI_2 - 0.5 + std::f64::consts::PI).sin_cos();
+        assert!((x - (1.0 + 0.1 * back.1)).abs() < 1e-9 && (y - (0.0 + 0.1 * back.0)).abs() < 1e-9, "{x} {y}");
+        assert!((yaw - (std::f64::consts::FRAC_PI_2 - 0.5)).abs() < 1e-9);
+        // No odometry: the pose of now.
+        assert_eq!(CliffStatus::default().pose_when_seen((1.0, 2.0, 3.0), then), (1.0, 2.0, 3.0));
+    }
+
+    #[test]
+    fn a_hit_lies_where_it_is_from_the_trunk() {
+        // Level: the point's own horizontal norm, not the sensor's range.
+        assert!((horizontal_from_trunk([0.3, 0.4, 0.1], [0.0, 0.0, -1.0]) - 0.5).abs() < 1e-9);
+        // No gravity to trust: the trunk's -z.
+        assert!((horizontal_from_trunk([0.3, 0.4, 0.1], [0.0; 3]) - 0.5).abs() < 1e-9);
+        // Pitched: what is along gravity is not horizontal.
+        assert!(horizontal_from_trunk([0.0, 0.0, 1.0], [1.0, 0.0, 0.0]) > 0.99);
+    }
+
 }

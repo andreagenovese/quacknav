@@ -53,8 +53,10 @@ pub struct EpisodeResult {
     pub mover_bumps: u32,
     pub min_hole_m: f64,
     pub min_static_m: f64,
-    /// A fall against something (not into a hole).
+    /// A fall against something (not into a hole), and how many of them
+    /// the duck got up from (`Calib::getup_s`).
     pub tipped: bool,
+    pub tips: u32,
     pub truth_err_m: f64,
     pub legs: u32,
 }
@@ -139,6 +141,7 @@ impl Journey {
             min_hole_m: sim.min_hole_m,
             min_static_m: sim.min_static_m,
             tipped: sim.tipped,
+            tips: sim.tips,
             truth_err_m,
             legs: handle.status().legs,
         }
@@ -163,6 +166,10 @@ pub const R_RIM: f64 = 0.5;
 /// "safe" for nothing (a pilot settled in turning one way and back).
 pub const R_TURN: f64 = 0.03;
 pub const RIM_NEAR_M: f64 = 0.15;
+/// A tip-over the duck got up from: its seconds down cost as time, the
+/// pose lost after it as the way back, and this besides — a fall is never
+/// cheap for the body.
+pub const R_TIP: f64 = 2.0;
 
 impl Reward {
     pub fn new(sim: &Sim, geo: &Field) -> Self {
@@ -181,6 +188,7 @@ impl Reward {
         if last.is_some_and(Action::forward) && since.walked_forward_s == 0.0 && since.bumps == 0 && since.mover_bumps == 0 {
             r -= R_SHIELD;
         }
+        r -= R_TIP * f64::from(since.tips);
         if matches!(last, Some(Action::TurnLeft) | Some(Action::TurnRight)) {
             r -= R_TURN;
         }

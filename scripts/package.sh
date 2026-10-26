@@ -15,7 +15,8 @@
 #   systemd/sysusers.d/quack-nav.conf
 #   quack-nav.example.toml
 #   install-on-duck.sh            (finds bin/ next to itself)
-#   pilots/alpha/, pilots/velstand/  pilot.json + pilot.onnx, one per walk
+#   pilots/alpha/, pilots/velstand/, pilots/0.17/velstand/
+#                                 pilot.json + pilot.onnx, one per walk (and one per daemon line)
 #   README-install.md, README-install.it.md
 #   LICENSE, NOTICE, CHANGELOG.md
 # The .sha256 is in `sha256sum` format, checked with `shasum -a 256 -c` or
@@ -55,8 +56,9 @@ install -m 644 "$ROOT/quack-nav/systemd/quack-navd.service" "$PKG/systemd/"
 install -m 644 "$ROOT/quack-nav/systemd/sysusers.d/quack-nav.conf" "$PKG/systemd/sysusers.d/"
 install -m 644 "$ROOT/quack-nav/quack-nav.example.toml" "$PKG/"
 install -m 755 "$ROOT/scripts/install-on-duck.sh" "$PKG/"
-# The pilots, one per walk: pilot.json (what quack-navd loads) and its ONNX twin.
-for pair in alpha:v3-r7-mujoco velstand:v3-r7-velstand; do
+# The pilots, one per walk and, for velstand, one per daemon line (docs/rl-pilot.md):
+# pilot.json (what quack-navd loads) and its ONNX twin.
+for pair in alpha:v3-r7-mujoco velstand:v3-r7-velstand 0.17/velstand:v8l-s3-velstand; do
     walk="${pair%%:*}"; run="${pair#*:}"
     install -d "$PKG/pilots/$walk"
     install -m 644 "$ROOT/quack-rl/pilots/$run/pilot.json" "$ROOT/quack-rl/pilots/$run/pilot.onnx" "$PKG/pilots/$walk/"

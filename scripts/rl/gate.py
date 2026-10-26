@@ -3,8 +3,11 @@
     gate.py --report RUN/report.json --new RUN/pilot.json [--old OLD.json] --out DIR
 
 The rules, on the test bench of finalize.py (the calibrated simulator):
-no fall, ever; at least as many arrivals as the stick; no more than 2
-points under the pilot it replaces. Passed: DIR/pilot.json, and how to put
+no fall into a hole, ever; no more tip-overs than the stick (a tip-over
+the duck got up from counts: daemon 0.17); at least as many arrivals as
+the stick, no more timeouts, and no slower over every journey (a
+timeout's budget included); no more than 2 points under the pilot it
+replaces. A pilot trained on the stick must be better, not worse. Passed: DIR/pilot.json, and how to put
 it on the duck. Not passed: why, and what flies meanwhile (the old pilot if
 it passes the same rules on the calibrated simulator, else the stick).
 """
@@ -24,6 +27,12 @@ def passes(r, stick, margin_to=None):
         why.append(f"{r.get('fell_hole', r['fell'])} falls into a hole")
     if r.get("tipped", 0) > stick.get("tipped", 0):
         why.append(f"{r['tipped']} tip-overs against the stick's {stick.get('tipped', 0)}")
+    if r.get("tips", r.get("tipped", 0)) > stick.get("tips", stick.get("tipped", 0)):
+        why.append(f"{r['tips']} tip-overs got up from against the stick's {stick['tips']}")
+    if r.get("timeout", 0) > stick.get("timeout", 0):
+        why.append(f"{r['timeout']} timeouts against the stick's {stick['timeout']}")
+    if "mean_secs_all" in r and r["mean_secs_all"] > stick["mean_secs_all"]:
+        why.append(f"{r['mean_secs_all']:.1f} s a journey against the stick's {stick['mean_secs_all']:.1f}")
     if r["arrived"] < stick["arrived"]:
         why.append(f"{r['arrived']} arrivals against the stick's {stick['arrived']}")
     if margin_to is not None and r["arrived"] < margin_to["arrived"] - 0.02 * r["n"]:
@@ -46,7 +55,7 @@ def main():
     if rep.get("reckless_falls"):
         sys.exit(f"the shields let a reckless brain fall {rep['reckless_falls']} times on the calibrated simulator: nothing flies until that is fixed")
     def line(name, r):
-        return f"{name}: {r['arrived']}/{r['n']} arrived, {r.get('fell_hole', r['fell'])} into a hole, {r.get('tipped', 0)} tipped over"
+        return f"{name}: {r['arrived']}/{r['n']} arrived, {r.get('fell_hole', r['fell'])} into a hole, {r.get('tipped', 0)} tipped over, {r.get('timeout', 0)} timeouts, {r.get('mean_secs_all', float('nan')):.1f} s a journey"
 
     lines = [line("stick", stick), line("new pilot", new)]
     if old:

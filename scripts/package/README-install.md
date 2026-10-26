@@ -53,7 +53,7 @@ It copies the files to the duck, then with `sudo` there:
 | `/etc/systemd/system/quack-navd.service` | `systemd/quack-navd.service` |
 | `/etc/sysusers.d/quack-nav.conf` (user `quacknav`) | `systemd/sysusers.d/quack-nav.conf` |
 | `/etc/robot/quack-nav.toml` — **only when there is none** | `quack-nav.example.toml` |
-| `/var/lib/quack-nav/pilots/alpha/pilot.json`, `…/velstand/pilot.json` | `pilots/` (used only when switched on, below) |
+| `/var/lib/quack-nav/pilots/alpha/pilot.json`, `…/velstand/pilot.json`, `…/0.17/velstand/pilot.json` | `pilots/` (used only when switched on, below) |
 
 An old `/var/lib/quacksat/places.json` (quack-nav 0.1.0) is copied to
 `/var/lib/quack-nav/` when that has none. Then it enables and restarts the

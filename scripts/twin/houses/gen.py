@@ -160,6 +160,40 @@ def house_viva():
     return boxes, holes, rooms, goals, low, [], movers
 
 
+def house_gente():
+    """casa_arredata, and four people walking between its rooms (and
+    casa_viva's cat): the house to measure how the duck meets someone in
+    a door, in the corridor beside the stairwell, and in a room's middle,
+    with the pilot and with the stick (2026-10-26). Each person walks a
+    path from a spot in one room to a spot in another, through the doors,
+    there and back, pausing at each end; their spots keep 0.5 m off the
+    duck's goals. The same `movers` drive the paper twin's (quack-rl's
+    `twin:casa_gente`): the simulator reads this file too."""
+    boxes, holes, rooms, goals, low = house_arredata()
+    movers = [
+        # Kitchen to bedroom: the kitchen's door (wN, x -2.8..-2.0), the
+        # corridor's west end, the bedroom's door (wS, x -3.2..-2.4).
+        {"name": "person_kb", "kind": "patrol", "r": 0.14, "h": 0.9, "speed": 0.4,
+         "path": [[-2.5, 1.0], [-2.4, 0.5], [-2.8, 0.0], [-2.8, -0.5], [-2.8, -1.0]], "pause_s": [3.0, 10.0]},
+        # Living room to office: the living's door (wN, x 1.0..1.8), west
+        # along the corridor, the office's door (wS, x -0.9..-0.2).
+        {"name": "person_lo", "kind": "patrol", "r": 0.14, "h": 0.9, "speed": 0.5,
+         "path": [[0.6, 1.2], [1.4, 0.5], [1.4, 0.0], [-0.55, 0.0], [-0.55, -0.5], [0.3, -1.5]], "pause_s": [3.0, 10.0]},
+        # Bath to the living room, past the stairwell (x 2.0..2.6, y
+        # -0.44..-0.05) on its north side: the bath's door (wS, x
+        # 3.0..3.6), the corridor at y 0.25, the living's door.
+        {"name": "person_bl", "kind": "patrol", "r": 0.14, "h": 0.9, "speed": 0.45,
+         "path": [[2.0, -1.5], [3.3, -1.0], [3.3, -0.5], [3.3, 0.25], [1.4, 0.25], [1.4, 0.5], [1.5, 0.9], [2.6, 1.2]], "pause_s": [3.0, 10.0]},
+        # Someone walking the corridor's west half and back (casa_viva's).
+        {"name": "person_corridor", "kind": "patrol", "r": 0.14, "h": 0.9, "speed": 0.35,
+         "path": [[-3.2, 0.15], [1.4, 0.15]], "pause_s": [2.0, 6.0]},
+        # A cat going round the living room's free floor (casa_viva's).
+        {"name": "cat", "kind": "patrol", "r": 0.10, "h": 0.22, "speed": 0.25,
+         "path": [[0.45, 1.0], [2.6, 1.15], [2.45, 2.1], [0.5, 2.05]], "pause_s": [2.0, 8.0]},
+    ]
+    return boxes, holes, rooms, goals, low, [], movers
+
+
 def house_porta():
     """casa_arredata, and someone standing in the office's door: 0.7 m, the
     only way in, so a person there (0.28 m left either side) shuts the room.
@@ -303,6 +337,6 @@ def write(name, house):
 
 OUT.mkdir(parents=True, exist_ok=True)
 HOUSES = {"casa_libera": house_libera, "casa_arredata": house_arredata, "casa_grande": house_grande, "casa_ingombra": house_ingombra,
-          "casa_viva": house_viva, "casa_porta": house_porta}
+          "casa_viva": house_viva, "casa_porta": house_porta, "casa_gente": house_gente}
 for name in sys.argv[3:] or ["casa_libera", "casa_arredata"]:
     write(name, HOUSES[name]())

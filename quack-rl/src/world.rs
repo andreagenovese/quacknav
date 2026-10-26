@@ -21,14 +21,24 @@ use crate::{Rng, dist};
 
 pub const COLS: usize = 8;
 pub const COL_FOV: f64 = 0.78;
-/// Floor distances the eight rows look at, metres ahead (head 0.25 m up).
+/// Floor distances the eight rows look at, metres ahead (head 0.25 m up),
+/// when the calibration sets no `tof_pitch_rad`.
 pub const ROW_FLOOR_M: [f64; 8] = [0.25, 0.32, 0.42, 0.55, 0.75, 1.0, 1.4, 2.0];
+/// With one: the rows evenly across the sensor's field (kinematics'
+/// `FOV_DEG`, the zones' centres half a zone in from its edges) ...
+pub const ROWS: usize = 8;
+pub const ROW_FOV: f64 = 0.785;
+/// ... and a return this near the floor, in the sensor's height, is floor.
+const TOF_FLOOR_SAFETY: f64 = 0.85;
 /// The sensor's height above the floor (the rows' floor distances assume it).
 pub const HEAD_H: f64 = 0.25;
 /// The map's cells, as the duck's.
 pub const CELL: f64 = 0.05;
 /// A low box's floor rows read a drop up to this far past its face.
 const PHANTOM_DEPTH_M: f64 = 0.5;
+/// Kinematics' `Reprojector::MIN_RANGE_M`: a return nearer than this,
+/// measured from the sensor, is the sensor's own crosstalk and no hit.
+const TOF_MIN_RANGE_M: f64 = 0.10;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Rect {
@@ -59,6 +69,11 @@ impl Rect {
     }
     /// The ray's entry distance, if it meets the box within `max`.
     pub fn ray(&self, x: f64, y: f64, dx: f64, dy: f64, max: f64) -> Option<f64> {
+        self.span(x, y, dx, dy, max).map(|(t, _)| t)
+    }
+
+    /// Where a ray from (x, y) along (dx, dy) goes in and comes out.
+    pub fn span(&self, x: f64, y: f64, dx: f64, dy: f64, max: f64) -> Option<(f64, f64)> {
         let (mut t0, mut t1) = (0.0_f64, max);
         for (o, d, lo, hi) in [(x, dx, self.x0, self.x1), (y, dy, self.y0, self.y1)] {
             if d.abs() < 1e-12 {
@@ -74,7 +89,7 @@ impl Rect {
             t0 = t0.max(ta);
             t1 = t1.min(tb);
         }
-        (t0 <= t1).then_some(t0.max(0.0))
+        (t0 <= t1).then_some((t0.max(0.0), t1))
     }
 }
 
@@ -100,6 +115,15 @@ fn ray_circle(x: f64, y: f64, dx: f64, dy: f64, cx: f64, cy: f64, r: f64, max: f
     }
     let t = -b - disc.sqrt();
     (t >= 0.0 && t <= max).then_some(t)
+}
+
+/// Where a ray goes in a circle and comes out.
+fn span_circle(x: f64, y: f64, dx: f64, dy: f64, cx: f64, cy: f64, r: f64, max: f64) -> Option<(f64, f64)> {
+    let t = ray_circle(x, y, dx, dy, cx, cy, r, max)?;
+    let (fx, fy) = (x - cx, y - cy);
+    let b = fx * dx + fy * dy;
+    let disc = (b * b - (fx * fx + fy * fy - r * r)).max(0.0);
+    Some((t, (-b + disc.sqrt()).min(max)))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -151,10 +175,26 @@ pub enum MoverKind {
     /// the rooms and wanders (someone talking on the threshold, a pet lying
     /// there). The `passers` family's (see `scenarios`).
     Lingerer,
+    /// Walks its `path` there and back (round it when it has more than two
+    /// points), pausing `pause` seconds at each end or corner, and waits
+    /// while the duck is in its way: the twin's `patrol`
+    /// (`scripts/twin/viewer/movers.py`), the people and the cat of
+    /// casa_viva and casa_gente, read from the house's truth.
+    Patrol,
 }
 
 /// The duck this near wakes a [`MoverKind::Lingerer`]'s countdown.
 pub const LINGER_NEAR_M: f64 = 0.9;
+/// A [`MoverKind::Patrol`] waits while the duck is this near ahead of it
+/// (the twin's `YIELD_M`): a person does not walk into a duck. Waited
+/// [`WAIT_ROUND_S`], it steps [`ROUND_M`] to the side where the house
+/// leaves room, and goes on from there; where there is none (a door, the
+/// passage by the stairwell) it steps back to the path's point it came
+/// from and pauses there, out of the way (the twin's movers.py, the same
+/// numbers).
+pub const YIELD_M: f64 = 0.35;
+pub const WAIT_ROUND_S: f64 = 3.0;
+pub const ROUND_M: f64 = 0.5;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Mover {
@@ -173,10 +213,43 @@ pub struct Mover {
     /// A [`MoverKind::Lingerer`] the duck came near: its countdown runs.
     #[serde(default)]
     pub woken: bool,
+    /// A [`MoverKind::Patrol`]'s way: the points it walks between, the
+    /// one it walks to now, whether it walks them backwards, and how long
+    /// it pauses at each (`timer` counts the pause down).
+    #[serde(default)]
+    pub path: Vec<(f64, f64)>,
+    #[serde(default)]
+    pub leg: usize,
+    #[serde(default)]
+    pub back: bool,
+    #[serde(default)]
+    pub pause: (f64, f64),
+    /// How long it has waited for the duck in its way, and the point it
+    /// steps aside to once it has waited [`WAIT_ROUND_S`].
+    #[serde(default)]
+    pub waited: f64,
+    #[serde(default)]
+    pub detour: Option<(f64, f64)>,
+    /// The detour is a step back to the path's point it came from.
+    #[serde(default)]
+    pub retreat: bool,
 }
 
 fn mover_height() -> f64 {
     0.3
+}
+
+impl Mover {
+    /// A [`MoverKind::Patrol`] at its path's start.
+    pub fn patrol(path: Vec<(f64, f64)>, r: f64, height: f64, speed: f64, pause: (f64, f64)) -> Self {
+        let (x, y) = path.first().copied().unwrap_or_default();
+        Mover { x, y, r, heading: 0.0, speed, kind: MoverKind::Patrol, timer: 0.0, still: false, height, woken: false, path, leg: 1, back: false, pause, waited: 0.0, detour: None, retreat: false }
+    }
+
+    /// Everything else, at `(x, y)` with no path.
+    pub fn new(x: f64, y: f64, r: f64, heading: f64, speed: f64, kind: MoverKind, timer: f64, still: bool, height: f64) -> Self {
+        Mover { x, y, r, heading, speed, kind, timer, still, height, woken: false, path: Vec::new(), leg: 0, back: false, pause: (0.0, 0.0), waited: 0.0, detour: None, retreat: false }
+    }
 }
 
 /// How the map draws the house: real maps ink what the rays met — a band
@@ -284,24 +357,24 @@ impl World {
 
     /// Everything a ray meets within `max`, nearest first: (distance,
     /// height, what).
-    pub fn ray_all(&self, x: f64, y: f64, a: f64, max: f64) -> Vec<(f64, f64, Hit)> {
+    pub fn ray_all(&self, x: f64, y: f64, a: f64, max: f64) -> Vec<(f64, f64, f64, Hit)> {
         let (dx, dy) = (a.cos(), a.sin());
         let mut out = Vec::new();
         for (i, b) in self.rects.iter().enumerate() {
             if b.present
-                && let Some(t) = b.ray(x, y, dx, dy, max)
+                && let Some((t, u)) = b.span(x, y, dx, dy, max)
             {
-                out.push((t, b.height, Hit::Rect(i)));
+                out.push((t, u, b.height, Hit::Rect(i)));
             }
         }
         for (i, p) in self.posts.iter().enumerate() {
-            if let Some(t) = ray_circle(x, y, dx, dy, p.x, p.y, p.r, max) {
-                out.push((t, p.height, Hit::Post(i)));
+            if let Some((t, u)) = span_circle(x, y, dx, dy, p.x, p.y, p.r, max) {
+                out.push((t, u, p.height, Hit::Post(i)));
             }
         }
         for (i, m) in self.movers.iter().enumerate() {
-            if let Some(t) = ray_circle(x, y, dx, dy, m.x, m.y, m.r, max) {
-                out.push((t, m.height, Hit::Mover(i)));
+            if let Some((t, u)) = span_circle(x, y, dx, dy, m.x, m.y, m.r, max) {
+                out.push((t, u, m.height, Hit::Mover(i)));
             }
         }
         out.sort_by(|a, b| a.0.total_cmp(&b.0));
@@ -325,6 +398,67 @@ impl World {
                     // Out of the doorway into one of the rooms.
                     m.heading += if rng.chance(0.5) { 0.0 } else { std::f64::consts::PI } + rng.range(-0.4, 0.4);
                     m.timer = rng.range(2.0, 4.0);
+                }
+                self.movers[i] = m;
+                continue;
+            }
+            if m.kind == MoverKind::Patrol {
+                // As the twin's movers.py: a pause counts down, then the
+                // next point of the path, waiting while the duck is near
+                // ahead; at the point a pause, and the next leg — back
+                // along the path, or round it when it has more than two.
+                m.timer -= dt;
+                if m.timer <= 0.0
+                    && let Some(&goal) = m.path.get(m.leg)
+                {
+                    let aside = m.detour;
+                    let goal = aside.unwrap_or(goal);
+                    let (dx, dy) = (goal.0 - m.x, goal.1 - m.y);
+                    let d = dx.hypot(dy);
+                    let (ux, uy) = if d > 1e-9 { (dx / d, dy / d) } else { (0.0, 0.0) };
+                    let (ox, oy) = (duck.0 - m.x, duck.1 - m.y);
+                    let yields = ox.hypot(oy) < m.r + YIELD_M && ox * ux + oy * uy > 0.0;
+                    m.still = yields;
+                    if yields {
+                        m.waited += dt;
+                        if m.waited >= WAIT_ROUND_S && aside.is_none() {
+                            let [bx0, bx1, by0, by1] = self.bounds;
+                            let room = |p: (f64, f64)| !self.static_collides(p.0, p.1, m.r) && !self.in_hole(p.0, p.1) && p.0 - m.r > bx0 && p.0 + m.r < bx1 && p.1 - m.r > by0 && p.1 + m.r < by1;
+                            m.detour = [1.0, -1.0].into_iter().map(|side| (m.x - side * uy * ROUND_M, m.y + side * ux * ROUND_M)).find(|p| room(*p) && room(((m.x + p.0) / 2.0, (m.y + p.1) / 2.0)));
+                            let came_from = if m.back { m.leg + 1 } else { m.leg.wrapping_sub(1) };
+                            if m.detour.is_none()
+                                && let Some(&from) = m.path.get(came_from)
+                            {
+                                m.detour = Some(from);
+                                m.retreat = true;
+                            }
+                        }
+                    } else {
+                        m.waited = 0.0;
+                        let step = d.min(m.speed * dt);
+                        m.x += ux * step;
+                        m.y += uy * step;
+                        m.heading = uy.atan2(ux);
+                        if step >= d - 1e-9 && aside.is_some() {
+                            m.detour = None;
+                            if m.retreat {
+                                m.retreat = false;
+                                m.timer = rng.range(m.pause.0, m.pause.1);
+                            }
+                        } else if step >= d - 1e-9 {
+                            m.timer = rng.range(m.pause.0, m.pause.1);
+                            let n = m.path.len();
+                            let next = if m.back { m.leg.checked_sub(1) } else { Some(m.leg + 1).filter(|k| *k < n) };
+                            m.leg = match next {
+                                Some(k) => k,
+                                None if n > 2 && m.path[0] != m.path[n - 1] => 0,
+                                None => {
+                                    m.back = !m.back;
+                                    if m.back { m.leg - 1 } else { m.leg + 1 }
+                                }
+                            };
+                        }
+                    }
                 }
                 self.movers[i] = m;
                 continue;
@@ -386,6 +520,17 @@ impl World {
         let mut drops = Vec::new();
         let mut floors = Vec::new();
         let low_m = if walking { calib.tof_low_walk_m } else { 0.0 };
+        // The rows, lowest first: each one's slope (rise per metre ahead)
+        // and where it meets the floor (none at or above the horizon).
+        let rows: Vec<(f64, f64)> = match calib.tof_pitch_rad {
+            Some(p) => (0..ROWS)
+                .map(|r| {
+                    let slope = (p + ROW_FOV * ((r as f64 + 0.5) / ROWS as f64 - 0.5)).tan();
+                    (slope, if slope < 0.0 { HEAD_H / -slope } else { f64::INFINITY })
+                })
+                .collect(),
+            None => ROW_FLOOR_M.iter().map(|d| (-HEAD_H / d, *d)).collect(),
+        };
         for c in 0..COLS {
             let bearing = head_yaw + COL_FOV * ((c as f64 + 0.5) / COLS as f64 - 0.5);
             let a = yaw + bearing;
@@ -393,14 +538,36 @@ impl World {
             let mut edge: Option<(f64, f64)> = None;
             let mut beyond: Option<f64> = None;
             let mut floor_rows = Vec::new();
-            for (r, d) in ROW_FLOOR_M.iter().copied().enumerate() {
-                let prev = if r == 0 { 0.0 } else { ROW_FLOOR_M[r - 1] };
-                let met = hits.iter().find(|(t, h, _)| *t <= d && *h >= low_m && *t >= d * (1.0 - h / HEAD_H));
-                if let Some((t, _, what)) = met {
+            for (r, (slope, d)) in rows.iter().copied().enumerate() {
+                let prev = if r == 0 { 0.0 } else { rows[r - 1].1 };
+                // The beam at `t` ahead is `HEAD_H + slope t` up: it meets a
+                // thing that tall before the floor, on its face or, coming
+                // down over it, on its top (the twin's bag: twice the sim's
+                // returns within 0.2 m before this, 2026-10-25) ...
+                let met = hits.iter().find_map(|(t, u, h, what)| {
+                    if *t > d || *h < low_m {
+                        return None;
+                    }
+                    if HEAD_H + slope * t <= *h {
+                        return Some((*t, *h, *what));
+                    }
+                    let top = (*h - HEAD_H) / slope;
+                    (slope < 0.0 && top <= u.min(d)).then_some((top, *h, *what))
+                });
+                // ... and kinematics reads a return this near the floor as
+                // floor (`Reprojector::FLOOR_SAFETY`, 0.85 of the height).
+                let met = met.filter(|(t, ..)| calib.tof_pitch_rad.is_none() || HEAD_H + slope * t >= (1.0 - TOF_FLOOR_SAFETY) * HEAD_H);
+                if let Some((t, _, what)) = &met {
                     if !rng.chance(if *t > 1.4 { calib.tof_dropout_far } else { calib.tof_dropout }) {
-                        let range = (t + calib.tof_range_bias + calib.tof_range_sd * rng.gauss()).max(0.02);
-                        if range < calib.tof_range_max {
-                            obstacles.push(Obstacle { bearing, range_m: range });
+                        // `tof_range_bias` is quack-nav's `range_m` short of
+                        // the trunk's distance: kinematics measures it from
+                        // the sensor (pollen-robotics/microduck#430).
+                        let trunk = (t + calib.tof_range_sd * rng.gauss()).max(0.02);
+                        let range = (trunk + calib.tof_range_bias).max(0.02);
+                        // Under `TOF_MIN_RANGE_M` kinematics calls the return
+                        // `Zone::TooClose`, no hit: nothing reaches quack-nav.
+                        if (TOF_MIN_RANGE_M..calib.tof_range_max).contains(&range) {
+                            obstacles.push(Obstacle { bearing, range_m: range, trunk_m: trunk });
                         }
                     }
                     // A low box just past the beak: its floor rows read a
@@ -408,6 +575,10 @@ impl World {
                     if matches!(what, Hit::Rect(i) if self.rects[*i].low) && d > *t && d <= t + PHANTOM_DEPTH_M && rng.chance(calib.phantom_p) {
                         drops.push(Drop { bearing, range_m: d, edge_min_m: prev, floor_beyond_m: 0.0, kind: DropKind::Deep });
                     }
+                    continue;
+                }
+                // Above the horizon, or the floor out of range: no return.
+                if d >= calib.tof_range_max {
                     continue;
                 }
                 // The floor, or a hole where the floor should be.
@@ -437,11 +608,11 @@ impl World {
                     let c = z % COLS;
                     let bearing = head_yaw + COL_FOV * ((c as f64 + 0.5) / COLS as f64 - 0.5);
                     let range = (calib.spur_median_m * (calib.spur_sigma * rng.gauss()).exp()).clamp(0.1, calib.tof_range_max - 0.01);
-                    obstacles.push(Obstacle { bearing, range_m: range });
+                    obstacles.push(Obstacle { bearing, range_m: range, trunk_m: range - calib.tof_range_bias });
                 }
             }
         }
-        CliffFrame { moving: walking, seq, at, head_yaw, drops, floors, obstacles, floor_beams: 40, judged: 64 }
+        CliffFrame { moving: walking, seq, at, head_yaw, drops, floors, obstacles, floor_beams: 40, judged: 64, odom: None }
     }
 
     /// The map as the duck holds it, in the map's frame (the world moved
@@ -507,12 +678,38 @@ mod tests {
         assert!((w.ray(0.0, 0.0, 0.0, 2.2, 0.0).0 - 1.0).abs() < 1e-9);
         w.posts.push(Post { x: 0.5, y: 0.0, r: 0.03, height: 0.7, mapped: false });
         assert!((w.ray(0.0, 0.0, 0.0, 2.2, 0.0).0 - 0.47).abs() < 1e-9);
-        w.movers.push(Mover { x: 0.3, y: 0.0, r: 0.1, heading: 0.0, speed: 0.0, kind: MoverKind::Wanderer, timer: 1.0, still: true, height: 0.3, woken: false });
+        w.movers.push(Mover::new(0.3, 0.0, 0.1, 0.0, 0.0, MoverKind::Wanderer, 1.0, true, 0.3));
         assert!((w.ray(0.0, 0.0, 0.0, 2.2, 0.0).0 - 0.2).abs() < 1e-9);
         // Low things are lost while walking.
         w.movers.clear();
         w.posts[0].height = 0.05;
         assert!((w.ray(0.0, 0.0, 0.0, 2.2, 0.09).0 - 1.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn a_patrol_walks_its_path_there_and_back_and_waits_for_the_duck() {
+        let mut w = World { bounds: [-2.0, 2.0, -2.0, 2.0], ..Default::default() };
+        w.movers.push(Mover::patrol(vec![(0.0, 0.0), (1.0, 0.0)], 0.14, 0.9, 0.5, (1.0, 1.0)));
+        let mut rng = Rng::new(3);
+        let far = (5.0, 5.0);
+        // 2 s at 0.5 m/s: at the far end, pausing.
+        for _ in 0..20 {
+            w.step_movers(0.1, &mut rng, far, 0.11);
+        }
+        let m = &w.movers[0];
+        assert!((m.x - 1.0).abs() < 1e-9 && m.timer > 0.0 && m.back, "{m:?}");
+        // The pause over, back toward the start.
+        for _ in 0..15 {
+            w.step_movers(0.1, &mut rng, far, 0.11);
+        }
+        let m = &w.movers[0];
+        assert!(m.x < 0.9 && m.x > 0.5, "{m:?}");
+        // The duck right ahead on its way: it waits; behind it: it walks on.
+        let x = m.x;
+        w.step_movers(0.1, &mut rng, (x - 0.3, 0.0), 0.11);
+        assert!((w.movers[0].x - x).abs() < 1e-9 && w.movers[0].still, "{:?}", w.movers[0]);
+        w.step_movers(0.1, &mut rng, (x + 0.3, 0.0), 0.11);
+        assert!(w.movers[0].x < x - 0.04, "{:?}", w.movers[0]);
     }
 
     #[test]

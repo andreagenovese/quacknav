@@ -36,6 +36,8 @@ use serde_json::{Value, json};
 
 /// Fewer samples than this and a number keeps its prior.
 const MIN_N: usize = 8;
+/// The depth sensor's noise drawn afresh each frame, at most: see the fit.
+const TOF_FRAME_SD_MAX: f64 = 0.02;
 
 #[derive(Clone)]
 struct MapGrid {
@@ -165,6 +167,9 @@ struct Leg {
     pose1: (f64, f64, f64),
     odom0: Option<(f64, f64, f64)>,
     odom1: Option<(f64, f64, f64)>,
+    /// Odometry at the next leg's start: what the move turned, the gait's
+    /// coast and the stand after it in.
+    odom_next: Option<(f64, f64, f64)>,
     /// The nearest obstacle seen ahead during it (a bump's suspect).
     near_ahead: f64,
     /// Legs between two stands share a chain.
@@ -209,12 +214,12 @@ fn predict(c: &Calib, act: &str, vx: f64, vyaw: f64, secs: f64) -> (f64, f64) {
         return (0.0, rate * secs);
     }
     if vx > 0.05 {
-        let gain = if secs <= 0.8 && vyaw.abs() > 0.3 { c.pulse_gain_mean } else { 1.0 };
+        let gain = if secs <= 0.8 && vyaw.abs() > 0.3 { c.pulse_gain(vyaw) } else { 1.0 };
         let w = c.yaw_per_unit * vyaw * gain + if vyaw.abs() < 0.1 { c.straight_veer } else { 0.0 };
         return (c.speed_at_03 * vx / 0.3 * secs, w * secs);
     }
     if vx < -0.05 {
-        return (c.back_speed * secs, 0.6 * vyaw * secs);
+        return (c.back_speed * secs, c.back_yaw_per_unit * vyaw * secs);
     }
     (0.0, 0.0)
 }
@@ -268,7 +273,12 @@ fn main() -> anyhow::Result<()> {
     let mut events = 0usize;
     let mut falls = 0usize;
     let mut chain = 0usize;
+    // A turn in place's coast: the yaw from its stop (odometry) to the end
+    // of the stand or wait right after it, the turn's way.
+    let mut coasts: Vec<f64> = Vec::new();
     for f in &files {
+        let first_leg = legs.len();
+        let mut turn_end: Option<(f64, f64)> = None;
         let text = std::fs::read_to_string(f)?;
         let mut cur_map: Option<usize> = None;
         chain += 1;
@@ -290,6 +300,18 @@ fn main() -> anyhow::Result<()> {
                 }
                 Some(kind @ ("leg" | "stand")) => {
                     events += 1;
+                    let ended = turn_end.take();
+                    let odom1 = triple(&v["odom1"]);
+                    let is_turn = kind == "leg" && v["what"]["act"].as_str().is_some_and(|a| a.starts_with("turn")) && v["what"]["vx"].as_f64().unwrap_or(0.0).abs() < 0.05;
+                    if let (Some((sign, yaw)), Some(o1)) = (ended, odom1)
+                        && (kind == "stand" || v["what"]["act"].as_str() == Some("wait"))
+                    {
+                        coasts.push(wrap(o1.2 - yaw) * sign);
+                    }
+                    if is_turn && let Some(o1) = odom1 {
+                        let sign = v["what"]["vyaw"].as_f64().map_or(1.0, f64::signum);
+                        turn_end = Some((sign, o1.2));
+                    }
                     let frames: Vec<Value> = v["frames"].as_array().cloned().unwrap_or_default();
                     let ts: Vec<f64> = frames.iter().filter_map(|f| f["t"].as_f64()).collect();
                     frame_dts.extend(ts.windows(2).map(|w| w[1] - w[0]).filter(|d| *d > 0.0 && *d < 0.5));
@@ -322,12 +344,16 @@ fn main() -> anyhow::Result<()> {
                         pose1,
                         odom0: triple(&v["odom0"]),
                         odom1: triple(&v["odom1"]),
+                        odom_next: None,
                         near_ahead,
                         chain,
                     });
                 }
                 _ => {}
             }
+        }
+        for i in first_leg + 1..legs.len() {
+            legs[i - 1].odom_next = legs[i].odom0;
         }
     }
     let mut fit = Fit::default();
@@ -356,10 +382,28 @@ fn main() -> anyhow::Result<()> {
     let straight: Vec<f64> = free_steps.iter().filter(|l| l.vyaw.abs() < 0.1).map(|l| dyaw(l) / l.secs).collect();
     let veer = { let mut s = straight.clone(); median(&mut s) };
     c.straight_veer = fit.set("straight_veer", prior.straight_veer, Some((veer, straight.len(), mad_sd(&straight))), "median yaw rate of the straight steps (|vyaw| < 0.1)");
-    let pulses: Vec<f64> = free_steps.iter().filter(|l| l.vyaw.abs() > 0.3 && l.secs <= 0.8).map(|l| dyaw(l) / l.secs / (c.yaw_per_unit * l.vyaw)).collect();
-    let g = { let mut s = pulses.clone(); median(&mut s) };
-    c.pulse_gain_mean = fit.set("pulse_gain_mean", prior.pulse_gain_mean, Some((g, pulses.len(), mad_sd(&pulses))), "median of (yaw turned) / (yaw_per_unit × vyaw × secs) over the curving steps ≤ 0.8 s");
-    c.pulse_gain_sd = fit.set("pulse_gain_sd", prior.pulse_gain_sd, Some((mad_sd(&pulses), pulses.len(), 0.0)), "their spread (MAD)");
+    // A pulse's yaw by odometry to the next move: the gait turns on for a
+    // moment once the command ends, and what the next move starts from is
+    // what the pulse did (the twin's pilot steps, in the leg 23° to the
+    // right, by the next 25°). By side: the twin's right turns more.
+    let to_next = |l: &Leg| match (l.odom0, l.odom_next) {
+        (Some(a), Some(b)) => Some(wrap(b.2 - a.2)),
+        _ => None,
+    };
+    let pulses_by = |right: bool| -> Vec<f64> {
+        free_steps
+            .iter()
+            .filter(|l| l.vyaw.abs() > 0.3 && l.secs <= 0.8 && (l.vyaw < 0.0) == right)
+            .filter_map(|l| Some(to_next(l)? / l.secs / (c.yaw_per_unit * l.vyaw)))
+            .collect()
+    };
+    let (pl, pr) = (pulses_by(false), pulses_by(true));
+    let (gl, gr) = ({ let mut s = pl.clone(); median(&mut s) }, { let mut s = pr.clone(); median(&mut s) });
+    c.pulse_gain_mean = fit.set("pulse_gain_mean", prior.pulse_gain_mean, Some((gl, pl.len(), mad_sd(&pl))), "median of (yaw by odometry to the next move) / (yaw_per_unit × vyaw × secs) over the curving steps ≤ 0.8 s to the left");
+    c.pulse_gain_right = fit.set("pulse_gain_right", prior.pulse_gain(-1.0), Some((gr, pr.len(), mad_sd(&pr))), "the same to the right");
+    let pulses: Vec<f64> = pl.iter().map(|g| g / gl).chain(pr.iter().map(|g| g / gr)).collect();
+    let psd = mad_sd(&pulses) * (gl + gr) / 2.0;
+    c.pulse_gain_sd = fit.set("pulse_gain_sd", prior.pulse_gain_sd, Some((psd, pulses.len(), 0.0)), "their spread (MAD, each side's about its median), in gain");
     let long: Vec<f64> = free_steps.iter().filter(|l| l.vyaw.abs() > 0.3 && l.secs > 0.8).map(|l| dyaw(l) / l.secs / l.vyaw).collect();
     let ypu = { let mut s = long.clone(); median(&mut s) };
     c.yaw_per_unit = fit.set("yaw_per_unit", prior.yaw_per_unit, Some((ypu, long.len(), mad_sd(&long))), "median yaw rate per unit of vyaw over curving legs longer than 0.8 s (the pilot's and the stick's steps are 0.6 s: rarely seen)");
@@ -372,11 +416,16 @@ fn main() -> anyhow::Result<()> {
     let (ml, mr) = ({ let mut s = tl.clone(); median(&mut s) }, { let mut s = tr.clone(); median(&mut s) });
     c.turn_left_rad_s = fit.set("turn_left_rad_s", prior.turn_left_rad_s, Some((ml, tl.len(), mad_sd(&tl))), "median rate of the turns in place to the left (vyaw at the walk's turn), by odometry over the turn's duration");
     c.turn_right_rad_s = fit.set("turn_right_rad_s", prior.turn_right_rad_s, Some((mr, tr.len(), mad_sd(&tr))), "the same to the right");
+    let ct = { let mut s = coasts.clone(); median(&mut s) };
+    c.turn_coast_rad = fit.set("turn_coast_rad", prior.turn_coast_rad, Some((ct.max(0.0), coasts.len(), mad_sd(&coasts))), "median yaw past a turn in place's stop, by odometry to the end of the stand or wait right after it");
     let all_turns: Vec<f64> = tl.iter().map(|r| r / ml).chain(tr.iter().map(|r| r / mr)).collect();
     c.turn_sd = fit.set("turn_sd", prior.turn_sd, Some((mad_sd(&all_turns), all_turns.len(), 0.0)), "their spread, relative");
     let backs: Vec<f64> = legs.iter().filter(|l| l.vx < -0.05 && l.secs > 0.0).map(|l| (l.pose1.0 - l.pose0.0).hypot(l.pose1.1 - l.pose0.1) / l.secs).collect();
     let bk = { let mut s = backs.clone(); median(&mut s) };
     c.back_speed = fit.set("back_speed", prior.back_speed, Some((bk, backs.len(), mad_sd(&backs))), "median speed of the back-offs");
+    let back_yaws: Vec<f64> = legs.iter().filter(|l| l.vx < -0.05 && l.secs > 0.0 && l.vyaw.abs() > 0.1).filter_map(|l| Some(to_next(l)? / l.secs / l.vyaw)).collect();
+    let by = { let mut s = back_yaws.clone(); median(&mut s) };
+    c.back_yaw_per_unit = fit.set("back_yaw_per_unit", prior.back_yaw_per_unit, Some((by, back_yaws.len(), mad_sd(&back_yaws))), "median yaw by odometry to the next move per unit of vyaw × secs over the back-offs");
     // --- odometry against the map's pose over the walks between two
     // stands: the simulator's per-tick random walk (k × the tick's metres)
     // leaves an error of variance k² · D · d_tick over D walked, the
@@ -475,7 +524,18 @@ fn main() -> anyhow::Result<()> {
     let bias = { let mut r = residuals.clone(); median(&mut r) };
     let sd = mad_sd(&residuals);
     c.tof_range_bias = fit.set("tof_range_bias", prior.tof_range_bias, Some((bias, residuals.len(), sd)), "median of (range − the map's ray) at the stands, inliers within 0.3 m");
-    c.tof_range_sd = fit.set("tof_range_sd", prior.tof_range_sd, Some((sd, residuals.len(), 0.0)), "their spread (MAD)");
+    // Their spread is the pose's and the map's error as much as the
+    // sensor's, and it holds frame after frame; drawn afresh each frame it
+    // books things short, quack-nav taking the nearest of many (0.04 m put
+    // the bench's bookings inside the twin's furniture, 0.02 m where the
+    // twin's went, 2026-10-21): an upper bound, kept at most
+    // `TOF_FRAME_SD_MAX`.
+    c.tof_range_sd = fit.set(
+        "tof_range_sd",
+        prior.tof_range_sd,
+        Some((sd.min(TOF_FRAME_SD_MAX), residuals.len(), sd)),
+        "their spread (MAD), at most TOF_FRAME_SD_MAX: per frame the rest is the pose's and the map's",
+    );
     let dropout = if expected_cols > 0 { 1.0 - seen_cols as f64 / expected_cols as f64 } else { f64::NAN };
     fit.set("tof_dropout", prior.tof_dropout, None, "near (under 1.4 m) several rows meet a wall and a column's silence says little of one zone: prior kept");
     c.tof_dropout_far = fit.set("tof_dropout_far", prior.tof_dropout_far, Some((dropout, expected_cols, 0.0)), "columns whose ray meets a mapped wall 1.4-1.95 m off (one row reaches it) with no return there");

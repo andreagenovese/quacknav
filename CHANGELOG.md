@@ -13,6 +13,40 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Added
 
+- **The simulator's houses are the twin's** (`quack-rl`): `--families
+  twin:<house>` walks the MuJoCo twin's tour from
+  `scripts/twin/houses/<house>.truth.json` — each journey starting where
+  the twin's last one stopped, its things put down since unmapped, its
+  people and pets moving — and `twinlike:<house>` trains in the twin's
+  other houses (`--focus`). A tip-over gets up after 4 s on the 0.17 line
+  with its pose lost a while, instead of ending the journey; a turn in
+  place coasts on after its stop as set v8 does (`turn_coast_rad`,
+  fitted by `rl_calib`); the sensor's rows sit where the walk carries the
+  head and where the calibration's pitch puts them (`tof_pitch_rad`);
+  steps turn by side and back-offs as measured; the gate also refuses
+  more timeouts, tip-overs or seconds a journey than the stick.
+- **People walking between the rooms, on the twin and on the bench alike.**
+  `casa_gente` (`scripts/twin/houses/gen.py`) is casa_arredata with four
+  people walking paths between its rooms — through the kitchen's and the
+  bedroom's doors, the living's and the office's, the bath's and the
+  passage by the stairwell, the corridor — and casa_viva's cat. The twin's
+  movers (`scripts/twin/viewer/movers.py`) and quack-rl's new
+  `MoverKind::Patrol` walk the same rule with the same numbers: they wait
+  while the duck is within 0.35 m ahead; waited 3 s, they step 0.5 m to
+  the side where the house leaves room; where there is none (a door, the
+  passage by the stairwell) they step back to the point of the path they
+  came from and pause there. quack-rl reads a house's `movers` from its
+  truth, so `twin:` and `twinlike:` casa_viva, casa_porta and casa_gente
+  have their people on the bench and in training. On the bench's
+  casa_gente (192 journeys) pilot v8l-s3 arrives 89 % of the time with
+  2.2 contacts with people a journey, the stick 84 % and 8.0: what is
+  lost is the duck bumping someone who waits in a door. casa_viva on the
+  bench matches the twin (the stick about 0.7 contact episodes a journey
+  against the twin's 0.9). The bench's seven families are unchanged to the
+  journey. `rl_trace` records where the movers stood, and
+  `scripts/rl/trace_gif.py` draws a trace as a GIF, the stick and the
+  pilot side by side.
+
 - **`daemon`: one key chooses Pollen's daemon** (README, "The daemon").
   `"auto"`, the default and what a config without the key gets, asks
   robotd at start (`hello`'s `daemon_version`) and takes the newest line
@@ -26,8 +60,29 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   its own line, and `QK_RL_POLICY`'s directory may hold one per line
   (`0.17/velstand/pilot.json`).
 
+- **Pilot v8l-s3 ships for velstand on the 0.17 line**
+  (`quack-rl/pilots/v8l-s3-velstand/`, the install package's
+  `pilots/0.17/velstand/`, which the loader takes before `velstand/` on
+  that line): trained on the twin's traces and houses with the
+  simulator's sensor made to see as the twin's. On the twin, four tours
+  of casa_ingombra and casa_arredata: 48/48 against the stick on the same
+  build (2.2 and 4.4 s a journey faster), 48/48 against frozen `main`'s
+  stick (4.2 and 3.9 s faster), no fall; on the bench 98.6 % arrived
+  against the stick's 98.3 %, 6 tip-overs against 18. The first pilot on
+  the 0.17 line not slower than the stick ([docs/rl-pilot.md](docs/rl-pilot.md),
+  [docs/results.md](docs/results.md)).
+
 ### Changed
 
+- **The handover between the pilot and the stick.** The stick takes the
+  legs from a pilot that gets no nearer the goal by 0.15 m in 12 s and
+  keeps them until the body is 0.3 m from where it took over (30 s at
+  most); within 0.5 m of a booked rim the stick walks the legs (on the
+  twin the pilot had dithered in the passage by casa_arredata's
+  stairwell, +28 s to the bath); nothing seen ahead is booked within
+  1.5 s of a turn in place. Pilot v8l-s3 on the 0.17 line: 48/48 on the
+  twin, 2.2 and 4.4 s a journey faster than the stick (docs/results.md,
+  "Round two on the 0.17 line").
 - Built against daemon-v0.17.6 (API 44; the additions since v0.16.1 are
   optional on the wire, so the same build runs on every daemon from
   v0.14.4). velstand on the 0.17 line (set v8, measured on the twin):
@@ -41,11 +96,30 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Fixed
 
+- **Things seen were booked 7.8 cm nearer the body than they are.**
+  kinematics measures a hit's range from the sensor, not from the trunk
+  axis its doc names (pollen-robotics/microduck#430); an obstacle now
+  carries its distance from the trunk too, and the books use it. And a
+  thing seen is booked from the pose of the frame that saw it, not from
+  the body's pose up to a curving step later (a bag booked 0.55 rad
+  round, into the passage beside it).
+- The stick that took the legs from a pilot that got no nearer gave them back
+  after 30 s even where it took them: now only 0.3 m from there
+  (`STICK_AWAY_M`). On the twin the pilot had spent a whole journey's budget
+  at casa_ingombra's basket by the office door, taking the legs back five
+  times; with the fix 48/48 arrived.
 - quack-rl's simulator turned in place only from |vyaw| 1.45, set v7's
   ask: on the 0.17 line (a turn asks 1.0) the simulated duck could not
   turn from a standstill and `rl_calib` found no turns. The thresholds
   follow the walk; `rl_calib` takes `--gait`/`--daemon` and starts from
   the line's prior (`calibrate.sh` passes `GAIT`/`DAEMON`).
+- quack-rl's sensor saw a low thing only on its face: a beam that came down
+  over it went on to the floor. Within 0.2 m of casa_ingombra's bag the
+  simulator returned a third of the twin's hits walking (4 a frame against 10, at
+  the twin's true poses from the body's new `TOF_TRUTH_LOG`); now it meets
+  the top too and returns about what the twin does (10 against 10).
+  `examples/tof_vs_twin` re-senses a twin trace in the simulator; `rl_trace`
+  takes `--reckless KIND` (finalize's shield test, one seed) and `--log DIR`.
 - Twin viewer: a map loaded at boot was drawn at the spawn, turned by
   its yaw; it is now placed once the pose is confirmed, as an exchanged
   map is (12 wakes: within 0.11 m and 4° of the true origin).

@@ -20,6 +20,8 @@
 //!
 //! - `passers`: two rooms, someone standing in the doorway when the duck
 //!   gets there, who leaves 2-12 s later; and a pet or feet about.
+//! - `twin:<house>`: a journey of the MuJoCo twin's tour in one of its
+//!   houses (see [`twin_house`]).
 //!
 //! The levels are the curriculum: 0 the plain ones, 3 everything with the
 //! map off and the sensor at its noisiest.
@@ -145,7 +147,9 @@ fn movers(w: &mut World, rng: &mut Rng, a: (f64, f64), b: (f64, f64), n: usize) 
             continue;
         }
         let height = if kind == MoverKind::StopGo { 1.0 } else { rng.range(0.15, 0.4) };
-        w.movers.push(Mover { x, y, r, heading, speed, kind, timer: rng.range(0.5, 3.0), still: kind == MoverKind::StopGo && rng.chance(0.5), height, woken: false });
+        let timer = rng.range(0.5, 3.0);
+        let still = kind == MoverKind::StopGo && rng.chance(0.5);
+        w.movers.push(Mover::new(x, y, r, heading, speed, kind, timer, still, height));
     }
 }
 
@@ -267,6 +271,12 @@ fn passable(s: &Scenario) -> bool {
 
 /// A scenario of `family` (or one the level allows, at random) at `level`.
 pub fn generate(seed: u64, level: u32, family: Option<&str>) -> Scenario {
+    if let Some(house) = family.and_then(|f| f.strip_prefix("twin:")) {
+        return twin_house(house, seed).unwrap_or_else(|e| panic!("twin:{house}: {e}"));
+    }
+    if let Some(house) = family.and_then(|f| f.strip_prefix("twinlike:")) {
+        return twin_like(house, seed).unwrap_or_else(|e| panic!("twinlike:{house}: {e}"));
+    }
     let mut rng = Rng::new(seed ^ 0x5EED_CAFE);
     for attempt in 0..50 {
         let fam = family.map(str::to_string).unwrap_or_else(|| {
@@ -363,18 +373,11 @@ pub fn generate(seed: u64, level: u32, family: Option<&str>) -> Scenario {
                 let xm = (l[1] + r[0]) / 2.0;
                 let pet = rng.chance(0.3);
                 let radius = if pet { rng.range(0.08, 0.14) } else { rng.range(0.12, 0.2) }.min((y1 - y0) / 2.0 - 0.01);
-                w.movers.push(Mover {
-                    x: xm,
-                    y: (y0 + y1) / 2.0 + rng.range(-0.25, 0.25) * (y1 - y0 - 2.0 * radius).max(0.0),
-                    r: radius,
-                    heading: 0.0,
-                    speed: rng.range(0.2, 0.5),
-                    kind: MoverKind::Lingerer,
-                    timer: rng.range(2.0, 12.0),
-                    still: true,
-                    height: if pet { rng.range(0.15, 0.3) } else { 1.0 },
-                    woken: false,
-                });
+                let y = (y0 + y1) / 2.0 + rng.range(-0.25, 0.25) * (y1 - y0 - 2.0 * radius).max(0.0);
+                let speed = rng.range(0.2, 0.5);
+                let timer = rng.range(2.0, 12.0);
+                let height = if pet { rng.range(0.15, 0.3) } else { 1.0 };
+                w.movers.push(Mover::new(xm, y, radius, 0.0, speed, MoverKind::Lingerer, timer, true, height));
                 let n = rng.pick(2);
                 movers(&mut w, &mut rng, a, b, n);
                 (w, a, b)
@@ -459,4 +462,187 @@ mod tests {
         let b = serde_json::to_string(&generate(7, 2, None)).unwrap();
         assert_eq!(a, b);
     }
+}
+
+/// A twin house's world from its `scripts/twin/houses/<name>.truth.json`
+/// (`gen.py`): walls and furniture on the map, what was put down since
+/// (`unmapped`) not, the holes' rims on the books; its goals, and the
+/// directory it came from.
+fn twin_world(name: &str) -> anyhow::Result<(World, std::collections::BTreeMap<String, [f64; 2]>, String)> {
+    #[derive(Deserialize)]
+    struct Truth {
+        boxes: Vec<(String, f64, f64, f64, f64, f64)>,
+        holes: Vec<[f64; 4]>,
+        goals: std::collections::BTreeMap<String, [f64; 2]>,
+        #[serde(default)]
+        unmapped: Vec<serde_json::Value>,
+        #[serde(default)]
+        movers: Vec<serde_json::Value>,
+    }
+    let dir = std::env::var("QK_RL_HOUSES").unwrap_or_else(|_| concat!(env!("CARGO_MANIFEST_DIR"), "/../scripts/twin/houses").into());
+    let t: Truth = serde_json::from_str(&std::fs::read_to_string(format!("{dir}/{name}.truth.json"))?)?;
+    let mut w = World::default();
+    let mut b = [f64::INFINITY, f64::NEG_INFINITY, f64::INFINITY, f64::NEG_INFINITY];
+    for (_, x0, x1, y0, y1, h) in &t.boxes {
+        if *h <= 0.02 {
+            continue;
+        }
+        w.rects.push(Rect { height: *h, ..Rect::new(*x0, *x1, *y0, *y1) });
+        b = [b[0].min(*x0), b[1].max(*x1), b[2].min(*y0), b[3].max(*y1)];
+    }
+    w.bounds = b;
+    for u in &t.unmapped {
+        let u = u.as_array().ok_or_else(|| anyhow::anyhow!("an unmapped thing is not a list"))?;
+        let f = |i: usize| u.get(i).and_then(serde_json::Value::as_f64).unwrap_or(0.0);
+        match u.get(1).and_then(serde_json::Value::as_str) {
+            Some("box") => w.rects.push(Rect { height: f(6), mapped: false, ..Rect::new(f(2), f(3), f(4), f(5)) }),
+            _ => w.posts.push(Post { x: f(2), y: f(3), r: f(4), height: f(5), mapped: false }),
+        }
+    }
+    w.holes = t.holes.iter().map(|h| Hole { x0: h[0], x1: h[1], y0: h[2], y1: h[3], booked: true }).collect();
+    // The people and pets that move (casa_viva's, casa_gente's), as the
+    // twin's movers.py walks them: `patrol` as it is; `linger` as the
+    // bench's [`MoverKind::Lingerer`], which steps off into the room and
+    // wanders after its countdown rather than walking to `away` and back.
+    for m in &t.movers {
+        let f = |k: &str| m.get(k).and_then(serde_json::Value::as_f64).unwrap_or(0.0);
+        let pair = |k: &str| {
+            let v = m.get(k).and_then(serde_json::Value::as_array);
+            let at = |i: usize| v.and_then(|v| v.get(i)).and_then(serde_json::Value::as_f64).unwrap_or(0.0);
+            (at(0), at(1))
+        };
+        let (r, height, speed) = (f("r"), f("h"), f("speed"));
+        match m.get("kind").and_then(serde_json::Value::as_str) {
+            Some("patrol") => {
+                let path: Vec<(f64, f64)> = m.get("path").and_then(serde_json::Value::as_array).map(|p| p.iter().map(|q| (q[0].as_f64().unwrap_or(0.0), q[1].as_f64().unwrap_or(0.0))).collect()).unwrap_or_default();
+                anyhow::ensure!(path.len() >= 2, "{name}: a patrol with fewer than two points");
+                w.movers.push(Mover::patrol(path, r, height, speed, pair("pause_s")));
+            }
+            Some("linger") => {
+                let (x, y) = pair("at");
+                let linger = pair("linger_s");
+                w.movers.push(Mover::new(x, y, r, 0.0, speed, MoverKind::Lingerer, (linger.0 + linger.1) / 2.0, true, height));
+            }
+            other => anyhow::bail!("{name}: a mover of kind {other:?}"),
+        }
+    }
+    Ok((w, t.goals, dir))
+}
+
+/// A journey for training in one of the twin's other houses (`--focus
+/// twinlike:casa_viva`): between two of its goals, started where a journey
+/// from a third would have stopped — short of the goal by the twin's
+/// `ARRIVAL_SHORT_M`, facing the way it came — with things put down since
+/// on the way and, now and then, one beside the stop. The bench's own
+/// journeys start in open floor at a heading drawn anew; the twin's start
+/// facing a wall by the basket, and there its pilot lost the bath to the
+/// stick (casa_ingombra, 2026-10-24). casa_ingombra and casa_arredata, the
+/// twin's A/B houses, are left for the bench.
+pub fn twin_like(name: &str, seed: u64) -> anyhow::Result<Scenario> {
+    let (base, goals, _) = twin_world(name)?;
+    let goals: Vec<(f64, f64)> = goals.values().map(|p| (p[0], p[1])).collect();
+    anyhow::ensure!(goals.len() >= 3, "{name}: fewer than three goals");
+    let mut rng = Rng::new(seed ^ 0x71E5);
+    for _ in 0..30 {
+        let (a, b, c) = (rng.pick(goals.len()), rng.pick(goals.len()), rng.pick(goals.len()));
+        if a == b || b == c || a == c {
+            continue;
+        }
+        let (prev, from, goal) = (goals[a], goals[b], goals[c]);
+        let mut w = base.clone();
+        let n = rng.pick(4);
+        unmapped_on_the_way(&mut w, &mut rng, from, goal, n);
+        if rng.chance(0.5) {
+            let (bearing, d) = (rng.range(-std::f64::consts::PI, std::f64::consts::PI), rng.range(0.3, 0.45));
+            let (cx, cy) = (from.0 + d * bearing.cos(), from.1 + d * bearing.sin());
+            let (sx, sy) = (rng.range(0.15, 0.3), rng.range(0.15, 0.3));
+            let mut r = Rect::new(cx - sx / 2.0, cx + sx / 2.0, cy - sy / 2.0, cy + sy / 2.0);
+            r.mapped = false;
+            r.height = rng.range(0.1, 0.4);
+            w.rects.push(r);
+        }
+        // Down the way from the third goal until short of this one.
+        let field = Field::build(&w, from, 0.11, false);
+        let (mut p, mut heading) = (prev, None);
+        for _ in 0..400 {
+            if dist(p, from) <= ARRIVAL_SHORT_M {
+                break;
+            }
+            let Some(q) = field.descend(p.0, p.1, 0.05) else { break };
+            if dist(q, p) < 1e-6 {
+                break;
+            }
+            heading = Some((q.1 - p.1).atan2(q.0 - p.0));
+            p = q;
+        }
+        let Some(yaw) = heading.filter(|_| dist(p, from) <= ARRIVAL_SHORT_M + 0.05) else { continue };
+        let s = Scenario {
+            family: format!("twinlike:{name}"),
+            level: 3,
+            seed,
+            world: w,
+            start: (p.0, p.1, yaw + ARRIVAL_YAW_SD * rng.gauss()),
+            goal,
+            bias: (0.0, 0.0),
+        };
+        if passable(&s) {
+            return Ok(s);
+        }
+    }
+    anyhow::bail!("{name}: no journey in 30 draws")
+}
+
+/// The MuJoCo twin's tour, in the order `scripts/rl/twin_ab.py` walks it:
+/// each journey starts where the one before arrived.
+const TWIN_TOUR: [&str; 6] = ["kitchen", "living", "bedroom", "office", "bath", "home"];
+/// The spread of the twin's stops' heading about its mean: MAD 7-28°
+/// (2026-10-24).
+const ARRIVAL_YAW_SD: f64 = 0.25;
+/// How far short of a goal the twin's journeys stopped: 0.17 m, give or
+/// take 0.03 (`<name>.arrivals.json`).
+const ARRIVAL_SHORT_M: f64 = 0.17;
+
+/// A journey of the twin's tour in one of its houses (`--families
+/// twin:casa_ingombra`), from the house's `scripts/twin/houses/<name>.truth.json`
+/// (`gen.py`): its walls and furniture on the map, what was put down since
+/// (`unmapped`) not, its holes' rims on the books as the twin's oracle has
+/// them, the map drawn whole. The seed picks the journey (seed % 6) and the
+/// heading it starts at: the bench then walks the twin's own journeys, and
+/// a pilot better there than the stick should be better on the twin.
+pub fn twin_house(name: &str, seed: u64) -> anyhow::Result<Scenario> {
+    let (w, goals, dir) = twin_world(name)?;
+    let k = (seed % TWIN_TOUR.len() as u64) as usize;
+    let at = |g: &str| goals.get(g).map(|p| (p[0], p[1])).ok_or_else(|| anyhow::anyhow!("no goal {g}"));
+    let from = at(TWIN_TOUR[(k + TWIN_TOUR.len() - 1) % TWIN_TOUR.len()])?;
+    let goal = at(TWIN_TOUR[k])?;
+    let mut rng = Rng::new(seed ^ 0x7417);
+    // Where the twin's journey before this one stopped, when it was
+    // measured (`<name>.arrivals.json`): short of the goal and facing the
+    // way it came. Out of casa_ingombra's office the twin's duck faces the
+    // wall and turns round by the basket, where its pilot lost 38 legs to
+    // the stick; from the goal at a heading drawn anew, the bench's 16.
+    #[derive(Deserialize)]
+    struct Arrivals {
+        arrivals: std::collections::BTreeMap<String, [f64; 3]>,
+    }
+    let came = TWIN_TOUR[(k + TWIN_TOUR.len() - 1) % TWIN_TOUR.len()];
+    let arrived = std::fs::read_to_string(format!("{dir}/{name}.arrivals.json"))
+        .ok()
+        .and_then(|s| serde_json::from_str::<Arrivals>(&s).ok())
+        .and_then(|a| a.arrivals.get(came).copied());
+    let start = match arrived {
+        // Where it stopped, to the centimetre: casa_ingombra's bedroom stop
+        // clears the toy by 8 mm, and a jittered start inside it never moved.
+        Some([x, y, yaw]) => (x, y, yaw + ARRIVAL_YAW_SD * rng.gauss()),
+        None => (from.0, from.1, rng.range(-std::f64::consts::PI, std::f64::consts::PI)),
+    };
+    Ok(Scenario {
+        family: format!("twin:{name}"),
+        level: 3,
+        seed,
+        world: w,
+        start,
+        goal,
+        bias: (0.0, 0.0),
+    })
 }

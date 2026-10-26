@@ -54,7 +54,7 @@ Copia i file sulla papera, poi lì con `sudo`:
 | `/etc/systemd/system/quack-navd.service` | `systemd/quack-navd.service` |
 | `/etc/sysusers.d/quack-nav.conf` (utente `quacknav`) | `systemd/sysusers.d/quack-nav.conf` |
 | `/etc/robot/quack-nav.toml` — **solo se non c'è** | `quack-nav.example.toml` |
-| `/var/lib/quack-nav/pilots/alpha/pilot.json`, `…/velstand/pilot.json` | `pilots/` (usati solo se attivati, sotto) |
+| `/var/lib/quack-nav/pilots/alpha/pilot.json`, `…/velstand/pilot.json`, `…/0.17/velstand/pilot.json` | `pilots/` (usati solo se attivati, sotto) |
 
 Un vecchio `/var/lib/quacksat/places.json` (quack-nav 0.1.0) viene copiato
 in `/var/lib/quack-nav/` se lì non ce n'è uno. Poi abilita e riavvia il

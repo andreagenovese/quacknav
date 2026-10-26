@@ -517,9 +517,10 @@ mod tests {
             moving: true,
             drops: vec![],
             floors: vec![],
-            obstacles: vec![Obstacle { bearing: 0.0, range_m: 0.55 }],
+            obstacles: vec![Obstacle { bearing: 0.0, range_m: 0.55, trunk_m: 0.55 }],
             floor_beams: 0,
             judged: 0,
+            odom: None,
         });
         let route = [(0.2, 0.0), (0.5, 0.0), (0.9, 0.0)];
         let obs = observe(&ObsInput {

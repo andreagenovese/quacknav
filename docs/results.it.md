@@ -694,8 +694,154 @@ secondo ha mancato due viaggi per tempo. Non rilasciati: sulla linea 0.17
 guida lo stick, come nell'A/B sopra. I piloti restano in
 `rl-runs/calib-v8{,b}`.
 
+#### Secondo giro sulla linea 0.17: perché il pilota perdeva, e il simulatore messo a vedere come il gemello (2026-10-21..26)
+
+Ramo `pilot-why`. La domanda lasciata il 2026-10-20 — perché i piloti che
+passano il banco perdono contro lo stick sul gemello — è stata smontata
+una differenza alla volta, ognuna misurata sul gemello: lo stick contro
+il pilota dello stesso build, quattro giri di casa_ingombra e
+casa_arredata, daemon-v0.17.6 + set v8, due gemelli alla volta
+(`rl-runs/twin-work/P8/`).
+
+- **Prenotazioni 7,8 cm troppo vicine** (`9d59dfb`): kinematics misura la
+  distanza di un ritorno dal sensore, non dall'asse del tronco che la sua
+  documentazione nomina (pollen-robotics/microduck#430), così ciò che i
+  libri tenevano stava più vicino al corpo di quanto fosse. Contro il main
+  congelato, stick contro stick (AB7): 24/24 da entrambe le parti in
+  entrambe le case; casa_ingombra media 112 → 119 s, casa_arredata
+  101 → 102 — dentro il rumore.
+- **Prenotazioni dalla posa del fotogramma, lo stick accanto a un bordo**
+  (`fd38eb0`): un fotogramma porta la posa odometrica a cui è stato
+  giudicato, e una cosa vista è prenotata da lì, non dal corpo fino a un
+  passo curvo dopo (una borsa era stata prenotata 0,55 rad più in là,
+  dentro il passaggio accanto); entro 0,5 m da un bordo prenotato lo
+  stick cammina le gambe, dove il pilota tentennava accanto alla scala di
+  casa_arredata (+28 s verso il bagno, +33 s verso casa). AB8: 24/24 in
+  entrambi i bracci; pilota 115 s contro 114 dello stick in casa_ingombra,
+  100 contro 100 in casa_arredata.
+- **Il passaggio di mano** (`52ac48a`, `95c66c9`, `e34bedd`): lo stick
+  prende le gambe a un pilota che non si avvicina alla meta di 0,15 m in
+  12 s, e le tiene finché il corpo non è a 0,3 m da dove le ha prese (30 s
+  al massimo) — prima il pilota se le riprendeva sul posto ogni 30 s contro
+  il cesto di casa_ingombra e spendeva il tempo del bagno; e niente di
+  visto davanti è prenotato entro 1,5 s da una girata sul posto.
+- **Il simulatore** (`1f0d284`, `5f8120b`, `3324b0c`, `9546216`,
+  `19a8a6e`): una girata sul posto prosegue dopo lo stop come fa il set v8
+  (23° chiesti, circa 56° percorsi; `rl_calib` stima la deriva); un
+  ribaltamento si rialza dopo 4 s con la posa persa per un po', invece di
+  chiudere il viaggio; le righe del sensore stanno dove il cammino porta
+  la testa; i passi girano per lato e le retromarce come misurate; il
+  rumore di fotogramma del sensore è al massimo 0,02 m. Le case del
+  gemello sono sul banco (`--families twin:<casa>`: il giro del gemello,
+  ogni viaggio che parte dove l'ultimo del gemello si è fermato, le cose
+  posate dopo non mappate) e le sue altre case in addestramento
+  (`twinlike:<casa>`); il cancello rifiuta anche più timeout, ribaltamenti
+  o secondi a viaggio dello stick.
+- **Pilota v8l-s3** (`rl-runs/calib-v8l`: la ricetta di v8j da v8d, semi
+  2–4, il migliore del banco): AB13 23/24 e 24/24; con la presa (AB14)
+  48/48 arrivati, nessuna caduta, casa_ingombra media 110 s contro 112
+  dello stick, casa_arredata 96 contro 101 — appaiati per viaggio 2,2 e
+  4,4 s più veloce. Banco (420 viaggi, semi da 200000): pilota 98,6 % di
+  arrivi, 6 ribaltamenti, 1,47 urti a viaggio; lo stick 98,3 %, 18 e 3,08.
+  Il primo pilota sulla linea 0.17 non più lento dello stick.
+- **Una regola che vinceva sul gemello e perdeva sul banco** (`6433012`,
+  ritirata in `fca0e14`): lo stick che prende le gambe entro 0,5 m da una
+  cosa prenotata nel viaggio, dove il pilota girava, arretrava e aspettava
+  circa dieci volte a viaggio davanti alla borsa e al cesto di
+  casa_ingombra. AB15: 48/48, il pilota 5,2 e 6,2 s a viaggio più veloce
+  dello stick, il tempo davanti alla borsa 23 → 12 s. Sul banco (1400
+  viaggi, semi da 500000) 19 viaggi peggiorati contro 9 migliorati, arrivi
+  98,2 → 97,5 %, ribaltamenti 40 → 60, urti 2,80 → 3,69: lo stick restava
+  accanto a una scatola troppo bassa per il sensore in cammino e la
+  spingeva fino al timeout (seme 500140, 147 urti). Un rilascio quando lo
+  stick non si avvicinava riportava gli arrivi (98,0 %) ma non i
+  ribaltamenti (55). Ritirata: niente parte con una regressione sul banco,
+  e i tre secondi del gemello li deve vincere l'addestramento.
+- **Il sensore contro la verità del gemello** (`TOF_TRUTH_LOG` nel body
+  server del gemello, `examples/tof_vs_twin`, `3b32539`): il sensore del
+  gemello cammina inclinato a −8,5° e sta fermo a −11°, a 0,233–0,238 m di
+  altezza. I raggi del simulatore che scendevano sopra una cosa bassa
+  proseguivano fino al pavimento: camminando entro 0,2 m dalla borsa di
+  casa_ingombra restituiva 4 ritorni a fotogramma contro i 10 del gemello
+  alle pose vere del gemello; ora incontrano la cima, 10 contro 10.
+  L'inclinazione della calibrazione è −6° (`calib-v8m`): le zone a
+  pavimento coincidono con il gemello in cammino a −3/−6° e da fermo a −9°.
+- **Riaddestrare sul simulatore corretto**: v8m (200 aggiornamenti da s3,
+  semi 2–4) non ha superato s3 in nessuna delle case del gemello sul banco
+  (casa_ingombra s3 104 s contro 107 dello stick; casa_arredata 83 contro
+  88). v8n (600
+  aggiornamenti, seme 2): 98,3 % sul banco del cancello contro 99,0 % di
+  s3 sulla stessa calibrazione, 5 ribaltamenti contro 12 — non meglio; i
+  semi 3 e 4 non sono stati corsi, perché il test delle scudature di
+  finalize fallisce su quella calibrazione (sotto).
+- **Una falla che il sensore corretto fa vedere** (`rl-runs/calib-v8n`):
+  ai −6° della calibrazione il cervello sconsiderato "sempre indietro"
+  cade nella scala del seme 300002 (a −3° no; su 600 semi entrambe danno
+  6–7 cadute in 12.600 cammini). La traccia: la papera si gira dal bordo,
+  lo stick prende le gambe a 0,34 m da esso e cammina la rotta lungo il
+  fianco del buco; i dirupi sui libri stanno 12–42 cm dentro il buco,
+  perché un dirupo è prenotato a `range_m`, dove ci si aspettava il
+  pavimento, e non al bordo, che sta fra l'ultimo pavimento visto dalla
+  colonna (`edge_min_m`) e quello — una riga del sensore più vicino. La
+  rotta tiene 0,20 m da un dirupo prenotato, così il bordo del corpo può
+  sporgere oltre il ciglio. `main` prenota allo stesso modo (il ramo non
+  l'ha toccato); negli A/B del gemello i bordi vengono dall'oracolo, così
+  l'A/B non la vede, l'esplorazione da zero sì. Da correggere in un giro a
+  parte: prenotare il ciglio fra `edge_min_m` e `range_m`, poi la
+  famiglia delle scale del banco, 600 semi sconsiderati su entrambe le
+  calibrazioni, e l'esplorazione da zero sul gemello.
+- **Il test delle scudature su 600 semi** (`rl_eval --reckless`, 12.600
+  cammini): 7 cadute in un buco dopo il ritiro, 6 prima, tre semi in
+  comune — lo stick che taglia lo spigolo di un bordo che nessuno aveva
+  prenotato, un limite noto (la rotta tiene 0,20 m da un dirupo prenotato,
+  non da uno non prenotato). I 60 semi di finalize passano.
+- **Persone che camminano fra le stanze**: `casa_gente` e i mover che si
+  spostano di lato o indietro (vedi il changelog, 2026-10-26). Sul banco
+  il pilota v8l-s3 arriva l'89 % delle volte con 2,2 contatti con le
+  persone a viaggio, lo stick l'84 % con 8,0; le perdite sono la papera che
+  urta qualcuno che aspetta in una porta — il comportamento che il
+  prossimo giro addestra. Il gemello
+  (AB16, lo stick contro il pilota v8l-s3 sullo stesso build, quattro
+  giri): lo stick 23/24, media 110 s, 41 episodi di contatto con le persone
+  (i contatti a meno di 2 s contati una volta); il pilota 23/24, media
+  119 s, 33 episodi; nessuna caduta. Ognuno ha mancato un viaggio per il
+  tempo scaduto — lo stick il bagno, 741 contatti nel passaggio accanto
+  alla scala, dove la persona che lo aspettava non aveva spazio per
+  spostarsi; il pilota la cucina, sballottato da due persone in fondo al
+  corridoio. Dove le persone attraversano la strada (cucina, camera) il
+  pilota è 30–50 s più lento dello stick, oltre la scala 54 s più veloce:
+  incontra le persone con più attese e retromarce, lo stick con più
+  spinte. Il banco aveva detto 89 % contro 84 % e 2,2 contro 8,0 contatti a
+  viaggio: il gemello concorda sull'ordine e sulle spinte dello stick, ed
+  è più generoso sugli arrivi.
+- **Contro il main congelato** (`dcafd35`, AB17: lo stick di main su un
+  gemello, il pilota v8l-s3 del ramo sull'altro, quattro giri di ogni casa
+  dell'A/B, gli stessi libri): nessuna caduta da nessuna parte, 24/24
+  arrivi ovunque. Il pilota in media 113 s contro i 117 dello stick di
+  main su casa_ingombra, 96 contro 100 su casa_arredata; appaiato per
+  viaggio 4,2 e 3,9 s più veloce, più veloce in 14 e 18 viaggi su 24; la
+  posa all'arrivo a 0,17 m dalla verità da entrambe le parti. Per meta il
+  pilota cede un poco dove la strada è libera (casa: 102 contro 90 s su
+  casa_ingombra) e guadagna dove non lo è (studio 91 contro 108, camera
+  129 contro 140). È il numero chiesto dall'utente — un pilota addestrato
+  su uno stick che non fa peggio dello stick — e ciò che ha fatto
+  rilasciare v8l-s3 come pilota velstand della linea 0.17
+  (`quack-rl/pilots/v8l-s3-velstand/`).
+
 ## Limiti noti
 
+- **Un dirupo è prenotato dove ci si aspettava il pavimento, non al
+  ciglio** (2026-10-26). Il sensore delimita il bordo di un buco fra
+  l'ultimo pavimento visto da una colonna (`edge_min_m`) e dove si
+  aspettava il successivo (`range_m`), e i libri prendono il secondo: una
+  riga del sensore dentro il buco, 12–42 cm nella scala del seme 300002 del
+  banco, dove i 0,20 m che la rotta tiene dai dirupi prenotati lasciano il
+  bordo del corpo sporgere oltre il ciglio e un cervello sconsiderato cade
+  con la calibrazione corretta (−6°). `main` prenota allo stesso modo;
+  negli A/B del gemello i bordi vengono dall'oracolo, quindi lì non si
+  vede; l'esplorazione da zero lo farebbe vedere. Da correggere in un giro
+  a parte (il passaggio accanto alla scala di casa_arredata è 0,49 m: un
+  ciglio prenotato più vicino può chiuderlo).
 - **Un bordo registrato dove lo metteva la posa.** Circa un drop su 50 finisce
   20–35 cm fuori dal bordo vero (l'errore della posa quando è stato visto).
   All'aperto non costa niente; in un passaggio accanto a un buco lo restringe

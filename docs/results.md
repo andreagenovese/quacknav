@@ -652,8 +652,144 @@ passages (turns left and right, waits, back-offs), the second missed two
 journeys on time. Not shipped: on the 0.17 line the stick drives, as it
 did through the A/B above. The pilots stay in `rl-runs/calib-v8{,b}`.
 
+#### Round two on the 0.17 line: why the pilot lost, and the simulator made to see as the twin (2026-10-21..26)
+
+Branch `pilot-why`. The question left on 2026-10-20 — why pilots that
+pass the bench lose to the stick on the twin — was taken apart one
+difference at a time, each measured on the twin: the stick against the
+pilot of the same build, four tours of casa_ingombra and casa_arredata,
+daemon-v0.17.6 + set v8, two twins at a time (`rl-runs/twin-work/P8/`).
+
+- **Bookings 7.8 cm too near** (`9d59dfb`): kinematics measures a hit's
+  range from the sensor, not from the trunk axis its doc names
+  (pollen-robotics/microduck#430), so what the books held sat nearer the
+  body than it was. Against frozen main, stick to stick (AB7): 24/24 on
+  both sides in both houses; casa_ingombra mean 112 → 119 s, casa_arredata
+  101 → 102 — within noise.
+- **Bookings from the frame's pose, the stick beside a rim** (`fd38eb0`):
+  a frame carries the odometry pose it was judged at, and a thing seen is
+  booked from there, not from the body up to a curving step later (a bag
+  had been booked 0.55 rad round, into the passage beside it); within
+  0.5 m of a booked rim the stick walks the legs, where the pilot had
+  dithered by casa_arredata's stairwell (+28 s to the bath, +33 s home).
+  AB8: 24/24 both arms; pilot 115 s against the stick's 114 in
+  casa_ingombra, 100 against 100 in casa_arredata.
+- **The handover** (`52ac48a`, `95c66c9`, `e34bedd`): the stick takes the
+  legs from a pilot that gets no nearer the goal by 0.15 m in 12 s, and
+  keeps them until the body is 0.3 m from where it took over (30 s at
+  most) — before that the pilot got them back on the spot every 30 s
+  against casa_ingombra's basket and spent the bath's budget; and
+  nothing seen ahead is booked within 1.5 s of a turn in place.
+- **The simulator** (`1f0d284`, `5f8120b`, `3324b0c`, `9546216`,
+  `19a8a6e`): a turn in place coasts on after its stop as set v8 does
+  (23° asked, about 56° walked; `rl_calib` fits the coast); a tip-over
+  gets up after 4 s with its pose lost a while, instead of ending the
+  journey; the sensor's rows sit where the walk carries the head; steps
+  turn by side and back-offs as measured; the sensor's frame noise is at
+  most 0.02 m. The twin's houses are on the bench (`--families
+  twin:<house>`: the twin's tour, each journey starting where the twin's
+  last one stopped, its things put down since unmapped) and its other
+  houses in training (`twinlike:<house>`); the gate also refuses more
+  timeouts, tip-overs or seconds a journey than the stick.
+- **Pilot v8l-s3** (`rl-runs/calib-v8l`: v8j's recipe from v8d, seeds 2–4,
+  the bench's best): AB13 23/24 and 24/24; with the hold (AB14) 48/48
+  arrived, no fall, casa_ingombra mean 110 s against the stick's 112,
+  casa_arredata 96 against 101 — paired by journey 2.2 and 4.4 s faster.
+  Bench (420 journeys, seeds 200000): pilot 98.6 % arrived, 6 tip-overs,
+  1.47 bumps a journey; the stick 98.3 %, 18 and 3.08. The first pilot on
+  the 0.17 line not slower than the stick.
+- **A rule that won on the twin and lost on the bench** (`6433012`,
+  reverted in `fca0e14`): the stick taking the legs within 0.5 m of a
+  thing booked on the journey, where the pilot had turned, stepped back
+  and waited about ten times a journey before casa_ingombra's bag and
+  basket. AB15: 48/48, the pilot 5.2 and 6.2 s a journey faster than the
+  stick, the time at the bag 23 → 12 s. On the bench (1,400 journeys,
+  seeds 500000) 19 journeys worse against 9 better, arrivals 98.2 →
+  97.5 %, tip-overs 40 → 60, bumps 2.80 → 3.69: the stick held beside a
+  box too low for the walking sensor and pushed it to the timeout (seed
+  500140, 147 bumps). A release when the stick got no nearer brought the
+  arrivals back (98.0 %) but not the tip-overs (55). Reverted: nothing
+  ships with a regression on the bench, and the twin's three seconds are
+  for training to win.
+- **The sensor against the twin's truth** (`TOF_TRUTH_LOG` in the twin's
+  body server, `examples/tof_vs_twin`, `3b32539`): the twin's sensor walks
+  pitched −8.5° and stands at −11°, 0.233–0.238 m up. The simulator's
+  beams coming down over a low thing went on to the floor: walking within
+  0.2 m of casa_ingombra's bag it returned 4 hits a frame against the
+  twin's 10 at the twin's own poses; they meet the top now, 10 against 10.
+  The calibration's pitch is −6° (`calib-v8m`): the floor zones match the
+  twin walking at −3/−6° and standing at −9°.
+- **Retraining on the corrected simulator**: v8m (200 updates from s3,
+  seeds 2–4) beat s3 nowhere on the bench's twin houses (casa_ingombra s3
+  104 s against the stick's 107; casa_arredata 83 against 88). v8n (600
+  updates, seed 2): 98.3 % on the gate's bench against s3's 99.0 % on the
+  same calibration, 5 tip-overs against 12 — not better; seeds 3 and 4
+  were not run, because finalize's shield test fails on that calibration
+  (next).
+- **A gap the corrected sensor shows up** (`rl-runs/calib-v8n`): at the
+  calibration's −6° the reckless-back brain falls into the stairwell of
+  seed 300002 (at −3° it does not; at 600 seeds both give 6–7 falls in
+  12,600 walks). The trace: the duck turns from the rim, the stick takes
+  the legs 0.34 m from it and walks the route along the hole's side; the
+  drops on the books sit 12–42 cm inside the hole, because a drop is
+  booked at `range_m`, where the floor was expected, and not at the rim,
+  which lies between the last floor the column saw (`edge_min_m`) and
+  that — one row of the sensor nearer. The route keeps 0.20 m off a
+  booked drop, so the body's edge can overhang the rim. `main` books the
+  same way (the branch did not touch it); on the twin's A/B the rims come
+  from the oracle, so the A/B does not see it, exploring from nothing
+  would. To fix in a round of its own: book the rim between
+  `edge_min_m` and `range_m`, then the bench's stairwell family, 600
+  reckless seeds on both calibrations, and exploring from nothing on the
+  twin.
+- **The shields' test at 600 seeds** (`rl_eval --reckless`, 12,600 walks):
+  7 hole falls after the revert, 6 before, three seeds common — the stick
+  clipping the corner of a rim nothing had booked, a known limit (the
+  route keeps 0.20 m off a booked drop, not off an unbooked one). finalize's
+  60 seeds pass.
+- **People walking between the rooms**: `casa_gente` and the movers that
+  step aside or back (see the changelog, 2026-10-26). On the bench the
+  pilot v8l-s3 arrives 89 % of the time with 2.2 contacts with people a
+  journey, the stick 84 % and 8.0; the losses are the duck bumping someone
+  who waits in a door — the behaviour the next round trains. The twin
+  (AB16, the stick against pilot v8l-s3 on the same build, four tours):
+  the stick 23/24, mean 110 s, 41 contact episodes with people (touches
+  less than 2 s apart counted once); the pilot 23/24, mean 119 s, 33
+  episodes; no fall. Each missed one journey to the time budget — the
+  stick the bath, 741 touches in the passage by the stairwell, where the
+  person waiting for it had no room to step aside; the pilot the kitchen,
+  pushed about by two people in the corridor's west end. Where the people
+  cross the way (kitchen, bedroom) the pilot is 30–50 s slower than the
+  stick, past the stairwell 54 s faster: it meets people with more waits
+  and back-offs, the stick with more pushing. The bench had said 89 %
+  against 84 % and 2.2 against 8.0 contacts a journey: the twin agrees on
+  the order and on the stick's pushing, and is kinder on arrivals.
+- **Against frozen main** (`dcafd35`, AB17: main's stick on one twin, the
+  branch's pilot v8l-s3 on the other, four tours of each A/B house, the
+  same books): no fall on either side, 24/24 arrived everywhere. The
+  pilot mean 113 s against main's stick 117 on casa_ingombra, 96 against
+  100 on casa_arredata; paired by journey 4.2 and 3.9 s faster, faster in
+  14 and 18 journeys of 24; the pose at arrival 0.17 m off the truth on
+  both sides. Per goal the pilot gives up a little where the way is clear
+  (home: 102 against 90 s on casa_ingombra) and gains where it is not
+  (office 91 against 108, bedroom 129 against 140). That is the number
+  the user asked for — a pilot trained on a stick that does not do worse
+  than the stick — and what shipped v8l-s3 as the 0.17 velstand pilot
+  (`quack-rl/pilots/v8l-s3-velstand/`).
+
 ## Known limits
 
+- **A drop is booked where the floor was expected, not at the rim**
+  (2026-10-26). The sensor bounds a hole's edge between the last floor a
+  column saw (`edge_min_m`) and where it expected the next (`range_m`),
+  and the books take the latter: one row of the sensor inside the hole,
+  12–42 cm in the stairwell of the bench's seed 300002, where the route's
+  0.20 m off the booked drops lets the body's edge overhang the rim and a
+  reckless brain falls on the corrected calibration (−6°). `main` books the
+  same way; on the twin's A/B the rims come from the oracle, so it does
+  not show there; exploring from nothing would show it. To fix in a round
+  of its own (the passage beside casa_arredata's stairwell is 0.49 m: a
+  rim booked nearer may shut it).
 - **A rim booked where the pose had it.** About 1 in 50 drops lands 20–35 cm
   off the true rim (the pose's error when it was seen). In the open that
   costs nothing; in a passage beside a hole it narrows the passage for the

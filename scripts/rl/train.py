@@ -191,8 +191,8 @@ def cmd_ppo(args):
         if (u + 1) % args.eval_every == 0 or u == args.updates - 1:
             P.save(net, os.path.join(args.out, "last.pt"), dict(meta, update=u))
             path, row, text = bench(net, args.out, "last", args, dict(meta, update=u), probe=O[0, :4])
-            score = (row.get("fell_hole", row["fell"]) == 0, row["arrived"] - 2 * row.get("tipped", 0), -row["mean_secs_arrived"])
-            log(args.out, f"bench at {u}: arrived {row['arrived']}/{row['n']}, fell {row['fell']} (holes {row.get('fell_hole')}, tipped {row.get('tipped')}), off {row['arrived_off']}, timeout {row['timeout']}, failed {row['failed']}, secs {row['mean_secs_arrived']:.1f}, bumps {row['bumps_per_ep']:.2f}")
+            score = (row.get("fell_hole", row["fell"]) == 0, row["arrived"] - 2 * row.get("tips", row.get("tipped", 0)), -row.get("mean_secs_all", row["mean_secs_arrived"]))
+            log(args.out, f"bench at {u}: arrived {row['arrived']}/{row['n']}, fell {row['fell']} (holes {row.get('fell_hole')}, tipped {row.get('tipped')}, tips {row.get('tips')}), off {row['arrived_off']}, timeout {row['timeout']}, failed {row['failed']}, secs {row['mean_secs_arrived']:.1f} (all {row.get('mean_secs_all', 0):.1f}), bumps {row['bumps_per_ep']:.2f}")
             if best is None or score > best[0]:
                 best = (score, u)
                 P.save(net, os.path.join(args.out, "best.pt"), dict(meta, update=u, bench=row))
