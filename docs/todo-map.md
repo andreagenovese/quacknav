@@ -46,7 +46,9 @@ place's overshoot found to be a command left in robotd to its deadman
 down to 3–21°; A/B 48/48 both arms, 0 falls, the turns 12–16° past
 what was asked instead of 43–44°). **Remaining**, in order: the walking leg's own hold to
 the deadman after its last chunk (about 5 cm at set v8's pace), measured
-on the twin and modelled or stopped like the turn's; a gait ledger — the
+on the twin and modelled or stopped like the turn's, and `robot.move`'s
+own end stopped the same way (today the tool's turn goes on to the
+deadman); a gait ledger — the
 numbers the walk is driven by (speed, veer, yaw per unit, the turn's rate
 and coast, the settle) learned on the duck's own legs and stands, as the
 turn's coast already is, kept beside the map per daemon line and policy

@@ -167,8 +167,10 @@ questi cervelli. Da allora: nessuna in 3.760 viaggi.
   scivola lungo la faccia e può **ribaltare la papera** (per urto contro
   una scatola, un palo sottile, qualcosa che si muove); sulla linea 0.17
   una papera ribaltata si rialza dopo 4 s con la posa persa per un po', e
-  una girata sul posto prosegue dopo lo stop come fa il set v8
-  (`turn_coast_rad`, stimato dalle tracce).
+  una girata sul posto non fermata tiene il suo ultimo comando fino al
+  deadman di robotd (0,5 s) come la papera, e oltre prosegue come fa il
+  set v8 (`turn_coast_rad`, stimato dalle tracce, è le due cose in una:
+  il modello ne toglie la tenuta).
 - **Il sensore** (`world.rs`) risponde zona per zona, 8 × 8, come quello
   vero: ogni riga guarda il pavimento a 0,25-2,0 m da 0,25 m d'altezza, e
   incontra una cosa alta H a distanza D quando la sua distanza dal

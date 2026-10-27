@@ -50,7 +50,9 @@ stop alla fine di ogni svolta, da 36–47° oltre la chiusura a 3–21°; A/B
 invece di 43–44°).
 **Da fare**, in ordine: la tenuta della gamba camminata fino al deadman
 dopo il suo ultimo pezzo (circa 5 cm al passo del set v8), misurata sul
-gemello e modellata o fermata come quella della svolta; un registro
+gemello e modellata o fermata come quella della svolta, e la fine di
+`robot.move` fermata allo stesso modo (oggi la svolta dello strumento
+prosegue fino al deadman); un registro
 d'andatura — i numeri con cui si guida la camminata (velocità, deriva,
 imbardata per unità, velocità e coda della svolta, assestamento)
 imparati sulle gambe e sulle soste della papera stessa, come già la coda

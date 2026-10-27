@@ -335,8 +335,13 @@ obstacle within ~10 cm of the tape.
       `nav robot.move '{"vx":0.3,"duration_s":2}'` (≤ 3 s; the walking policy
       does not step below ~0.25 m/s commanded; on the twin 0.3 m/s walked
       53 cm in 5 s). Expect `"done":true`, `"cliff_guard":"on"`. Tape the
-      distance. A turn: `'{"vx":0.3,"vyaw":0.7,"duration_s":2}'` — the duck
-      does not turn in place. Never back toward an edge: a backward move is
+      distance. A turn: `'{"vx":0.3,"vyaw":0.7,"duration_s":2}'` — on the
+      0.16 line the duck does not turn in place; on 0.17 a turn in place
+      `'{"vyaw":1.0,"duration_s":1}'` is about 65°/s. Tape how far it goes
+      on past the command's end: `robot.move` sends no stop, so robotd
+      holds the command to its deadman (the twin: some 33° more at 1.0;
+      the explorer's own turns send a stop and go 3–21° on). Never back
+      toward an edge: a backward move is
       `not covered: backing up`.
 - [ ] The same from quack-control: **Advanced → All tools → robot.move**
       (it asks for confirmation).
