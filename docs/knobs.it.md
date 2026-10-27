@@ -40,6 +40,7 @@ del processo.
 | `QK_INFLATE_M` | numero (default 0.12) | `quack-nav/src/frontier.rs` | The inflation the planner runs with: 0.12, a little over the body's half-width, 0.10 (`QK_INFLATE_M`). |
 | `QK_LANE_HALF_M` | numero (default 0.16) | `quack-nav/src/explore/mod.rs` |  |
 | `QK_LANE_YIELD_M` | numero (default 0.20) | `quack-nav/src/frontier.rs` | `QK_LANE_YIELD_M`: [`LANE_YIELDS_TO_DROP_M`] for an experiment. |
+| `QK_LOOK_DOWN` | 1 accesa, 0 spenta, altrimenti il default del chiamante | `quack-nav/src/explore/guarded.rs` | The look at the floor ahead before a step onto cells the map does not hold as floor (`look_first`): off with `QK_LOOK_DOWN=0`. |
 | `QK_MOVER_AHEAD_M` | numero (default 0.6) | `quack-nav/src/explore/stick.rs` | `QK_MOVER_AHEAD_M`: [`MOVER_AHEAD_M`] for an experiment; 0, off. |
 | `QK_NO_GUARDS` | 1 accesa, 0 spenta, altrimenti il default del chiamante | `quack-nav/src/explore/journey.rs` | `QK_NO_GUARDS`: every leg, kick and pulse goes through `robot.move`, blind, and the route check is off — the planner alone (the frozen map, the books, the margins) brings the duck home. |
 | `QK_ORACLE_AS_MAPPED` | accesa solo con 1 | `quack-nav/src/oracle.rs` | `QK_ORACLE_AS_MAPPED=1`: the truth drawn as a mapper draws a house — the holes unknown (no floor ever seen there) instead of wall, and the inside of each box of the truth's `boxes` unknown past a 5 cm band (nothing sees … |

@@ -29,6 +29,8 @@ const DT: f64 = 0.1;
 const KEEP_S: f64 = 3.5;
 /// A stand this long is a stand for the mapper: the pose is corrected.
 const STAND_CORRECTS_S: f64 = 1.5;
+/// The head pitched down for a look at the floor ahead (`look_down`).
+pub const LOOK_PITCH_RAD: f64 = -0.69;
 /// The head's sweep at a stand.
 const SWEEP: f64 = 0.8;
 /// A turn's coast is given out with this time constant (the twin's
@@ -96,6 +98,8 @@ pub struct Sim {
     next_frame_t: f64,
     seq: u64,
     head: f64,
+    /// The head's pitch from rest (a look at the floor ahead), radians.
+    look: f64,
     pub since: Since,
     /// What a bench draws: the true track (t, x, y, yaw) every 0.2 s, and
     /// the contacts (t, kind, x, y).
@@ -168,6 +172,7 @@ impl Sim {
             next_frame_t: 0.0,
             seq: 0,
             head: 0.0,
+            look: 0.0,
             since: Since::default(),
             track: Vec::new(),
             contacts: Vec::new(),
@@ -295,7 +300,7 @@ impl Sim {
             self.seq += 1;
             let at = self.t0 + Duration::from_secs_f64(self.next_frame_t);
             let mut rng = self.rng.clone();
-            let mut f = self.world.sense((self.x, self.y, self.yaw), self.head, walking, &self.calib, &mut rng, self.seq, at);
+            let mut f = self.world.sense((self.x, self.y, self.yaw), self.head, self.look, walking, &self.calib, &mut rng, self.seq, at);
             f.odom = Some(self.odom);
             self.rng = rng;
             self.cliff.frames += 1;
@@ -369,6 +374,15 @@ impl Sim {
         self.mover_bumps = self.mover_bumps.min(m0 + 1);
         self.since.bumps = self.since.bumps.min(sb0 + 1);
         self.since.mover_bumps = self.since.mover_bumps.min(sm0 + 1);
+    }
+
+    /// A look at the floor ahead: the head pitched down `LOOK_PITCH_RAD`
+    /// (what robotd's `robot.look` at (0.30, 0, −0.12) aims it) over a
+    /// stand of `secs`, then back.
+    pub fn look_down(&mut self, secs: f64) {
+        self.look = LOOK_PITCH_RAD;
+        self.stand(secs);
+        self.look = 0.0;
     }
 
     /// Standing still for `secs`: the head sweeps, the movers move, and a
@@ -490,6 +504,15 @@ impl Body for SimBody {
         }
         s.walk(vx, vyaw, secs);
         Ok(json!({"done": true, "walked_s": secs}))
+    }
+
+    fn look_down(&mut self, secs: f64) -> Result<(), String> {
+        let mut s = self.lock();
+        if s.fell {
+            return Err("fallen".into());
+        }
+        s.look_down(secs);
+        Ok(())
     }
 
     fn frame(&self) -> Option<MapFrame> {

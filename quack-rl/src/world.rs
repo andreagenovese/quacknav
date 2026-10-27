@@ -515,22 +515,28 @@ impl World {
     /// a hole is a drop. Spurious near returns (the crosstalk and the feet
     /// the twin's sensor shows), noise, bias and dropouts per [`Calib`].
     #[allow(clippy::too_many_arguments)]
-    pub fn sense(&self, (x, y, yaw): (f64, f64, f64), head_yaw: f64, walking: bool, calib: &Calib, rng: &mut Rng, seq: u64, at: Instant) -> CliffFrame {
+    /// `look`: the head's pitch from its rest, radians, negative down — a
+    /// look at the floor ahead (`Body::look_down`) is about −0.69, what
+    /// robotd's `robot.look` at (0.30, 0, −0.12) aims it; the rows then
+    /// land from about 0.15 m.
+    pub fn sense(&self, (x, y, yaw): (f64, f64, f64), head_yaw: f64, look: f64, walking: bool, calib: &Calib, rng: &mut Rng, seq: u64, at: Instant) -> CliffFrame {
         let mut obstacles = Vec::new();
         let mut drops = Vec::new();
         let mut floors = Vec::new();
         let low_m = if walking { calib.tof_low_walk_m } else { 0.0 };
         // The rows, lowest first: each one's slope (rise per metre ahead)
         // and where it meets the floor (none at or above the horizon).
-        let rows: Vec<(f64, f64)> = match calib.tof_pitch_rad {
-            Some(p) => (0..ROWS)
-                .map(|r| {
-                    let slope = (p + ROW_FOV * ((r as f64 + 0.5) / ROWS as f64 - 0.5)).tan();
-                    (slope, if slope < 0.0 { HEAD_H / -slope } else { f64::INFINITY })
-                })
-                .collect(),
-            None => ROW_FLOOR_M.iter().map(|d| (-HEAD_H / d, *d)).collect(),
+        let angles: Vec<f64> = match calib.tof_pitch_rad {
+            Some(p) => (0..ROWS).map(|r| p + ROW_FOV * ((r as f64 + 0.5) / ROWS as f64 - 0.5)).collect(),
+            None => ROW_FLOOR_M.iter().map(|d| (-HEAD_H / d).atan()).collect(),
         };
+        let rows: Vec<(f64, f64)> = angles
+            .iter()
+            .map(|a| {
+                let slope = (a + look).tan();
+                (slope, if slope < 0.0 { HEAD_H / -slope } else { f64::INFINITY })
+            })
+            .collect();
         for c in 0..COLS {
             let bearing = head_yaw + COL_FOV * ((c as f64 + 0.5) / COLS as f64 - 0.5);
             let a = yaw + bearing;
@@ -687,6 +693,21 @@ mod tests {
     }
 
     #[test]
+    fn a_look_down_sees_the_narrow_hole_a_stride_ahead_that_the_walking_pitch_cannot() {
+        // A hole 0.20–0.45 m ahead: nearer than the sensor's nearest row
+        // lands at the calibrated pitches (0.52–0.60 m), which reaches the
+        // floor beyond it.
+        let mut w = World { bounds: [-2.0, 2.0, -2.0, 2.0], ..Default::default() };
+        w.holes.push(Hole { x0: 0.20, x1: 0.45, y0: -0.5, y1: 0.5, booked: false });
+        let c = Calib { tof_dropout: 0.0, phantom_any_p: 0.0, tof_range_sd: 0.0, tof_pitch_rad: Some(-6.0_f64.to_radians()), ..Calib::default() };
+        let level = w.sense((0.0, 0.0, 0.0), 0.0, 0.0, false, &c, &mut Rng::new(1), 1, Instant::now());
+        assert!(level.drops.is_empty(), "the level head lands its nearest row past the hole: {:?}", level.drops);
+        let down = w.sense((0.0, 0.0, 0.0), 0.0, -0.69, false, &c, &mut Rng::new(1), 2, Instant::now());
+        let near = down.drops.iter().map(|d| d.edge_min_m).fold(f64::INFINITY, f64::min);
+        assert!(!down.drops.is_empty() && near < 0.25, "the look sees the hole from its near rim: {near:.2} {:?}", down.drops);
+    }
+
+    #[test]
     fn a_patrol_walks_its_path_there_and_back_and_waits_for_the_duck() {
         let mut w = World { bounds: [-2.0, 2.0, -2.0, 2.0], ..Default::default() };
         w.movers.push(Mover::patrol(vec![(0.0, 0.0), (1.0, 0.0)], 0.14, 0.9, 0.5, (1.0, 1.0)));
@@ -717,7 +738,7 @@ mod tests {
         let mut w = World { bounds: [-2.0, 2.0, -2.0, 2.0], ..Default::default() };
         w.holes.push(Hole { x0: 0.5, x1: 0.9, y0: -0.5, y1: 0.5, booked: false });
         let c = Calib { tof_dropout: 0.0, phantom_any_p: 0.0, ..Calib::default() };
-        let f = w.sense((0.0, 0.0, 0.0), 0.0, true, &c, &mut Rng::new(1), 1, Instant::now());
+        let f = w.sense((0.0, 0.0, 0.0), 0.0, 0.0, true, &c, &mut Rng::new(1), 1, Instant::now());
         assert!(!f.drops.is_empty());
         let d = f.drops.iter().map(|d| d.range_m).fold(f64::INFINITY, f64::min);
         assert!((0.5..=0.75).contains(&d), "{d}");

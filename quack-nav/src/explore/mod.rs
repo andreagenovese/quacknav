@@ -78,6 +78,14 @@ pub trait Body {
     /// `tools::internal_move`, not the callers' `robot.move` with its
     /// always-on cliff guard; the explorer judges the sensor itself.
     fn blind_move(&mut self, args: &Value) -> Result<Value, String>;
+    /// A look at the floor just ahead: the head pitched down for `secs`,
+    /// so the sensor's rows land from about 0.15 m — at its walking pitch
+    /// the nearest lands 0.4–0.6 m out, in a stand or walking alike — then
+    /// handed back. `Err` where there is no head to pose.
+    fn look_down(&mut self, secs: f64) -> Result<(), String> {
+        let _ = secs;
+        Err("no head to pose".into())
+    }
     /// The newest map frame, if any.
     fn frame(&self) -> Option<MapFrame>;
     /// Whether the map's pose can be planned on (tracking, not seated).
@@ -108,6 +116,16 @@ impl Body for Robot {
     fn blind_move(&mut self, args: &Value) -> Result<Value, String> {
         // The duck's own move: not the caller's guarded `robot.move`.
         crate::tools::internal_move(self, args)
+    }
+    fn look_down(&mut self, secs: f64) -> Result<(), String> {
+        use duck_ipc_proto::{Call, HeadParams, LookParams};
+        // The floor `LOOK_AHEAD_M` ahead, in the trunk frame (its origin is
+        // about 0.12 m above the floor); robotd solves the head's IK.
+        quack_duck::body::notify(&mut self.control, &Call::RobotLook(LookParams { x: LOOK_AHEAD_M, y: 0.0, z: -0.12, neck_pitch: 0.0 }))?;
+        std::thread::sleep(Duration::from_secs_f64(secs));
+        // ... and handed back: a head left posed keeps the mapper's sweep
+        // standing aside (`mapd::sweep`).
+        quack_duck::body::notify(&mut self.control, &Call::RobotHead(HeadParams::default()))
     }
     fn frame(&self) -> Option<MapFrame> {
         let frame = self.places.map.as_ref().and_then(|m| m.snapshot().latest.clone())?;
@@ -1425,6 +1443,8 @@ pub struct Job {
     stick_books: bool,
     /// Where the stick's hole guard last saw a hole (see `Job::travel`).
     stick_hole_at: Option<(f64, f64)>,
+    /// The last look at the floor ahead (`look_first`): from where, when.
+    last_look: std::cell::Cell<Option<((f64, f64, f64), Instant)>>,
     /// The learned pilot that flies the stick's legs, when one is loaded
     /// (`QK_RL_POLICY`, see `crate::rlnav`), its last move and how far
     /// that move took the body.
@@ -1594,6 +1614,7 @@ impl Job {
             stick_careful: false,
             stick_books: false,
             stick_hole_at: None,
+            last_look: std::cell::Cell::new(None),
             pilot: crate::rlnav::from_env(),
             pilot_last: None,
             pilot_moved_m: 0.0,
