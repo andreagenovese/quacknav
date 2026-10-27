@@ -211,22 +211,84 @@ pub fn set_active(profile: Profile) {
     let _ = ACTIVE.set(profile);
 }
 
-/// The numbers of the walk this process drives.
+/// The numbers of the walk this process drives: the profile's for the
+/// daemon line (the coded priors), with what the gait ledger has learned
+/// of this duck laid over them ([`learn`]).
 pub fn numbers() -> Numbers {
+    let mut n = active().numbers();
+    let l = learned();
+    if let Some(v) = l.m_per_s {
+        n.m_per_s = v;
+    }
+    if let Some(v) = l.yaw_rate_per_unit {
+        n.yaw_rate_per_unit = v;
+    }
+    if let Some(v) = l.yaw_trim {
+        n.yaw_trim = v;
+    }
+    if let Some(v) = l.coast_rad {
+        n.coast_prior_rad = v;
+    }
+    n
+}
+
+/// The coded priors alone: the walk's numbers as measured on the twin,
+/// before anything this duck learned ([`numbers`] lays the learned over
+/// them).
+pub fn priors() -> Numbers {
     active().numbers()
+}
+
+/// What this duck has learned of its own walk, laid over the coded
+/// priors: `None` where nothing is learned yet (the prior stands). Set
+/// by quack-nav's gait ledger (its `ledger` module) from the duck's own
+/// legs and stands, and kept beside the map between runs; the readers of
+/// [`numbers`] and [`GaitConfig::yaw`] take it without knowing.
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub struct Learned {
+    /// Forward speed at vx 0.3 (m/s).
+    pub m_per_s: Option<f64>,
+    /// Yaw per unit of yaw command while walking (rad/s per unit).
+    pub yaw_rate_per_unit: Option<f64>,
+    /// The yaw trim that cancels the straight step's veer (rad/s, + = left).
+    pub yaw_trim: Option<f64>,
+    /// The turn in place's coast past its stop (rad).
+    pub coast_rad: Option<f64>,
+}
+
+static LEARNED: std::sync::RwLock<Learned> = std::sync::RwLock::new(Learned { m_per_s: None, yaw_rate_per_unit: None, yaw_trim: None, coast_rad: None });
+
+/// Lay what the ledger learned over the coded numbers, for every reader
+/// from now on. `Learned::default()` takes it all back.
+pub fn learn(l: Learned) {
+    *LEARNED.write().unwrap_or_else(|e| e.into_inner()) = l;
+}
+
+/// What is laid over the coded numbers now.
+pub fn learned() -> Learned {
+    *LEARNED.read().unwrap_or_else(|e| e.into_inner())
 }
 
 /// The clamp every gait measured so far was run under.
 pub(crate) const YAW_MAX: f64 = 0.9;
 
 impl GaitConfig {
-    /// The yaw actually sent for a wanted yaw while walking at `vx`.
+    /// The yaw actually sent for a wanted yaw while walking at `vx`. The
+    /// trim is the ledger's once it has learned one ([`learned`]), the
+    /// file's or the profile's until then.
     pub fn yaw(&self, vx: f64, vyaw: f64) -> f64 {
         if vx <= 0.0 {
             return vyaw;
         }
         let gain = if vyaw > 0.0 { self.yaw_gain_left } else { self.yaw_gain_right };
-        (vyaw * gain + self.yaw_trim).clamp(-self.yaw_max, self.yaw_max)
+        let trim = learned().yaw_trim.unwrap_or(self.yaw_trim);
+        (vyaw * gain + trim).clamp(-self.yaw_max, self.yaw_max)
+    }
+
+    /// The trim in force: the ledger's once it has learned one, else this
+    /// file's.
+    pub fn yaw_trim_in_force(&self) -> f64 {
+        learned().yaw_trim.unwrap_or(self.yaw_trim)
     }
 }
 #[cfg(test)]

@@ -423,6 +423,20 @@ sets velstand's numbers and which pilot may fly
 Each line's numbers live in a file of their own,
 `quack-duck/src/daemon/v0_16.rs` and `v0_17.rs`.
 
+Those numbers are priors. **The gait ledger** measures the walk on the
+duck's own legs — a free forward step gives the speed and the trim that
+keeps it straight, a long curving leg the yaw per unit of command, a turn
+in place its rate and, read off the map at the next leg, its coast — and
+lays the median of the last 32 samples over the prior once 5 are in (the trim 10),
+bounded about it (a bad session cannot take the duck far). It is kept
+beside the map, `/var/lib/quack-nav/gait-ledger.json`, per daemon line
+and profile, so every run starts where the last one got and a new line
+of Pollen's starts from its own priors. `robot.gait` reports it and
+forgets it on request; `robot.map_status` carries it as `gait`;
+`QK_GAIT_LEDGER=0` leaves the priors alone
+([docs/control-contract.md](docs/control-contract.md), the module
+`quack-nav/src/ledger.rs`).
+
 ### The walk
 
 quack-nav needs to know which walking policy robotd runs,
@@ -516,6 +530,7 @@ and the `robot` group their sockets belong to. Everything quack-nav adds:
 | `/run/quack-nav/{nav,map}.sock` | created by the unit (`RuntimeDirectory=`), mode 0660, group `robot` |
 | `/var/lib/quack-nav/` (places, sessions, `maps/`) | created by the unit (`StateDirectory=`), owned by `quacknav` |
 | `/var/lib/quack-nav/knobs.env` (optional) | the knobs, written by `nav.knobs` ([docs/control-contract.md](docs/control-contract.md)), read by the unit at every start |
+| `/var/lib/quack-nav/gait-ledger.json` | the gait ledger: what the duck learned of its own walk, kept between runs (`robot.gait`, [docs/control-contract.md](docs/control-contract.md)) |
 
 The unit runs the daemon as `quacknav` with `robot` as a supplementary
 group (it reaches robotd's and tofd's 0660 sockets, and hands its own two

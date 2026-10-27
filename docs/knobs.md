@@ -32,6 +32,7 @@ Every knob needs that restart: the environment is read at the process's start.
 | `QK_DROP_REACH_M` | number (default 0.30) | `quack-nav/src/explore/books.rs` | `QK_DROP_REACH_M=0` goes back to points. |
 | `QK_EDGE_DISCRIMINATE` | on unless 0 | `quack-nav/src/explore/books.rs` | `QK_EDGE_DISCRIMINATE=0`: every sensed drop goes on the books as a hole, as before. |
 | `QK_FORGET_FREE` | on unless 0 | `quack-nav/src/explore/stick.rs` | What the body booked on a journey leaves the books when the sensor sees the floor where it stood (see `forget_seen_free`); `QK_FORGET_FREE=0` keeps it, for measuring. |
+| `QK_GAIT_LEDGER` | on unless 0 | `quack-nav/src/ledger.rs` | `QK_GAIT_LEDGER=0`: the walk's numbers stay the coded priors — nothing learned from the duck's own legs, nothing written beside the map. |
 | `QK_GAP_LANE_HALF_M` | number (default 0.115) | `quack-nav/src/explore/mod.rs` |  |
 | `QK_GAP_MAX_M` | number (default 0.6) | `quack-nav/src/explore/mod.rs` |  |
 | `QK_GUARD_ARC_FULL` | on only if 1 | `quack-duck/src/body.rs` | Turning costs little forward speed: 0.110 m/s at vyaw 0.7 against 0.121 straight, measured on the human drive (2026-09-07). |

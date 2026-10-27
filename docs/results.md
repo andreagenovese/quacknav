@@ -889,6 +889,66 @@ daemon-v0.17.6 + set v8, two twins at a time (`rl-runs/twin-work/P8/`).
   102, the branch's legs 80 / 72 against 77 / 70, arrival error 0.17–0.18
   m both.
 
+- **The duck learns its own walk: the gait ledger** (branch
+  `gait-ledger`, 2026-10-27). The walk's numbers the navigation plans
+  with were coded priors per daemon line and profile, measured on the
+  twin; the one learned at run time, the turn's coast, was lost at every
+  restart. The ledger takes every leg and turn as a measurement — the
+  speed by the map's pose over a free step, the trim that would cancel
+  a straight step's veer by odometry, the yaw per unit over a curving
+  leg of 0.8 s or more, a turn in place's rate, and the coast as before
+  — keeps the last 32 samples of each beside the map per daemon line
+  and profile, and lays their median over the prior once 5 are in (the
+  trim 10), bounded about the prior. Measured three ways. On the
+  bench, a walk the priors get wrong on purpose (the twin's fitted
+  calibration with its speed +25 %, a veer of 0.12 rad/s, its yaw per
+  unit ×0.8; 280 journeys, the stick, one thread so the ledger learns
+  in order): 98.6 % arrived without the ledger, 98.2 % with, 69.4 against
+  68.1 s a journey, 2.37 against 2.44 bumps — a journey closes every step
+  on the map's pose and every turn on odometry, so the numbers matter
+  little there; the ledger found the speed (0.138 against 0.133 true)
+  and the trim (−0.07 to −0.13 against −0.136), never the yaw per unit
+  (no curving leg of 0.8 s on a journey: the stick's steps are 0.6 s)
+  and the coast at 0.57 rad, what the per-journey mean found before it
+  (the simulator's odometry scale read as coast). The simulator's veer
+  was found to act only under |vyaw| < 0.1, so a trim past that turned
+  the simulated body the other way and the ledger oscillated; the veer
+  now acts under every forward command (the bench moves within its
+  noise: pilot 98.6 / 74.1 s from 99.0 / 74.3, stick 98.8 / 78.2 from
+  98.1 / 76.8; reckless brains 25 200 journeys: 1 hole fall, seed 300570
+  again). On the twin with the wrong line's priors on purpose
+  (daemon-v0.17.6, set v8, quack-navd told `daemon = "0.16"`: 0.115 m/s,
+  0.62 rad/s per unit, a turn asked at 1.5), exploring casa_arredata
+  from nothing for 15 minutes: the speed learned at 0.103–0.110 m/s
+  from the 27th sample on (the twin's fitted 0.107; the 0.17 line's
+  prior 0.095), the turn's rate 1.32–1.38 rad/s, 241 samples, 57 % of
+  the house, 0 falls. The first run put the trim at its bound (−0.25)
+  after six straight steps: a step on the heels of a turn in place had
+  the turn's coast in it, read as a veer — such steps give no yaw now,
+  and the second run's trim moved from 0.12 to 0.04 on 14 samples, hence
+  its 10. The yaw per unit got no sample on the twin either (the
+  exploration's legs are straight or turns in place) and the coast none
+  on the 0.16 line's rules (its exploration does not learn it): both
+  stay at their priors there, which is the design. Twin A/B against
+  frozen `main` (AB20, four tours of each A/B house, the branch's ledger
+  empty at the start and learning through the tours): 48/48 arrived on
+  both arms, 0 falls; casa_ingombra 111.5 s a journey against main's
+  112.3 (medians 105.7 against 107.1, paired difference +0.1 s median,
+  −0.9 mean), casa_arredata 101.0 against 100.5 (medians 93.7 against
+  95.1, paired +0.0 median, +0.5 mean) — the same walk within noise,
+  which is what a journey closed on the map should give. What the
+  ledger learned on the 0.17 line's own priors: the speed 0.103 m/s
+  after casa_ingombra's four tours and 0.109 after casa_arredata's
+  (1 517 and 3 186 steps seen; the prior 0.095, the twin's fitted 0.107),
+  the trim +0.020 then +0.009 (the prior −0.03: the twin's body veers the
+  other way from what the line's file says, by a hair), the turn's rate
+  0.88 then 0.98 rad/s (prior 1.0), the coast 0.25 then 0.27 rad (prior
+  0.3, the logged coasts 13–19°), the yaw per unit still without a sample
+  (a journey's curving legs are shorter than 0.8 s). The second house
+  opened on the first's numbers — the ledger file lived on through the
+  boots and the houses — and the times did not move: a learned walk
+  carried into another house is at worst harmless.
+
 ## Known limits
 
 - **The sensor cannot see the floor nearer than 0.4–0.6 m** (2026-10-27):

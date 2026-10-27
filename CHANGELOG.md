@@ -11,6 +11,52 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ## [Unreleased]
 
+### Added
+
+- **The gait ledger: the duck learns its own walk and keeps it.** The
+  walk's numbers the navigation plans with — forward speed, the yaw a
+  unit of command turns, the trim that keeps a straight step straight,
+  the turn in place's coast and rate — were coded priors per daemon line
+  and profile, measured on the twin; a real duck, and every walking
+  policy Pollen ships after the measurement, walks its own way, and the
+  one number learned at run time (the turn's coast) was lost at every
+  restart. Every leg and turn is now a measurement, as the calibration
+  reads them off the traces: a free forward step on a pose the map
+  vouches for at both ends gives the speed (by the map's pose) and, when
+  straight, the trim that would cancel its veer (by odometry); a curving
+  leg of 0.8 s or more the yaw per unit (a step on the heels of a turn
+  in place gives no yaw: the turn's coast would read as a veer); a turn
+  in place its rate; the map's yaw at the next leg the coast. The ledger keeps the last 32
+  samples of each, lays their median over the prior once 5 are in (the trim 10),
+  bounded about the prior (speed 0.5–1.6×, yaw per unit 0.5–1.8×, trim
+  ±0.25 rad/s, coast 0–0.7 rad), and writes them beside the map
+  (`/var/lib/quack-nav/gait-ledger.json`, `ledger_path`) per daemon line
+  and profile, so the next run starts where this one got and a daemon of
+  another line starts from its own priors. `robot.gait` reports it
+  (`robot.map_status` carries it as `gait`) and `{"reset": true}`
+  forgets it; `QK_GAIT_LEDGER=0` leaves the priors alone. The turn's
+  rate is reported, not yet used (the turns are closed on odometry).
+  On the bench, a walk the priors get wrong on purpose (speed +40 %, a
+  veer of 0.12 rad/s, yaw per unit ×0.8): the stick arrives 98.2 % with
+  the ledger against 98.6 % without, 1.3 s a journey faster, the same
+  bumps — a journey is closed on the map's pose and odometry, so the
+  numbers matter little there; the twin told the wrong line's priors
+  (`daemon = "0.16"` on daemon-v0.17.6), exploring casa_arredata for 15
+  minutes: the speed learned at 0.103–0.110 m/s (the twin's 0.107, the
+  prior 0.115), 241 samples, 0 falls. Twin A/B
+  against frozen `main` (AB20, four tours of each A/B house): 48/48
+  arrived on both arms, 0 falls, the times the same within noise
+  (casa_ingombra 111.5 s against 112.3, casa_arredata 101.0 against
+  100.5, paired medians +0.1 and +0.0 s); the ledger learned 0.103–0.109
+  m/s (prior 0.095), a trim of +0.02…+0.01 (prior −0.03), a turn at
+  0.88–0.98 rad/s and a coast of 0.25–0.27 rad, and carried them from one
+  house to the next ([docs/results.md](docs/results.md)).
+  The simulator's veer now acts under every forward command, not only
+  under |vyaw| < 0.1 (a trim past that turned the simulated body the
+  other way); `rl_eval --ledger` opens the ledger in memory for a bench
+  that learns in order (`--threads 1`), and `examples/ledger_check` walks
+  a wrong calibration and prints what the ledger finds beside the truth.
+
 ## [0.3.0-rc3] - 2026-10-27
 
 A fifth release candidate, validated on the MuJoCo and paper twins only.

@@ -64,12 +64,15 @@ pub struct Snapshot {
     pub at: Instant,
     pub pose: Option<(f64, f64, f64)>,
     pub odom: Option<(f64, f64, f64)>,
+    /// Whether the map vouched for the pose (tracking, not seated): the
+    /// gait ledger measures a leg only between two such.
+    pub trusted: bool,
 }
 
 impl Snapshot {
     pub fn take(robot: &dyn Body) -> Self {
         let odom = robot.cliff().and_then(|c| Some((c.odom_xy?.0, c.odom_xy?.1, c.odom_yaw?)));
-        Self { at: robot.now(), pose: robot.frame().map(|f| f.pose()), odom }
+        Self { at: robot.now(), pose: robot.frame().map(|f| f.pose()), odom, trusted: robot.pose_trusted() }
     }
 }
 

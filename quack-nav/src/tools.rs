@@ -1160,6 +1160,19 @@ pub fn catalog() -> Vec<Value> {
             "required": ["name"]
         }
     }));
+    tools.push(json!({
+        "name": "robot.gait",
+        "description": "What the duck has learned of its own walk — its forward speed, the \
+    trim that keeps a straight step straight, the yaw a unit of command turns, the turn in \
+    place's coast and rate — measured on its own legs and kept between runs (the gait ledger), \
+    each beside the coded prior it is laid over, with how many samples it rests on. Call with \
+    reset=true to forget it all and start again from the priors (after a change of walking \
+    policy that went wrong, or when asked). Nothing moves.",
+        "parameters": {
+            "type": "object",
+            "properties": {"reset": {"type": "boolean", "description": "forget what was learned; the priors stand until new legs teach it again"}}
+        }
+    }));
     tools
 }
 
@@ -1169,7 +1182,8 @@ pub fn handles(name: &str) -> bool {
         || matches!(
             name,
             "nav.take_question"|
-            "robot.map_step"
+            "robot.gait"
+                | "robot.map_step"
                 | "robot.map_explore"
                 | "robot.go_to"
                 | "robot.map_save"
@@ -1192,10 +1206,22 @@ pub fn execute(name: &str, args: &Value, robot: &mut Robot) -> Result<Value, Str
             && let Some(map) = result.as_object_mut()
         {
             map.insert("explore".into(), robot.places.explore.status().to_json());
+            // ... and what the duck learned of its own walk (`crate::ledger`).
+            map.insert("gait".into(), crate::ledger::report());
         }
         return Ok(result);
     }
     match name {
+        // The gait ledger: what the duck learned of its own walk, and a
+        // reset to the coded priors on request (`crate::ledger`).
+        "robot.gait" => {
+            let forgot = args.get("reset").and_then(Value::as_bool) == Some(true) && crate::ledger::reset();
+            let mut r = crate::ledger::report();
+            if let Some(m) = r.as_object_mut() {
+                m.insert("forgot".into(), json!(forgot));
+            }
+            Ok(r)
+        }
         // The explorer's "where are we?", handed to whoever can speak:
         // the satellite polls this and puts the answer on the record
         // with `robot.remember_place` (the split of 2026-09-22 — the

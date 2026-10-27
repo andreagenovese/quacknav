@@ -235,6 +235,9 @@ pub struct NavdConfig {
     /// The knobs' env file (`nav.knobs` writes it, see [`crate::knobs`]):
     /// the same path as the unit's `EnvironmentFile=-`, read at start.
     pub knobs_env: String,
+    /// The gait ledger's file (see [`crate::ledger`]): what the duck
+    /// learned of its own walk, kept between runs beside the map.
+    pub ledger_path: String,
     pub map: MapConfig,
     pub gait: quack_duck::gait::GaitConfig,
     pub homecoming: HomecomingConfig,
@@ -256,6 +259,7 @@ impl Default for NavdConfig {
             robotd_socket: "/run/robotd.sock".into(),
             daemon: quack_duck::daemon::Choice::Auto,
             knobs_env: "/var/lib/quack-nav/knobs.env".into(),
+            ledger_path: "/var/lib/quack-nav/gait-ledger.json".into(),
             map: MapConfig::default(),
             gait: quack_duck::gait::GaitConfig::default(),
             homecoming: HomecomingConfig::default(),

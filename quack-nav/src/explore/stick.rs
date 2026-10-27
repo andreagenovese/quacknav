@@ -117,6 +117,8 @@ impl Job {
                 }
             }
         }
+        // The turn's rate, for the ledger (`crate::ledger`).
+        crate::ledger::turn(robot.now(), turned, (robot.now() - started).as_secs_f64());
         // The end said: a timed move leaves its last command in robotd,
         // which holds it to its deadman (500 ms) — at set v8's 65°/s a
         // third of a right angle more, whatever the turn asked (the twin,
@@ -151,7 +153,12 @@ impl Job {
         if seen <= 0.0 || !(-0.5..=1.2).contains(&extra) {
             return;
         }
-        self.stick_coast = ((1.0 - COAST_LEARN) * self.stick_coast + COAST_LEARN * extra).clamp(0.0, COAST_MAX_RAD);
+        // The ledger keeps it between runs and lays it over the prior
+        // (`crate::ledger`); without one, this journey's own running mean.
+        self.stick_coast = match crate::ledger::coast(extra) {
+            Some(c) => c,
+            None => ((1.0 - COAST_LEARN) * self.stick_coast + COAST_LEARN * extra).clamp(0.0, COAST_MAX_RAD),
+        };
         tracing::info!(turned_deg = format!("{:.0}", turned.to_degrees()), seen_deg = format!("{:.0}", seen.to_degrees()), coast_deg = format!("{:.0}", self.stick_coast.to_degrees()), "map explore: stick: a turn's coast");
     }
 
@@ -239,7 +246,7 @@ impl Job {
             }
             self.book_seen_ahead(&*robot, (x, y, yaw));
         }
-        let before = crate::rlnav::trace::tracer().map(|_| crate::rlnav::trace::Snapshot::take(&*robot));
+        let before = crate::rlnav::trace::Snapshot::take(&*robot);
         let what;
         // The pilot flies the leg, unless the shields refused its last
         // moves: then the stick takes this one (a refused move leaves the
@@ -610,10 +617,15 @@ impl Job {
         true
     }
 
-    /// A leg on the trace (`QK_RL_TRACE`), when one is recorded.
-    fn trace_leg(&self, robot: &dyn Body, before: Option<crate::rlnav::trace::Snapshot>, what: &Value) {
-        if let (Some(t), Some(b)) = (crate::rlnav::trace::tracer(), before) {
-            t.event(robot, "leg", b, what.clone());
+    /// A leg on the trace (`QK_RL_TRACE`), when one is recorded, and on
+    /// the gait ledger when it was a forward step (`crate::ledger`).
+    fn trace_leg(&self, robot: &dyn Body, before: crate::rlnav::trace::Snapshot, what: &Value) {
+        if let Some(t) = crate::rlnav::trace::tracer() {
+            t.event(robot, "leg", before, what.clone());
+        }
+        let num = |k: &str| what.get(k).and_then(Value::as_f64).unwrap_or(0.0);
+        if num("vx") > 0.05 {
+            crate::ledger::step(robot, &before, num("vx"), num("vyaw"), num("secs"));
         }
     }
 

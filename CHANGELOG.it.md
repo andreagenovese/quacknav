@@ -13,6 +13,57 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ## [Unreleased]
 
+### Aggiunto
+
+- **Il registro d'andatura: la papera impara il proprio cammino e lo
+  tiene.** I numeri della camminata con cui la navigazione pianifica —
+  velocità in avanti, l'imbardata che gira un'unità di comando, la
+  correzione che tiene dritto un passo dritto, la coda e la velocità
+  della svolta sul posto — erano prior nel codice per linea di daemon e
+  profilo, misurati sul gemello; una papera vera, e ogni policy di
+  camminata che Pollen rilascia dopo la misura, cammina a modo suo, e
+  l'unico numero imparato a tempo d'esecuzione (la coda della svolta) si
+  perdeva a ogni riavvio. Ogni gamba e ogni svolta sono ora una misura,
+  come la taratura le legge dalle tracce: un passo libero in avanti su una
+  posa di cui la mappa garantisce a tutti e due i capi dà la velocità
+  (dalla posa della mappa) e, se dritto, la correzione che ne annullerebbe
+  la deriva (dall'odometria); una gamba in curva di 0,8 s o più
+  l'imbardata per unità (un passo subito dopo una svolta sul posto non dà
+  imbardata: la coda della svolta si leggerebbe come deriva); una svolta
+  sul posto la sua velocità;
+  l'imbardata della mappa alla gamba dopo la coda. Il registro tiene gli
+  ultimi 32 campioni di ognuno, ne posa la mediana sopra il prior quando
+  ne ha 5 (la correzione 10), vincolata intorno al prior (velocità 0,5–1,6×, imbardata per
+  unità 0,5–1,8×, correzione ±0,25 rad/s, coda 0–0,7 rad), e li scrive
+  accanto alla mappa (`/var/lib/quack-nav/gait-ledger.json`,
+  `ledger_path`) per linea di daemon e profilo, così l'avvio dopo parte da
+  dove è arrivato questo e un daemon di un'altra linea parte dai suoi
+  prior. `robot.gait` lo riporta (`robot.map_status` lo porta come `gait`)
+  e `{"reset": true}` lo dimentica; `QK_GAIT_LEDGER=0` lascia stare i
+  prior. La velocità della svolta è riportata, non ancora usata (le
+  svolte si chiudono sull'odometria). Sul banco, una camminata che i prior
+  sbagliano apposta (velocità +40 %, una deriva di 0,12 rad/s, imbardata
+  per unità ×0,8): lo stick arriva al 98,2 % col registro contro il 98,6 %
+  senza, 1,3 s a viaggio più veloce, gli stessi urti — un viaggio si chiude
+  sulla posa della mappa e sull'odometria, e lì i numeri contano poco; il
+  gemello con i prior della linea sbagliata (`daemon = "0.16"` su
+  daemon-v0.17.6), esplorando casa_arredata per 15 minuti: la velocità
+  imparata a 0,103–0,110 m/s (quella del gemello 0,107, il prior 0,115),
+  241 campioni, 0 cadute. A/B sul gemello contro il `main`
+  congelato (AB20, quattro giri di ogni casa dell'A/B): 48/48 arrivi su
+  entrambi i bracci, 0 cadute, tempi uguali nel rumore (casa_ingombra
+  111,5 s contro 112,3, casa_arredata 101,0 contro 100,5, mediane
+  accoppiate +0,1 e +0,0 s); il registro ha imparato 0,103–0,109 m/s
+  (prior 0,095), una correzione di +0,02…+0,01 (prior −0,03), una svolta a
+  0,88–0,98 rad/s e una coda di 0,25–0,27 rad, e li ha portati da una casa
+  all'altra ([docs/results.it.md](docs/results.it.md)). La
+  deriva del simulatore agisce ora sotto ogni comando in avanti, non solo
+  sotto |vyaw| < 0,1 (una correzione oltre quella soglia girava il corpo
+  simulato dall'altra parte); `rl_eval --ledger` apre il registro in
+  memoria per un banco che impara in ordine (`--threads 1`), e
+  `examples/ledger_check` cammina una taratura sbagliata e stampa ciò che
+  il registro trova accanto alla verità.
+
 ## [0.3.0-rc3] - 2026-10-27
 
 Una quinta release candidate, validata solo sui gemelli MuJoCo e di carta.

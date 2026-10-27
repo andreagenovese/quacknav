@@ -189,6 +189,7 @@ impl Job {
                 break;
             }
         }
+        crate::ledger::turn(robot.now(), turned, (robot.now() - started).as_secs_f64());
         tracing::debug!(want_deg = format!("{:.0}", want.to_degrees()), turned_deg = format!("{:.0}", turned.to_degrees()), "map explore: turned in place");
         Some(turned)
     }

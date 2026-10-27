@@ -205,7 +205,14 @@ core: 600 aggiornamenti in circa 35 minuti.
 **I banchi** (`rl_eval`): scenari generati mai usati in addestramento, lo
 stick, l'esperto e il pilota attraverso il ciclo di quack-navd; il
 checkpoint si sceglie sui semi da 100000 e si riporta sui semi da 200000
-(`finalize.py`, `report.md`).
+(`finalize.py`, `report.md`). Il registro d'andatura (la papera che
+impara il proprio cammino, `quack-nav/src/ledger.rs`) sul banco è spento
+se `--ledger` non lo apre in memoria, un solo cammino imparato viaggio
+dopo viaggio (`--threads 1`); `examples/ledger_check` cammina una
+taratura cambiata apposta (`--speed`, `--veer`, `--ypu`, da `--base
+calib.json`) e stampa ciò che il registro trova accanto alla verità,
+viaggio per viaggio. La deriva del simulatore agisce sotto ogni comando
+in avanti, come quella di un'andatura.
 
 ## La taratura sulla papera
 
