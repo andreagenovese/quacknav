@@ -794,16 +794,35 @@ daemon-v0.17.6 + set v8, two twins at a time (`rl-runs/twin-work/P8/`).
   unbooked stairwell 0.3–0.6 m ahead that no frame had ever seen. The
   answer is a look: before a forward step whose stride (0.12–0.40 m
   ahead, a body wide) runs onto cells the map holds as neither floor nor
-  wall, the head is pitched at the floor 0.30 m ahead (robotd's
-  `robot.look`) for 0.45 s and handed back; the rows then land from about
-  0.15 m, and what they see goes through the guards and on the books as
-  any stand's frames do (`look_first`; `QK_LOOK_DOWN=0` off). Bench, 420
-  journeys: the pilot and the stick as before (98.8 / 98.6 %), one
-  tip-over fewer for the stick, 0.1–2.5 s a journey more. Reckless
+  wall, or that is the first after a turn in place of 0.5 rad or more,
+  the head is pitched at the floor 0.30 m ahead (robotd's `robot.look`)
+  for 0.45 s and handed back; the rows then land from about 0.15 m, and
+  what they see goes through the guards and on the books as any stand's
+  frames do (`look_first`; `QK_LOOK_DOWN=0` off). The turn is a word of
+  its own because the map's is not enough off the bench: the simulator
+  holds a hole's cells unknown, but the mapper marks every cell under a
+  beam free up to the wall the beam hit, so a stairwell against a wall is
+  free floor on the twin and the duck alike — 400 s of exploring the
+  apartment from nothing on the map's word alone made 0 looks. (The
+  sensor's own floor beams were tried as the word instead, the stride
+  seen as floor from any pose in the judge's memory: the walking frames'
+  floor is sparse, and the stride read unseen every two to four straight
+  steps, 29 looks in 118 steps on a corners journey.) Two more things the
+  twin taught, 2026-10-27: robotd drops a `robot.look` sent as a
+  notification without a word (only move, head, pose and mouth go that
+  way), so it is a request now; and the mapper's head sweep, which writes
+  the head at 20 Hz and tells a foreign pose only after 2.5 s of its own
+  commands, would have taken the head back within a tick — the explorer
+  lends it the head for the look (`ExploreHandle::lend_head`) and it
+  stands aside outright. Bench, 420 journeys: arrivals 98.8 / 98.3 %
+  (pilot / stick, from 98.8 / 98.6), 2.5–3.4 s a journey more (3–13
+  looks a journey, from the turns; the map-only word cost 0.1–2.5 s and
+  kept the arrivals, and a 0.3 rad turn cost 97.9 / 97.1 %). Reckless
   brains, 600 seeds a family at both calibrations: **0 falls into a hole
-  in 25 200 journeys**, from 7 and 6. On the twin against frozen `main`
-  (AB18, four tours of each A/B house; the maps there are complete, so
-  the look seldom fires): PENDING_AB18.
+  in 25 200 journeys**, from 7 and 6; their timeouts up (1266 → 1505 at
+  −3°: they turn at every step). On the twin against frozen `main` (AB18,
+  four tours of each A/B house; the maps there are complete, so the look
+  seldom fires): PENDING_AB18.
 
 ## Known limits
 
@@ -812,9 +831,11 @@ daemon-v0.17.6 + set v8, two twins at a time (`rl-runs/twin-work/P8/`).
   twin's standing −11°, in a stand or walking alike, so a hole narrower
   than that gap right ahead is seen by nothing until the head looks down
   (`look_first`, above). The look is made only before a step onto cells
-  the map does not hold as floor: a hole where the map wrongly says floor
-  (a pose 0.3 m off beside a stairwell) is still not looked at — the
-  books' drops and the passage law hold that case, as before.
+  the map does not hold as floor, or the first after a turn in place of
+  0.5 rad: a hole walked into on a gentle curve, or where the map wrongly
+  says floor with no turn before it (a pose 0.3 m off beside a
+  stairwell), is still not looked at — the books' drops and the passage
+  law hold that case, as before.
 - **A drop is booked where the floor was expected, not at the rim**
   (2026-10-26, measured 2026-10-27). The sensor bounds a hole's edge
   between the last floor a column saw (`edge_min_m`) and where it

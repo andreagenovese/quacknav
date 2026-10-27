@@ -120,8 +120,26 @@ impl Body for Robot {
     fn look_down(&mut self, secs: f64) -> Result<(), String> {
         use duck_ipc_proto::{Call, HeadParams, LookParams};
         // The floor `LOOK_AHEAD_M` ahead, in the trunk frame (its origin is
-        // about 0.12 m above the floor); robotd solves the head's IK.
-        quack_duck::body::notify(&mut self.control, &Call::RobotLook(LookParams { x: LOOK_AHEAD_M, y: 0.0, z: -0.12, neck_pitch: 0.0 }))?;
+        // about 0.12 m above the floor); robotd solves the head's IK. A
+        // request, not a notification: robotd's notification path applies
+        // only the continuous intents (move, head, pose, mouth) and drops
+        // a `robot.look` without a word (measured on the twin, 2026-10-27:
+        // the head never pitched). The answer is the joints the head was
+        // sent to, and whether the point was beyond its reach.
+        // The head is the navigation's own meanwhile: the mapper's sweep
+        // (`mapd::sweep`), which writes it at 20 Hz, stands aside for the
+        // lease and hands nothing back; a tick's margin for the hand-back.
+        self.places.explore.lend_head(secs + LOOK_LEASE_MARGIN_S);
+        let look = LookParams { x: LOOK_AHEAD_M, y: 0.0, z: -0.12, neck_pitch: 0.0 };
+        let answer = quack_duck::body::request(&mut self.control, &Call::RobotLook(look))?;
+        if let Some(e) = answer.error {
+            return Err(format!("robot.look refused: {}", e.message));
+        }
+        match answer.result.and_then(|v| serde_json::from_value::<duck_ipc_proto::LookResult>(v).ok()) {
+            Some(r) if r.clamped => tracing::info!(head = ?r.head, "map explore: the look at the floor ahead is beyond the head's reach; the nearest gaze"),
+            Some(r) => tracing::debug!(head = ?r.head, "map explore: the head sent to the floor ahead"),
+            None => tracing::warn!("map explore: robot.look answered without the joints"),
+        }
         std::thread::sleep(Duration::from_secs_f64(secs));
         // ... and handed back: a head left posed keeps the mapper's sweep
         // standing aside (`mapd::sweep`).
@@ -514,6 +532,12 @@ pub struct ExploreHandle {
     /// is asked for (see [`ExploreHandle::user_stop`]). Shared with the
     /// jobs' own handles, so a leg in flight sees it.
     held: Arc<AtomicBool>,
+    /// Until when the head is the navigation's own — a look at the floor
+    /// ahead ([`Body::look_down`]): the mapper's sweep, which writes the
+    /// head at 20 Hz and would win the slot back within a tick, stands
+    /// aside meanwhile ([`ExploreHandle::lend_head`]). Shared with the
+    /// jobs' own handles, which make the looks.
+    head_lent: Arc<Mutex<Option<Instant>>>,
     /// The duck's own motion a caller's move halted before it could take
     /// the robot (see [`ExploreHandle::halt_own`]): what it was.
     halted: Arc<Mutex<Option<String>>>,
@@ -790,10 +814,22 @@ impl ExploreHandle {
         matches!(self.status().state, State::Running | State::Relocalizing | State::Searching)
     }
 
+    /// The head is the navigation's own for `secs` — a look at the floor
+    /// ahead ([`Body::look_down`]). The mapper's sweep stands aside and
+    /// hands nothing back meanwhile; the look hands the head back itself.
+    pub fn lend_head(&self, secs: f64) {
+        *self.head_lent.lock().expect("head lease poisoned") = Some(Instant::now() + Duration::from_secs_f64(secs));
+    }
+
+    /// Whether a look holds the head right now (see [`ExploreHandle::lend_head`]).
+    pub fn head_lent(&self) -> bool {
+        self.head_lent.lock().expect("head lease poisoned").is_some_and(|until| until > Instant::now())
+    }
+
     /// A running job's own handle: idle (its steps are not refused as
     /// "somebody else drives"), the user's stop shared.
     pub fn child(&self) -> Self {
-        Self { held: self.held.clone(), child: true, ..Self::default() }
+        Self { held: self.held.clone(), head_lent: self.head_lent.clone(), child: true, ..Self::default() }
     }
 
     /// Whether this is a job's own handle (see [`ExploreHandle::child`]).
@@ -1445,6 +1481,10 @@ pub struct Job {
     stick_hole_at: Option<(f64, f64)>,
     /// The last look at the floor ahead (`look_first`): from where, when.
     last_look: std::cell::Cell<Option<((f64, f64, f64), Instant)>>,
+    /// The heading of the last forward step (or look): a heading far from
+    /// it is a turn in place, and the stride ahead gets a look first
+    /// (`guarded::turned_since_stride`).
+    last_stride: std::cell::Cell<Option<f64>>,
     /// The learned pilot that flies the stick's legs, when one is loaded
     /// (`QK_RL_POLICY`, see `crate::rlnav`), its last move and how far
     /// that move took the body.
@@ -1615,6 +1655,7 @@ impl Job {
             stick_books: false,
             stick_hole_at: None,
             last_look: std::cell::Cell::new(None),
+            last_stride: std::cell::Cell::new(None),
             pilot: crate::rlnav::from_env(),
             pilot_last: None,
             pilot_moved_m: 0.0,

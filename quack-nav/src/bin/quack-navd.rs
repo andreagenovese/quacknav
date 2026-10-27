@@ -59,10 +59,14 @@ fn main() -> anyhow::Result<()> {
     let explore = robot.lock().expect("robot poisoned").places.explore.clone();
     // The head sweep is the navigation's only while the navigation drives.
     if let Some(host) = &mapper {
-        let explore = explore.clone();
+        let driving = explore.clone();
         // ... and while it finds the pose a job asked for (see `relocate`),
         // which is also what lets an untrusted mapper search.
-        host.set_driving(move || explore.busy());
+        host.set_driving(move || driving.busy());
+        // ... and stands aside while a look at the floor ahead holds the
+        // head (see `Body::look_down`).
+        let lent = explore.clone();
+        host.set_head_lent(move || lent.head_lent());
     }
     let shutdown = Shutdown { mapper: mapper.clone(), explore, sockets: vec![config.maploc.socket.clone(), config.socket.clone()] };
     if mapper.is_some() {

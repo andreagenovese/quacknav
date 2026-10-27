@@ -68,7 +68,9 @@ fn main() -> anyhow::Result<()> {
     };
     let buf = Buf::default();
     let w = buf.clone();
-    tracing_subscriber::fmt().with_env_filter("quack_nav=info").with_ansi(false).with_writer(move || w.clone()).init();
+    // `quack_nav=info` unless RUST_LOG says otherwise (`quack_nav=debug` for a guard's reasoning).
+    let filter = tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("quack_nav=info"));
+    tracing_subscriber::fmt().with_env_filter(filter).with_ansi(false).with_writer(move || w.clone()).init();
     let s = generate(seed, level, family.as_deref());
     let mut runs = Vec::new();
     for (name, brain, explore) in [("pilot", Some(pilot.clone()), false), ("stick", None, false), ("exploration", None, true)] {

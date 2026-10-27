@@ -846,17 +846,39 @@ casa_arredata, daemon-v0.17.6 + set v8, due gemelli alla volta
   poi passi dritti in una scala non prenotata a 0,3–0,6 m che nessun
   fotogramma aveva mai visto. La risposta è uno sguardo: prima di un passo
   in avanti la cui falcata (0,12–0,40 m davanti, larga un corpo) finisce
-  su celle che la mappa non tiene né come pavimento né come muro, la testa
-  viene inclinata verso il pavimento a 0,30 m (`robot.look` di robotd)
-  per 0,45 s e poi restituita; le righe cadono allora da circa 0,15 m, e
-  ciò che vedono passa dalle guardie e va sui libri come i fotogrammi di
-  qualunque sosta (`look_first`; `QK_LOOK_DOWN=0` spegne). Banco, 420
-  viaggi: pilota e stick come prima (98,8 / 98,6 %), un ribaltamento in
-  meno per lo stick, 0,1–2,5 s a viaggio in più. Cervelli spericolati,
-  600 semi per famiglia su entrambe le tarature: **0 cadute in un buco su
-  25 200 viaggi**, da 7 e 6. Sul gemello contro il `main` congelato (AB18,
-  quattro giri di ogni casa dell'A/B; lì le mappe sono complete, quindi
-  lo sguardo scatta di rado): PENDING_AB18.
+  su celle che la mappa non tiene né come pavimento né come muro, o che è
+  il primo dopo una svolta sul posto di 0,5 rad o più, la testa viene
+  inclinata verso il pavimento a 0,30 m (`robot.look` di robotd) per
+  0,45 s e poi restituita; le righe cadono allora da circa 0,15 m, e ciò
+  che vedono passa dalle guardie e va sui libri come i fotogrammi di
+  qualunque sosta (`look_first`; `QK_LOOK_DOWN=0` spegne). La svolta è
+  una parola a sé perché quella della mappa non basta fuori dal banco: il
+  simulatore tiene sconosciute le celle di un buco, ma il mapper segna
+  libera ogni cella sotto un raggio fino al muro che il raggio ha colpito,
+  quindi una scala contro un muro è pavimento libero sul gemello e sulla
+  papera allo stesso modo — 400 s di esplorazione dell'appartamento da
+  zero con la sola parola della mappa hanno fatto 0 sguardi. (Si è provata
+  come parola quella dei raggi del sensore che hanno incontrato il
+  pavimento, la falcata vista come pavimento da una posa qualunque nella
+  memoria del giudice: il pavimento dei fotogrammi in cammino è rado, e la
+  falcata risultava non vista ogni due–quattro passi dritti, 29 sguardi
+  in 118 passi su un viaggio corners.) Altre due cose insegnate dal
+  gemello, 2026-10-27: robotd scarta senza una parola un `robot.look`
+  mandato come notifica (per quella via passano solo move, head, pose e
+  mouth), quindi ora è una richiesta; e lo sweep della testa del mapper,
+  che scrive la testa a 20 Hz e riconosce una posa altrui solo dopo 2,5 s
+  di comandi propri, si sarebbe ripreso la testa entro un tick —
+  l'esploratore gliela presta per lo sguardo (`ExploreHandle::lend_head`)
+  e lo sweep si fa da parte subito. Banco, 420 viaggi: arrivi 98,8 /
+  98,3 % (pilota / stick, da 98,8 / 98,6), 2,5–3,4 s a viaggio in più
+  (3–13 sguardi a viaggio, dalle svolte; la sola parola della mappa
+  costava 0,1–2,5 s e teneva gli arrivi, e una svolta di 0,3 rad costava
+  97,9 / 97,1 %). Cervelli spericolati, 600 semi per famiglia su entrambe
+  le tarature: **0 cadute in un buco su 25 200 viaggi**, da 7 e 6; i loro
+  timeout in aumento (1266 → 1505 a −3°: svoltano a ogni passo). Sul
+  gemello contro il `main` congelato (AB18, quattro giri di ogni casa
+  dell'A/B; lì le mappe sono complete, quindi lo sguardo scatta di rado):
+  PENDING_AB18.
 
 ## Limiti noti
 
@@ -866,9 +888,11 @@ casa_arredata, daemon-v0.17.6 + set v8, due gemelli alla volta
   modo, quindi un buco più stretto di quel vuoto proprio davanti non lo
   vede nessuno finché la testa non guarda in basso (`look_first`, sopra).
   Lo sguardo si fa solo prima di un passo su celle che la mappa non tiene
-  come pavimento: un buco dove la mappa dice per sbaglio pavimento (una
-  posa 0,3 m fuori accanto a una scala) non viene ancora guardato — lo
-  tengono i dirupi sui libri e la legge del passaggio, come prima.
+  come pavimento, o del primo dopo una svolta sul posto di 0,5 rad: un
+  buco in cui si entra su una curva dolce, o dove la mappa dice per
+  sbaglio pavimento senza una svolta prima (una posa 0,3 m fuori accanto a
+  una scala), non viene ancora guardato — lo tengono i dirupi sui libri e
+  la legge del passaggio, come prima.
 - **Un dirupo è prenotato dove ci si aspettava il pavimento, non al
   ciglio** (2026-10-26, misurato 2026-10-27). Il sensore delimita il
   bordo di un buco fra l'ultimo pavimento visto da una colonna

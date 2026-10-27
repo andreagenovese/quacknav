@@ -26,15 +26,23 @@ carta, mai su una papera fisica; i dettagli sono in
   dritti in una scala non prenotata che nessun fotogramma aveva visto.
   Prima di un passo in avanti la cui falcata (0,12–0,40 m davanti, larga
   un corpo) finisce su celle che la mappa non tiene né come pavimento né
-  come muro, quack-navd ora inclina la testa verso il pavimento a 0,30 m
-  (`robot.look` di robotd) per 0,45 s e la restituisce; le righe cadono da
-  circa 0,15 m e ciò che vedono passa dalle guardie e va sui libri. Il
-  passo sorvegliato, il passo dello stick e quello del pilota, una volta
-  per posa; `QK_LOOK_DOWN=0` lo spegne. Il sensore del simulatore prende
-  l'inclinazione della testa. Banco: arrivi come prima, 0,1–2,5 s a
-  viaggio in più; cervelli spericolati, 600 semi per famiglia su entrambe
-  le tarature: 0 cadute in un buco su 25 200 viaggi, da 13
-  ([docs/results.it.md](docs/results.it.md), 2026-10-27).
+  come muro, o che è il primo dopo una svolta sul posto di 0,5 rad o più
+  — di quella falcata la mappa non può garantire: il mapper segna libera
+  ogni cella sotto un raggio fino al muro che il raggio ha colpito, scala
+  contro un muro compresa — quack-navd ora inclina la testa verso il
+  pavimento a 0,30 m (`robot.look` di robotd, come richiesta: il daemon
+  la scarta come notifica) per 0,45 s e la restituisce; lo sweep della
+  testa del mapper si fa da parte per lo sguardo
+  (`ExploreHandle::lend_head`). Le righe cadono da circa 0,15 m e ciò che
+  vedono passa dalle guardie e va sui libri. Il passo sorvegliato, il
+  passo dello stick e quello del pilota, una volta per posa;
+  `QK_LOOK_DOWN=0` lo spegne. Il sensore del simulatore prende
+  l'inclinazione della testa. Banco: arrivi 98,8 / 98,3 % (pilota /
+  stick, da 98,8 / 98,6), 2,5–3,4 s a viaggio in più; cervelli
+  spericolati, 600 semi per famiglia su entrambe le tarature: 0 cadute in
+  un buco su 25 200 viaggi, da 13 ([docs/results.it.md](docs/results.it.md),
+  2026-10-27). `rl_trace` accetta `RUST_LOG` (`quack_nav=debug`) sopra il
+  suo `quack_nav=info`.
 - **Le case del simulatore sono quelle del gemello** (`quack-rl`):
   `--families twin:<casa>` percorre il giro del gemello MuJoCo da
   `scripts/twin/houses/<casa>.truth.json` — ogni viaggio parte dove

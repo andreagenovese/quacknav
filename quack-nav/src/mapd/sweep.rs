@@ -29,6 +29,13 @@
 //!     look pitches the head). The sweep stands aside while one is there
 //!     and [`YIELD`] after it goes, and hands nothing back meanwhile. A
 //!     pure-yaw pose from elsewhere is the one it cannot tell from its own.
+//!   - **and the navigation is not holding it itself**: a look at the floor
+//!     ahead before a step (`Body::look_down`) lends the head to the
+//!     explorer for under a second (`ExploreHandle::lend_head`, read through
+//!     [`Host::head_lent`]); too short for the yield above, which first
+//!     spends 2.5 s of its own commands on a pose to tell it from robotd's
+//!     glancing, so the sweep is told outright: nothing written, nothing
+//!     handed back, the look hands the head back.
 
 use std::time::{Duration, Instant};
 
@@ -81,7 +88,12 @@ pub fn spawn(host: Host, body: SharedBody, robotd_socket: String) {
                 // the window that judges the resting pose (maploc's
                 // `RestConfig`).
                 let wanted = host.driving() || host.searching() || host.watching();
-                let posed = fresh.is_some_and(|b| foreign(b.commanded_head));
+                // The navigation holds the head itself for a moment (a look
+                // at the floor ahead, `ExploreHandle::lend_head`): not
+                // somebody else's pose, no nudging, nothing written, nothing
+                // handed back — the look hands the head back.
+                let lent = host.head_lent();
+                let posed = !lent && fresh.is_some_and(|b| foreign(b.commanded_head));
                 // robotd (daemon 0.16.1) glances on its own 2 s after the
                 // last head command when nothing drives the duck, and its
                 // published head carries the glance: read as somebody
@@ -109,6 +121,7 @@ pub fn spawn(host: Host, body: SharedBody, robotd_socket: String) {
                 }
                 let yielding = foreign_until.is_some_and(|t| t > now);
                 let sweeping = !yielding
+                    && !lent
                     && wanted
                     && fresh.is_some_and(|b| sweeps(&b.policy, b.moving, b.sitting, b.fallen, continuous));
                 let yaw = if sweeping {
@@ -121,8 +134,8 @@ pub fn spawn(host: Host, body: SharedBody, robotd_socket: String) {
                         continue;
                     }
                     was_sweeping = false;
-                    if yielding {
-                        continue; // the head is somebody else's: nothing handed back
+                    if yielding || lent {
+                        continue; // the head is somebody else's, or the look's: nothing handed back
                     }
                     0.0 // hand the head back to centre, once
                 };
