@@ -616,6 +616,18 @@
    "doc": "`QK_TURN_IN_PLACE=0` turns the old way (kick, then yaw) everywhere."
   },
   {
+   "name": "QK_TURN_STOP",
+   "group": "QK",
+   "read_as": "1 on, 0 off, else the caller's default",
+   "type": "switch",
+   "default": null,
+   "unset": "the caller's default",
+   "where": [
+    "quack-nav/src/explore/gait.rs"
+   ],
+   "doc": "`QK_TURN_STOP=0`: no stop sent at a turn in place's end, as before — the last command left in robotd, which holds it to its deadman (500 ms): at set v8's 65°/s, 33° of turn more."
+  },
+  {
    "name": "QK_WALL_MARGIN_M",
    "group": "QK",
    "read_as": "number (default 0.18)",

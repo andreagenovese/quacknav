@@ -78,6 +78,11 @@ pub trait Body {
     /// `tools::internal_move`, not the callers' `robot.move` with its
     /// always-on cliff guard; the explorer judges the sensor itself.
     fn blind_move(&mut self, args: &Value) -> Result<Value, String>;
+    /// A stop, now: the move command zeroed. A timed move ends without
+    /// one, and robotd holds its last command to its deadman (500 ms) —
+    /// after a turn in place, at set v8's 65°/s, a third of a right angle
+    /// more (the twin, 2026-10-27).
+    fn stop(&mut self) -> Result<(), String>;
     /// A look at the floor just ahead: the head pitched down for `secs`,
     /// so the sensor's rows land from about 0.15 m — at its walking pitch
     /// the nearest lands 0.4–0.6 m out, in a stand or walking alike — then
@@ -116,6 +121,10 @@ impl Body for Robot {
     fn blind_move(&mut self, args: &Value) -> Result<Value, String> {
         // The duck's own move: not the caller's guarded `robot.move`.
         crate::tools::internal_move(self, args)
+    }
+    fn stop(&mut self) -> Result<(), String> {
+        use duck_ipc_proto::{Call, MoveParams};
+        quack_duck::body::notify(&mut self.control, &Call::RobotMove(MoveParams { vx: 0.0, vy: 0.0, vyaw: 0.0 }))
     }
     fn look_down(&mut self, secs: f64) -> Result<(), String> {
         use duck_ipc_proto::{Call, HeadParams, LookParams};

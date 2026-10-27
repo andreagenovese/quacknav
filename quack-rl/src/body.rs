@@ -36,6 +36,15 @@ const SWEEP: f64 = 0.8;
 /// A turn's coast is given out with this time constant (the twin's
 /// coasts are over within ~0.4 s of the twist's end).
 const COAST_TAU_S: f64 = 0.15;
+/// How long robotd holds a move command nobody refreshes or ends (its
+/// deadman, 500 ms): a turn in place's last chunk goes on that long past
+/// the explorer's close unless it sends a stop (`Body::stop`). The coast
+/// fitted from the traces (`rl_calib`'s `turn_coast_rad`, the yaw past the
+/// turn's stop by odometry to the next event) holds this and the gait's
+/// own coast in one; the hold is given out as the command, the rest as
+/// the body's. A walking leg's hold is not modelled: the speed fitted
+/// from the traces covers it.
+const DEADMAN_S: f64 = 0.5;
 
 /// What the body did since the brain last asked (the reward's terms).
 #[derive(Debug, Clone, Default)]
@@ -79,6 +88,10 @@ pub struct Sim {
     /// The turn still due after a turn in place stopped (rad, signed):
     /// given out over the next ticks, whatever the body is told then.
     coast_due: f64,
+    /// A turn in place's last command, left in robotd: (vx, vyaw, held
+    /// until), given out at the next stand unless a stop ends it first
+    /// (see [`DEADMAN_S`]).
+    stale: Option<(f64, f64, f64)>,
     // the map's pose: truth + err + bias, published every map_period_s
     err: (f64, f64, f64),
     pub bias: (f64, f64),
@@ -157,6 +170,7 @@ impl Sim {
             min_static_m: f64::INFINITY,
             last_walk: None,
             coast_due: 0.0,
+            stale: None,
             err: (0.0, 0.0, 0.0),
             bias: s.bias,
             shown: (0.0, 0.0, 0.0),
@@ -323,6 +337,37 @@ impl Sim {
     /// A timed move, as the gait answers (vx, vyaw) (the paper twin's
     /// model, its numbers from the calibration).
     pub fn walk(&mut self, vx: f64, vyaw: f64, secs: f64) {
+        self.walk_for(vx, vyaw, secs);
+        // A spin's last command stays in robotd to its deadman.
+        let spin = vx.abs() < 0.05 && vyaw != 0.0;
+        self.stale = spin.then(|| (vx, vyaw, self.t + DEADMAN_S));
+    }
+
+    /// What of a stand the last spin's command still eats, unstopped: the
+    /// body turns on for it; the rest of the stand is returned.
+    fn hold_stale(&mut self, secs: f64) -> f64 {
+        let Some((vx, vyaw, until)) = self.stale else { return secs };
+        if secs <= 0.0 {
+            return secs;
+        }
+        let held = (until - self.t).min(secs);
+        if held <= 0.0 {
+            self.stale = None;
+            return secs;
+        }
+        self.walk_for(vx, vyaw, held);
+        self.stale = (until > self.t + 1e-9).then_some((vx, vyaw, until));
+        secs - held
+    }
+
+    /// A stop sent: the command ends now; what the gait itself still
+    /// coasts is still due.
+    pub fn stop(&mut self) {
+        self.stale = None;
+    }
+
+    /// The ticks of a move, the command as given.
+    fn walk_for(&mut self, vx: f64, vyaw: f64, secs: f64) {
         let c = self.calib.clone();
         let spinning = vx.abs() < 0.05;
         let can_spin = self.last_walk.is_some_and(|w| self.t - w < 1.5);
@@ -351,7 +396,9 @@ impl Sim {
             let walking = v.abs() > 0.0 || w.abs() > 0.0;
             self.tick(dt, v, w, walking);
             if in_place {
-                self.coast_due = c.turn_coast_rad * w.signum() * turn_k;
+                // The fitted coast less the deadman's hold at this rate:
+                // the body's own (see [`DEADMAN_S`]).
+                self.coast_due = (c.turn_coast_rad * turn_k - w.abs() * DEADMAN_S).max(0.0) * w.signum();
             }
             if v > 0.0 {
                 self.since.walked_forward_s += dt;
@@ -388,6 +435,8 @@ impl Sim {
     /// Standing still for `secs`: the head sweeps, the movers move, and a
     /// stand long enough is the mapper's — the pose's error shrinks.
     pub fn stand(&mut self, secs: f64) {
+        // The last spin's command first, to the deadman (see [`DEADMAN_S`]).
+        let secs = self.hold_stale(secs);
         let n = (secs / DT).ceil();
         let dt = if n > 0.0 { secs / n } else { 0.0 };
         for k in 0..n as usize {
@@ -506,6 +555,11 @@ impl Body for SimBody {
         Ok(json!({"done": true, "walked_s": secs}))
     }
 
+    fn stop(&mut self) -> Result<(), String> {
+        self.lock().stop();
+        Ok(())
+    }
+
     fn look_down(&mut self, secs: f64) -> Result<(), String> {
         let mut s = self.lock();
         if s.fell {
@@ -614,19 +668,41 @@ mod tests {
     fn a_turn_coasts_on_once_stopped() {
         let s = generate(3, 0, Some("clutter"));
         let c = Calib { turn_sd: 0.0, turn_coast_rad: 0.5, ..Calib::default() };
-        let mut b = Sim::new(&s, c, 1);
+        // Unstopped: the command held to the deadman, then the gait's own
+        // coast — the fitted coast in all.
+        let mut b = Sim::new(&s, c.clone(), 1);
         let y0 = b.yaw;
         b.walk(0.0, 1.5, 0.5);
-        let stopped = crate::wrap(b.yaw - y0);
-        b.stand(0.6);
-        let coasted = crate::wrap(b.yaw - y0) - stopped;
+        let closed = crate::wrap(b.yaw - y0);
+        b.stand(1.5);
+        let coasted = crate::wrap(b.yaw - y0) - closed;
         assert!((coasted - 0.5).abs() < 0.02, "{coasted}");
-        // None without it: the turn stops dead, as alpha's and set v7's did.
+        // A stop sent at the close: the hold is gone, the gait's own coast remains.
+        let mut b = Sim::new(&s, c.clone(), 1);
+        let y0 = b.yaw;
+        b.walk(0.0, 1.5, 0.5);
+        let closed = crate::wrap(b.yaw - y0);
+        b.stop();
+        b.stand(1.5);
+        let coasted = crate::wrap(b.yaw - y0) - closed;
+        let own = (0.5 - c.turn_left_rad_s * DEADMAN_S).max(0.0);
+        assert!((coasted - own).abs() < 0.02, "{coasted} vs {own}");
+        assert!(coasted < 0.4, "{coasted}");
+        // None without a coast: stopped, the turn stops dead, as alpha's
+        // and set v7's did; unstopped, the hold alone.
         let mut b = Sim::new(&s, Calib { turn_sd: 0.0, ..Calib::default() }, 1);
         b.walk(0.0, 1.5, 0.5);
         let y1 = b.yaw;
+        b.stop();
         b.stand(0.6);
         assert_eq!(b.yaw, y1);
+        let mut b = Sim::new(&s, Calib { turn_sd: 0.0, ..Calib::default() }, 1);
+        let y0 = b.yaw;
+        b.walk(0.0, 1.5, 0.5);
+        let closed = crate::wrap(b.yaw - y0);
+        b.stand(0.6);
+        let held = crate::wrap(b.yaw - y0) - closed;
+        assert!((held - c.turn_left_rad_s * DEADMAN_S).abs() < 0.02, "{held}");
     }
 
     #[test]

@@ -118,6 +118,7 @@ paper twin walks the same movers with the same numbers (quack-rl's
 | `spin.py <robotd.sock>` | how fast the panorama's turn turns (22–24°/s on both robotd) |
 | `headwatch.py <robotd.sock> <s> [sway]` | who has the head; with `sway`, a thinking pose the sweep must yield to |
 | `turnprobe.py <robotd.sock> <port> <label> [reps]` | turning from a standstill: dead below ~1.2 rad/s, 30–60°/s above it |
+| `turnburst.py <robotd.sock> <port> <label> [wants] [chunks] [vyaws] [prewalk_s] [zero\|silent]` | a turn in place closed on robotd's odometry as `stick_turn` closes it, the truth from the bridge: the lag at the close (0–5°) and what follows it — 36–47° with nothing sent (robotd's deadman holds the command 500 ms), 3–21° with a stop |
 | `segs.py <file.mdlg> [from] [to]` | a recording as runs of moving and still — how the slow start was found |
 | `ab_round.sh <n>` | the same route on the fork and here, both scored against the true walls (`FORK_TWIN`) |
 | `scan_walk.py <s> <robotd.sock> <port>` | that route (Peter Schade's, PR 202) |

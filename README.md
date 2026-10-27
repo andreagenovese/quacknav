@@ -617,7 +617,7 @@ prototype, not a navigation stack to the standards of the field.
   measured on the twin, and the reasons are in the code and the ADRs. Together
   they are hard to reason about, and their thresholds were tuned on three
   simulated houses (two of them generated): they may be fitted to the twin.
-- **The code shows it.** `explore/mod.rs` is some 2,000 lines; 35
+- **The code shows it.** `explore/mod.rs` is some 2,500 lines; 47
   `QK_*` environment knobs (and 19 `MAPLOC_*`, all listed in [`docs/knobs.md`](docs/knobs.md), generated from the code); legs are `serde_json::Value`s; recovery decides on
   error *messages* (the homecoming's `why.contains("° right")`), which a reworded sentence breaks.
 - **Localization is thresholds, not confidence.** The standard (AMCL, SLAM
@@ -679,14 +679,19 @@ difference on the twin; the simulator's sensor and houses made the
 twin's; pilot v8l-s3 shipped for velstand on that line (48/48 on the
 twin against frozen `main`'s stick, 4 s a journey faster, no fall);
 people walking between the rooms on the twin and on the bench alike
-(casa_gente); a survey of the field's techniques against ours.
-**Remaining**, in order: the look at the floor before a step onto what
-the map does not know (branch `look-down`: the sensor's blind zone under
-0.4–0.6 m was behind every reckless fall; 0 in 25 200 journeys with it),
-measured on the twin and merged; the turn in place's overshoot closed on
-the yaw; a pilot trained with people in the houses;
-things under 12 cm met walking, measured on the twin; the survey's first
-recommendations; then the first session on the physical duck. The dated
+(casa_gente); a survey of the field's techniques against ours; the look
+at the floor before a step onto what the map does not know (the sensor's
+blind zone under 0.4–0.6 m was behind every reckless fall; 0 in 25 200
+journeys with it, merged 2026-10-27); the turn in place's overshoot,
+which was robotd holding the last command to its deadman, closed with a
+stop at every turn's end (the turns 12–16° past what was asked instead
+of 43–44°, merged 2026-10-27). **Remaining**, in order: the walking
+leg's own hold to the deadman, measured and modelled; a gait ledger (the
+walk's numbers learned on the duck's own legs, kept beside the map); a
+bounded exploration ("explore 2×3"); a pilot trained with people in the
+houses; things under 12 cm met walking, measured on the twin; the
+survey's first recommendations; then the first session on the physical
+duck. The dated
 detail is the status at the top of [docs/todo-map.md](docs/todo-map.md);
 the measurements are in [docs/results.md](docs/results.md) ("Round two
 on the 0.17 line") and the comparison with the field's established

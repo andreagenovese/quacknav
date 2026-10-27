@@ -121,6 +121,7 @@ stessi numeri (`twin:<casa>` di quack-rl), letti dalla stessa verità.
 | `spin.py <robotd.sock>` | quanto gira la rotazione del panorama (22–24°/s con entrambi i robotd) |
 | `headwatch.py <robotd.sock> <s> [sway]` | chi ha la testa; con `sway`, una posa pensante a cui la scansione deve cedere |
 | `turnprobe.py <robotd.sock> <porta> <etichetta> [ripetizioni]` | rotazione da fermo: nulla sotto ~1,2 rad/s, 30–60°/s sopra |
+| `turnburst.py <robotd.sock> <port> <label> [wants] [chunks] [vyaws] [prewalk_s] [zero\|silent]` | una svolta sul posto chiusa sull'odometria di robotd come la chiude `stick_turn`, la verità dal ponte: il ritardo alla chiusura (0–5°) e quel che segue — 36–47° senza mandare nulla (il deadman di robotd tiene il comando 500 ms), 3–21° con uno stop |
 | `segs.py <file.mdlg> [da] [a]` | una registrazione come tratti in movimento e fermi — come si è trovato l'avvio lento |
 | `ab_round.sh <n>` | lo stesso percorso sul fork e qui, entrambi valutati sui muri veri (`FORK_TWIN`) |
 | `scan_walk.py <s> <robotd.sock> <porta>` | quel percorso (di Peter Schade, PR 202) |

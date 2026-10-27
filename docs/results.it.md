@@ -899,6 +899,54 @@ casa_arredata, daemon-v0.17.6 + set v8, due gemelli alla volta
   102. Le mappe più piene sono una corsa ciascuna, e l'esplorazione da
   zero cambia da una corsa all'altra; quello che la corsa dice di sicuro
   è che lo sguardo non costa nulla alla mappa, ai bordi e agli arrivi.
+- **L'eccesso della svolta sul posto era un comando lasciato in robotd**
+  (ramo `turn-stop`, 2026-10-27). La voce successiva del todo era la
+  svolta che l'andatura porta 30–66° oltre il chiesto, da chiudere a
+  pezzi più corti. Una sonda sul gemello prima (`scripts/twin/turnburst.py`: svolte da
+  10–90° chiuse sull'odometria di robotd come le chiude `stick_turn`, la
+  verità letta dal ponte del simulatore) ha detto altro: l'odometria
+  ritarda sulla verità di 0–5° alla chiusura, e il corpo prosegue di
+  36 / 45 / 47° dopo una svolta da 20 / 45 / 90° solo quando dopo la
+  chiusura non si manda nulla — 3–6 / 5–15 / 8–21° se si manda subito uno
+  stop. Una mossa a tempo (`run_timed`) ripete il suo comando ogni 50 ms
+  fino alla fine e non manda uno stop, e nemmeno la sosta dopo manda
+  nulla; robotd tiene l'ultimo comando fino al suo deadman, 500 ms — un
+  terzo d'angolo retto ai 65°/s del set v8. La coda di cui le svolte si
+  fermano in anticipo (`learn_coast`) aveva imparato quella tenuta come
+  coda dell'andatura: 33–40° alla fine dei giri di AB18b, dove 162 svolte
+  finivano +15° oltre il chiesto fra 30 e 60° e +35° fra 60 e 120°, con
+  una dispersione di ±40°. Altre due cose dalla sonda: una camminata di
+  un secondo prima della svolta non cambia nulla, e sotto i 15° da fermo
+  il corpo gira e torna (angolo finale 0°). La cura è uno stop alla fine
+  di ogni svolta sul posto (`Body::stop`, un `robot.move` a zero;
+  `QK_TURN_STOP=0` per la via vecchia); la coda poi impara ciò che
+  l'andatura stessa prosegue. Il simulatore tiene l'ultimo comando di una
+  piroetta fino al deadman se non fermata e divide in due la coda
+  stimata da `rl_calib` (l'imbardata oltre lo stop della svolta per
+  odometria fino all'evento successivo: tenuta e coda propria in una); la
+  tenuta di una gamba camminata resta nella velocità stimata, da
+  misurare. Banco, 420 viaggi: arrivi 99,0 / 98,1 % (pilota / stick, da
+  98,8 / 98,3), viaggi 74,3 / 76,8 s (da 75,6 / 79,5); cervelli
+  spericolati, 25 200 viaggi (600 semi × 7 famiglie × 3 cervelli × 2
+  calibrazioni): 2 cadute in buco, tutte e due il seme 300570 della
+  famiglia mista col cervello dritto, una per calibrazione — il punto
+  caotico noto della posa persa (0,9 m camminati in 203 s, 8 urti, 60
+  sguardi, il buco da cui si gira e rigira finché un passo ci entra); il
+  build base lì aveva 0 per fortuna di dinamica, e il simulatore nuovo
+  senza lo stop ci cade lo stesso, col cervello all'indietro. Non è opera
+  dello stop, lasciato com'è. I timeout dei cervelli spericolati sono
+  scesi con le svolte esatte (indietro 637 → 528, a caso 654 → 442,
+  arrivi 84 → 87–89 %). A/B sul gemello contro il `main` congelato (AB19,
+  quattro giri di ogni casa dell'A/B, 24 viaggi per braccio e casa):
+  48/48 tutti e due i bracci, 0 cadute; casa ingombra `main` 114,9 s
+  media / 113,2 mediana, il ramo 117,0 / 111,7 (appaiato +2,0, mediana
+  +1,5); casa arredata `main` 105,6 / 99,7, il ramo 99,7 / 92,0 (appaiato
+  −5,9, mediana −3,1). La chiusura delle svolte: `main` finiva una
+  mediana di 43–44° oltre il chiesto (quartili 34–50°) con una coda
+  imparata a 29–31°; il ramo 12–16° (quartili 3–19°) con una coda di
+  13–17° — quella propria dell'andatura, sparita la tenuta. Sguardi 107 /
+  73 sul ramo contro 110 / 102, gambe del ramo 80 / 72 contro 77 / 70,
+  errore d'arrivo 0,17–0,18 m per tutti e due.
 
 ## Limiti noti
 

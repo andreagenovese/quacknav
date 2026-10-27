@@ -350,8 +350,13 @@ su nessun pavimento piano, l'ostacolo entro ~10 cm dal metro.
       cammino non fa passi sotto ~0,25 m/s comandati; sul gemello 0,3 m/s
       hanno percorso 53 cm in 5 s). Atteso `"done":true`,
       `"cliff_guard":"on"`. Misurare la distanza. Una curva:
-      `'{"vx":0.3,"vyaw":0.7,"duration_s":2}'` — la papera non gira sul
-      posto. Mai indietro verso un bordo: un movimento all'indietro è
+      `'{"vx":0.3,"vyaw":0.7,"duration_s":2}'` — sulla linea 0.16 la
+      papera non gira sul posto; sulla 0.17 una svolta sul posto
+      `'{"vyaw":1.0,"duration_s":1}'` fa circa 65°/s. Misurare di quanto
+      prosegue oltre la fine del comando: `robot.move` non manda uno
+      stop, quindi robotd tiene il comando fino al suo deadman (sul
+      gemello circa 33° in più a 1,0; le svolte dell'esploratore mandano
+      uno stop e proseguono di 3–21°). Mai indietro verso un bordo: un movimento all'indietro è
       `not covered: backing up`.
 - [ ] Lo stesso da quack-control: **Advanced → All tools → robot.move**
       (chiede conferma).

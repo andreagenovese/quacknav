@@ -715,6 +715,11 @@ impl Body for PaperTwin {
         Ok(json!({"moved": true}))
     }
 
+    fn stop(&mut self) -> Result<(), String> {
+        // The paper twin's moves end where they are told to: no deadman.
+        Ok(())
+    }
+
     fn frame(&self) -> Option<MapFrame> {
         Some(self.frame_now())
     }

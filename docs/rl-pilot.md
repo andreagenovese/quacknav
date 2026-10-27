@@ -156,8 +156,10 @@ fix came from a fall these brains found. Since: none in 3,760 journeys.
   and published every 50 ms (`map.pose`); a bump slides along a face and
   may **tip the duck over** (per bump against a box, a thin post, a
   mover); on the 0.17 line a tipped duck gets up after 4 s with its pose
-  lost a while, and a turn in place coasts on after its stop as set v8
-  does (`turn_coast_rad`, fitted from the traces).
+  lost a while; a turn in place not stopped keeps its last command to
+  robotd's deadman (0.5 s) as the duck does, and past that coasts on as
+  set v8 does (`turn_coast_rad`, fitted from the traces, is the two in
+  one: the model takes the hold out of it).
 - **The sensor** (`world.rs`) answers zone by zone, 8 × 8, as the real one:
   each row looks down at the floor 0.25-2.0 m ahead from 0.25 m up, and
   meets a thing of height H at D when its floor distance d has

@@ -646,8 +646,8 @@ del settore.
   caduta o da uno stallo misurati sul gemello, e i perché sono nel codice e
   negli ADR. Insieme sono difficili da ragionare, e le loro soglie sono state
   tarate su tre case simulate (due generate): possono essere adattate al gemello.
-- **Il codice lo mostra.** `explore/mod.rs` è di circa 2.000
-  righe; 35 interruttori `QK_*` nell'ambiente (e 19 `MAPLOC_*`, tutti elencati in [`docs/knobs.it.md`](docs/knobs.it.md), generato dal codice); le gambe sono
+- **Il codice lo mostra.** `explore/mod.rs` è di circa 2.500
+  righe; 47 interruttori `QK_*` nell'ambiente (e 19 `MAPLOC_*`, tutti elencati in [`docs/knobs.it.md`](docs/knobs.it.md), generato dal codice); le gambe sono
   `serde_json::Value`; i recuperi decidono sui *messaggi* di errore
   (`why.contains("° right")` nella ricerca del ritorno a casa), che una frase riformulata rompe.
 - **La localizzazione è fatta di soglie, non di confidenza.** Lo standard
@@ -712,15 +712,19 @@ pilota v8l-s3 rilasciato per velstand su quella linea (48/48 sul gemello
 contro lo stick del `main` congelato, 4 s a viaggio più veloce, nessuna
 caduta); persone che camminano fra le stanze sul gemello e sul banco allo
 stesso modo (casa_gente); uno studio delle tecniche del settore contro le
-nostre. **Da fare**, in ordine: lo sguardo al pavimento prima di un passo
-su ciò che la mappa non conosce (ramo `look-down`: la zona cieca del
-sensore sotto 0,4–0,6 m era dietro ogni caduta spericolata; 0 su 25 200
-viaggi con lo sguardo), misurato sul gemello e unito; lo sbandamento
-della svolta sul posto chiuso sull'imbardata; un pilota addestrato con le
-persone nelle case; le cose sotto i 12 cm incontrate camminando, misurate
-sul gemello;
-le prime raccomandazioni dello studio; poi la prima sessione sulla papera
-vera. Il dettaglio datato è lo stato in cima a
+nostre; lo sguardo al pavimento prima di un passo su ciò che la mappa non
+conosce (la zona cieca del sensore sotto 0,4–0,6 m era dietro ogni caduta
+spericolata; 0 su 25 200 viaggi con lo sguardo, unito il 2026-10-27);
+l'eccesso della svolta sul posto, che era robotd a tenere l'ultimo
+comando fino al suo deadman, chiuso con uno stop alla fine di ogni svolta
+(le svolte 12–16° oltre il chiesto invece di 43–44°, unito il
+2026-10-27). **Da fare**, in ordine: la tenuta della gamba camminata fino
+al deadman, misurata e modellata; un registro d'andatura (i numeri del
+cammino imparati sulle gambe della papera stessa, tenuti accanto alla
+mappa); un'esplorazione delimitata ("esplora 2×3"); un pilota addestrato
+con le persone nelle case; le cose sotto i 12 cm incontrate camminando,
+misurate sul gemello; le prime raccomandazioni dello studio; poi la prima
+sessione sulla papera vera. Il dettaglio datato è lo stato in cima a
 [docs/todo-map.it.md](docs/todo-map.it.md); le misure sono in
 [docs/results.it.md](docs/results.it.md) ("Secondo giro sulla linea
 0.17") e il confronto con le tecniche consolidate del settore in

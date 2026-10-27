@@ -121,6 +121,33 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Fixed
 
+- **A turn in place went on a third of a right angle past its close.**
+  A timed move repeats its command every 50 ms until its time is up and
+  ends without a stop; robotd holds the last command to its deadman,
+  500 ms, and at set v8's 65°/s that is 33° of turn after the explorer
+  has read the turn as done — whatever the turn asked. Measured on the
+  MuJoCo twin (2026-10-27, turns of 20 / 45 / 90° closed on odometry as
+  `stick_turn` closes them): 36 / 45 / 47° past the close with nothing
+  sent, 3–6 / 5–15 / 8–21° with a stop sent at once; the odometry's lag
+  at the close is 0–5°, so shorter chunks were not the cure. The coast
+  the next turns stop short by had learned the hold as the gait's coast
+  (33–40° in the A/B of the day); under 15° from a standstill the body
+  turns and comes back, the turn never made. The explorer now sends a
+  stop at the end of every turn in place (`Body::stop`; `QK_TURN_STOP=0`
+  leaves the command, as before), and the coast learns what the gait
+  itself coasts. The deadman is robotd's on the duck as on the twin. The
+  simulator holds a spin's last command to the deadman too unless
+  stopped, and splits the coast fitted from the traces (the hold and the
+  gait's own in one) accordingly; a walking leg's hold is not modelled
+  (the speed fitted from the traces covers it — to measure). Bench:
+  arrivals 99.0 / 98.1 % (pilot / stick, from 98.8 / 98.3), journeys
+  1.3 / 2.7 s shorter; reckless brains, 25 200 journeys: 2 hole falls,
+  both one known chaos seed (300570, from 0), reckless timeouts down a
+  sixth to a third. Twin A/B against frozen `main`, 48 journeys each:
+  48/48 both, 0 falls, the branch 2.0 s slower in the cluttered house
+  (median 1.5) and 5.9 s faster in the furnished one (median 3.1), the
+  turns landing 12–16° past what was asked instead of 43–44°
+  ([docs/results.md](docs/results.md)).
 - **Things seen were booked 7.8 cm nearer the body than they are.**
   kinematics measures a hit's range from the sensor, not from the trunk
   axis its doc names (pollen-robotics/microduck#430); an obstacle now

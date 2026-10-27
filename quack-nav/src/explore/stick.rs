@@ -117,6 +117,15 @@ impl Job {
                 }
             }
         }
+        // The end said: a timed move leaves its last command in robotd,
+        // which holds it to its deadman (500 ms) — at set v8's 65°/s a
+        // third of a right angle more, whatever the turn asked (the twin,
+        // 2026-10-27: 36–47° past the close with nothing sent, 5–20° with
+        // a stop at once; the coast learned on it had been 33–40°). What
+        // the gait still coasts, the next turns stop short by (`learn_coast`).
+        if turn_stop() {
+            let _ = robot.stop();
+        }
         self.turned_at = Some(robot.now());
         turned
     }
