@@ -43,9 +43,24 @@ sguardo al pavimento prima di un passo su ciò che la mappa non conosce
 (ramo `look-down`: 0 cadute su 25 200 viaggi spericolati, da 13; sul
 gemello contro il `main` congelato 48 / 48 con 0 cadute, e le case
 esplorate da zero più piene, 76 / 78 % contro 63 / 69 %; unito a `main`
-il 2026-10-27). **Da fare**, in ordine: la svolta sul posto che
-l'andatura porta 30–66° oltre il chiesto, chiusa sull'imbardata a pezzi
-più corti; un pilota addestrato con le persone
+il 2026-10-27), e l'eccesso della svolta sul posto scoperto essere un
+comando lasciato in robotd fino al suo deadman (ramo `turn-stop`: uno
+stop alla fine di ogni svolta, da 36–47° oltre la chiusura a 3–21°; A/B
+48/48 tutti e due i bracci, 0 cadute, le svolte 12–16° oltre il chiesto
+invece di 43–44°).
+**Da fare**, in ordine: la tenuta della gamba camminata fino al deadman
+dopo il suo ultimo pezzo (circa 5 cm al passo del set v8), misurata sul
+gemello e modellata o fermata come quella della svolta; un registro
+d'andatura — i numeri con cui si guida la camminata (velocità, deriva,
+imbardata per unità, velocità e coda della svolta, assestamento)
+imparati sulle gambe e sulle soste della papera stessa, come già la coda
+della svolta, tenuti accanto alla mappa per linea di demone e set di
+policy, vincolati intorno ai prior scritti nel codice, azzerabili da
+`nav.knobs`; un'esplorazione delimitata (dell'utente, 2026-10-27):
+"esplora 2×3" nomina i lati della mappa in metri, dalla voce o da
+quack-control, e l'esploratore tiene frontiere e viaggi dentro quel
+rettangolo intorno a dove è partito, qualunque pavimento ci sia oltre; un
+pilota addestrato con le persone
 nelle case (`twinlike:casa_gente`) che aspetta o indietreggia davanti a
 qualcuno in una porta; le cose sotto i 12 cm incontrate camminando,
 misurate sul gemello; le prime raccomandazioni dello studio — intervalli

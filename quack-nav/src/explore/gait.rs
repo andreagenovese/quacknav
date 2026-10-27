@@ -54,6 +54,14 @@ pub(super) const BACK_TRIGGER_S: f64 = 0.5;
 pub(super) fn spin_watch() -> bool {
     quack_duck::env::qk("SPIN_WATCH").is_none_or(|v| v != "0")
 }
+/// `QK_TURN_STOP=0`: no stop sent at a turn in place's end, as before —
+/// the last command left in robotd, which holds it to its deadman
+/// (500 ms): at set v8's 65°/s, 33° of turn more. Measured on the MuJoCo
+/// twin (2026-10-27): 36–47° past the close with nothing sent, 5–20° with
+/// the stop sent at once. On by default.
+pub(super) fn turn_stop() -> bool {
+    super::journey::switch("QK_TURN_STOP").unwrap_or(true)
+}
 /// An edge nearer than this, within this half-angle of the beak, ends a
 /// turn in place.
 pub(super) const SPIN_WATCH_M: f64 = 0.30;

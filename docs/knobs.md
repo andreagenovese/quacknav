@@ -60,6 +60,7 @@ Every knob needs that restart: the environment is read at the process's start.
 | `QK_TRAIL` | on unless 0 | `quack-nav/src/explore/books.rs` | Off with `QK_TRAIL=0`, for measuring. |
 | `QK_TRUSTED_FLOOR` | 1 on, 0 off, else the mode's own | `quack-nav/src/explore/mode.rs` |  |
 | `QK_TURN_IN_PLACE` | on unless 0 | `quack-nav/src/explore/gait.rs` | `QK_TURN_IN_PLACE=0` turns the old way (kick, then yaw) everywhere. |
+| `QK_TURN_STOP` | 1 on, 0 off, else the caller's default | `quack-nav/src/explore/gait.rs` | `QK_TURN_STOP=0`: no stop sent at a turn in place's end, as before — the last command left in robotd, which holds it to its deadman (500 ms): at set v8's 65°/s, 33° of turn more. |
 | `QK_WALL_MARGIN_M` | number (default 0.18) | `quack-nav/src/tools.rs` |  |
 | `MAPLOC_CONFIRM_TRAVEL` | number (default 0.5) | `maploc/src/mapper.rs` | At boot, how far the body must have moved between the window that nominated a candidate and the one that confirms it. |
 | `MAPLOC_CONTINUOUS` | set = on (any value) | `maploc/examples/replay.rs` |  |

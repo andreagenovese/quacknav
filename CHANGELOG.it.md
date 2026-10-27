@@ -130,6 +130,35 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Corretto
 
+- **Una svolta sul posto proseguiva un terzo d'angolo retto oltre la sua
+  chiusura.** Una mossa a tempo ripete il suo comando ogni 50 ms fino
+  allo scadere e finisce senza uno stop; robotd tiene l'ultimo comando
+  fino al suo deadman, 500 ms, e ai 65°/s del set v8 sono 33° di svolta
+  dopo che l'esploratore l'ha letta come finita — qualunque cosa la
+  svolta chiedesse. Misurato sul gemello MuJoCo (2026-10-27, svolte da
+  20 / 45 / 90° chiuse sull'odometria come le chiude `stick_turn`):
+  36 / 45 / 47° oltre la chiusura senza mandare nulla, 3–6 / 5–15 /
+  8–21° con uno stop mandato subito; il ritardo dell'odometria alla
+  chiusura è 0–5°, quindi i pezzi più corti non erano la cura. La coda di
+  cui le svolte successive si fermano in anticipo aveva imparato la
+  tenuta come coda dell'andatura (33–40° nell'A/B del giorno); sotto i
+  15° da fermo il corpo gira e torna, la svolta mai fatta. L'esploratore
+  ora manda uno stop alla fine di ogni svolta sul posto (`Body::stop`;
+  `QK_TURN_STOP=0` lascia il comando, come prima), e la coda impara ciò
+  che l'andatura stessa prosegue. Il deadman è di robotd, sulla papera
+  come sul gemello. Anche il simulatore tiene l'ultimo comando di una
+  piroetta fino al deadman se non fermata, e divide di conseguenza la
+  coda stimata dalle tracce (la tenuta e la coda propria in una); la
+  tenuta di una gamba camminata non è modellata (la velocità stimata
+  dalle tracce la copre — da misurare). Banco: arrivi 99,0 / 98,1 %
+  (pilota / stick, da 98,8 / 98,3), viaggi più corti di 1,3 / 2,7 s;
+  cervelli spericolati, 25 200 viaggi: 2 cadute in buco, tutte e due di
+  un seme caotico noto (300570, da 0), timeout spericolati giù da un
+  sesto a un terzo. A/B sul gemello contro il `main` congelato, 48 viaggi
+  per braccio: 48/48 tutti e due, 0 cadute, il ramo 2,0 s più lento nella
+  casa ingombra (mediana 1,5) e 5,9 s più veloce in quella arredata
+  (mediana 3,1), le svolte che finiscono 12–16° oltre il chiesto invece
+  di 43–44° ([docs/results.it.md](docs/results.it.md)).
 - **Le cose viste venivano prenotate 7,8 cm più vicine al corpo di
   quanto fossero.** kinematics misura la distanza di un ritorno dal
   sensore, non dall'asse del tronco che la sua documentazione nomina

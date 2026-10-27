@@ -843,6 +843,51 @@ daemon-v0.17.6 + set v8, two twins at a time (`rl-runs/twin-work/P8/`).
   exploring from nothing varies from one run to the next; what the run
   says for sure is that the look costs the map, the rims and the
   arrivals nothing.
+- **The turn in place's overshoot was a command left in robotd** (branch
+  `turn-stop`, 2026-10-27). The todo's next item was the turn the gait
+  takes 30–66° past what was asked, to be closed in shorter chunks. A
+  probe on the twin first (`scripts/twin/turnburst.py`: turns of 10–90° closed on
+  robotd's odometry as `stick_turn` closes them, the truth read from the
+  simulator's bridge) said otherwise: the odometry lags the truth 0–5°
+  at the close, and the body goes 36 / 45 / 47° further after a 20 / 45
+  / 90° turn only when nothing is sent after the close — 3–6 / 5–15 /
+  8–21° when a stop is sent at once. A timed move (`run_timed`) repeats
+  its command every 50 ms to its end and sends no stop, and the stand
+  after it sends nothing either; robotd holds the last command to its
+  deadman, 500 ms — a third of a right angle at set v8's 65°/s. The
+  coast the turns stop short by (`learn_coast`) had learned that hold as
+  the gait's coast: 33–40° at the end of AB18b's tours, 162 turns there
+  landing +15° past what was asked at 30–60° and +35° at 60–120°, with
+  a spread of ±40°. Two more things the probe showed: a walk of a second
+  before the turn changes nothing, and under 15° from a standstill the
+  body turns and comes back (the turn's final angle 0°). The fix is a
+  stop at the end of every turn in place (`Body::stop`, a zero
+  `robot.move`; `QK_TURN_STOP=0` for the old way); the coast then learns
+  what the gait itself coasts. The simulator holds a spin's last command
+  to the deadman unless stopped and splits `rl_calib`'s fitted coast (the
+  yaw past the turn's stop by odometry to the next event: hold and gait's
+  coast in one) into the two; a walking leg's hold is left in the fitted
+  speed, to measure. Bench, 420 journeys: arrivals 99.0 / 98.1 % (pilot /
+  stick, from 98.8 / 98.3), journeys 74.3 / 76.8 s (from 75.6 / 79.5);
+  reckless brains, 25 200 journeys (600 seeds × 7 families × 3 brains ×
+  2 calibrations): 2 hole falls, both seed 300570 of the mixed family
+  with the straight brain, one per calibration — the known lost-pose
+  chaos spot (0.9 m walked in 203 s, 8 bumps, 60 looks, the hole turned
+  from again and again until a step into it); the base build had 0 there
+  by the dynamics' luck, and the new simulator without the stop falls
+  there too, with the back brain. Not the stop's doing, left as it is.
+  The reckless brains' timeouts fell with the exact turns (back 637 →
+  528, random 654 → 442, arrivals 84 → 87–89 %). Twin A/B against frozen
+  `main` (AB19, four tours of each A/B house, 24 journeys per arm and
+  house): 48/48 both arms, 0 falls; cluttered house `main` 114.9 s mean /
+  113.2 median, the branch 117.0 / 111.7 (paired +2.0, median +1.5);
+  furnished house `main` 105.6 / 99.7, the branch 99.7 / 92.0 (paired
+  −5.9, median −3.1). The turns' close: `main` landed a median 43–44°
+  past what was asked (quartiles 34–50°) with a coast learned to 29–31°;
+  the branch 12–16° (quartiles 3–19°) with a coast of 13–17° — the
+  gait's own, the hold gone. Looks 107 / 73 on the branch against 110 /
+  102, the branch's legs 80 / 72 against 77 / 70, arrival error 0.17–0.18
+  m both.
 
 ## Known limits
 

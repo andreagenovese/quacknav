@@ -40,9 +40,21 @@ behind every reckless fall and the look at the floor before a step onto
 what the map does not know (branch `look-down`: 0 falls in 25 200
 reckless journeys, from 13; on the twin against frozen `main` 48 / 48
 with 0 falls, and the houses explored from nothing fuller, 76 / 78 %
-against 63 / 69 %; merged into `main` on 2026-10-27). **Remaining**, in
-order: the turn in place the gait takes 30–66° past what was asked, closed on the
-yaw in shorter chunks; a pilot
+against 63 / 69 %; merged into `main` on 2026-10-27), and the turn in
+place's overshoot found to be a command left in robotd to its deadman
+(branch `turn-stop`: a stop at every turn's end, 36–47° past the close
+down to 3–21°; A/B 48/48 both arms, 0 falls, the turns 12–16° past
+what was asked instead of 43–44°). **Remaining**, in order: the walking leg's own hold to
+the deadman after its last chunk (about 5 cm at set v8's pace), measured
+on the twin and modelled or stopped like the turn's; a gait ledger — the
+numbers the walk is driven by (speed, veer, yaw per unit, the turn's rate
+and coast, the settle) learned on the duck's own legs and stands, as the
+turn's coast already is, kept beside the map per daemon line and policy
+set, bounded about the coded priors, reset from `nav.knobs`; a bounded
+exploration (the user's, 2026-10-27): "explore 2×3" names the sides of
+the map in metres, from the voice or quack-control, and the explorer
+keeps its frontiers and its journeys inside that rectangle round where
+it started, whatever floor lies beyond; a pilot
 trained with people in the houses (`twinlike:casa_gente`) that waits or
 backs off for someone in a door; things under 12 cm met walking, measured
 on the twin; the survey's first recommendations — confidence intervals on
