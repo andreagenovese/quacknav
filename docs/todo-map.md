@@ -38,8 +38,9 @@ journey faster) and v8l-s3 shipped as the 0.17 velstand pilot
 (`pilots/0.17/velstand/`), the sensor's blind zone under 0.4–0.6 m found
 behind every reckless fall and the look at the floor before a step onto
 what the map does not know (branch `look-down`: 0 falls in 25 200
-reckless journeys, from 13). **Remaining**, in order: the look-down's
-twin A/B and exploration from nothing against `main`, then merge; the
+reckless journeys, from 13; on the twin against frozen `main` 48 / 48
+with 0 falls, and the houses explored from nothing fuller, 76 / 78 %
+against 63 / 69 %). **Remaining**, in order: the look-down's merge; the
 turn in place the gait takes 30–66° past what was asked, closed on the
 yaw in shorter chunks; a pilot
 trained with people in the houses (`twinlike:casa_gente`) that waits or

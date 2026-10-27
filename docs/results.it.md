@@ -876,9 +876,29 @@ casa_arredata, daemon-v0.17.6 + set v8, due gemelli alla volta
   97,9 / 97,1 %). Cervelli spericolati, 600 semi per famiglia su entrambe
   le tarature: **0 cadute in un buco su 25 200 viaggi**, da 7 e 6; i loro
   timeout in aumento (1266 → 1505 a −3°: svoltano a ogni passo). Sul
-  gemello contro il `main` congelato (AB18, quattro giri di ogni casa
-  dell'A/B; lì le mappe sono complete, quindi lo sguardo scatta di rado):
-  PENDING_AB18.
+  gemello contro il `main` congelato (AB18b, quattro giri di ogni casa
+  dell'A/B, 48 viaggi per braccio): 48 / 48 arrivati con entrambi, 0
+  cadute, errori d'arrivo 0,17 / 0,18 m come prima; il ramo ha guardato
+  105 volte in casa_ingombra e 82 in casa_arredata (4,4 e 3,4 a viaggio,
+  tutte meno sette da una svolta — lì le mappe sono complete), nessuno
+  sguardo limitato da robotd, nessuno ripreso dallo sweep; gli sguardi
+  costano 6,2 s a viaggio in casa_ingombra (mediana 9,0) e 2,7 s in
+  casa_arredata (mediana 3,1), 0,8–1,4 s a sguardo. I viaggi distanti
+  20–30 s sono sequenze di svolte dal buco al bordo vicino a casa, su
+  entrambi i bracci. Esplorando le due case da zero contro `main` (e18:
+  fino a tre sessioni da 30 min, poi due giri di viaggi sui propri
+  libri): il ramo ha guardato 32–60 volte a sessione e 20–31 a giro,
+  nessuno sguardo limitato, nessuno ripreso dallo sweep, 0 cadute e 0
+  dislivelli fantasma su entrambi i bracci; le sue mappe sono uscite più
+  piene — casa_ingombra 76 % contro 63 % (il bagno 93 % contro 10 %:
+  `main` non c'è mai entrato, e due dei suoi dodici viaggi lì sono
+  falliti per mancanza di una via sulla mappa), casa_arredata finita
+  dopo due sessioni al 78 % contro `main` bloccato al 69 % dopo tre — i
+  bordi coperti 0,97 contro 0,72 e 0,95 contro 0,97, viaggi 12 / 12 e
+  12 / 12 contro 10 / 12 e 12 / 12, mediane 124 e 106 s contro 112 e
+  102. Le mappe più piene sono una corsa ciascuna, e l'esplorazione da
+  zero cambia da una corsa all'altra; quello che la corsa dice di sicuro
+  è che lo sguardo non costa nulla alla mappa, ai bordi e agli arrivi.
 
 ## Limiti noti
 

@@ -820,9 +820,29 @@ daemon-v0.17.6 + set v8, two twins at a time (`rl-runs/twin-work/P8/`).
   kept the arrivals, and a 0.3 rad turn cost 97.9 / 97.1 %). Reckless
   brains, 600 seeds a family at both calibrations: **0 falls into a hole
   in 25 200 journeys**, from 7 and 6; their timeouts up (1266 → 1505 at
-  −3°: they turn at every step). On the twin against frozen `main` (AB18,
-  four tours of each A/B house; the maps there are complete, so the look
-  seldom fires): PENDING_AB18.
+  −3°: they turn at every step). On the twin against frozen `main`
+  (AB18b, four tours of each A/B house, 48 journeys an arm): 48 / 48
+  arrived with either, 0 falls, arrival errors 0.17 / 0.18 m as before;
+  the branch looked 105 times in casa_ingombra and 82 in casa_arredata
+  (4.4 and 3.4 a journey, all but seven from a turn — the maps there are
+  complete), none clamped by robotd, none taken back by the sweep; the
+  looks cost 6.2 s a journey in casa_ingombra (median 9.0) and 2.7 s in
+  casa_arredata (median 3.1), 0.8–1.4 s a look. The journeys 20–30 s
+  apart are strings of hole turns at the rim by home, on either arm.
+  Exploring the two houses from nothing against `main` (e18: up to three
+  sessions of 30 min, then two rounds of journeys on its own books): the
+  branch looked 32–60 times a session and 20–31 a round, none clamped,
+  none taken back by the sweep, 0 falls and 0 phantom drops on either
+  arm; its maps came out fuller — casa_ingombra 76 % against 63 % (the
+  bath 93 % against 10 %: `main` never went in, and two of its twelve
+  journeys there failed for want of a way on the map), casa_arredata
+  done after two sessions at 78 % against `main` stuck at 69 % after
+  three — the rims covered 0.97 against 0.72 and 0.95 against 0.97,
+  journeys 12 / 12 and 12 / 12 against 10 / 12 and 12 / 12, medians 124
+  and 106 s against 112 and 102. The fuller maps are one run each, and
+  exploring from nothing varies from one run to the next; what the run
+  says for sure is that the look costs the map, the rims and the
+  arrivals nothing.
 
 ## Known limits
 
