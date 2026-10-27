@@ -37,11 +37,14 @@ pilota non provato sull'hardware, l'A/B di casa_gente sul gemello (AB16:
 il pilota incontra le persone con meno spinte, 33 episodi di contatto
 contro 41), l'A/B contro il main congelato (AB17: 48/48 da entrambe le
 parti, il pilota 4 s a viaggio più veloce) e v8l-s3 rilasciato come pilota
-velstand della linea 0.17 (`pilots/0.17/velstand/`). **Da fare**, in
-ordine: il ciglio prenotato dove ci si aspettava il pavimento invece che
-al bordo
-(12–42 cm dentro un buco, fatto vedere dal sensore corretto; anche in
-`main`) corretto in un giro a parte; un pilota addestrato con le persone
+velstand della linea 0.17 (`pilots/0.17/velstand/`), la zona cieca del
+sensore sotto 0,4–0,6 m trovata dietro ogni caduta spericolata e lo
+sguardo al pavimento prima di un passo su ciò che la mappa non conosce
+(ramo `look-down`: 0 cadute su 25 200 viaggi spericolati, da 13). **Da
+fare**, in ordine: l'A/B sul gemello e l'esplorazione da zero dello
+sguardo in basso contro `main`, poi il merge; la svolta sul posto che
+l'andatura porta 30–66° oltre il chiesto, chiusa sull'imbardata a pezzi
+più corti; un pilota addestrato con le persone
 nelle case (`twinlike:casa_gente`) che aspetta o indietreggia davanti a
 qualcuno in una porta; le cose sotto i 12 cm incontrate camminando,
 misurate sul gemello; le prime raccomandazioni dello studio — intervalli

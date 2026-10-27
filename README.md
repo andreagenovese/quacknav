@@ -680,8 +680,11 @@ twin's; pilot v8l-s3 shipped for velstand on that line (48/48 on the
 twin against frozen `main`'s stick, 4 s a journey faster, no fall);
 people walking between the rooms on the twin and on the bench alike
 (casa_gente); a survey of the field's techniques against ours.
-**Remaining**, in order: a drop booked where the floor was expected
-instead of at the rim; a pilot trained with people in the houses;
+**Remaining**, in order: the look at the floor before a step onto what
+the map does not know (branch `look-down`: the sensor's blind zone under
+0.4–0.6 m was behind every reckless fall; 0 in 25 200 journeys with it),
+measured on the twin and merged; the turn in place's overshoot closed on
+the yaw; a pilot trained with people in the houses;
 things under 12 cm met walking, measured on the twin; the survey's first
 recommendations; then the first session on the physical duck. The dated
 detail is the status at the top of [docs/todo-map.md](docs/todo-map.md);

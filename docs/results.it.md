@@ -827,21 +827,57 @@ casa_arredata, daemon-v0.17.6 + set v8, due gemelli alla volta
   su uno stick che non fa peggio dello stick — e ciò che ha fatto
   rilasciare v8l-s3 come pilota velstand della linea 0.17
   (`quack-rl/pilots/v8l-s3-velstand/`).
+- **La zona cieca del sensore, e uno sguardo al pavimento prima di un
+  passo su ciò che la mappa non conosce** (2026-10-27, ramo `look-down`).
+  Il ciglio prenotato una riga dentro il buco (sotto) è stato provato come
+  causa delle cadute spericolate e non lo era: prenotato al centro
+  dell'intervallo in cui il sensore pone il bordo, le cadute sono rimaste
+  (7 → 9 a −3°, 6 → 5 a −6°, 600 semi per famiglia) e il corpo si è
+  avvicinato ai cigli (il minimo dello stick 5,7 cm contro 8,4), quindi
+  non è stato tenuto. Le tracce delle cadute dicono cos'è: il sensore non
+  vede il pavimento più vicino di dove cade la sua riga più bassa — 0,60 m
+  a −3°, 0,52 a −6°, 0,42 ai −11° del gemello da fermo
+  (`examples/hole_walk`) — in piedi o camminando allo stesso modo, e una
+  scala contro un muro è nascosta anche in un secondo modo: entro 0,4 m
+  dal ciglio il muro oltre risponde alla distanza a cui ci si aspettava il
+  pavimento e la regola della guardia "il piede di un muro, non un buco"
+  scarta il drop (`examples/guard_probe`, seme 300291). Ogni caduta era
+  una svolta sul posto che l'andatura ha portato 30–66° oltre il chiesto,
+  poi passi dritti in una scala non prenotata a 0,3–0,6 m che nessun
+  fotogramma aveva mai visto. La risposta è uno sguardo: prima di un passo
+  in avanti la cui falcata (0,12–0,40 m davanti, larga un corpo) finisce
+  su celle che la mappa non tiene né come pavimento né come muro, la testa
+  viene inclinata verso il pavimento a 0,30 m (`robot.look` di robotd)
+  per 0,45 s e poi restituita; le righe cadono allora da circa 0,15 m, e
+  ciò che vedono passa dalle guardie e va sui libri come i fotogrammi di
+  qualunque sosta (`look_first`; `QK_LOOK_DOWN=0` spegne). Banco, 420
+  viaggi: pilota e stick come prima (98,8 / 98,6 %), un ribaltamento in
+  meno per lo stick, 0,1–2,5 s a viaggio in più. Cervelli spericolati,
+  600 semi per famiglia su entrambe le tarature: **0 cadute in un buco su
+  25 200 viaggi**, da 7 e 6. Sul gemello contro il `main` congelato (AB18,
+  quattro giri di ogni casa dell'A/B; lì le mappe sono complete, quindi
+  lo sguardo scatta di rado): PENDING_AB18.
 
 ## Limiti noti
 
+- **Il sensore non vede il pavimento più vicino di 0,4–0,6 m**
+  (2026-10-27): la sua riga più bassa cade a 0,60 m a −3°, 0,52 a −6°,
+  0,42 ai −11° del gemello da fermo, in piedi o camminando allo stesso
+  modo, quindi un buco più stretto di quel vuoto proprio davanti non lo
+  vede nessuno finché la testa non guarda in basso (`look_first`, sopra).
+  Lo sguardo si fa solo prima di un passo su celle che la mappa non tiene
+  come pavimento: un buco dove la mappa dice per sbaglio pavimento (una
+  posa 0,3 m fuori accanto a una scala) non viene ancora guardato — lo
+  tengono i dirupi sui libri e la legge del passaggio, come prima.
 - **Un dirupo è prenotato dove ci si aspettava il pavimento, non al
-  ciglio** (2026-10-26). Il sensore delimita il bordo di un buco fra
-  l'ultimo pavimento visto da una colonna (`edge_min_m`) e dove si
-  aspettava il successivo (`range_m`), e i libri prendono il secondo: una
-  riga del sensore dentro il buco, 12–42 cm nella scala del seme 300002 del
-  banco, dove i 0,20 m che la rotta tiene dai dirupi prenotati lasciano il
-  bordo del corpo sporgere oltre il ciglio e un cervello sconsiderato cade
-  con la calibrazione corretta (−6°). `main` prenota allo stesso modo;
-  negli A/B del gemello i bordi vengono dall'oracolo, quindi lì non si
-  vede; l'esplorazione da zero lo farebbe vedere. Da correggere in un giro
-  a parte (il passaggio accanto alla scala di casa_arredata è 0,49 m: un
-  ciglio prenotato più vicino può chiuderlo).
+  ciglio** (2026-10-26, misurato 2026-10-27). Il sensore delimita il
+  bordo di un buco fra l'ultimo pavimento visto da una colonna
+  (`edge_min_m`) e dove si aspettava il successivo (`range_m`), e i libri
+  prendono il secondo: una riga del sensore dentro il buco, 10–17 cm a
+  seconda dell'inclinazione (`examples/drop_edge`). Innocuo così com'è — i
+  0,20 m che la rotta tiene dai dirupi prenotati lo assorbono — e
+  prenotare il centro dell'intervallo non ha tolto cadute e ha avvicinato
+  il corpo ai cigli; lasciato com'è.
 - **Un bordo registrato dove lo metteva la posa.** Circa un drop su 50 finisce
   20–35 cm fuori dal bordo vero (l'errore della posa quando è stato visto).
   All'aperto non costa niente; in un passaggio accanto a un buco lo restringe

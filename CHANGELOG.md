@@ -13,6 +13,24 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Added
 
+- **A look at the floor before a step onto what the map does not know.**
+  The sensor cannot see the floor nearer than where its nearest row
+  lands — 0.4–0.6 m by pitch, in a stand or walking alike — and a
+  stairwell against a wall is hidden a second way within 0.4 m of its
+  rim (the wall beyond answers at the range the floor was expected, and
+  the guard calls the drop a wall's foot). Every reckless fall on the
+  bench was that: a turn in place taken 30–66° past what was asked, then
+  straight steps into an unbooked stairwell no frame had seen. Before a
+  forward step whose stride (0.12–0.40 m ahead, a body wide) runs onto
+  cells the map holds as neither floor nor wall, quack-navd now pitches
+  the head at the floor 0.30 m ahead (robotd's `robot.look`) for 0.45 s
+  and hands it back; the rows land from about 0.15 m and what they see
+  goes through the guards and on the books. The guarded step, the stick's
+  step and the pilot's, once per pose; `QK_LOOK_DOWN=0` switches it off.
+  The simulator's sensor takes the head's pitch. Bench: arrivals as
+  before, 0.1–2.5 s a journey more; reckless brains, 600 seeds a family at
+  both calibrations: 0 falls into a hole in 25 200 journeys, from 13
+  ([docs/results.md](docs/results.md), 2026-10-27).
 - **The simulator's houses are the twin's** (`quack-rl`): `--families
   twin:<house>` walks the MuJoCo twin's tour from
   `scripts/twin/houses/<house>.truth.json` — each journey starting where

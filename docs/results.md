@@ -776,20 +776,53 @@ daemon-v0.17.6 + set v8, two twins at a time (`rl-runs/twin-work/P8/`).
   the user asked for — a pilot trained on a stick that does not do worse
   than the stick — and what shipped v8l-s3 as the 0.17 velstand pilot
   (`quack-rl/pilots/v8l-s3-velstand/`).
+- **The sensor's blind zone, and a look at the floor before stepping onto
+  what the map does not know** (2026-10-27, branch `look-down`). The rim
+  booked one row inside the hole (below) was tried as the cause of the
+  reckless falls and was not: booked at the middle of the sensor's edge
+  span instead, the falls stayed (7 → 9 at −3°, 6 → 5 at −6°, 600 seeds a
+  family) and the body came nearer the rims (the stick's nearest 5.7 cm
+  against 8.4), so it was not kept. The traces of the falls say what is:
+  the sensor cannot see the floor nearer than where its nearest row lands
+  — 0.60 m at −3°, 0.52 at −6°, 0.42 at the twin's standing −11°
+  (`examples/hole_walk`) — in a stand or walking alike, and a stairwell
+  against a wall is hidden a second way: within 0.4 m of its rim the wall
+  beyond answers at the range the floor was expected and the guard's
+  "a wall's foot, not a hole" rule dismisses the drop
+  (`examples/guard_probe`, seed 300291). Every fall was a turn in place
+  the gait took 30–66° past what was asked, then straight steps into an
+  unbooked stairwell 0.3–0.6 m ahead that no frame had ever seen. The
+  answer is a look: before a forward step whose stride (0.12–0.40 m
+  ahead, a body wide) runs onto cells the map holds as neither floor nor
+  wall, the head is pitched at the floor 0.30 m ahead (robotd's
+  `robot.look`) for 0.45 s and handed back; the rows then land from about
+  0.15 m, and what they see goes through the guards and on the books as
+  any stand's frames do (`look_first`; `QK_LOOK_DOWN=0` off). Bench, 420
+  journeys: the pilot and the stick as before (98.8 / 98.6 %), one
+  tip-over fewer for the stick, 0.1–2.5 s a journey more. Reckless
+  brains, 600 seeds a family at both calibrations: **0 falls into a hole
+  in 25 200 journeys**, from 7 and 6. On the twin against frozen `main`
+  (AB18, four tours of each A/B house; the maps there are complete, so
+  the look seldom fires): PENDING_AB18.
 
 ## Known limits
 
+- **The sensor cannot see the floor nearer than 0.4–0.6 m** (2026-10-27):
+  its nearest row lands 0.60 m out at −3°, 0.52 at −6°, 0.42 at the
+  twin's standing −11°, in a stand or walking alike, so a hole narrower
+  than that gap right ahead is seen by nothing until the head looks down
+  (`look_first`, above). The look is made only before a step onto cells
+  the map does not hold as floor: a hole where the map wrongly says floor
+  (a pose 0.3 m off beside a stairwell) is still not looked at — the
+  books' drops and the passage law hold that case, as before.
 - **A drop is booked where the floor was expected, not at the rim**
-  (2026-10-26). The sensor bounds a hole's edge between the last floor a
-  column saw (`edge_min_m`) and where it expected the next (`range_m`),
-  and the books take the latter: one row of the sensor inside the hole,
-  12–42 cm in the stairwell of the bench's seed 300002, where the route's
-  0.20 m off the booked drops lets the body's edge overhang the rim and a
-  reckless brain falls on the corrected calibration (−6°). `main` books the
-  same way; on the twin's A/B the rims come from the oracle, so it does
-  not show there; exploring from nothing would show it. To fix in a round
-  of its own (the passage beside casa_arredata's stairwell is 0.49 m: a
-  rim booked nearer may shut it).
+  (2026-10-26, measured 2026-10-27). The sensor bounds a hole's edge
+  between the last floor a column saw (`edge_min_m`) and where it
+  expected the next (`range_m`), and the books take the latter: one row
+  of the sensor inside the hole, 10–17 cm by pitch (`examples/drop_edge`).
+  Harmless as it stands — the route's 0.20 m off the booked drops absorbs
+  it — and booking the middle of the span instead took no fall away and
+  let the body nearer the rims; left as it is.
 - **A rim booked where the pose had it.** About 1 in 50 drops lands 20–35 cm
   off the true rim (the pose's error when it was seen). In the open that
   costs nothing; in a passage beside a hole it narrows the passage for the

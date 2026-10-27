@@ -712,9 +712,13 @@ pilota v8l-s3 rilasciato per velstand su quella linea (48/48 sul gemello
 contro lo stick del `main` congelato, 4 s a viaggio più veloce, nessuna
 caduta); persone che camminano fra le stanze sul gemello e sul banco allo
 stesso modo (casa_gente); uno studio delle tecniche del settore contro le
-nostre. **Da fare**, in ordine: un drop prenotato dove ci si aspettava il
-pavimento invece che al ciglio; un pilota addestrato con le persone nelle
-case; le cose sotto i 12 cm incontrate camminando, misurate sul gemello;
+nostre. **Da fare**, in ordine: lo sguardo al pavimento prima di un passo
+su ciò che la mappa non conosce (ramo `look-down`: la zona cieca del
+sensore sotto 0,4–0,6 m era dietro ogni caduta spericolata; 0 su 25 200
+viaggi con lo sguardo), misurato sul gemello e unito; lo sbandamento
+della svolta sul posto chiuso sull'imbardata; un pilota addestrato con le
+persone nelle case; le cose sotto i 12 cm incontrate camminando, misurate
+sul gemello;
 le prime raccomandazioni dello studio; poi la prima sessione sulla papera
 vera. Il dettaglio datato è lo stato in cima a
 [docs/todo-map.it.md](docs/todo-map.it.md); le misure sono in

@@ -15,6 +15,26 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Aggiunto
 
+- **Uno sguardo al pavimento prima di un passo su ciò che la mappa non
+  conosce.** Il sensore non vede il pavimento più vicino di dove cade la
+  sua riga più bassa — 0,4–0,6 m secondo l'inclinazione, in piedi o
+  camminando allo stesso modo — e una scala contro un muro è nascosta
+  anche in un secondo modo entro 0,4 m dal ciglio (il muro oltre risponde
+  alla distanza a cui ci si aspettava il pavimento, e la guardia chiama il
+  drop il piede di un muro). Ogni caduta spericolata sul banco era
+  questo: una svolta sul posto portata 30–66° oltre il chiesto, poi passi
+  dritti in una scala non prenotata che nessun fotogramma aveva visto.
+  Prima di un passo in avanti la cui falcata (0,12–0,40 m davanti, larga
+  un corpo) finisce su celle che la mappa non tiene né come pavimento né
+  come muro, quack-navd ora inclina la testa verso il pavimento a 0,30 m
+  (`robot.look` di robotd) per 0,45 s e la restituisce; le righe cadono da
+  circa 0,15 m e ciò che vedono passa dalle guardie e va sui libri. Il
+  passo sorvegliato, il passo dello stick e quello del pilota, una volta
+  per posa; `QK_LOOK_DOWN=0` lo spegne. Il sensore del simulatore prende
+  l'inclinazione della testa. Banco: arrivi come prima, 0,1–2,5 s a
+  viaggio in più; cervelli spericolati, 600 semi per famiglia su entrambe
+  le tarature: 0 cadute in un buco su 25 200 viaggi, da 13
+  ([docs/results.it.md](docs/results.it.md), 2026-10-27).
 - **Le case del simulatore sono quelle del gemello** (`quack-rl`):
   `--families twin:<casa>` percorre il giro del gemello MuJoCo da
   `scripts/twin/houses/<casa>.truth.json` — ogni viaggio parte dove
