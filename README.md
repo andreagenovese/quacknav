@@ -42,8 +42,8 @@ commands to quack-nav's tools and does no navigation.
 > Driving it around by hand does not lose its position: walking explains
 > the motion; only a carry, a sit or a fall makes it look for itself.
 
-Current release: **v0.3.0-rc2**, a release candidate validated on the twins —
-[release notes](docs/release-notes-v0.3.0-rc2.md) (earlier: [0.3.0-rc1](docs/release-notes-v0.3.0-rc1.md), [0.2.0-rc2](docs/release-notes-v0.2.0-rc2.md), [0.2.0-rc1](docs/release-notes-v0.2.0-rc1.md)), [changelog](CHANGELOG.md).
+Current release: **v0.3.0-rc3**, a release candidate validated on the twins —
+[release notes](docs/release-notes-v0.3.0-rc3.md) (earlier: [0.3.0-rc2](docs/release-notes-v0.3.0-rc2.md), [0.3.0-rc1](docs/release-notes-v0.3.0-rc1.md), [0.2.0-rc2](docs/release-notes-v0.2.0-rc2.md), [0.2.0-rc1](docs/release-notes-v0.2.0-rc1.md)), [changelog](CHANGELOG.md).
 
 > **Two things to know before installing v0.3.0**
 >
@@ -361,7 +361,7 @@ microduck first (robotd, tofd, the `robot` group); your computer needs
 ssh, scp, tar and shasum.
 
 ```sh
-V=0.3.0-rc2     # the release's tag without its v
+V=0.3.0-rc3     # the release's tag without its v
 gh release download "v$V" --repo andreagenovese/quacknav \
     --pattern "quack-nav-$V-aarch64-linux.tar.gz*"
 # or: curl -LO https://github.com/andreagenovese/quacknav/releases/download/v$V/quack-nav-$V-aarch64-linux.tar.gz

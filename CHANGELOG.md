@@ -11,6 +11,11 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ## [Unreleased]
 
+## [0.3.0-rc3] - 2026-10-27
+
+A fifth release candidate, validated on the MuJoCo and paper twins only.
+Release notes: [docs/release-notes-v0.3.0-rc3.md](docs/release-notes-v0.3.0-rc3.md).
+
 ### Added
 
 - **A look at the floor before a step onto what the map does not know.**

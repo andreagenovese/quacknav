@@ -13,6 +13,11 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ## [Unreleased]
 
+## [0.3.0-rc3] - 2026-10-27
+
+Una quinta release candidate, validata solo sui gemelli MuJoCo e di carta.
+Note di rilascio: [docs/release-notes-v0.3.0-rc3.it.md](docs/release-notes-v0.3.0-rc3.it.md).
+
 ### Aggiunto
 
 - **Uno sguardo al pavimento prima di un passo su ciò che la mappa non

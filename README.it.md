@@ -48,8 +48,8 @@ dell'utente agli strumenti di quack-nav e non fa navigazione.
 > spiega il movimento; solo un trasporto, una seduta o una caduta le fanno
 > cercare dov'è.
 
-Release attuale: **v0.3.0-rc2**, una release candidate validata sui gemelli —
-[note di rilascio](docs/release-notes-v0.3.0-rc2.it.md) (precedenti: [0.3.0-rc1](docs/release-notes-v0.3.0-rc1.it.md), [0.2.0-rc2](docs/release-notes-v0.2.0-rc2.it.md), [0.2.0-rc1](docs/release-notes-v0.2.0-rc1.it.md)), [changelog](CHANGELOG.it.md).
+Release attuale: **v0.3.0-rc3**, una release candidate validata sui gemelli —
+[note di rilascio](docs/release-notes-v0.3.0-rc3.it.md) (precedenti: [0.3.0-rc2](docs/release-notes-v0.3.0-rc2.it.md), [0.3.0-rc1](docs/release-notes-v0.3.0-rc1.it.md), [0.2.0-rc2](docs/release-notes-v0.2.0-rc2.it.md), [0.2.0-rc1](docs/release-notes-v0.2.0-rc1.it.md)), [changelog](CHANGELOG.it.md).
 
 > **Due cose da sapere prima di installare la v0.3.0**
 >
@@ -380,7 +380,7 @@ la scheda, l'unità, l'utente di servizio, la configurazione d'esempio,
 shasum.
 
 ```sh
-V=0.3.0-rc2     # il tag della release senza la v
+V=0.3.0-rc3     # il tag della release senza la v
 gh release download "v$V" --repo andreagenovese/quacknav \
     --pattern "quack-nav-$V-aarch64-linux.tar.gz*"
 # oppure: curl -LO https://github.com/andreagenovese/quacknav/releases/download/v$V/quack-nav-$V-aarch64-linux.tar.gz
