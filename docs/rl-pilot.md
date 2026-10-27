@@ -36,9 +36,15 @@ Regenerate: `target/release/rl_trace --seed S --family F --pilot P --out t.json`
 for each scenario, then `python3 scripts/rl/pages.py t1.json t2.json ...`.
 `rl_trace` also takes `--reckless KIND` in the pilot's place (finalize's
 shield test, one seed: `random`, `back`, `straight`), `--log DIR` for
-each walk's quack-navd log, and records where the house's movers stood;
+each walk's quack-navd log (`quack_nav=info`; `RUST_LOG=quack_nav=debug`
+for the guards' reasoning), and records where the house's movers stood;
 `python3 scripts/rl/trace_gif.py t.json out.gif` draws a trace as a GIF,
-the stick and the pilot side by side, people and pets included.
+the stick and the pilot side by side, people and pets included. Three
+measuring examples (`cargo run --release -p quack-rl --example NAME`):
+`drop_edge` (where the simulated sensor puts a hole's edge, by pitch),
+`hole_walk` (what the rows see of a narrow hole at each distance, level
+and looking down) and `guard_probe --seed S` (the walking guard's answer
+on a generated stairwell, by distance to its rim).
 
 ## On the duck
 

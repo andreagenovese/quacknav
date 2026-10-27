@@ -827,21 +827,101 @@ casa_arredata, daemon-v0.17.6 + set v8, due gemelli alla volta
   su uno stick che non fa peggio dello stick — e ciò che ha fatto
   rilasciare v8l-s3 come pilota velstand della linea 0.17
   (`quack-rl/pilots/v8l-s3-velstand/`).
+- **La zona cieca del sensore, e uno sguardo al pavimento prima di un
+  passo su ciò che la mappa non conosce** (2026-10-27, ramo `look-down`).
+  Il ciglio prenotato una riga dentro il buco (sotto) è stato provato come
+  causa delle cadute spericolate e non lo era: prenotato al centro
+  dell'intervallo in cui il sensore pone il bordo, le cadute sono rimaste
+  (7 → 9 a −3°, 6 → 5 a −6°, 600 semi per famiglia) e il corpo si è
+  avvicinato ai cigli (il minimo dello stick 5,7 cm contro 8,4), quindi
+  non è stato tenuto. Le tracce delle cadute dicono cos'è: il sensore non
+  vede il pavimento più vicino di dove cade la sua riga più bassa — 0,60 m
+  a −3°, 0,52 a −6°, 0,42 ai −11° del gemello da fermo
+  (`examples/hole_walk`) — in piedi o camminando allo stesso modo, e una
+  scala contro un muro è nascosta anche in un secondo modo: entro 0,4 m
+  dal ciglio il muro oltre risponde alla distanza a cui ci si aspettava il
+  pavimento e la regola della guardia "il piede di un muro, non un buco"
+  scarta il drop (`examples/guard_probe`, seme 300291). Ogni caduta era
+  una svolta sul posto che l'andatura ha portato 30–66° oltre il chiesto,
+  poi passi dritti in una scala non prenotata a 0,3–0,6 m che nessun
+  fotogramma aveva mai visto. La risposta è uno sguardo: prima di un passo
+  in avanti la cui falcata (0,12–0,40 m davanti, larga un corpo) finisce
+  su celle che la mappa non tiene né come pavimento né come muro, o che è
+  il primo dopo una svolta sul posto di 0,5 rad o più, la testa viene
+  inclinata verso il pavimento a 0,30 m (`robot.look` di robotd) per
+  0,45 s e poi restituita; le righe cadono allora da circa 0,15 m, e ciò
+  che vedono passa dalle guardie e va sui libri come i fotogrammi di
+  qualunque sosta (`look_first`; `QK_LOOK_DOWN=0` spegne). La svolta è
+  una parola a sé perché quella della mappa non basta fuori dal banco: il
+  simulatore tiene sconosciute le celle di un buco, ma il mapper segna
+  libera ogni cella sotto un raggio fino al muro che il raggio ha colpito,
+  quindi una scala contro un muro è pavimento libero sul gemello e sulla
+  papera allo stesso modo — 400 s di esplorazione dell'appartamento da
+  zero con la sola parola della mappa hanno fatto 0 sguardi. (Si è provata
+  come parola quella dei raggi del sensore che hanno incontrato il
+  pavimento, la falcata vista come pavimento da una posa qualunque nella
+  memoria del giudice: il pavimento dei fotogrammi in cammino è rado, e la
+  falcata risultava non vista ogni due–quattro passi dritti, 29 sguardi
+  in 118 passi su un viaggio corners.) Altre due cose insegnate dal
+  gemello, 2026-10-27: robotd scarta senza una parola un `robot.look`
+  mandato come notifica (per quella via passano solo move, head, pose e
+  mouth), quindi ora è una richiesta; e lo sweep della testa del mapper,
+  che scrive la testa a 20 Hz e riconosce una posa altrui solo dopo 2,5 s
+  di comandi propri, si sarebbe ripreso la testa entro un tick —
+  l'esploratore gliela presta per lo sguardo (`ExploreHandle::lend_head`)
+  e lo sweep si fa da parte subito. Banco, 420 viaggi: arrivi 98,8 /
+  98,3 % (pilota / stick, da 98,8 / 98,6), 2,5–3,4 s a viaggio in più
+  (3–13 sguardi a viaggio, dalle svolte; la sola parola della mappa
+  costava 0,1–2,5 s e teneva gli arrivi, e una svolta di 0,3 rad costava
+  97,9 / 97,1 %). Cervelli spericolati, 600 semi per famiglia su entrambe
+  le tarature: **0 cadute in un buco su 25 200 viaggi**, da 7 e 6; i loro
+  timeout in aumento (1266 → 1505 a −3°: svoltano a ogni passo). Sul
+  gemello contro il `main` congelato (AB18b, quattro giri di ogni casa
+  dell'A/B, 48 viaggi per braccio): 48 / 48 arrivati con entrambi, 0
+  cadute, errori d'arrivo 0,17 / 0,18 m come prima; il ramo ha guardato
+  105 volte in casa_ingombra e 82 in casa_arredata (4,4 e 3,4 a viaggio,
+  tutte meno sette da una svolta — lì le mappe sono complete), nessuno
+  sguardo limitato da robotd, nessuno ripreso dallo sweep; gli sguardi
+  costano 6,2 s a viaggio in casa_ingombra (mediana 9,0) e 2,7 s in
+  casa_arredata (mediana 3,1), 0,8–1,4 s a sguardo. I viaggi distanti
+  20–30 s sono sequenze di svolte dal buco al bordo vicino a casa, su
+  entrambi i bracci. Esplorando le due case da zero contro `main` (e18:
+  fino a tre sessioni da 30 min, poi due giri di viaggi sui propri
+  libri): il ramo ha guardato 32–60 volte a sessione e 20–31 a giro,
+  nessuno sguardo limitato, nessuno ripreso dallo sweep, 0 cadute e 0
+  dislivelli fantasma su entrambi i bracci; le sue mappe sono uscite più
+  piene — casa_ingombra 76 % contro 63 % (il bagno 93 % contro 10 %:
+  `main` non c'è mai entrato, e due dei suoi dodici viaggi lì sono
+  falliti per mancanza di una via sulla mappa), casa_arredata finita
+  dopo due sessioni al 78 % contro `main` bloccato al 69 % dopo tre — i
+  bordi coperti 0,97 contro 0,72 e 0,95 contro 0,97, viaggi 12 / 12 e
+  12 / 12 contro 10 / 12 e 12 / 12, mediane 124 e 106 s contro 112 e
+  102. Le mappe più piene sono una corsa ciascuna, e l'esplorazione da
+  zero cambia da una corsa all'altra; quello che la corsa dice di sicuro
+  è che lo sguardo non costa nulla alla mappa, ai bordi e agli arrivi.
 
 ## Limiti noti
 
+- **Il sensore non vede il pavimento più vicino di 0,4–0,6 m**
+  (2026-10-27): la sua riga più bassa cade a 0,60 m a −3°, 0,52 a −6°,
+  0,42 ai −11° del gemello da fermo, in piedi o camminando allo stesso
+  modo, quindi un buco più stretto di quel vuoto proprio davanti non lo
+  vede nessuno finché la testa non guarda in basso (`look_first`, sopra).
+  Lo sguardo si fa solo prima di un passo su celle che la mappa non tiene
+  come pavimento, o del primo dopo una svolta sul posto di 0,5 rad: un
+  buco in cui si entra su una curva dolce, o dove la mappa dice per
+  sbaglio pavimento senza una svolta prima (una posa 0,3 m fuori accanto a
+  una scala), non viene ancora guardato — lo tengono i dirupi sui libri e
+  la legge del passaggio, come prima.
 - **Un dirupo è prenotato dove ci si aspettava il pavimento, non al
-  ciglio** (2026-10-26). Il sensore delimita il bordo di un buco fra
-  l'ultimo pavimento visto da una colonna (`edge_min_m`) e dove si
-  aspettava il successivo (`range_m`), e i libri prendono il secondo: una
-  riga del sensore dentro il buco, 12–42 cm nella scala del seme 300002 del
-  banco, dove i 0,20 m che la rotta tiene dai dirupi prenotati lasciano il
-  bordo del corpo sporgere oltre il ciglio e un cervello sconsiderato cade
-  con la calibrazione corretta (−6°). `main` prenota allo stesso modo;
-  negli A/B del gemello i bordi vengono dall'oracolo, quindi lì non si
-  vede; l'esplorazione da zero lo farebbe vedere. Da correggere in un giro
-  a parte (il passaggio accanto alla scala di casa_arredata è 0,49 m: un
-  ciglio prenotato più vicino può chiuderlo).
+  ciglio** (2026-10-26, misurato 2026-10-27). Il sensore delimita il
+  bordo di un buco fra l'ultimo pavimento visto da una colonna
+  (`edge_min_m`) e dove si aspettava il successivo (`range_m`), e i libri
+  prendono il secondo: una riga del sensore dentro il buco, 10–17 cm a
+  seconda dell'inclinazione (`examples/drop_edge`). Innocuo così com'è — i
+  0,20 m che la rotta tiene dai dirupi prenotati lo assorbono — e
+  prenotare il centro dell'intervallo non ha tolto cadute e ha avvicinato
+  il corpo ai cigli; lasciato com'è.
 - **Un bordo registrato dove lo metteva la posa.** Circa un drop su 50 finisce
   20–35 cm fuori dal bordo vero (l'errore della posa quando è stato visto).
   All'aperto non costa niente; in un passaggio accanto a un buco lo restringe

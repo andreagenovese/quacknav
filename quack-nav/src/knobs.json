@@ -424,6 +424,18 @@
    "doc": "`QK_LANE_YIELD_M`: [`LANE_YIELDS_TO_DROP_M`] for an experiment."
   },
   {
+   "name": "QK_LOOK_DOWN",
+   "group": "QK",
+   "read_as": "1 on, 0 off, else the caller's default",
+   "type": "switch",
+   "default": null,
+   "unset": "the caller's default",
+   "where": [
+    "quack-nav/src/explore/guarded.rs"
+   ],
+   "doc": "The look at the floor ahead before a step onto cells the map does not hold as floor (`look_first`): off with `QK_LOOK_DOWN=0`."
+  },
+  {
    "name": "QK_MOVER_AHEAD_M",
    "group": "QK",
    "read_as": "number (default 0.6)",

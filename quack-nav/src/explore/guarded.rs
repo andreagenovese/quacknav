@@ -41,6 +41,57 @@ pub(super) const HOLE_IN_VIEW_HALF_M: f64 = 0.6;
 pub(super) const BLIND_DROP_MARGIN_M: f64 = 0.25;
 /// The shortest a leg is cut to before a drop the sensor sees.
 pub(super) const BLIND_LEG_MIN_S: f64 = 0.8;
+/// The look at the floor ahead before a step onto cells the map does not
+/// hold as floor (`look_first`): off with `QK_LOOK_DOWN=0`.
+pub(super) fn look_down_on() -> bool {
+    switch("QK_LOOK_DOWN").unwrap_or(true)
+}
+/// Where the look aims: the floor this far ahead of the trunk. The sensor's
+/// rows then land from about 0.15 m (the nearest at the walking pitch lands
+/// 0.4–0.6 m out).
+pub(super) const LOOK_AHEAD_M: f64 = 0.30;
+/// How long the head is held down: a few of the sensor's frames at 13 Hz.
+pub(super) const LOOK_S: f64 = 0.45;
+/// How much longer than the look the head stays the navigation's own
+/// (`ExploreHandle::lend_head`): the hand-back and robotd's slew of the
+/// pitch back to zero, so the mapper's sweep neither writes over the
+/// look nor reads the pitch still coming down as somebody else's pose
+/// (it did at 0.15 s: "the head is posed; the sweep's own commands
+/// first" 0.2 s after every look on the twin, 2026-10-27 — harmless, its
+/// own commands being the zero pitch, and noise in the log).
+pub(super) const LOOK_LEASE_MARGIN_S: f64 = 0.6;
+/// A heading this far from the last forward step's (or the last look's)
+/// is a turn in place: the stride ahead was never under the sensor's
+/// rows, which land 0.4–0.6 m out, and the map cannot vouch for it — the
+/// mapper marks every cell under a beam free up to the wall the beam hit,
+/// a stairwell against a wall included (0 looks in 400 s of exploring the
+/// apartment from nothing on the map's word alone, 2026-10-27). The
+/// stick's smallest turns (6° asked) coast to 14–27°; the ones behind the
+/// reckless falls went 102–164°.
+pub(super) const LOOK_TURN_RAD: f64 = 0.50;
+
+/// The stride the look is for, sampled: metres ahead of the body from
+/// [`LOOK_FROM_M`] to [`LOOK_TO_M`], a body's half-width to either side.
+fn stride_offsets() -> Vec<(f64, f64)> {
+    let mut out = Vec::new();
+    let mut ahead = LOOK_FROM_M;
+    while ahead <= LOOK_TO_M + 1e-9 {
+        for side in [-0.08, 0.0, 0.08] {
+            out.push((ahead, side));
+        }
+        ahead += 0.05;
+    }
+    out
+}
+/// The stride the look is for: from the body's own cell (often unknown —
+/// the sensor looks ahead, not down) to where the walking sensor's nearest
+/// row lands.
+pub(super) const LOOK_FROM_M: f64 = 0.12;
+pub(super) const LOOK_TO_M: f64 = 0.40;
+/// A look holds this long, from within this much of the pose it was made at.
+pub(super) const LOOK_FRESH_S: f64 = 1.5;
+const LOOK_MOVED_M: f64 = 0.05;
+const LOOK_TURNED_RAD: f64 = 0.17;
 /// Fine alignment ([`Job::align`], the turn before a step away from a
 /// drop; once the passage entry's, until 2026-09-30): iterations, tolerance, the pulse that
 /// turns 15–25° when there is room to kick, and the settle time.
@@ -97,6 +148,79 @@ impl Job {
         cliff.hole_in_lane_walking(now, 0.0, BLIND_DROP_LANE_M, reach, within, 2.min(frames))
     }
 
+    /// Whether a stride ahead along `heading` runs onto cells the map does
+    /// not hold as floor or wall, a body's half-width to either side.
+    pub(super) fn stride_into_unknown(&self, robot: &dyn Body, (x, y, _): (f64, f64, f64), heading: f64) -> bool {
+        let Some(grid) = robot.frame().and_then(|f| f.grid().ok()) else { return false };
+        let (s, c) = heading.sin_cos();
+        stride_offsets().into_iter().any(|(ahead, side)| {
+            let (qx, qy) = (x + ahead * c - side * s, y + ahead * s + side * c);
+            !matches!(grid.at(qx, qy), Some(Cell::Free) | Some(Cell::Wall))
+        })
+    }
+
+    /// Whether the body turned in place since its last forward step (or
+    /// look), [`LOOK_TURN_RAD`] or more — or has not stepped yet: the
+    /// stride ahead was never under the sensor's rows. Walking straight,
+    /// it was a few steps back. (The sensor's own floor beams were tried
+    /// as the word instead — the stride seen as floor from any pose in
+    /// the judge's memory — and read "unseen" every two to four straight
+    /// steps on the bench, the walking frames' floor being sparse: 29
+    /// looks in 118 steps on a corners journey, 2026-10-27.)
+    pub(super) fn turned_since_stride(&self, heading: f64) -> bool {
+        self.last_stride.get().is_none_or(|h| wrap(heading - h).abs() >= LOOK_TURN_RAD)
+    }
+
+    /// A look at the floor a stride ahead before a step onto cells the map
+    /// does not hold as floor, unless one was made from here just now. The
+    /// sensor cannot see the floor nearer than 0.4–0.6 m at its walking
+    /// pitch, in a stand or walking alike, so a hole narrower than that,
+    /// right after a turn in place, was never seen by anything: four of
+    /// the seven reckless falls in 12 600 bench journeys (2026-10-27) were
+    /// turns of 39–98° that the gait took to 102–164°, then straight steps
+    /// into an unbooked stairwell 0.3–0.5 m ahead. The head pitched down
+    /// for [`LOOK_S`] lands the rows from about 0.15 m; what they see goes
+    /// through the guards as any stand's frames do, and on the books.
+    /// Whether a look was made.
+    pub(super) fn look_first(&self, robot: &mut dyn Body, pose: (f64, f64, f64)) -> bool {
+        if !look_down_on() {
+            return false;
+        }
+        // The map does not hold the stride as floor, or the body turned in
+        // place since it last stepped (`turned_since_stride`: what the
+        // map's word cannot tell, a stairwell against a wall under beams
+        // to the wall). The stride's heading is remembered either way:
+        // the step about to be taken is the last one.
+        let why = if self.stride_into_unknown(&*robot, pose, pose.2) {
+            "the map does not know it"
+        } else if self.turned_since_stride(pose.2) {
+            "turned since the last step"
+        } else {
+            self.last_stride.set(Some(pose.2));
+            return false;
+        };
+        self.last_stride.set(Some(pose.2));
+        let now = robot.now();
+        if let Some((at, when)) = self.last_look.get()
+            && now.duration_since(when).as_secs_f64() <= LOOK_FRESH_S
+            && dist2((at.0, at.1), (pose.0, pose.1)) < LOOK_MOVED_M
+            && wrap(pose.2 - at.2).abs() < LOOK_TURNED_RAD
+        {
+            return false;
+        }
+        self.last_look.set(Some((pose, now)));
+        match robot.look_down(LOOK_S) {
+            Ok(()) => {
+                tracing::info!(at = ?(pose.0, pose.1), why, "map explore: a look at the floor ahead before a step onto it");
+                true
+            }
+            Err(why) => {
+                tracing::info!(why, "map explore: no look at the floor ahead");
+                false
+            }
+        }
+    }
+
     /// Whether the leg, walked as the gait walks it, crosses a cell the
     /// map has not seen as floor — along its line and a body's half-width
     /// to either side.
@@ -142,6 +266,11 @@ impl Job {
             && self.drop_on_path(pose, leg).is_none();
         if trusted {
             tracing::info!(at = ?(pose.0, pose.1), cells = self.trusted.len(), "map explore: the leg lies on trusted floor; walking it blind");
+        }
+        // A stride onto what the map does not know: a look at it first
+        // (`look_first`), so the guards below judge from frames that see it.
+        if !trusted && leg.get("vx").and_then(Value::as_f64).unwrap_or(0.0) > 0.0 {
+            self.look_first(robot, pose);
         }
         // A hole in the sensor's view (walking frames included) ends the
         // blind walk for everything — legs, kicks, pulses — until it is

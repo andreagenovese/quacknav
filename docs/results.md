@@ -776,20 +776,94 @@ daemon-v0.17.6 + set v8, two twins at a time (`rl-runs/twin-work/P8/`).
   the user asked for — a pilot trained on a stick that does not do worse
   than the stick — and what shipped v8l-s3 as the 0.17 velstand pilot
   (`quack-rl/pilots/v8l-s3-velstand/`).
+- **The sensor's blind zone, and a look at the floor before stepping onto
+  what the map does not know** (2026-10-27, branch `look-down`). The rim
+  booked one row inside the hole (below) was tried as the cause of the
+  reckless falls and was not: booked at the middle of the sensor's edge
+  span instead, the falls stayed (7 → 9 at −3°, 6 → 5 at −6°, 600 seeds a
+  family) and the body came nearer the rims (the stick's nearest 5.7 cm
+  against 8.4), so it was not kept. The traces of the falls say what is:
+  the sensor cannot see the floor nearer than where its nearest row lands
+  — 0.60 m at −3°, 0.52 at −6°, 0.42 at the twin's standing −11°
+  (`examples/hole_walk`) — in a stand or walking alike, and a stairwell
+  against a wall is hidden a second way: within 0.4 m of its rim the wall
+  beyond answers at the range the floor was expected and the guard's
+  "a wall's foot, not a hole" rule dismisses the drop
+  (`examples/guard_probe`, seed 300291). Every fall was a turn in place
+  the gait took 30–66° past what was asked, then straight steps into an
+  unbooked stairwell 0.3–0.6 m ahead that no frame had ever seen. The
+  answer is a look: before a forward step whose stride (0.12–0.40 m
+  ahead, a body wide) runs onto cells the map holds as neither floor nor
+  wall, or that is the first after a turn in place of 0.5 rad or more,
+  the head is pitched at the floor 0.30 m ahead (robotd's `robot.look`)
+  for 0.45 s and handed back; the rows then land from about 0.15 m, and
+  what they see goes through the guards and on the books as any stand's
+  frames do (`look_first`; `QK_LOOK_DOWN=0` off). The turn is a word of
+  its own because the map's is not enough off the bench: the simulator
+  holds a hole's cells unknown, but the mapper marks every cell under a
+  beam free up to the wall the beam hit, so a stairwell against a wall is
+  free floor on the twin and the duck alike — 400 s of exploring the
+  apartment from nothing on the map's word alone made 0 looks. (The
+  sensor's own floor beams were tried as the word instead, the stride
+  seen as floor from any pose in the judge's memory: the walking frames'
+  floor is sparse, and the stride read unseen every two to four straight
+  steps, 29 looks in 118 steps on a corners journey.) Two more things the
+  twin taught, 2026-10-27: robotd drops a `robot.look` sent as a
+  notification without a word (only move, head, pose and mouth go that
+  way), so it is a request now; and the mapper's head sweep, which writes
+  the head at 20 Hz and tells a foreign pose only after 2.5 s of its own
+  commands, would have taken the head back within a tick — the explorer
+  lends it the head for the look (`ExploreHandle::lend_head`) and it
+  stands aside outright. Bench, 420 journeys: arrivals 98.8 / 98.3 %
+  (pilot / stick, from 98.8 / 98.6), 2.5–3.4 s a journey more (3–13
+  looks a journey, from the turns; the map-only word cost 0.1–2.5 s and
+  kept the arrivals, and a 0.3 rad turn cost 97.9 / 97.1 %). Reckless
+  brains, 600 seeds a family at both calibrations: **0 falls into a hole
+  in 25 200 journeys**, from 7 and 6; their timeouts up (1266 → 1505 at
+  −3°: they turn at every step). On the twin against frozen `main`
+  (AB18b, four tours of each A/B house, 48 journeys an arm): 48 / 48
+  arrived with either, 0 falls, arrival errors 0.17 / 0.18 m as before;
+  the branch looked 105 times in casa_ingombra and 82 in casa_arredata
+  (4.4 and 3.4 a journey, all but seven from a turn — the maps there are
+  complete), none clamped by robotd, none taken back by the sweep; the
+  looks cost 6.2 s a journey in casa_ingombra (median 9.0) and 2.7 s in
+  casa_arredata (median 3.1), 0.8–1.4 s a look. The journeys 20–30 s
+  apart are strings of hole turns at the rim by home, on either arm.
+  Exploring the two houses from nothing against `main` (e18: up to three
+  sessions of 30 min, then two rounds of journeys on its own books): the
+  branch looked 32–60 times a session and 20–31 a round, none clamped,
+  none taken back by the sweep, 0 falls and 0 phantom drops on either
+  arm; its maps came out fuller — casa_ingombra 76 % against 63 % (the
+  bath 93 % against 10 %: `main` never went in, and two of its twelve
+  journeys there failed for want of a way on the map), casa_arredata
+  done after two sessions at 78 % against `main` stuck at 69 % after
+  three — the rims covered 0.97 against 0.72 and 0.95 against 0.97,
+  journeys 12 / 12 and 12 / 12 against 10 / 12 and 12 / 12, medians 124
+  and 106 s against 112 and 102. The fuller maps are one run each, and
+  exploring from nothing varies from one run to the next; what the run
+  says for sure is that the look costs the map, the rims and the
+  arrivals nothing.
 
 ## Known limits
 
+- **The sensor cannot see the floor nearer than 0.4–0.6 m** (2026-10-27):
+  its nearest row lands 0.60 m out at −3°, 0.52 at −6°, 0.42 at the
+  twin's standing −11°, in a stand or walking alike, so a hole narrower
+  than that gap right ahead is seen by nothing until the head looks down
+  (`look_first`, above). The look is made only before a step onto cells
+  the map does not hold as floor, or the first after a turn in place of
+  0.5 rad: a hole walked into on a gentle curve, or where the map wrongly
+  says floor with no turn before it (a pose 0.3 m off beside a
+  stairwell), is still not looked at — the books' drops and the passage
+  law hold that case, as before.
 - **A drop is booked where the floor was expected, not at the rim**
-  (2026-10-26). The sensor bounds a hole's edge between the last floor a
-  column saw (`edge_min_m`) and where it expected the next (`range_m`),
-  and the books take the latter: one row of the sensor inside the hole,
-  12–42 cm in the stairwell of the bench's seed 300002, where the route's
-  0.20 m off the booked drops lets the body's edge overhang the rim and a
-  reckless brain falls on the corrected calibration (−6°). `main` books the
-  same way; on the twin's A/B the rims come from the oracle, so it does
-  not show there; exploring from nothing would show it. To fix in a round
-  of its own (the passage beside casa_arredata's stairwell is 0.49 m: a
-  rim booked nearer may shut it).
+  (2026-10-26, measured 2026-10-27). The sensor bounds a hole's edge
+  between the last floor a column saw (`edge_min_m`) and where it
+  expected the next (`range_m`), and the books take the latter: one row
+  of the sensor inside the hole, 10–17 cm by pitch (`examples/drop_edge`).
+  Harmless as it stands — the route's 0.20 m off the booked drops absorbs
+  it — and booking the middle of the span instead took no fall away and
+  let the body nearer the rims; left as it is.
 - **A rim booked where the pose had it.** About 1 in 50 drops lands 20–35 cm
   off the true rim (the pose's error when it was seen). In the open that
   costs nothing; in a passage beside a hole it narrows the passage for the

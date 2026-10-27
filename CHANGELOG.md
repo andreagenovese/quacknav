@@ -13,6 +13,31 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Added
 
+- **A look at the floor before a step onto what the map does not know.**
+  The sensor cannot see the floor nearer than where its nearest row
+  lands — 0.4–0.6 m by pitch, in a stand or walking alike — and a
+  stairwell against a wall is hidden a second way within 0.4 m of its
+  rim (the wall beyond answers at the range the floor was expected, and
+  the guard calls the drop a wall's foot). Every reckless fall on the
+  bench was that: a turn in place taken 30–66° past what was asked, then
+  straight steps into an unbooked stairwell no frame had seen. Before a
+  forward step whose stride (0.12–0.40 m ahead, a body wide) runs onto
+  cells the map holds as neither floor nor wall, or that is the first
+  after a turn in place of 0.5 rad or more — the map cannot vouch for
+  that stride: the mapper marks every cell under a beam free up to the
+  wall the beam hit, a stairwell against a wall included — quack-navd now
+  pitches the head at the floor 0.30 m ahead (robotd's `robot.look`, a
+  request: the daemon drops it as a notification) for 0.45 s and hands it
+  back; the mapper's head sweep stands aside for the look
+  (`ExploreHandle::lend_head`). The rows land from about 0.15 m and what
+  they see goes through the guards and on the books. The guarded step,
+  the stick's step and the pilot's, once per pose; `QK_LOOK_DOWN=0`
+  switches it off. The simulator's sensor takes the head's pitch. Bench:
+  arrivals 98.8 / 98.3 % (pilot / stick, from 98.8 / 98.6), 2.5–3.4 s a
+  journey more; reckless brains, 600 seeds a family at both calibrations:
+  0 falls into a hole in 25 200 journeys, from 13 ([docs/results.md](docs/results.md),
+  2026-10-27). `rl_trace` takes `RUST_LOG` (`quack_nav=debug`) over its
+  `quack_nav=info`.
 - **The simulator's houses are the twin's** (`quack-rl`): `--families
   twin:<house>` walks the MuJoCo twin's tour from
   `scripts/twin/houses/<house>.truth.json` — each journey starting where

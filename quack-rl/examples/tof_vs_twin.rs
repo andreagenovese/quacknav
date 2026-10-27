@@ -61,7 +61,7 @@ fn main() -> anyhow::Result<()> {
             let moving = f["moving"].as_bool().unwrap_or(false);
             let mut row = json!({"k": d["k"], "t": t, "pose": [pose.0, pose.1, pose.2], "head": head, "moving": moving, "twin": f["obs"], "twin_floors": f["floors"]});
             let mut sensed = |pose: (f64, f64, f64), calib: &Calib| {
-                let f = s.world.sense(pose, head, moving, calib, &mut rng, 0, at);
+                let f = s.world.sense(pose, head, 0.0, moving, calib, &mut rng, 0, at);
                 (f.obstacles.iter().map(|o| [o.bearing, o.range_m]).collect::<Vec<_>>(), f.floors.len())
             };
             let (sim, floors) = sensed(pose, &calib);

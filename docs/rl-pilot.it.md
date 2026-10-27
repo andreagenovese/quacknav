@@ -37,10 +37,16 @@ Per rigenerarle: `target/release/rl_trace --seed S --family F --pilot P --out t.
 per ogni scenario, poi `python3 scripts/rl/pages.py t1.json t2.json ...`.
 `rl_trace` accetta anche `--reckless KIND` al posto del pilota (il test
 delle scudature di finalize, un seme: `random`, `back`, `straight`),
-`--log DIR` per il log di quack-navd di ogni camminata, e registra dove
-stavano i mover della casa; `python3 scripts/rl/trace_gif.py t.json
+`--log DIR` per il log di quack-navd di ogni camminata (`quack_nav=info`;
+`RUST_LOG=quack_nav=debug` per il ragionamento delle guardie), e registra
+dove stavano i mover della casa; `python3 scripts/rl/trace_gif.py t.json
 out.gif` disegna una traccia come GIF, stick e pilota affiancati, persone
-e animali compresi.
+e animali compresi. Tre esempi di misura (`cargo run --release -p quack-rl --example
+NOME`): `drop_edge` (dove il sensore simulato mette il bordo di un buco,
+per inclinazione), `hole_walk` (cosa vedono le righe di un buco stretto a
+ogni distanza, dritte e guardando in basso) e `guard_probe --seed S` (la
+risposta della guardia camminando su una scala generata, per distanza dal
+ciglio).
 
 ## Sulla papera
 

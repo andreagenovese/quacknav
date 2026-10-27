@@ -331,7 +331,12 @@ impl Job {
                 self.stick_steps += 1;
                 return self.stick_tail(robot, stand_every);
             }
-        } else if let Some(d) = robot.cliff().and_then(|c| self.blind_drop_ahead(&c, robot.now(), gait_m_per_s() * STEP_S + guard_margin)) {
+        } else if let Some(d) = {
+            // A step onto what the map does not know: a look at the floor
+            // ahead first (`look_first`), and the guard judges from its frames.
+            self.look_first(robot, (x, y, yaw));
+            robot.cliff().and_then(|c| self.blind_drop_ahead(&c, robot.now(), gait_m_per_s() * STEP_S + guard_margin))
+        } {
             what = self.turn_from_hole(robot, (x, y, yaw), d, "stick");
         } else {
             let vyaw = (yaw_gain() * err).clamp(-0.7, 0.7);
@@ -456,6 +461,9 @@ impl Job {
         });
         let action = pilot.act(&obs);
         let odom0 = odom_pose(&*robot).map(|p| (p.0, p.1)).unwrap_or((pose.0, pose.1));
+        // A step onto what the map does not know: a look at the floor
+        // ahead first (`look_first`), and the guards judge from its frames.
+        let (cliff, now) = if action.forward() && self.look_first(robot, pose) { (robot.cliff(), robot.now()) } else { (cliff, now) };
         let guarded = action.forward().then(|| cliff.as_ref().and_then(|c| self.blind_drop_ahead(c, now, gait_m_per_s() * STEP_S + guard_margin))).flatten();
         // Backing is blind (the sensor looks ahead): only onto floor the map
         // knows, off the books' drops. The bench's first pilot backed into

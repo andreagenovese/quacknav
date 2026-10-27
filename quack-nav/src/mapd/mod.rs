@@ -171,6 +171,10 @@ pub struct Host {
     /// the sweep's only then (see [`sweep`]). Set by the host once the
     /// explore job exists ([`Host::set_driving`]); nothing drives before.
     driving: Arc<Mutex<Option<DrivingProbe>>>,
+    /// Whether the navigation holds the head itself right now — a look at
+    /// the floor ahead: the sweep stands aside and hands nothing back
+    /// meanwhile ([`Host::set_head_lent`]).
+    lent: Arc<Mutex<Option<DrivingProbe>>>,
 }
 
 type DrivingProbe = Arc<dyn Fn() -> bool + Send + Sync>;
@@ -308,6 +312,17 @@ impl Host {
         let probe = self.driving.lock().expect("driving probe poisoned").clone();
         probe.is_some_and(|p| p())
     }
+
+    /// Tell the sweep how to know that the navigation holds the head itself
+    /// (a look at the floor ahead, `ExploreHandle::lend_head`).
+    pub fn set_head_lent(&self, probe: impl Fn() -> bool + Send + Sync + 'static) {
+        *self.lent.lock().expect("head lease probe poisoned") = Some(Arc::new(probe));
+    }
+
+    pub fn head_lent(&self) -> bool {
+        let probe = self.lent.lock().expect("head lease probe poisoned").clone();
+        probe.is_some_and(|p| p())
+    }
 }
 
 /// Start the worker, its two feeds and the head sweep. The server is the
@@ -327,6 +342,7 @@ pub fn spawn(config: &MaplocConfig, robotd_socket: &str, tof_socket: &str) -> Ho
         mode: config.mode,
         subscribers: subscribers.clone(),
         driving: Arc::default(),
+        lent: Arc::default(),
     };
 
     let worker_config = config.clone();
