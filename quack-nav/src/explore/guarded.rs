@@ -389,10 +389,25 @@ impl Job {
                     tracing::info!(edge_m = format!("{:.2}", d.edge_min_m), walk_s = format!("{fits:.1}"), "map explore: the guarded leg cut short of the drop the sensor sees");
                     let mut cut = leg.clone();
                     cut["walk_s"] = json!(fits);
-                    return robot.step(&cut);
+                    return ledgered_step(robot, &cut);
                 }
             }
         }
-        robot.step(leg)
+        ledgered_step(robot, leg)
     }
+}
+
+/// The step, and the gait ledger told of it when it was a forward walk
+/// the guard let run to its end (`crate::ledger`): the reply's
+/// `walked_s` is the time, the stand after it corrected the pose.
+fn ledgered_step(robot: &mut dyn Body, leg: &Value) -> Result<Value, String> {
+    let before = crate::rlnav::trace::Snapshot::take(&*robot);
+    let reply = robot.step(leg)?;
+    let num = |v: &Value, k: &str| v.get(k).and_then(Value::as_f64).unwrap_or(0.0);
+    let (vx, vyaw) = (num(leg, "vx"), num(leg, "vyaw"));
+    let walked = num(&reply, "walked_s");
+    if vx > 0.05 && walked >= 0.2 && reply.get("done").and_then(Value::as_bool) != Some(false) && (walked - num(leg, "walk_s")).abs() < 0.05 {
+        crate::ledger::step(&*robot, &before, vx, vyaw, walked);
+    }
+    Ok(reply)
 }

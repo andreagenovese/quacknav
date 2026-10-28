@@ -7,8 +7,12 @@
 //!     cargo run --release -p quack-rl --bin rl_eval -- \
 //!         [--seeds 40] [--seed0 100000] [--level 3] [--families a,b] \
 //!         [--stick] [--expert] [--pilot FILE]... [--reckless random|back|straight]... \
-//!         [--calib FILE] \
+//!         [--calib FILE] [--ledger] \
 //!         [--threads 10] [--out results.json]
+//!
+//! `--ledger` opens the gait ledger in memory (`quack_nav::ledger`): the
+//! journeys teach it the walk as they go, as on the duck. The ledger is
+//! the process's, so `--threads 1`: the journeys in order, one walk.
 
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
@@ -55,6 +59,10 @@ fn main() -> anyhow::Result<()> {
         Some(p) => Calib::load(&p)?,
         None => Calib::default(),
     };
+    if args.iter().any(|a| a == "--ledger") {
+        anyhow::ensure!(threads == 1, "--ledger is one walk learned in order: --threads 1");
+        quack_nav::ledger::init(None, 0.0);
+    }
     let mut who = Vec::new();
     if args.iter().any(|a| a == "--stick") {
         who.push(Who::Stick);

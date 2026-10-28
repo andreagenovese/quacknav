@@ -191,7 +191,13 @@ an auxiliary loss that fades to a floor. 256 journeys at once, about
 **Benches** (`rl_eval`): generated scenarios never used in training, the
 stick, the expert and the pilot through quack-navd's own loop; the
 checkpoint is chosen on seeds from 100000 and reported on seeds from
-200000 (`finalize.py`, `report.md`).
+200000 (`finalize.py`, `report.md`). The gait ledger (the duck learning
+its own walk, `quack-nav/src/ledger.rs`) is off on the bench unless
+`--ledger` opens it in memory, one walk learned journey after journey
+(`--threads 1`); `examples/ledger_check` walks a calibration changed on
+purpose (`--speed`, `--veer`, `--ypu`, from `--base calib.json`) and
+prints what the ledger finds beside the truth, journey by journey. The
+simulator's veer acts under every forward command, as a gait's does.
 
 ## Calibration on the duck
 

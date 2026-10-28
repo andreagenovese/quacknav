@@ -110,6 +110,7 @@ socket = "$STATE/nav.sock"
 robotd_socket = "$SOCK"
 daemon = "${DAEMON:-auto}"
 knobs_env = "$STATE/knobs.env"
+ledger_path = "$STATE/gait-ledger.json"
 
 [map]
 enabled = true

@@ -40,6 +40,7 @@ pub mod explore;
 pub mod frontier;
 pub mod homecoming;
 pub mod knobs;
+pub mod ledger;
 pub mod map;
 pub mod oracle;
 pub mod mapd;

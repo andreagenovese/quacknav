@@ -35,7 +35,8 @@ dell'utente agli strumenti di quack-nav e non fa navigazione.
 > rompersi: se lo provi su hardware vero, tienilo lontano dai dislivelli e
 > stagli accanto. I numeri in [docs/results.it.md](docs/results.it.md)
 > sono quello che ha misurato il gemello, non una promessa di cosa farà
-> una casa vera.
+> una casa vera. Dove sta andando, nella forma della roadmap di Pollen:
+> [docs/roadmap.it.md](docs/roadmap.it.md).
 >
 > Ogni mossa che manda quack-nav — `robot.move` e `robot.map_step`
 > compresi — si ferma davanti a un dislivello che il sensore di profondità
@@ -444,6 +445,21 @@ coincide. Il daemon decide i numeri di velstand e quale pilota può volare
 linea. I numeri di ogni linea stanno in un file a sé,
 `quack-duck/src/daemon/v0_16.rs` e `v0_17.rs`.
 
+Quei numeri sono prior. **Il registro d'andatura** misura la camminata
+sulle gambe della papera stessa — un passo libero in avanti dà la
+velocità e la correzione che lo tiene dritto, una gamba lunga in curva
+l'imbardata per unità di comando, una svolta sul posto la sua velocità
+e, letta sulla mappa alla gamba dopo, la sua coda — e posa la mediana
+degli ultimi 32 campioni sopra il prior quando ne ha 5 (la correzione 10), vincolata intorno
+a lui (una sessione sbagliata non porta la papera lontano). Sta accanto
+alla mappa, `/var/lib/quack-nav/gait-ledger.json`, per linea di daemon e
+profilo, così ogni avvio parte da dove è arrivato l'ultimo e una linea
+nuova di Pollen parte dai suoi prior. `robot.gait` lo riporta e lo
+dimentica a richiesta; `robot.map_status` lo porta come `gait`;
+`QK_GAIT_LEDGER=0` lascia stare i prior
+([docs/control-contract.it.md](docs/control-contract.it.md), il modulo
+`quack-nav/src/ledger.rs`).
+
 ### La camminata
 
 quack-nav deve sapere quale policy di camminata usa
@@ -541,6 +557,7 @@ tutto ciò che quack-nav aggiunge:
 | `/run/quack-nav/{nav,map}.sock` | creati dall'unità (`RuntimeDirectory=`), modo 0660, gruppo `robot` |
 | `/var/lib/quack-nav/` (luoghi, sessioni, `maps/`) | creata dall'unità (`StateDirectory=`), di `quacknav` |
 | `/var/lib/quack-nav/knobs.env` (facoltativo) | le manopole, scritte da `nav.knobs` ([docs/control-contract.it.md](docs/control-contract.it.md)), lette dall'unità a ogni avvio |
+| `/var/lib/quack-nav/gait-ledger.json` | il registro d'andatura: ciò che la papera ha imparato del proprio cammino, tenuto fra un avvio e l'altro (`robot.gait`, [docs/control-contract.it.md](docs/control-contract.it.md)) |
 
 L'unità esegue il demone come `quacknav` con `robot` come gruppo
 supplementare (raggiunge i socket 0660 di robotd e di tofd, e dà i suoi

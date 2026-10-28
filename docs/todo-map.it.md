@@ -1,5 +1,8 @@
 # TODO — Mappa della casa e localizzazione
 
+La direzione e i traguardi sono in [`roadmap.it.md`](roadmap.it.md);
+questo file è il lavoro mentre accade, con i suoi numeri.
+
 Stato: deciso, non iniziato (ADR 0005). Prerequisito: quacksat parla
 (fatto) e il `maploc` di Pollen entra in robotd (PR upstream 127, aperta).
 Principio: **mappatura e localizzazione girano a bordo, dentro robotd**;
@@ -47,18 +50,29 @@ il 2026-10-27), e l'eccesso della svolta sul posto scoperto essere un
 comando lasciato in robotd fino al suo deadman (ramo `turn-stop`: uno
 stop alla fine di ogni svolta, da 36–47° oltre la chiusura a 3–21°; A/B
 48/48 tutti e due i bracci, 0 cadute, le svolte 12–16° oltre il chiesto
-invece di 43–44°).
+invece di 43–44°; rilasciato come v0.3.0-rc3), e il registro d'andatura
+(ramo `gait-ledger`: i numeri della camminata — velocità, correzione,
+imbardata per unità, coda e velocità della svolta — imparati sulle gambe
+della papera stessa e tenuti accanto alla mappa per linea di daemon e
+profilo; sul gemello con i prior della linea sbagliata apposta
+la velocità imparata a 0,103–0,110 m/s contro gli 0,107 del gemello, 0
+cadute; A/B AB20 48/48 su entrambi i bracci, 0 cadute, tempi uguali nel
+rumore, il registro portato da una casa all'altra; A/B di esplorazione
+e21 da zero in tutte e due le case: mappe piene quanto quelle del main,
+24/24 viaggi, 0 cadute, due case imparate a parte che concordano su
+velocità e svolta; sullo stack daemon-v0.17.9 di Pollen senza nulla
+modificato e col registro vuoto, casa_arredata finita in due sessioni,
+12/12, 0 cadute, registro acceso e spento uguali — la camminata non è
+cambiata in 0.17.9).
 **Da fare**, in ordine: la tenuta della gamba camminata fino al deadman
 dopo il suo ultimo pezzo (circa 5 cm al passo del set v8), misurata sul
 gemello e modellata o fermata come quella della svolta, e la fine di
 `robot.move` fermata allo stesso modo (oggi la svolta dello strumento
-prosegue fino al deadman); un registro
-d'andatura — i numeri con cui si guida la camminata (velocità, deriva,
-imbardata per unità, velocità e coda della svolta, assestamento)
-imparati sulle gambe e sulle soste della papera stessa, come già la coda
-della svolta, tenuti accanto alla mappa per linea di demone e set di
-policy, vincolati intorno ai prior scritti nel codice, azzerabili da
-`nav.knobs`; un'esplorazione delimitata (dell'utente, 2026-10-27):
+prosegue fino al deadman); i prossimi numeri del registro —
+l'assestamento dopo uno stop, la velocità della svolta presa nel budget
+della svolta, l'imbardata per unità dagli impulsi di 0,6 s dello stick
+quando il loro avvio sarà modellato — e quack-control che mostra `gait`;
+un'esplorazione delimitata (dell'utente, 2026-10-27):
 "esplora 2×3" nomina i lati della mappa in metri, dalla voce o da
 quack-control, e l'esploratore tiene frontiere e viaggi dentro quel
 rettangolo intorno a dove è partito, qualunque pavimento ci sia oltre; un

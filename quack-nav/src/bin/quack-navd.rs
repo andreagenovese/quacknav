@@ -40,6 +40,8 @@ fn main() -> anyhow::Result<()> {
     // defaults follow it.
     quack_duck::gait::set_active(config.gait.profile);
     tracing::info!(profile = ?config.gait.profile, gait = ?config.gait, "quack-navd: the walk");
+    // What this duck learned of its own walk, laid over the numbers.
+    quack_nav::ledger::init(Some(config.ledger_path.clone().into()), config.gait.yaw_trim);
 
     // The mapper, when this daemon hosts it (`[maploc]`): the released robotd
     // publishes what it needs, and the rest of the navigation reads the map
@@ -118,6 +120,7 @@ struct Shutdown {
 impl Shutdown {
     fn now(&self) -> ! {
         self.explore.request_stop();
+        quack_nav::ledger::flush();
         if let Some(host) = &self.mapper {
             host.shutdown();
         }

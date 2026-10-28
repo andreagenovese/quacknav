@@ -948,6 +948,128 @@ casa_arredata, daemon-v0.17.6 + set v8, due gemelli alla volta
   73 sul ramo contro 110 / 102, gambe del ramo 80 / 72 contro 77 / 70,
   errore d'arrivo 0,17–0,18 m per tutti e due.
 
+- **La papera impara il proprio cammino: il registro d'andatura** (ramo
+  `gait-ledger`, 2026-10-27). I numeri della camminata con cui la
+  navigazione pianifica erano prior nel codice per linea di daemon e
+  profilo, misurati sul gemello; l'unico imparato a tempo d'esecuzione,
+  la coda della svolta, si perdeva a ogni riavvio. Il registro prende
+  ogni gamba e ogni svolta come misura — la velocità dalla posa della
+  mappa su un passo libero, la correzione che annullerebbe la deriva di
+  un passo dritto dall'odometria, l'imbardata per unità su una gamba in
+  curva di 0,8 s o più, la velocità di una svolta sul posto, e la coda
+  come prima — tiene gli ultimi 32 campioni di ognuno accanto alla mappa
+  per linea di daemon e profilo, e ne posa la mediana sopra il prior
+  quando ne ha 5 (la correzione 10), vincolata intorno al prior. Misurato
+  in tre modi. Sul banco, una camminata che i prior sbagliano apposta (la
+  taratura stimata del gemello con la velocità +25 %, una deriva di 0,12
+  rad/s, l'imbardata per unità ×0,8; 280 viaggi, lo stick, un solo thread
+  così il registro impara in ordine): 98,6 % arrivati senza registro,
+  98,2 % con, 69,4 contro 68,1 s a viaggio, 2,37 contro 2,44 urti — un
+  viaggio chiude ogni passo sulla posa della mappa e ogni svolta
+  sull'odometria, e lì i numeri contano poco; il registro ha trovato la
+  velocità (0,138 contro 0,133 vera) e la correzione (da −0,07 a −0,13
+  contro −0,136), mai l'imbardata per unità (nessuna gamba in curva di
+  0,8 s in un viaggio: i passi dello stick sono di 0,6 s) e la coda a 0,57
+  rad, quel che la media per viaggio trovava prima (la scala
+  dell'odometria del simulatore letta come coda). La deriva del
+  simulatore agiva solo sotto |vyaw| < 0,1, così una correzione oltre
+  quella soglia girava il corpo simulato dall'altra parte e il registro
+  oscillava; ora agisce sotto ogni comando in avanti (il banco si sposta
+  dentro il suo rumore: pilota 98,6 / 74,1 s da 99,0 / 74,3, stick 98,8 /
+  78,2 da 98,1 / 76,8; cervelli spericolati su 25 200 viaggi: 1 caduta in
+  buco, di nuovo il seme 300570). Sul gemello con i prior della linea
+  sbagliata apposta (daemon-v0.17.6, set v8, a quack-navd detto `daemon =
+  "0.16"`: 0,115 m/s, 0,62 rad/s per unità, svolta chiesta a 1,5),
+  esplorando casa_arredata da zero per 15 minuti: la velocità imparata a
+  0,103–0,110 m/s dal 27º campione in poi (la stimata del gemello 0,107;
+  il prior della linea 0.17 0,095), la velocità della svolta 1,32–1,38
+  rad/s, 241 campioni, 57 % della casa, 0 cadute. La prima prova ha
+  messo la correzione al suo limite (−0,25) dopo sei passi dritti: un
+  passo subito dopo una svolta sul posto aveva dentro la coda della
+  svolta, letta come deriva — quei passi ora non danno imbardata, e nella
+  seconda prova la correzione è passata da 0,12 a 0,04 su 14 campioni,
+  da cui i suoi 10. Nemmeno l'imbardata per unità ha avuto campioni sul
+  gemello (le gambe dell'esplorazione sono dritte o svolte sul posto) e
+  la coda nessuno con le regole della linea 0.16 (la sua esplorazione non
+  la impara): lì restano ai loro prior, che è il disegno. A/B sul gemello
+  contro il `main` congelato (AB20, quattro giri di ogni casa dell'A/B,
+  il registro del ramo vuoto all'inizio e che impara lungo i giri):
+  48/48 arrivi su entrambi i bracci, 0 cadute; casa_ingombra 111,5 s a
+  viaggio contro i 112,3 del main (mediane 105,7 contro 107,1, differenza
+  accoppiata +0,1 s mediana, −0,9 media), casa_arredata 101,0 contro
+  100,5 (mediane 93,7 contro 95,1, accoppiata +0,0 mediana, +0,5 media) —
+  la stessa camminata nel rumore, che è quanto deve dare un viaggio chiuso
+  sulla mappa. Cosa ha imparato il registro con i prior della linea 0.17
+  stessa: la velocità 0,103 m/s dopo i quattro giri di casa_ingombra e
+  0,109 dopo quelli di casa_arredata (1 517 e 3 186 passi visti; il prior
+  0,095, la stimata del gemello 0,107), la correzione +0,020 poi +0,009
+  (il prior −0,03: il corpo del gemello deriva dall'altra parte rispetto a
+  quanto dice il file della linea, di un pelo), la velocità della svolta
+  0,88 poi 0,98 rad/s (prior 1,0), la coda 0,25 poi 0,27 rad (prior 0,3,
+  le code nel log 13–19°), l'imbardata per unità ancora senza un campione
+  (le gambe curve di un viaggio durano meno di 0,8 s). La seconda casa è
+  partita dai numeri della prima — il file del registro è sopravvissuto
+  ai riavvii e alle case — e i tempi non si sono mossi: una camminata
+  imparata portata in un'altra casa è al peggio innocua.
+  A/B di esplorazione contro lo stesso `main` congelato (e21,
+  2026-10-28: ogni braccio esplora tutte e due le case da zero, tre
+  sessioni da 30 minuti riprese da dove si era fermata l'ultima, poi la
+  mappa è congelata e su di essa girano due giri di sei viaggi; l'A/B di
+  esplorazione azzera lo stato per casa, quindi il registro del ramo è
+  partito vuoto in ciascuna): le mappe sono uscite piene quanto quelle
+  del main — casa_ingombra 70 % mappata contro 74 (bagno 0,93 contro
+  0,97, camera 0,64 contro 0,62, il resto entro due punti),
+  casa_arredata 74 % contro 71 (la terza sessione di entrambi i bracci
+  finita senza frontiere raggiungibili, l'ignoto rimasto 4,7 m² contro
+  5,9), 2 483 e 1 774 gambe di esplorazione contro 2 388 e 1 874,
+  rifiuti 11 e 30 contro 20 e 24, 0 cadute su entrambi i bracci. La
+  prima sessione del ramo in casa_ingombra ha mappato il 63 % col bagno
+  a 0,1 contro l'80 % del main col bagno a 0,9 — un altro ordine di
+  stanze, non una camminata più lenta: la seconda sessione ha portato il
+  bagno a 0,94 e le case si sono raggiunte. Viaggi: 24/24 arrivi su
+  entrambi i bracci, 0 cadute; casa_ingombra 106,5 s di mediana contro i
+  121,5 del main (accoppiata −5,0 s mediana; l'unico viaggio da 225 s del
+  main verso l'ufficio tira la sua media a 137,6 contro 111,5),
+  casa_arredata 101,5 contro 101,5 (accoppiata −2,5 s mediana, −5,9
+  media); l'accensione sulla mappa congelata rilocalizzata in 110–125 s
+  contro 110–145. Cosa ha imparato il registro da vuoto, due volte: la
+  velocità 0,107 m/s in casa_ingombra e 0,105 in casa_arredata (3 120 e
+  2 570 passi; il prior 0,095, la stimata del gemello 0,107), la
+  correzione −0,028 e −0,021 (il prior −0,03 — sulle lunghe gambe dritte
+  dell'esplorazione la deriva del gemello concorda col file della linea,
+  dove le gambe corte dei viaggi dell'AB20 l'avevano messa di un pelo
+  dall'altra parte), la velocità della svolta 0,927 rad/s in entrambe
+  (prior 1,0), la coda 0,269 e 0,263 rad (prior 0,3), l'imbardata per
+  unità un campione in ciascuna, ancora sotto i suoi cinque. Due case
+  imparate a parte concordano al millesimo su velocità e svolta: i
+  numeri sono del corpo, non della casa.
+  La prova N2 della roadmap, prima corsa (S9, 2026-10-28): il ramo sullo
+  stack daemon-v0.17.9 di Pollen (promosso il 2026-10-26; i numeri della
+  linea 0.17 erano stati misurati su 0.17.6, e il file di quack-duck lo
+  dice), `daemon = auto`, nessun file modificato, registro vuoto; due
+  gemelli sullo stesso stack, uno col registro e uno con il registro
+  spento (`QK_GAIT_LEDGER=0`), casa_arredata da zero (sessioni da 30
+  minuti, al più tre) poi due giri di sei viaggi sulla mappa congelata.
+  Entrambi i bracci hanno dichiarato la casa finita dopo due sessioni —
+  la prima volta che l'arredata dell'A/B di esplorazione finisce sulla
+  parola della papera invece che sul budget o su una frontiera bloccata —
+  all'81 % mappato col registro (l'ignoto rimasto in pezzi da 2,3 m² al
+  più, 245 sottomappe, 94 chiusure) e al 78 % senza (4,3 m², 236
+  sottomappe, 71 chiusure); stanze entro due punti l'una dall'altra e da
+  quelle dell'e21; 12/12 viaggi su entrambi, 0 cadute, 109,0 s di mediana
+  col registro contro 106,5 senza (mediana accoppiata 0,0 s, media +3,0);
+  l'accensione sulla mappa congelata rilocalizzata in 110 s contro
+  110–125. Il registro ha imparato su 0.17.9 quello che aveva su 0.17.6:
+  la velocità 0,103 m/s (1 930 passi), la correzione −0,019, la velocità
+  della svolta 0,955 rad/s, la coda 0,277 rad, l'imbardata per unità
+  nessun campione. Lettura onesta: il robotd di 0.17.9 differisce da
+  quello di 0.17.6 solo nella testa a riposo, quindi la camminata che il
+  registro ha misurato è la stessa camminata, e acceso e spento sono
+  uguali di diritto; quello che la prova mostra è la papera che gira su
+  un daemon mai visto senza che nulla sia cambiato, che è ciò che N2
+  chiede. La prova di una camminata che *è* cambiata aspetta il prossimo
+  set di policy di Pollen.
+
 ## Limiti noti
 
 - **Il sensore non vede il pavimento più vicino di 0,4–0,6 m**

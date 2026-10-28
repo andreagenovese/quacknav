@@ -358,6 +358,17 @@
    "doc": "What the body booked on a journey leaves the books when the sensor sees the floor where it stood (see `forget_seen_free`); `QK_FORGET_FREE=0` keeps it, for measuring."
   },
   {
+   "name": "QK_GAIT_LEDGER",
+   "group": "QK",
+   "read_as": "on unless 0",
+   "type": "switch",
+   "default": "1",
+   "where": [
+    "quack-nav/src/ledger.rs"
+   ],
+   "doc": "`QK_GAIT_LEDGER=0`: the walk's numbers stay the coded priors — nothing learned from the duck's own legs, nothing written beside the map."
+  },
+  {
    "name": "QK_GAP_LANE_HALF_M",
    "group": "QK",
    "read_as": "number (default 0.115)",

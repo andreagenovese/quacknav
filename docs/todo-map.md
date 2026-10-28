@@ -1,5 +1,8 @@
 # TODO — House map and localization
 
+The direction and the milestones are in [`roadmap.md`](roadmap.md); this
+file is the work as it happens, with its numbers.
+
 Status: decided, not started (ADR 0005). Prerequisite: quacksat talks
 (done) and Pollen's `maploc` lands in robotd (upstream PR 127, open).
 Principle: **mapping and localization run on board, inside robotd**;
@@ -44,15 +47,27 @@ against 63 / 69 %; merged into `main` on 2026-10-27), and the turn in
 place's overshoot found to be a command left in robotd to its deadman
 (branch `turn-stop`: a stop at every turn's end, 36–47° past the close
 down to 3–21°; A/B 48/48 both arms, 0 falls, the turns 12–16° past
-what was asked instead of 43–44°). **Remaining**, in order: the walking leg's own hold to
+what was asked instead of 43–44°; released as v0.3.0-rc3), and the
+gait ledger (branch `gait-ledger`: the walk's numbers — speed, trim,
+yaw per unit, the turn's coast and rate — learned on the duck's own legs
+and kept beside the map per daemon line and profile; on the twin with
+the wrong line's priors on purpose the speed learned at 0.103–0.110
+m/s against the twin's 0.107, 0 falls; A/B AB20 48/48 on both arms,
+0 falls, the times the same within noise, the ledger carried from one
+house to the next; exploration A/B e21 from nothing in both houses:
+maps as full as main's, 24/24 journeys, 0 falls, two houses learned
+apart agreeing on the speed and the turn; on Pollen's daemon-v0.17.9
+stack with nothing edited and the ledger empty, casa_arredata done in
+two sessions, 12/12, 0 falls, ledger on and off the same — the walk did
+not change in 0.17.9).
+**Remaining**, in order: the walking leg's own hold to
 the deadman after its last chunk (about 5 cm at set v8's pace), measured
 on the twin and modelled or stopped like the turn's, and `robot.move`'s
 own end stopped the same way (today the tool's turn goes on to the
-deadman); a gait ledger — the
-numbers the walk is driven by (speed, veer, yaw per unit, the turn's rate
-and coast, the settle) learned on the duck's own legs and stands, as the
-turn's coast already is, kept beside the map per daemon line and policy
-set, bounded about the coded priors, reset from `nav.knobs`; a bounded
+deadman); the ledger's next numbers — the settle after a stop, the turn
+in place's rate taken into the turn's budget, the yaw per unit from the
+stick's 0.6 s pulses once their turn-on is modelled — and quack-control
+showing `gait`; a bounded
 exploration (the user's, 2026-10-27): "explore 2×3" names the sides of
 the map in metres, from the voice or quack-control, and the explorer
 keeps its frontiers and its journeys inside that rectangle round where

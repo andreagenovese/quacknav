@@ -381,7 +381,11 @@ impl Sim {
         self.contact_free = true;
         for _ in 0..n as usize {
             let (v, w) = if vx > 0.05 {
-                (c.speed_at_03 * vx / 0.3 * speed_k, c.yaw_per_unit * vyaw * pulse_gain + if vyaw.abs() < 0.1 { c.straight_veer } else { 0.0 })
+                // The veer is the gait's, under every forward command: a
+                // trim that cancels it (the ledger's) must find it there.
+                // Until 2026-10-27 it was added under |vyaw| < 0.1 only,
+                // and a trim past that turned the body the other way.
+                (c.speed_at_03 * vx / 0.3 * speed_k, c.yaw_per_unit * vyaw * pulse_gain + c.straight_veer)
             } else if vx < -0.05 {
                 if vyaw > 0.3 || can_spin { (-c.back_speed * speed_k, c.back_yaw_per_unit * vyaw) } else { (0.0, 0.0) }
             } else if let Some(w) = spinning.then(|| c.in_place_rate(vyaw)).flatten() {
@@ -523,6 +527,14 @@ impl SimBody {
     }
 }
 
+/// The yaw sent for a yaw asked while walking forward: the gait ledger's
+/// learned trim added, as the duck's body adds `[gait]`'s
+/// (`quack_duck::body::trimmed`); nothing until one is learned, so the
+/// bench is the bench.
+fn trimmed(vx: f64, vyaw: f64) -> f64 {
+    if vx > 0.0 { vyaw + quack_duck::gait::learned().yaw_trim.unwrap_or(0.0) } else { vyaw }
+}
+
 impl Body for SimBody {
     fn step(&mut self, args: &Value) -> Result<Value, String> {
         let mut s = self.lock();
@@ -535,7 +547,7 @@ impl Body for SimBody {
         if walk_s > 0.0 {
             let vx = args.get("vx").and_then(Value::as_f64).unwrap_or(0.3);
             let vyaw = args.get("vyaw").and_then(Value::as_f64).unwrap_or(0.0);
-            s.walk(vx, vyaw, walk_s);
+            s.walk(vx, trimmed(vx, vyaw), walk_s);
         }
         s.stand(stop_s);
         let f = s.frame_now();
@@ -551,7 +563,7 @@ impl Body for SimBody {
             s.t += secs.max(0.1);
             return Err("fallen".into());
         }
-        s.walk(vx, vyaw, secs);
+        s.walk(vx, trimmed(vx, vyaw), secs);
         Ok(json!({"done": true, "walked_s": secs}))
     }
 
