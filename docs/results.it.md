@@ -1043,6 +1043,32 @@ casa_arredata, daemon-v0.17.6 + set v8, due gemelli alla volta
   unità un campione in ciascuna, ancora sotto i suoi cinque. Due case
   imparate a parte concordano al millesimo su velocità e svolta: i
   numeri sono del corpo, non della casa.
+  La prova N2 della roadmap, prima corsa (S9, 2026-10-28): il ramo sullo
+  stack daemon-v0.17.9 di Pollen (promosso il 2026-10-26; i numeri della
+  linea 0.17 erano stati misurati su 0.17.6, e il file di quack-duck lo
+  dice), `daemon = auto`, nessun file modificato, registro vuoto; due
+  gemelli sullo stesso stack, uno col registro e uno con il registro
+  spento (`QK_GAIT_LEDGER=0`), casa_arredata da zero (sessioni da 30
+  minuti, al più tre) poi due giri di sei viaggi sulla mappa congelata.
+  Entrambi i bracci hanno dichiarato la casa finita dopo due sessioni —
+  la prima volta che l'arredata dell'A/B di esplorazione finisce sulla
+  parola della papera invece che sul budget o su una frontiera bloccata —
+  all'81 % mappato col registro (l'ignoto rimasto in pezzi da 2,3 m² al
+  più, 245 sottomappe, 94 chiusure) e al 78 % senza (4,3 m², 236
+  sottomappe, 71 chiusure); stanze entro due punti l'una dall'altra e da
+  quelle dell'e21; 12/12 viaggi su entrambi, 0 cadute, 109,0 s di mediana
+  col registro contro 106,5 senza (mediana accoppiata 0,0 s, media +3,0);
+  l'accensione sulla mappa congelata rilocalizzata in 110 s contro
+  110–125. Il registro ha imparato su 0.17.9 quello che aveva su 0.17.6:
+  la velocità 0,103 m/s (1 930 passi), la correzione −0,019, la velocità
+  della svolta 0,955 rad/s, la coda 0,277 rad, l'imbardata per unità
+  nessun campione. Lettura onesta: il robotd di 0.17.9 differisce da
+  quello di 0.17.6 solo nella testa a riposo, quindi la camminata che il
+  registro ha misurato è la stessa camminata, e acceso e spento sono
+  uguali di diritto; quello che la prova mostra è la papera che gira su
+  un daemon mai visto senza che nulla sia cambiato, che è ciò che N2
+  chiede. La prova di una camminata che *è* cambiata aspetta il prossimo
+  set di policy di Pollen.
 
 ## Limiti noti
 

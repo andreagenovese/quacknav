@@ -62,7 +62,14 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   24/24 journeys arrived on both arms, 0 falls, the journeys no slower
   (paired medians −5.0 and −2.5 s); the ledger, empty at each house's
   start, learned 0.105–0.107 m/s, a trim of −0.02…−0.03, a turn at 0.93
-  rad/s and a coast of 0.26–0.27 rad over 2 570–3 120 steps
+  rad/s and a coast of 0.26–0.27 rad over 2 570–3 120 steps. On Pollen's
+  newer stack (daemon-v0.17.9, promoted 2026-10-26, a daemon the 0.17
+  line's numbers were never measured on; `daemon = auto`, nothing
+  edited, the ledger empty): casa_arredata mapped from nothing in two
+  sessions (81 %, the house declared done by the duck), 12/12 journeys,
+  0 falls, the same with the ledger off on the same stack (78 %, 12/12,
+  0 falls, paired median 0.0 s) — the walk did not change between
+  0.17.6 and 0.17.9, and the duck ran on it as is
   ([docs/results.md](docs/results.md)).
   The simulator's veer now acts under every forward command, not only
   under |vyaw| < 0.1 (a trim past that turned the simulated body the

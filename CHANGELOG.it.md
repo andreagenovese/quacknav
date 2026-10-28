@@ -69,7 +69,15 @@ carta, mai su una papera fisica; i dettagli sono in
   (mediane accoppiate −5,0 e −2,5 s); il registro, vuoto all'inizio di
   ogni casa, ha imparato 0,105–0,107 m/s, una correzione di −0,02…−0,03,
   una svolta a 0,93 rad/s e una coda di 0,26–0,27 rad su 2 570–3 120
-  passi ([docs/results.it.md](docs/results.it.md)). La
+  passi. Sullo stack più nuovo di Pollen (daemon-v0.17.9, promosso il
+  2026-10-26, un daemon su cui i numeri della linea 0.17 non erano mai
+  stati misurati; `daemon = auto`, nulla modificato, registro vuoto):
+  casa_arredata mappata da zero in due sessioni (81 %, casa dichiarata
+  finita dalla papera), 12/12 viaggi, 0 cadute, lo stesso col registro
+  spento sullo stesso stack (78 %, 12/12, 0 cadute, mediana accoppiata
+  0,0 s) — la camminata non è cambiata tra 0.17.6 e 0.17.9, e la papera
+  ci ha girato sopra così com'è
+  ([docs/results.it.md](docs/results.it.md)). La
   deriva del simulatore agisce ora sotto ogni comando in avanti, non solo
   sotto |vyaw| < 0,1 (una correzione oltre quella soglia girava il corpo
   simulato dall'altra parte); `rl_eval --ledger` apre il registro in

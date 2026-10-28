@@ -977,6 +977,30 @@ daemon-v0.17.6 + set v8, two twins at a time (`rl-runs/twin-work/P8/`).
   unit one sample in each, still under its five. Two houses learned
   apart agree to a thousandth on the speed and the turn: the numbers
   are the body's, not the house's.
+  The roadmap's N2 test, first run (S9, 2026-10-28): the branch on
+  Pollen's daemon-v0.17.9 stack (promoted 2026-10-26; the 0.17 line's
+  numbers were measured on 0.17.6, and the quack-duck file says so),
+  `daemon = auto`, no file edited, the ledger empty; two twins on the
+  same stack, one with the ledger and one with it off
+  (`QK_GAIT_LEDGER=0`), casa_arredata from nothing (sessions of 30
+  minutes, at most three) then two rounds of six journeys on the frozen
+  map. Both arms declared the house done after two sessions — the first
+  time the exploration A/B's arredata ended on the duck's own word
+  rather than the budget or a stuck frontier — at 81 % mapped with the
+  ledger (the unknown left in pieces of 2.3 m² at most, 245 submaps,
+  94 loops) and 78 % without (4.3 m², 236 submaps, 71 loops); rooms
+  within two points of each other and of e21's; 12/12 journeys on both,
+  0 falls, 109.0 s median with the ledger against 106.5 without (paired
+  median 0.0 s, mean +3.0); the frozen map's wake relocalized in 110 s
+  against 110–125. The ledger learned on 0.17.9 what it had on 0.17.6:
+  the speed 0.103 m/s (1 930 steps), the trim −0.019, the turn's rate
+  0.955 rad/s, the coast 0.277 rad, the yaw per unit no sample.
+  Honest reading: 0.17.9's robotd differs from 0.17.6's only in the idle
+  head, so the walk the ledger measured is the same walk, and on and off
+  are the same by right; what the test shows is the duck running on a
+  daemon it had never seen with nothing changed, which is what N2 asks.
+  The test of a walk that *did* change waits for Pollen's next policy
+  set.
 
 ## Known limits
 

@@ -60,7 +60,10 @@ cadute; A/B AB20 48/48 su entrambi i bracci, 0 cadute, tempi uguali nel
 rumore, il registro portato da una casa all'altra; A/B di esplorazione
 e21 da zero in tutte e due le case: mappe piene quanto quelle del main,
 24/24 viaggi, 0 cadute, due case imparate a parte che concordano su
-velocità e svolta).
+velocità e svolta; sullo stack daemon-v0.17.9 di Pollen senza nulla
+modificato e col registro vuoto, casa_arredata finita in due sessioni,
+12/12, 0 cadute, registro acceso e spento uguali — la camminata non è
+cambiata in 0.17.9).
 **Da fare**, in ordine: la tenuta della gamba camminata fino al deadman
 dopo il suo ultimo pezzo (circa 5 cm al passo del set v8), misurata sul
 gemello e modellata o fermata come quella della svolta, e la fine di
