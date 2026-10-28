@@ -54,7 +54,9 @@ and kept beside the map per daemon line and profile; on the twin with
 the wrong line's priors on purpose the speed learned at 0.103–0.110
 m/s against the twin's 0.107, 0 falls; A/B AB20 48/48 on both arms,
 0 falls, the times the same within noise, the ledger carried from one
-house to the next).
+house to the next; exploration A/B e21 from nothing in both houses:
+maps as full as main's, 24/24 journeys, 0 falls, two houses learned
+apart agreeing on the speed and the turn).
 **Remaining**, in order: the walking leg's own hold to
 the deadman after its last chunk (about 5 cm at set v8's pace), measured
 on the twin and modelled or stopped like the turn's, and `robot.move`'s

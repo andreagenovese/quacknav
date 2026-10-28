@@ -948,6 +948,35 @@ daemon-v0.17.6 + set v8, two twins at a time (`rl-runs/twin-work/P8/`).
   opened on the first's numbers — the ledger file lived on through the
   boots and the houses — and the times did not move: a learned walk
   carried into another house is at worst harmless.
+  Exploration A/B against the same frozen `main` (e21, 2026-10-28: each
+  arm explores both houses from nothing, three sessions of 30 minutes
+  each resumed where the last one stopped, then the map is frozen and two
+  rounds of six journeys are run on it; the exploration A/B wipes the
+  state per house, so the branch's ledger started empty in each): the
+  maps came out as full as main's — casa_ingombra 70 % mapped against
+  74 (bath 0.93 against 0.97, bedroom 0.64 against 0.62, the rest within
+  two points), casa_arredata 74 % against 71 (both arms' third session
+  ended with no reachable frontier, the unknown left 4.7 m² against 5.9),
+  2 483 and 1 774 exploring legs against 2 388 and 1 874, refusals 11
+  and 30 against 20 and 24, 0 falls on either arm. The branch's first
+  casa_ingombra session mapped 63 % with the bath at 0.1 against main's
+  80 % with the bath at 0.9 — a different order of rooms, not a slower
+  walk: the second session put the bath at 0.94 and the houses met.
+  Journeys: 24/24 arrived on both arms, 0 falls; casa_ingombra 106.5 s
+  median against main's 121.5 (paired −5.0 s median; main's one 225 s
+  journey to the office pulls its mean to 137.6 against 111.5),
+  casa_arredata 101.5 against 101.5 (paired −2.5 s median, −5.9 mean);
+  the frozen map's wake relocalized in 110–125 s against 110–145. What
+  the ledger learned from empty, twice over: the speed 0.107 m/s in
+  casa_ingombra and 0.105 in casa_arredata (3 120 and 2 570 steps; the
+  prior 0.095, the twin's fitted 0.107), the trim −0.028 and −0.021
+  (the prior −0.03 — on the exploration's long straight legs the twin's
+  veer agrees with the line's file, where AB20's short journey legs had
+  put it a hair the other way), the turn's rate 0.927 rad/s in both
+  (prior 1.0), the coast 0.269 and 0.263 rad (prior 0.3), the yaw per
+  unit one sample in each, still under its five. Two houses learned
+  apart agree to a thousandth on the speed and the turn: the numbers
+  are the body's, not the house's.
 
 ## Known limits
 

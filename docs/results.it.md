@@ -1011,6 +1011,38 @@ casa_arredata, daemon-v0.17.6 + set v8, due gemelli alla volta
   partita dai numeri della prima — il file del registro è sopravvissuto
   ai riavvii e alle case — e i tempi non si sono mossi: una camminata
   imparata portata in un'altra casa è al peggio innocua.
+  A/B di esplorazione contro lo stesso `main` congelato (e21,
+  2026-10-28: ogni braccio esplora tutte e due le case da zero, tre
+  sessioni da 30 minuti riprese da dove si era fermata l'ultima, poi la
+  mappa è congelata e su di essa girano due giri di sei viaggi; l'A/B di
+  esplorazione azzera lo stato per casa, quindi il registro del ramo è
+  partito vuoto in ciascuna): le mappe sono uscite piene quanto quelle
+  del main — casa_ingombra 70 % mappata contro 74 (bagno 0,93 contro
+  0,97, camera 0,64 contro 0,62, il resto entro due punti),
+  casa_arredata 74 % contro 71 (la terza sessione di entrambi i bracci
+  finita senza frontiere raggiungibili, l'ignoto rimasto 4,7 m² contro
+  5,9), 2 483 e 1 774 gambe di esplorazione contro 2 388 e 1 874,
+  rifiuti 11 e 30 contro 20 e 24, 0 cadute su entrambi i bracci. La
+  prima sessione del ramo in casa_ingombra ha mappato il 63 % col bagno
+  a 0,1 contro l'80 % del main col bagno a 0,9 — un altro ordine di
+  stanze, non una camminata più lenta: la seconda sessione ha portato il
+  bagno a 0,94 e le case si sono raggiunte. Viaggi: 24/24 arrivi su
+  entrambi i bracci, 0 cadute; casa_ingombra 106,5 s di mediana contro i
+  121,5 del main (accoppiata −5,0 s mediana; l'unico viaggio da 225 s del
+  main verso l'ufficio tira la sua media a 137,6 contro 111,5),
+  casa_arredata 101,5 contro 101,5 (accoppiata −2,5 s mediana, −5,9
+  media); l'accensione sulla mappa congelata rilocalizzata in 110–125 s
+  contro 110–145. Cosa ha imparato il registro da vuoto, due volte: la
+  velocità 0,107 m/s in casa_ingombra e 0,105 in casa_arredata (3 120 e
+  2 570 passi; il prior 0,095, la stimata del gemello 0,107), la
+  correzione −0,028 e −0,021 (il prior −0,03 — sulle lunghe gambe dritte
+  dell'esplorazione la deriva del gemello concorda col file della linea,
+  dove le gambe corte dei viaggi dell'AB20 l'avevano messa di un pelo
+  dall'altra parte), la velocità della svolta 0,927 rad/s in entrambe
+  (prior 1,0), la coda 0,269 e 0,263 rad (prior 0,3), l'imbardata per
+  unità un campione in ciascuna, ancora sotto i suoi cinque. Due case
+  imparate a parte concordano al millesimo su velocità e svolta: i
+  numeri sono del corpo, non della casa.
 
 ## Limiti noti
 

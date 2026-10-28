@@ -61,7 +61,15 @@ carta, mai su una papera fisica; i dettagli sono in
   accoppiate +0,1 e +0,0 s); il registro ha imparato 0,103–0,109 m/s
   (prior 0,095), una correzione di +0,02…+0,01 (prior −0,03), una svolta a
   0,88–0,98 rad/s e una coda di 0,25–0,27 rad, e li ha portati da una casa
-  all'altra ([docs/results.it.md](docs/results.it.md)). La
+  all'altra. A/B di esplorazione (e21, tutte e due le case da zero, tre
+  sessioni da 30 minuti, poi due giri di viaggi sulla mappa congelata):
+  mappe piene quanto quelle del main (casa_ingombra 70 % contro 74,
+  casa_arredata 74 % contro 71, le stanze entro pochi punti), 24/24
+  viaggi arrivati su entrambi i bracci, 0 cadute, viaggi non più lenti
+  (mediane accoppiate −5,0 e −2,5 s); il registro, vuoto all'inizio di
+  ogni casa, ha imparato 0,105–0,107 m/s, una correzione di −0,02…−0,03,
+  una svolta a 0,93 rad/s e una coda di 0,26–0,27 rad su 2 570–3 120
+  passi ([docs/results.it.md](docs/results.it.md)). La
   deriva del simulatore agisce ora sotto ogni comando in avanti, non solo
   sotto |vyaw| < 0,1 (una correzione oltre quella soglia girava il corpo
   simulato dall'altra parte); `rl_eval --ledger` apre il registro in

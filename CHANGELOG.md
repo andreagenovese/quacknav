@@ -55,7 +55,15 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   100.5, paired medians +0.1 and +0.0 s); the ledger learned 0.103–0.109
   m/s (prior 0.095), a trim of +0.02…+0.01 (prior −0.03), a turn at
   0.88–0.98 rad/s and a coast of 0.25–0.27 rad, and carried them from one
-  house to the next ([docs/results.md](docs/results.md)).
+  house to the next. Exploration A/B (e21, both houses from nothing,
+  three sessions of 30 minutes each, then two rounds of journeys on the
+  frozen map): the maps as full as main's (casa_ingombra 70 % against
+  74, casa_arredata 74 % against 71, the rooms within a few points),
+  24/24 journeys arrived on both arms, 0 falls, the journeys no slower
+  (paired medians −5.0 and −2.5 s); the ledger, empty at each house's
+  start, learned 0.105–0.107 m/s, a trim of −0.02…−0.03, a turn at 0.93
+  rad/s and a coast of 0.26–0.27 rad over 2 570–3 120 steps
+  ([docs/results.md](docs/results.md)).
   The simulator's veer now acts under every forward command, not only
   under |vyaw| < 0.1 (a trim past that turned the simulated body the
   other way); `rl_eval --ledger` opens the ledger in memory for a bench

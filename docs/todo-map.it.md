@@ -57,7 +57,10 @@ della papera stessa e tenuti accanto alla mappa per linea di daemon e
 profilo; sul gemello con i prior della linea sbagliata apposta
 la velocità imparata a 0,103–0,110 m/s contro gli 0,107 del gemello, 0
 cadute; A/B AB20 48/48 su entrambi i bracci, 0 cadute, tempi uguali nel
-rumore, il registro portato da una casa all'altra).
+rumore, il registro portato da una casa all'altra; A/B di esplorazione
+e21 da zero in tutte e due le case: mappe piene quanto quelle del main,
+24/24 viaggi, 0 cadute, due case imparate a parte che concordano su
+velocità e svolta).
 **Da fare**, in ordine: la tenuta della gamba camminata fino al deadman
 dopo il suo ultimo pezzo (circa 5 cm al passo del set v8), misurata sul
 gemello e modellata o fermata come quella della svolta, e la fine di
