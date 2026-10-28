@@ -95,7 +95,7 @@ fn odom_pose(robot: &dyn Body) -> Option<(f64, f64, f64)> {
 impl Job {
     /// A turn in place toward `sign` by `want` radians, closed on odometry's
     /// yaw in [`TURN_CHUNK_S`] chunks (the map's yaw without odometry), a
-    /// time budget for the slowest measured rate. Returns how far it turned.
+    /// time budget on the rate the ledger measured. Returns how far it turned.
     pub(super) fn stick_turn(&mut self, robot: &mut dyn Body, sign: f64, want: f64) -> f64 {
         let yaw_now = |robot: &dyn Body| odom_pose(robot).map(|p| p.2).or_else(|| robot.frame().map(|f| f.yaw));
         let Some(yaw0) = yaw_now(&*robot) else { return 0.0 };
@@ -106,7 +106,9 @@ impl Job {
         let goal = (want - TURN_LEAD_RAD - coast).max(0.05);
         let vyaw = quack_duck::gait::numbers().turn_in_place_rad_s * sign;
         let started = robot.now();
-        let budget = 2.0 * want / 0.5 + 1.0;
+        // Twice the turn's time at the rate this duck's turns were measured
+        // at (`crate::ledger`); the slowest side ever measured until then.
+        let budget = crate::ledger::turn_budget_s(want);
         let mut turned = 0.0f64;
         while (robot.now() - started).as_secs_f64() < budget {
             let _ = robot.blind_move(&json!({"vx": 0.0, "vyaw": vyaw, "duration_s": TURN_CHUNK_S}));

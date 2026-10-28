@@ -171,9 +171,10 @@ impl Job {
         }
         let vyaw = quack_duck::gait::numbers().turn_in_place_rad_s * sign.signum();
         let goal = (want - TURN_LEAD_RAD).max(0.05);
-        // 30°/s is the slowest measured side; a turn that has not got there
-        // in twice its time is not turning.
-        let budget = 2.0 * want / 0.5 + 1.0;
+        // A turn that has not got there in twice its time is not turning:
+        // at the rate this duck's turns were measured at (`crate::ledger`),
+        // 30°/s — the slowest side ever measured — until one is learned.
+        let budget = crate::ledger::turn_budget_s(want);
         let started = robot.now();
         let mut turned = 0.0_f64;
         while (robot.now() - started).as_secs_f64() < budget {

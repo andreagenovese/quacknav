@@ -25,9 +25,24 @@
 //! |---|---|---|
 //! | `m_per_s` | a free forward step's distance by the map's pose over its time | the planner's strides, the stands' spacing, the guards' reach |
 //! | `yaw_trim` | a straight step's yaw rate by odometry, as the trim that would cancel it | every walking command sent (`GaitConfig::yaw`) |
-//! | `yaw_rate_per_unit` | a curving leg of 0.8 s or more: its yaw rate per unit of command | the stick's steering gain, the guards' arcs |
+//! | `yaw_rate_per_unit` | a curving leg of [`LEG_MIN_S`] or more: its yaw rate per unit of command | the stick's steering gain, the guards' arcs |
 //! | `coast_rad` | the yaw past a turn in place's close, read off the map at the next leg | how far short of the goal a turn in place stops |
-//! | `turn_rate_rad_s` | a turn in place's rate over its own time | nothing yet: reported, the turns are closed on odometry |
+//! | `turn_rate_rad_s` | a turn in place's rate over its own time | the time a turn in place gets before it is given up ([`turn_budget_s`]); the turns are closed on odometry |
+//!
+//! The yaw per unit is not learned from the stick's 0.6 s pulses, which
+//! are nearly all the curving legs there are, on purpose: a pulse's yaw
+//! per unit is not one number on the duck's walk. It falls with the size
+//! of the command — on the MuJoCo twin (AB21, 2026-10-28, 447 pulses of
+//! frozen main's stick) 0.99 rad/s per unit at |vyaw| 0.3, 0.82 at 0.4,
+//! 0.76 at 0.7 — and the stick's steering gain is 1 / (yaw per unit ×
+//! pulse): learned as one number and laid under that gain it closes a
+//! loop (a lower number, a higher gain, bigger commands, a lower number
+//! again) that ran the value to its bound (0.82 then 0.63) and doubled
+//! the stick's curving pulses (912 against 447 in casa_ingombra, 17 s a
+//! journey slower). A gain curve by command size, or a stick that closes
+//! its heading on odometry rather than on a gain, is the way; until then
+//! the number stays at its prior, which the twin's calibration fitted
+//! on legs of a second or more.
 //!
 //! A step counts only on a pose the map vouches for at both ends, nothing
 //! within 0.35 m ahead, and the body moved; its yaw only when no turn in
@@ -69,6 +84,13 @@ const FREE_AHEAD_M: f64 = 0.35;
 /// reads as a veer (the twin, 2026-10-27: the trim at its bound after
 /// six such steps).
 const AFTER_TURN_S: f64 = 2.0;
+/// A curving leg this long or longer gives a yaw per unit sample: the
+/// stick's 0.6 s pulses never (the module: their yaw per unit is not one
+/// number).
+pub const LEG_MIN_S: f64 = 0.8;
+/// The slowest turn in place measured on any side before the ledger
+/// (30°/s): the rate a turn's time budget assumes until one is learned.
+const TURN_RATE_FLOOR_RAD_S: f64 = 0.5;
 
 /// The numbers the ledger keeps, by name in the file, with their bounds
 /// about the prior: `(low, high)` as factors of the prior, or absolute
@@ -340,9 +362,9 @@ impl Ledger {
             let trim = self.trim_in_force() - dyaw / secs / ypu;
             self.take(Number::YawTrim, trim);
             took.push(Number::YawTrim);
-        } else if vyaw.abs() > 0.3 && secs > 0.8 {
-            // A leg long enough for the gait to be turning for most of it
-            // (a 0.6 s pulse is mostly its turning on and off).
+        } else if vyaw.abs() > 0.3 && secs > LEG_MIN_S {
+            // A leg long enough for the gait to be turning for most of it;
+            // never the stick's 0.6 s pulses (the module).
             let sent = vyaw + self.trim_in_force();
             if sent.abs() > 0.2 {
                 let ypu = dyaw / secs / sent;
@@ -378,6 +400,16 @@ impl Ledger {
     /// The coast the turns stop short by: learned, else the prior.
     pub fn coast_rad(&self) -> f64 {
         self.value(Number::CoastRad).unwrap_or_else(|| Number::CoastRad.prior(self.file_trim))
+    }
+
+    /// The seconds a turn in place of `want` radians gets before it is
+    /// given up as not turning: twice its time at the rate this duck's
+    /// turns were measured at, and a second — at the slowest rate ever
+    /// measured on any side ([`TURN_RATE_FLOOR_RAD_S`]) until one is
+    /// learned, as before the ledger.
+    pub fn turn_budget_s(&self, want: f64) -> f64 {
+        let rate = self.value(Number::TurnRateRadS).unwrap_or(TURN_RATE_FLOOR_RAD_S);
+        2.0 * want / rate + 1.0
     }
 
     /// Forget this walk's samples: the priors stand again.
@@ -533,6 +565,17 @@ pub fn coast(extra_rad: f64) -> Option<f64> {
     with(|l| l.observe_coast(extra_rad))
 }
 
+/// The time a turn in place of `want` radians gets ([`Ledger::turn_budget_s`]):
+/// on the learned rate once there is one, on the slowest measured side
+/// until then — and with the ledger off.
+pub fn turn_budget_s(want: f64) -> f64 {
+    LEDGER
+        .get()
+        .and_then(Option::as_ref)
+        .map(|l| l.lock().unwrap_or_else(|e| e.into_inner()).turn_budget_s(want))
+        .unwrap_or(2.0 * want / TURN_RATE_FLOOR_RAD_S + 1.0)
+}
+
 /// The report, `{"on": false}` when the ledger is off.
 pub fn report() -> Value {
     with(|l| l.report()).unwrap_or_else(|| json!({"on": false}))
@@ -644,6 +687,44 @@ mod tests {
         let before = snap(t0 + Duration::from_secs(3), (0.0, 0.0, 0.0), (0.0, 0.0, 0.0), true);
         let after = snap(t0 + Duration::from_millis(3600), (0.06, 0.0, 0.2), (0.06, 0.0, 0.2), true);
         assert_eq!(l.observe_step(&before, &after, 0.3, 0.0, 0.6, f64::INFINITY), vec![Number::MPerS, Number::YawTrim]);
+    }
+
+    #[test]
+    fn the_sticks_pulses_give_no_yaw_per_unit_a_long_curving_leg_does() {
+        let mut l = Ledger::in_memory(0.0);
+        let prior = quack_duck::gait::priors().yaw_rate_per_unit;
+        let t0 = Instant::now();
+        let vyaw = 0.5;
+        // The stick's 0.6 s pulse: the speed counts, the yaw per unit not
+        // (the module: a pulse's is not one number).
+        let yaw = 0.8 * prior * vyaw * 0.6;
+        let before = snap(t0, (0.0, 0.0, 0.0), (0.0, 0.0, 0.0), true);
+        let after = snap(t0 + Duration::from_millis(600), (0.06, 0.0, yaw), (0.06, 0.0, yaw), true);
+        assert_eq!(l.observe_step(&before, &after, 0.3, vyaw, 0.6, f64::INFINITY), vec![Number::MPerS]);
+        // A curving leg of a second: the gait turning for most of it.
+        let yaw = prior * vyaw * 1.0;
+        for i in 0..MIN_SAMPLES {
+            let before = snap(t0, (i as f64, 0.0, 0.0), (i as f64, 0.0, 0.0), true);
+            let after = snap(t0 + Duration::from_secs(1), (i as f64 + 0.1, 0.0, yaw), (i as f64 + 0.1, 0.0, yaw), true);
+            assert_eq!(l.observe_step(&before, &after, 0.3, vyaw, 1.0, f64::INFINITY), vec![Number::MPerS, Number::YawRatePerUnit]);
+        }
+        let v = l.value(Number::YawRatePerUnit).unwrap();
+        assert!((v - prior).abs() < 1e-9, "{v} vs {prior}");
+        assert_eq!(l.learned().yaw_rate_per_unit, Some(v));
+    }
+
+    #[test]
+    fn a_turns_budget_follows_the_rate_it_learned() {
+        let mut l = Ledger::in_memory(0.0);
+        let t0 = Instant::now();
+        // Before a rate is learned: the slowest side ever measured.
+        assert!((l.turn_budget_s(1.0) - (2.0 / TURN_RATE_FLOOR_RAD_S + 1.0)).abs() < 1e-9);
+        for _ in 0..MIN_SAMPLES {
+            l.observe_turn(t0, 0.8, 1.0);
+        }
+        assert!((l.turn_budget_s(1.0) - (2.0 / 0.8 + 1.0)).abs() < 1e-9);
+        // The ledger of a process that never opened one: the floor.
+        assert!((turn_budget_s(1.0) - (2.0 / TURN_RATE_FLOOR_RAD_S + 1.0)).abs() < 1e-9);
     }
 
     #[test]
