@@ -1001,6 +1001,49 @@ daemon-v0.17.6 + set v8, two twins at a time (`rl-runs/twin-work/P8/`).
   daemon it had never seen with nothing changed, which is what N2 asks.
   The test of a walk that *did* change waits for Pollen's next policy
   set.
+  The next two numbers (branch `ledger-turn`, 2026-10-28). The turn in
+  place's rate, measured since the ledger began and used by nothing,
+  now sets the time a turn gets before it is given up as not turning:
+  twice its time at the measured rate (0.87–0.95 rad/s on the twin) and
+  a second, where it had been twice its time at 0.5 rad/s, the slowest
+  side ever measured, which stays the floor until a rate is learned.
+  The yaw per unit was to come from the stick's 0.6 s pulses, nearly all
+  the curving legs the explorer and the journeys make (the ledger had
+  waited for legs over 0.8 s and seen one sample in three A/Bs). The
+  bench said nothing against it (the perturbed walk 98.2 % with the
+  ledger on either way, 68.0 against 68.1 s), the twin did: AB21, frozen
+  `main` f18a89c against the branch, four tours of each house, both
+  ledgers empty at the start — 48/48 arrived and 0 falls on both arms,
+  casa_arredata 100.8 s a journey against 100.3 (paired median +0.0),
+  but casa_ingombra 127.8 against 110.8 (paired median +8.5 s, mean
+  +17.0). The branch's ledger had learned the yaw per unit at 0.82 after
+  casa_ingombra and 0.63 after casa_arredata, falling toward its bound
+  (0.55), where main's turns and trims came out as in e21. The traces
+  say why: a pulse's yaw per unit is not one number on this walk. Over
+  main's 447 curving pulses in casa_ingombra, with the stick's gain on
+  the prior, the yaw per unit of command by odometry was 0.99 rad/s at
+  |vyaw| 0.3, 0.82 at 0.4, 0.76 at 0.5, 0.84 at 0.6, 0.76 at 0.7 (casa_arredata:
+  0.93, 0.90, 0.92, 0.96, 0.80) — the walk's yaw response flattens as
+  the command grows. The stick asks 1 / (yaw per unit × 0.6 s) of yaw per
+  radian of heading error, so a lower number is a higher gain, bigger
+  commands, and samples taken further up the flat end: a loop. The
+  branch's stick sent 912 curving pulses in casa_ingombra against
+  main's 447, 322 of them at the 0.7 clamp against 68, and its
+  measured yaw per unit at 0.7 was 0.54 — the zigzag that cost the
+  17 s. Taken out: the pulses give no sample again, and the number
+  stays at the prior the calibration fitted on legs of a second or
+  more; the finding stands in the module's own words. What would learn
+  it honestly is a gain curve by command size, or a stick that closes
+  its heading on odometry inside the pulse rather than on a gain.
+  Twin A/B of the budget alone (AB22, the same frozen `main`, four tours
+  of each house, both ledgers empty at the start): 48/48 arrived on both
+  arms, 0 falls; casa_ingombra 119.2 s a journey against main's 115.8
+  (medians 118.0 against 112.0, paired +1.5 s median, +3.4 mean),
+  casa_arredata 99.2 against 99.5 (medians 95.0 against 96.0, paired
+  +0.0 median, −0.3 mean) — the same walk within noise, as AB20 was. The
+  branch's rate came out at 0.82 rad/s after casa_ingombra (110 turns)
+  and 0.96 after casa_arredata (151): a 1.5 rad turn's budget at 4.7 and
+  4.1 s where it had been 7.0, two and a half times the turn's own time.
 
 ## Known limits
 

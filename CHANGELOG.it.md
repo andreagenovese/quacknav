@@ -15,6 +15,36 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Aggiunto
 
+- **Il budget di tempo della svolta sul posto sulla velocità misurata dal
+  registro; l'imbardata per unità dagli impulsi misurata e lasciata.** I
+  secondi che una svolta sul posto ha prima di essere abbandonata come
+  "non gira" erano due volte il suo tempo a 0,5 rad/s, il lato più lento
+  mai misurato; ora sono due volte il suo tempo alla velocità a cui le
+  svolte di questa papera sono state misurate (il `turn_rate_rad_s` del
+  registro, 0,87–0,95 rad/s sul gemello), il vecchio minimo finché non
+  ne è imparata una — per le svolte dello stick, dell'esploratore e
+  della ricerca di homecoming allo stesso modo. L'imbardata per unità
+  doveva essere imparata dagli impulsi di 0,6 s dello stick, quasi tutte
+  le gambe curve che ci sono; misurata sul gemello non è un numero solo:
+  cala col comando (447 impulsi del main congelato in casa_ingombra:
+  0,99 rad/s per unità a |vyaw| 0,3, 0,82 a 0,4, 0,76 a 0,7), e messa
+  sotto il guadagno di sterzata dello stick (1 / (imbardata per unità ×
+  impulso)) chiude un anello — un numero più basso, un guadagno più
+  alto, comandi più grandi, un numero ancora più basso — che ha portato
+  il valore al suo limite (0,82, poi 0,63) e raddoppiato gli impulsi
+  curvi dello stick (912 contro 447): 48/48 arrivi e 0 cadute su
+  entrambi i bracci di quell'A/B (AB21), ma 17 s a viaggio più lenta in
+  casa_ingombra (mediana accoppiata +8,5 s; casa_arredata +0,0). Quindi
+  gli impulsi non danno campioni, come prima, e il numero resta al prior
+  che la calibrazione ha stimato su gambe di un secondo o più; una curva
+  di guadagno per taglia di comando, o uno stick che chiude la rotta
+  sull'odometria, è la strada ([docs/results.it.md](docs/results.it.md)).
+  A/B sul gemello del solo budget contro il `main` congelato (AB22,
+  quattro giri di ogni casa, entrambi i registri vuoti all'inizio):
+  48/48 arrivi su entrambi i bracci, 0 cadute, tempi uguali nel rumore
+  (casa_ingombra 119,2 s a viaggio contro 115,8, mediana accoppiata
+  +1,5 s; casa_arredata 99,2 contro 99,5, accoppiata +0,0); la velocità
+  imparata 0,82 e 0,96 rad/s.
 - **Una roadmap, nella forma di quella di Pollen.** [docs/roadmap.it.md](docs/roadmap.it.md):
   dove sta quack-nav, i traguardi con la prova che dice "fatto" per
   ciascuno, l'ordine del lavoro, le decisioni che lo orientano e cosa non

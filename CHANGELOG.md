@@ -13,6 +13,32 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Added
 
+- **A turn in place's time budget on the rate the ledger measured; the
+  pulses' yaw per unit measured and left.** The seconds a turn in place
+  gets before it is given up as not turning were twice its time at
+  0.5 rad/s, the slowest side ever measured; they are now twice its time
+  at the rate this duck's own turns were measured at (the ledger's
+  `turn_rate_rad_s`, 0.87–0.95 rad/s on the twin), the old floor until
+  one is learned — the stick's, the explorer's and the homecoming
+  search's turns alike. The yaw per unit was to be learned from the
+  stick's 0.6 s pulses, nearly all the curving legs there are; measured
+  on the twin it is not one number: it falls with the command (frozen
+  main's 447 pulses in casa_ingombra: 0.99 rad/s per unit at |vyaw| 0.3,
+  0.82 at 0.4, 0.76 at 0.7), and laid under the stick's steering gain
+  (1 / (yaw per unit × pulse)) it closes a loop — a lower number, a
+  higher gain, bigger commands, a lower number again — that ran the
+  value to its bound (0.82, then 0.63) and doubled the stick's curving
+  pulses (912 against 447): 48/48 arrived and 0 falls on both arms of
+  that A/B (AB21), but 17 s a journey slower in casa_ingombra (paired
+  median +8.5 s; casa_arredata +0.0). So the pulses give no sample, as
+  before, and the number stays at the prior the calibration fitted on
+  legs of a second or more; a gain curve by command size, or a stick
+  that closes its heading on odometry, is the way ([docs/results.md](docs/results.md)).
+  Twin A/B of the budget alone against frozen `main` (AB22, four tours
+  of each house, both ledgers empty at the start): 48/48 arrived on both
+  arms, 0 falls, the times the same within noise (casa_ingombra 119.2 s
+  a journey against 115.8, paired median +1.5 s; casa_arredata 99.2
+  against 99.5, paired +0.0); the rate learned 0.82 and 0.96 rad/s.
 - **A roadmap, in the shape of Pollen's own.** [docs/roadmap.md](docs/roadmap.md):
   where quack-nav is, the milestones with the test that says "done" for
   each, the order of work, the decisions that shape it and what it does

@@ -64,10 +64,15 @@ not change in 0.17.9).
 the deadman after its last chunk (about 5 cm at set v8's pace), measured
 on the twin and modelled or stopped like the turn's, and `robot.move`'s
 own end stopped the same way (today the tool's turn goes on to the
-deadman); the ledger's next numbers — the settle after a stop, the turn
-in place's rate taken into the turn's budget, the yaw per unit from the
-stick's 0.6 s pulses once their turn-on is modelled — and quack-control
-showing `gait`; a bounded
+deadman); the ledger's next numbers — the settle after a stop, the
+left/right gains of the turns; the yaw per unit, which the stick's
+0.6 s pulses cannot give as one number (AB21, 2026-10-28: it falls with
+the command, 0.99 rad/s per unit at |vyaw| 0.3 to 0.76 at 0.7, and under
+the stick's gain it loops — a gain curve by command size, or a stick that
+closes its heading on odometry); one walk per state of the body (a load
+in the beak, read from robotd) — and quack-control showing `gait`; the
+turn in place's rate is in the turn's budget since 2026-10-28 (branch
+`ledger-turn`); a bounded
 exploration (the user's, 2026-10-27): "explore 2×3" names the sides of
 the map in metres, from the voice or quack-control, and the explorer
 keeps its frontiers and its journeys inside that rectangle round where
