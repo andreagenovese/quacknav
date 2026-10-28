@@ -35,7 +35,8 @@ dell'utente agli strumenti di quack-nav e non fa navigazione.
 > rompersi: se lo provi su hardware vero, tienilo lontano dai dislivelli e
 > stagli accanto. I numeri in [docs/results.it.md](docs/results.it.md)
 > sono quello che ha misurato il gemello, non una promessa di cosa farà
-> una casa vera.
+> una casa vera. Dove sta andando, nella forma della roadmap di Pollen:
+> [docs/roadmap.it.md](docs/roadmap.it.md).
 >
 > Ogni mossa che manda quack-nav — `robot.move` e `robot.map_step`
 > compresi — si ferma davanti a un dislivello che il sensore di profondità

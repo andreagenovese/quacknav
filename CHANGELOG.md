@@ -13,6 +13,11 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Added
 
+- **A roadmap, in the shape of Pollen's own.** [docs/roadmap.md](docs/roadmap.md):
+  where quack-nav is, the milestones with the test that says "done" for
+  each, the order of work, the decisions that shape it and what it does
+  not do on purpose — quack-nav as a service one floor above `robotd`,
+  for whatever sits above it. The README and the todo point to it.
 - **The gait ledger: the duck learns its own walk and keeps it.** The
   walk's numbers the navigation plans with — forward speed, the yaw a
   unit of command turns, the trim that keeps a straight step straight,

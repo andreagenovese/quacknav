@@ -1,5 +1,8 @@
 # TODO — Mappa della casa e localizzazione
 
+La direzione e i traguardi sono in [`roadmap.it.md`](roadmap.it.md);
+questo file è il lavoro mentre accade, con i suoi numeri.
+
 Stato: deciso, non iniziato (ADR 0005). Prerequisito: quacksat parla
 (fatto) e il `maploc` di Pollen entra in robotd (PR upstream 127, aperta).
 Principio: **mappatura e localizzazione girano a bordo, dentro robotd**;

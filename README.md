@@ -31,7 +31,8 @@ commands to quack-nav's tools and does no navigation.
 > walking robot near stairs can fall and break: if you try it on real
 > hardware, keep it away from drops and stay beside it. The numbers in
 > [docs/results.md](docs/results.md) are what the twin measured, not a
-> promise of what a real house will do.
+> promise of what a real house will do. Where this is going, in the
+> shape of Pollen's own roadmap: [docs/roadmap.md](docs/roadmap.md).
 >
 > Every move quack-nav sends — `robot.move` and `robot.map_step`
 > included — stops at a drop the depth sensor sees ahead (forward moves

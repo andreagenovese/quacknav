@@ -1,5 +1,8 @@
 # TODO — House map and localization
 
+The direction and the milestones are in [`roadmap.md`](roadmap.md); this
+file is the work as it happens, with its numbers.
+
 Status: decided, not started (ADR 0005). Prerequisite: quacksat talks
 (done) and Pollen's `maploc` lands in robotd (upstream PR 127, open).
 Principle: **mapping and localization run on board, inside robotd**;

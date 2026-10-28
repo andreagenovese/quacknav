@@ -15,6 +15,11 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Aggiunto
 
+- **Una roadmap, nella forma di quella di Pollen.** [docs/roadmap.it.md](docs/roadmap.it.md):
+  dove sta quack-nav, i traguardi con la prova che dice "fatto" per
+  ciascuno, l'ordine del lavoro, le decisioni che lo orientano e cosa non
+  fa apposta — quack-nav come servizio un piano sopra `robotd`, per
+  qualunque cosa stia sopra. README e todo ci puntano.
 - **Il registro d'andatura: la papera impara il proprio cammino e lo
   tiene.** I numeri della camminata con cui la navigazione pianifica —
   velocità in avanti, l'imbardata che gira un'unità di comando, la
