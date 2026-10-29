@@ -1069,6 +1069,54 @@ casa_arredata, daemon-v0.17.6 + set v8, due gemelli alla volta
   un daemon mai visto senza che nulla sia cambiato, che è ciò che N2
   chiede. La prova di una camminata che *è* cambiata aspetta il prossimo
   set di policy di Pollen.
+  I due numeri successivi (ramo `ledger-turn`, 2026-10-28). La velocità
+  della svolta sul posto, misurata da quando il registro esiste e usata
+  da nulla, ora fissa il tempo che una svolta ha prima di essere
+  abbandonata come "non gira": due volte il suo tempo alla velocità
+  misurata (0,87–0,95 rad/s sul gemello) e un secondo, dove era due
+  volte il suo tempo a 0,5 rad/s, il lato più lento mai misurato, che
+  resta il minimo finché non è imparata una velocità. L'imbardata per
+  unità doveva venire dagli impulsi di 0,6 s dello stick, quasi tutte le
+  gambe curve che l'esploratore e i viaggi fanno (il registro aspettava
+  gambe oltre 0,8 s e aveva visto un campione in tre A/B). Il banco non
+  aveva nulla in contrario (la camminata perturbata al 98,2 % col
+  registro acceso in entrambi i casi, 68,0 contro 68,1 s), il gemello
+  sì: AB21, `main` congelato f18a89c contro il ramo, quattro giri di
+  ogni casa, entrambi i registri vuoti all'inizio — 48/48 arrivi e 0
+  cadute su entrambi i bracci, casa_arredata 100,8 s a viaggio contro
+  100,3 (mediana accoppiata +0,0), ma casa_ingombra 127,8 contro 110,8
+  (mediana accoppiata +8,5 s, media +17,0). Il registro del ramo aveva
+  imparato l'imbardata per unità a 0,82 dopo casa_ingombra e 0,63 dopo
+  casa_arredata, in discesa verso il suo limite (0,55), mentre le svolte
+  e le correzioni del main sono uscite come nell'e21. Le tracce dicono
+  perché: l'imbardata per unità di un impulso non è un numero solo su
+  questa camminata. Sui 447 impulsi curvi del main in casa_ingombra, col
+  guadagno dello stick sul prior, l'imbardata per unità di comando
+  dall'odometria era 0,99 rad/s a |vyaw| 0,3, 0,82 a 0,4, 0,76 a 0,5,
+  0,84 a 0,6, 0,76 a 0,7 (casa_arredata: 0,93, 0,90, 0,92, 0,96, 0,80) —
+  la risposta in imbardata della camminata si appiattisce col crescere
+  del comando. Lo stick chiede 1 / (imbardata per unità × 0,6 s) di
+  imbardata per radiante di errore di rotta, quindi un numero più basso
+  è un guadagno più alto, comandi più grandi, e campioni presi più in su
+  nella parte piatta: un anello. Lo stick del ramo ha mandato 912
+  impulsi curvi in casa_ingombra contro i 447 del main, 322 al limite di
+  0,7 contro 68, e la sua imbardata per unità misurata a 0,7 era 0,54 —
+  lo zigzag che è costato i 17 s. Tolto: gli impulsi non danno di nuovo
+  campioni, e il numero resta al prior che la calibrazione ha stimato
+  su gambe di un secondo o più; la scoperta sta nel modulo con le sue
+  parole. Ciò che lo imparerebbe onestamente è una curva di guadagno per
+  taglia di comando, o uno stick che chiude la rotta sull'odometria
+  dentro l'impulso invece che su un guadagno. A/B sul gemello del solo
+  budget (AB22, lo stesso `main` congelato, quattro giri di ogni casa,
+  entrambi i registri vuoti all'inizio): 48/48 arrivi su entrambi i
+  bracci, 0 cadute; casa_ingombra 119,2 s a viaggio contro i 115,8 del
+  main (mediane 118,0 contro 112,0, accoppiata +1,5 s mediana, +3,4
+  media), casa_arredata 99,2 contro 99,5 (mediane 95,0 contro 96,0,
+  accoppiata +0,0 mediana, −0,3 media) — la stessa camminata nel rumore,
+  com'era l'AB20. La velocità del ramo è uscita a 0,82 rad/s dopo
+  casa_ingombra (110 svolte) e 0,96 dopo casa_arredata (151): il budget
+  di una svolta da 1,5 rad a 4,7 e 4,1 s dove era 7,0, due volte e mezzo
+  il tempo della svolta stessa.
 
 ## Limiti noti
 
