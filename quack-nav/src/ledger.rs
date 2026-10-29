@@ -28,6 +28,8 @@
 //! | `yaw_rate_per_unit` | a curving leg of [`LEG_MIN_S`] or more: its yaw rate per unit of command | the stick's steering gain, the guards' arcs |
 //! | `coast_rad` | the yaw past a turn in place's close, read off the map at the next leg | how far short of the goal a turn in place stops |
 //! | `turn_rate_rad_s` | a turn in place's rate over its own time | the time a turn in place gets before it is given up ([`turn_budget_s`]); the turns are closed on odometry |
+//! | `settle_s` | after the applied twist is gone, the time until odometry stands still ([`SettleWatch`], on the body's state stream) | how long a stand is held before the mapper's still window, and when a stop counts as still (`quack_duck::gait::Stillness`) |
+//! | `ypu_pulse_left`, `ypu_pulse_right` | a curving pulse of [`PULSE_MIN_S`] or more at \|vyaw\| 0.3–0.6: its yaw per unit of steering sent, by side (the trim cancels the veer: neither counted) | the walk's left and right yaw gains, as the mean of the two sides over each ([`Ledger::gains`]): a side that turns more per unit is sent less |
 //!
 //! The yaw per unit is not learned from the stick's 0.6 s pulses, which
 //! are nearly all the curving legs there are, on purpose: a pulse's yaw
@@ -42,7 +44,16 @@
 //! journey slower). A gain curve by command size, or a stick that closes
 //! its heading on odometry rather than on a gain, is the way; until then
 //! the number stays at its prior, which the twin's calibration fitted
-//! on legs of a second or more.
+//! on legs of a second or more. The pulses do give the *ratio* of the
+//! two sides: at the same commands the walk turns more to one side than
+//! the other (the twin, AB22's frozen main: 0.72 rad/s per unit to the
+//! left against 0.78 to the right in casa_ingombra, 0.71 against 0.91
+//! in casa_arredata; the calibration's pulse gains 0.75 and 0.84), and
+//! the two sides' medians over pulses of the same sizes (|vyaw| 0.3–0.6,
+//! the clamp left out) give each side's gain about their mean, bounded
+//! 0.75–1.25. The gains move the commands by a few percent, so the
+//! samples slide a little along the curve: a loop too, but one that
+//! shrinks (a 10 % command moves the number 4 %, the gain 4 % of that).
 //!
 //! A step counts only on a pose the map vouches for at both ends, nothing
 //! within 0.35 m ahead, and the body moved; its yaw only when no turn in
@@ -88,6 +99,26 @@ const AFTER_TURN_S: f64 = 2.0;
 /// stick's 0.6 s pulses never (the module: their yaw per unit is not one
 /// number).
 pub const LEG_MIN_S: f64 = 0.8;
+/// A curving pulse this long or longer, at |vyaw| up to [`PULSE_MAX_VYAW`]
+/// (the stick's clamp of 0.7 left out: the flat end of the curve), gives
+/// its side's yaw per unit sent (the module: the sides' ratio).
+pub const PULSE_MIN_S: f64 = 0.5;
+pub const PULSE_MAX_VYAW: f64 = 0.6;
+/// A side's gain about the two sides' mean lies within this.
+const GAIN_BOUNDS: (f64, f64) = (0.75, 1.25);
+/// A trim in force past this (rad/s) is a veer the sides cannot be read
+/// apart from: no side samples. The twin's is 0.02–0.04.
+const SIDE_MAX_TRIM: f64 = 0.06;
+/// Samples before a side's number is laid in: a pulse's yaw is the
+/// noisiest sample there is (the calibration's pulse gain spread, 0.5 of
+/// the gain), and the sides differ by a tenth.
+pub const MIN_SAMPLES_SIDE: usize = 16;
+/// Odometry under these rates, from one state to the next, stands still.
+const SETTLE_STILL_M_S: f64 = 0.02;
+const SETTLE_STILL_RAD_S: f64 = 0.05;
+/// A body not still this long after its twist is gone is moved by
+/// something else: no settle sample.
+const SETTLE_MAX_S: f64 = 2.0;
 /// The slowest turn in place measured on any side before the ledger
 /// (30°/s): the rate a turn's time budget assumes until one is learned.
 const TURN_RATE_FLOOR_RAD_S: f64 = 0.5;
@@ -102,10 +133,22 @@ pub enum Number {
     YawTrim,
     CoastRad,
     TurnRateRadS,
+    SettleS,
+    YpuPulseLeft,
+    YpuPulseRight,
 }
 
 impl Number {
-    pub const ALL: [Number; 5] = [Number::MPerS, Number::YawRatePerUnit, Number::YawTrim, Number::CoastRad, Number::TurnRateRadS];
+    pub const ALL: [Number; 8] = [
+        Number::MPerS,
+        Number::YawRatePerUnit,
+        Number::YawTrim,
+        Number::CoastRad,
+        Number::TurnRateRadS,
+        Number::SettleS,
+        Number::YpuPulseLeft,
+        Number::YpuPulseRight,
+    ];
 
     pub fn name(self) -> &'static str {
         match self {
@@ -114,6 +157,9 @@ impl Number {
             Number::YawTrim => "yaw_trim",
             Number::CoastRad => "coast_rad",
             Number::TurnRateRadS => "turn_rate_rad_s",
+            Number::SettleS => "settle_s",
+            Number::YpuPulseLeft => "ypu_pulse_left",
+            Number::YpuPulseRight => "ypu_pulse_right",
         }
     }
 
@@ -124,6 +170,8 @@ impl Number {
             Number::YawTrim => "rad/s",
             Number::CoastRad => "rad",
             Number::TurnRateRadS => "rad/s",
+            Number::SettleS => "s",
+            Number::YpuPulseLeft | Number::YpuPulseRight => "rad/s per unit of steering, over a pulse",
         }
     }
 
@@ -136,6 +184,10 @@ impl Number {
             Number::YawTrim => file_trim,
             Number::CoastRad => n.coast_prior_rad,
             Number::TurnRateRadS => n.turn_in_place_rad_s,
+            Number::SettleS => n.settle_s,
+            // A pulse turns about 0.85 of the steady rate's yaw (the
+            // calibration's pulse gain prior).
+            Number::YpuPulseLeft | Number::YpuPulseRight => 0.85 * n.yaw_rate_per_unit,
         }
     }
 
@@ -143,6 +195,7 @@ impl Number {
     fn min_samples(self) -> usize {
         match self {
             Number::YawTrim => MIN_SAMPLES_TRIM,
+            Number::YpuPulseLeft | Number::YpuPulseRight => MIN_SAMPLES_SIDE,
             _ => MIN_SAMPLES,
         }
     }
@@ -155,7 +208,53 @@ impl Number {
             Number::YawTrim => (-0.25, 0.25),
             Number::CoastRad => (0.0, 0.7),
             Number::TurnRateRadS => (0.4 * prior, 2.0 * prior),
+            Number::SettleS => (0.0, 1.5),
+            Number::YpuPulseLeft | Number::YpuPulseRight => (0.3 * prior, 1.8 * prior),
         }
+    }
+}
+
+/// The settle, watched on the body's state stream: from the state whose
+/// applied twist is gone to the first whose odometry stands still
+/// ([`SETTLE_STILL_M_S`], [`SETTLE_STILL_RAD_S`] from the state before).
+/// A twist back before that, or [`SETTLE_MAX_S`] gone by, and there is no
+/// sample. Pure: the cliff guard's body lane feeds it.
+#[derive(Debug, Default)]
+pub struct SettleWatch {
+    was_walking: bool,
+    stopped_at_ns: Option<u64>,
+    last: Option<(u64, (f64, f64, f64))>,
+}
+
+impl SettleWatch {
+    /// One state: its clock, whether the applied twist is on, its odometry
+    /// (x, y, yaw) when the daemon gives one. The settle in seconds when
+    /// this state closes one.
+    pub fn tick(&mut self, t_ns: u64, walking: bool, odom: Option<(f64, f64, f64)>) -> Option<f64> {
+        let mut settled = None;
+        if walking {
+            self.stopped_at_ns = None;
+        } else if self.was_walking {
+            self.stopped_at_ns = Some(t_ns);
+        } else if let (Some(t0), Some((t1, o1)), Some(o2)) = (self.stopped_at_ns, self.last, odom) {
+            let dt = t_ns.saturating_sub(t1) as f64 * 1e-9;
+            if dt > 0.0 {
+                let v = (o2.0 - o1.0).hypot(o2.1 - o1.1) / dt;
+                let w = wrap(o2.2 - o1.2).abs() / dt;
+                let since = t_ns.saturating_sub(t0) as f64 * 1e-9;
+                if v < SETTLE_STILL_M_S && w < SETTLE_STILL_RAD_S {
+                    settled = Some(since);
+                    self.stopped_at_ns = None;
+                } else if since > SETTLE_MAX_S {
+                    self.stopped_at_ns = None;
+                }
+            }
+        }
+        self.was_walking = walking;
+        if let Some(o) = odom {
+            self.last = Some((t_ns, o));
+        }
+        settled
     }
 }
 
@@ -216,6 +315,9 @@ pub struct Ledger {
     /// `[gait] yaw_trim` as the file set it: the trim the straight steps
     /// were walked with until one is learned, and the trim's prior.
     file_trim: f64,
+    /// `[gait] yaw_gain_left`, `yaw_gain_right` as the file set them: the
+    /// gains the curving pulses were sent with until a pair is learned.
+    file_gains: (f64, f64),
     body: FileBody,
     dirty: bool,
     written: Option<Instant>,
@@ -244,7 +346,7 @@ fn unix_now() -> u64 {
 impl Ledger {
     /// A ledger for this process's walk, loaded from `path` when it holds
     /// one (a file that does not read is a fresh ledger, said in the log).
-    pub fn open(path: Option<PathBuf>, file_trim: f64) -> Self {
+    pub fn open(path: Option<PathBuf>, file_trim: f64, file_gains: (f64, f64)) -> Self {
         let key = format!("{}/{}", quack_duck::daemon::active().name(), quack_duck::gait::active().name());
         let body = match &path {
             Some(p) => match std::fs::read_to_string(p) {
@@ -259,14 +361,14 @@ impl Ledger {
             },
             None => FileBody::default(),
         };
-        let mut l = Self { path, key, file_trim, body, dirty: false, written: None, turned_at: None };
+        let mut l = Self { path, key, file_trim, file_gains, body, dirty: false, written: None, turned_at: None };
         l.refresh_priors();
         l
     }
 
     /// A ledger kept in memory only (the tests, a check on the bench).
     pub fn in_memory(file_trim: f64) -> Self {
-        Self::open(None, file_trim)
+        Self::open(None, file_trim, (1.0, 1.0))
     }
 
     /// The priors are the code's, not the file's: a build with other
@@ -299,17 +401,39 @@ impl Ledger {
 
     /// What is laid over the coded numbers.
     pub fn learned(&self) -> quack_duck::gait::Learned {
+        let gains = self.gains();
         quack_duck::gait::Learned {
             m_per_s: self.value(Number::MPerS),
             yaw_rate_per_unit: self.value(Number::YawRatePerUnit),
             yaw_trim: self.value(Number::YawTrim),
             coast_rad: self.value(Number::CoastRad),
+            settle_s: self.value(Number::SettleS),
+            yaw_gain_left: gains.map(|g| g.0),
+            yaw_gain_right: gains.map(|g| g.1),
         }
+    }
+
+    /// The walk's left and right yaw gains, once both sides' yaw per unit
+    /// over a pulse are learned: each side's gain is the two sides' mean
+    /// over its own, within [`GAIN_BOUNDS`] — the side that turns more per
+    /// unit is sent less, and the two together turn as the one number
+    /// says.
+    pub fn gains(&self) -> Option<(f64, f64)> {
+        let (l, r) = (self.value(Number::YpuPulseLeft)?, self.value(Number::YpuPulseRight)?);
+        let m = 0.5 * (l + r);
+        let (lo, hi) = GAIN_BOUNDS;
+        Some(((m / l).clamp(lo, hi), (m / r).clamp(lo, hi)))
     }
 
     /// The trim the straight steps are walked with now.
     fn trim_in_force(&self) -> f64 {
         self.value(Number::YawTrim).unwrap_or(self.file_trim)
+    }
+
+    /// The gain a yaw of this sign is sent with now.
+    fn gain_in_force(&self, vyaw: f64) -> f64 {
+        let (l, r) = self.gains().unwrap_or(self.file_gains);
+        if vyaw > 0.0 { l } else { r }
     }
 
     fn take(&mut self, n: Number, sample: f64) {
@@ -362,19 +486,50 @@ impl Ledger {
             let trim = self.trim_in_force() - dyaw / secs / ypu;
             self.take(Number::YawTrim, trim);
             took.push(Number::YawTrim);
-        } else if vyaw.abs() > 0.3 && secs > LEG_MIN_S {
-            // A leg long enough for the gait to be turning for most of it;
-            // never the stick's 0.6 s pulses (the module).
-            let sent = vyaw + self.trim_in_force();
-            if sent.abs() > 0.2 {
-                let ypu = dyaw / secs / sent;
-                if ypu > 0.0 {
-                    self.take(Number::YawRatePerUnit, ypu);
-                    took.push(Number::YawRatePerUnit);
+        } else if vyaw.abs() > 0.3 {
+            if secs >= PULSE_MIN_S && vyaw.abs() <= PULSE_MAX_VYAW {
+                // This side's yaw per unit of steering sent over a pulse:
+                // the two sides' ratio is the gains (the module). The trim
+                // is not steering — it cancels the veer, and the veer is
+                // in the yaw — so neither is counted: a trim in the
+                // denominator would read the veer as a difference between
+                // the sides (the bench's perturbed walk, trim −0.13: 0.99
+                // against 0.55 where the walk's sides are 0.75 and 0.84).
+                // What the trim does not cancel inside a pulse (the gait
+                // turning on scales the trim, the veer is whole) is read
+                // as a side difference too, by about a fifth of the veer
+                // over the steering: a walk that veers more than
+                // [`SIDE_MAX_TRIM`] gives no side sample — its sides
+                // cannot be read apart from its veer.
+                let steer = vyaw * self.gain_in_force(vyaw);
+                let ypu = dyaw / secs / steer;
+                if steer.abs() > 0.2 && ypu > 0.0 && self.trim_in_force().abs() <= SIDE_MAX_TRIM {
+                    let side = if vyaw > 0.0 { Number::YpuPulseLeft } else { Number::YpuPulseRight };
+                    self.take(side, ypu);
+                    took.push(side);
+                }
+            }
+            if secs > LEG_MIN_S {
+                // A leg long enough for the gait to be turning for most of
+                // it; never the stick's 0.6 s pulses (the module).
+                let sent = vyaw + self.trim_in_force();
+                if sent.abs() > 0.2 {
+                    let ypu = dyaw / secs / sent;
+                    if ypu > 0.0 {
+                        self.take(Number::YawRatePerUnit, ypu);
+                        took.push(Number::YawRatePerUnit);
+                    }
                 }
             }
         }
         took
+    }
+
+    /// A settle the body's state stream closed ([`SettleWatch`]).
+    pub fn observe_settle(&mut self, secs: f64) {
+        if (0.0..=SETTLE_MAX_S).contains(&secs) {
+            self.take(Number::SettleS, secs);
+        }
     }
 
     /// A turn in place that ended at `at` (the body's clock): how far it
@@ -446,7 +601,7 @@ impl Ledger {
             "path": self.path.as_ref().map(|p| p.display().to_string()),
             "legs": w.legs,
             "updated_unix": w.updated_unix,
-            "min_samples": {"default": MIN_SAMPLES, "yaw_trim": MIN_SAMPLES_TRIM},
+            "min_samples": {"default": MIN_SAMPLES, "yaw_trim": MIN_SAMPLES_TRIM, "sides": MIN_SAMPLES_SIDE},
             "numbers": numbers,
         })
     }
@@ -494,15 +649,16 @@ fn ledger_on() -> bool {
 
 /// Open the process's ledger, once: quack-navd at start, after the
 /// daemon line and the profile are set. `path` is the file beside the map
-/// (`None` keeps it in memory); `file_trim` is `[gait] yaw_trim` as the
-/// config set it. What the file holds is laid over the numbers at once.
-pub fn init(path: Option<PathBuf>, file_trim: f64) {
+/// (`None` keeps it in memory); `file_trim` and `file_gains` are
+/// `[gait] yaw_trim`, `yaw_gain_left` and `yaw_gain_right` as the config
+/// set them. What the file holds is laid over the numbers at once.
+pub fn init(path: Option<PathBuf>, file_trim: f64, file_gains: (f64, f64)) {
     let _ = LEDGER.get_or_init(|| {
         if !ledger_on() {
             tracing::info!("gait ledger: off (QK_GAIT_LEDGER=0); the coded numbers stand");
             return None;
         }
-        let l = Ledger::open(path, file_trim);
+        let l = Ledger::open(path, file_trim, file_gains);
         let learned = l.learned();
         quack_duck::gait::learn(learned);
         tracing::info!(walk = %l.key, path = ?l.path.as_ref().map(|p| p.display().to_string()), learned = ?learned, "gait ledger: open");
@@ -563,6 +719,12 @@ pub fn turn(at: Instant, turned_rad: f64, secs: f64) {
 /// `None` when the ledger is off (the caller keeps its own).
 pub fn coast(extra_rad: f64) -> Option<f64> {
     with(|l| l.observe_coast(extra_rad))
+}
+
+/// A settle the body's state stream closed: the seconds from the applied
+/// twist going to the odometry standing still ([`SettleWatch`]).
+pub fn settle(secs: f64) {
+    let _ = with(|l| l.observe_settle(secs));
 }
 
 /// The time a turn in place of `want` radians gets ([`Ledger::turn_budget_s`]):
@@ -695,18 +857,20 @@ mod tests {
         let prior = quack_duck::gait::priors().yaw_rate_per_unit;
         let t0 = Instant::now();
         let vyaw = 0.5;
-        // The stick's 0.6 s pulse: the speed counts, the yaw per unit not
-        // (the module: a pulse's is not one number).
+        // The stick's 0.6 s pulse: the speed and its side's yaw per unit
+        // sent count, the yaw per unit not (the module: a pulse's is not
+        // one number; the sides' ratio is).
         let yaw = 0.8 * prior * vyaw * 0.6;
         let before = snap(t0, (0.0, 0.0, 0.0), (0.0, 0.0, 0.0), true);
         let after = snap(t0 + Duration::from_millis(600), (0.06, 0.0, yaw), (0.06, 0.0, yaw), true);
-        assert_eq!(l.observe_step(&before, &after, 0.3, vyaw, 0.6, f64::INFINITY), vec![Number::MPerS]);
+        assert_eq!(l.observe_step(&before, &after, 0.3, vyaw, 0.6, f64::INFINITY), vec![Number::MPerS, Number::YpuPulseLeft]);
+        assert_eq!(l.value(Number::YawRatePerUnit), None);
         // A curving leg of a second: the gait turning for most of it.
         let yaw = prior * vyaw * 1.0;
         for i in 0..MIN_SAMPLES {
             let before = snap(t0, (i as f64, 0.0, 0.0), (i as f64, 0.0, 0.0), true);
             let after = snap(t0 + Duration::from_secs(1), (i as f64 + 0.1, 0.0, yaw), (i as f64 + 0.1, 0.0, yaw), true);
-            assert_eq!(l.observe_step(&before, &after, 0.3, vyaw, 1.0, f64::INFINITY), vec![Number::MPerS, Number::YawRatePerUnit]);
+            assert_eq!(l.observe_step(&before, &after, 0.3, vyaw, 1.0, f64::INFINITY), vec![Number::MPerS, Number::YpuPulseLeft, Number::YawRatePerUnit]);
         }
         let v = l.value(Number::YawRatePerUnit).unwrap();
         assert!((v - prior).abs() < 1e-9, "{v} vs {prior}");
@@ -745,17 +909,114 @@ mod tests {
         assert_eq!(l.learned().coast_rad, Some(0.1));
     }
 
+    /// A pulse of the stick's: `vyaw` asked, the body turning `ypu` per
+    /// unit of what was sent on that side.
+    fn pulse(l: &mut Ledger, vyaw: f64, ypu: f64) -> Vec<Number> {
+        let t0 = Instant::now();
+        // The trim cancels the veer: neither shows in the yaw.
+        let yaw = ypu * vyaw * l.gain_in_force(vyaw) * 0.6;
+        let before = snap(t0, (0.0, 0.0, 0.0), (0.0, 0.0, 0.0), true);
+        let after = snap(t0 + Duration::from_millis(600), (0.06, 0.0, yaw), (0.06, 0.0, yaw), true);
+        l.observe_step(&before, &after, 0.3, vyaw, 0.6, f64::INFINITY)
+    }
+
+    #[test]
+    fn the_sides_ratio_over_the_pulses_is_the_gains() {
+        let mut l = Ledger::in_memory(0.0);
+        // The right turns a fifth more per unit than the left.
+        let (left, right) = (0.8, 0.96);
+        for _ in 0..MIN_SAMPLES_SIDE {
+            assert_eq!(pulse(&mut l, 0.5, left), vec![Number::MPerS, Number::YpuPulseLeft]);
+        }
+        assert_eq!(l.gains(), None, "one side alone is no gain");
+        assert_eq!(l.learned().yaw_gain_left, None);
+        for _ in 0..MIN_SAMPLES_SIDE - 1 {
+            assert_eq!(pulse(&mut l, -0.5, right), vec![Number::MPerS, Number::YpuPulseRight]);
+        }
+        assert_eq!(l.gains(), None, "a side's number waits for more samples than the rest");
+        pulse(&mut l, -0.5, right);
+        let (gl, gr) = l.gains().unwrap();
+        let m = 0.5 * (left + right);
+        assert!((gl - m / left).abs() < 1e-9 && (gr - m / right).abs() < 1e-9, "{gl} {gr}");
+        assert!(gl > 1.0 && gr < 1.0, "the side that turns more is sent less");
+        assert_eq!((l.learned().yaw_gain_left, l.learned().yaw_gain_right), (Some(gl), Some(gr)));
+        // With the gains in force the body turns the same either way:
+        // the samples still say what each side does per unit sent.
+        assert_eq!(pulse(&mut l, 0.5, left), vec![Number::MPerS, Number::YpuPulseLeft]);
+        assert!((l.value(Number::YpuPulseLeft).unwrap() - left).abs() < 1e-9);
+        // The clamp's pulses and the short ones give no side sample.
+        assert_eq!(pulse(&mut l, 0.7, left), vec![Number::MPerS]);
+        let before = snap(Instant::now(), (0.0, 0.0, 0.0), (0.0, 0.0, 0.0), true);
+        let after = snap(Instant::now() + Duration::from_millis(400), (0.04, 0.0, 0.1), (0.04, 0.0, 0.1), true);
+        assert_eq!(l.observe_step(&before, &after, 0.3, 0.5, 0.4, f64::INFINITY), vec![Number::MPerS]);
+        // Absurd sides: the gains stay within their bounds.
+        let mut l = Ledger::in_memory(0.0);
+        for _ in 0..MIN_SAMPLES_SIDE {
+            pulse(&mut l, 0.5, 0.3);
+            pulse(&mut l, -0.5, 1.5);
+        }
+        assert_eq!(l.gains(), Some((GAIN_BOUNDS.1, GAIN_BOUNDS.0)));
+        // A walk that veers past what the sides can be read apart from:
+        // no side sample, the file's gains stand.
+        let mut l = Ledger::in_memory(0.1);
+        assert_eq!(pulse(&mut l, 0.5, left), vec![Number::MPerS]);
+        assert_eq!(l.gain_in_force(0.5), 1.0);
+    }
+
+    #[test]
+    fn the_settle_is_watched_from_the_twist_to_the_still_odometry() {
+        let mut w = SettleWatch::default();
+        let ns = |s: f64| (s * 1e9) as u64;
+        // Walking at 0.1 m/s, 20 states a second.
+        for i in 0..10 {
+            assert_eq!(w.tick(ns(i as f64 * 0.05), true, Some((i as f64 * 0.005, 0.0, 0.0))), None);
+        }
+        // The twist is gone at 0.5 s; the body goes on, slowing, still at 0.85 s.
+        let mut x = 0.045;
+        let mut out = None;
+        for i in 10..30 {
+            let t = i as f64 * 0.05;
+            let v = if t < 0.85 { 0.1 } else { 0.0 };
+            x += v * 0.05;
+            if let Some(s) = w.tick(ns(t), false, Some((x, 0.0, 0.0))) {
+                out = Some((t, s));
+                break;
+            }
+        }
+        let (t, s) = out.expect("a settle");
+        assert!((t - 0.85).abs() < 1e-9 && (s - 0.35).abs() < 1e-9, "{t} {s}");
+        // Still after: nothing more until another twist.
+        assert_eq!(w.tick(ns(0.9), false, Some((x, 0.0, 0.0))), None);
+        // A twist back before the body is still: no sample.
+        assert_eq!(w.tick(ns(1.0), true, Some((x, 0.0, 0.0))), None);
+        assert_eq!(w.tick(ns(1.05), false, Some((x + 0.005, 0.0, 0.0))), None);
+        assert_eq!(w.tick(ns(1.1), true, Some((x + 0.01, 0.0, 0.0))), None);
+        // A body that never stands still: no sample past the cap.
+        for i in 0..50 {
+            let t = 1.15 + i as f64 * 0.05;
+            assert_eq!(w.tick(ns(t), false, Some((x + 0.01 + 0.1 * (t - 1.1), 0.0, 0.0))), None);
+        }
+        // The ledger takes it, bounded, and lays it over the walk's settle.
+        let mut l = Ledger::in_memory(0.0);
+        for _ in 0..MIN_SAMPLES {
+            l.observe_settle(0.35);
+        }
+        assert_eq!(l.learned().settle_s, Some(0.35));
+        l.observe_settle(5.0);
+        assert_eq!(l.walk().numbers["settle_s"].seen, MIN_SAMPLES as u64, "past the cap is not a settle");
+    }
+
     #[test]
     fn the_file_keeps_the_walk_between_runs_and_a_reset_forgets_it() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("gait-ledger.json");
         let prior = quack_duck::gait::priors().m_per_s;
         {
-            let mut l = Ledger::open(Some(path.clone()), 0.0);
+            let mut l = Ledger::open(Some(path.clone()), 0.0, (1.0, 1.0));
             walk_straight(&mut l, MIN_SAMPLES, prior * 1.1, 0.0);
             l.write(true);
         }
-        let mut again = Ledger::open(Some(path.clone()), 0.0);
+        let mut again = Ledger::open(Some(path.clone()), 0.0, (1.0, 1.0));
         assert!((again.value(Number::MPerS).unwrap() - prior * 1.1).abs() < 1e-9, "read back");
         let r = again.report();
         assert_eq!(r["on"], true);
@@ -764,12 +1025,12 @@ mod tests {
         again.reset();
         assert_eq!(again.value(Number::MPerS), None);
         again.write(true);
-        let third = Ledger::open(Some(path), 0.0);
+        let third = Ledger::open(Some(path), 0.0, (1.0, 1.0));
         assert_eq!(third.value(Number::MPerS), None, "the reset was written");
         // A file that does not read is a fresh ledger.
         let bad = dir.path().join("bad.json");
         std::fs::write(&bad, "not json").unwrap();
-        assert_eq!(Ledger::open(Some(bad), 0.0).value(Number::MPerS), None);
+        assert_eq!(Ledger::open(Some(bad), 0.0, (1.0, 1.0)).value(Number::MPerS), None);
     }
 
     #[test]
