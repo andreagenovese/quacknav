@@ -15,6 +15,46 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Aggiunto
 
+- **Il registro impara l'assestamento dopo uno stop e i guadagni di
+  imbardata sinistra/destra della camminata.** L'assestamento — quanto il
+  corpo continua dopo che il suo comando è sparito, i 0,6 s scritti delle
+  linee velstand, che fissa la finestra di quiete del mapper e la durata
+  di ogni sosta — è osservato sul flusso di stato del corpo: dallo stato
+  il cui comando applicato è sparito al primo la cui odometria è ferma,
+  limitato a 0–1,5 s. Il gemello ha imparato 0,12 s (campioni 0,05–0,42):
+  il numero scritto era misurato dal comando a zero, il registro misura
+  dalla scomparsa del comando applicato, che robotd smorza per conto
+  suo, e da lì il corpo è fermo quasi subito — ogni sosta 0,48 s più
+  corta. I guadagni: gli impulsi di 0,6 s dello stick non possono dare
+  l'imbardata per unità come un numero solo, ma danno il rapporto dei
+  due lati agli stessi comandi (|vyaw| 0,3–0,6, il clamp escluso): ogni
+  lato ha il suo numero di imbardata per unità di sterzata mandata (16
+  campioni prima che conti: l'imbardata di un impulso è il campione più
+  rumoroso che c'è), il guadagno di ogni lato è la media dei due sul
+  proprio, tra 0,75 e 1,25, messo sotto ogni comando di imbardata in
+  cammino quando entrambi i lati sono imparati. La correzione di deriva
+  resta fuori dal denominatore (cancella la deriva, non sterza: con
+  dentro, la camminata perturbata del banco leggeva la propria deriva
+  come 0,99 contro 0,55 tra i lati, dove i suoi sono 0,75 e 0,84), e una
+  camminata che deriva oltre 0,06 rad/s non dà campioni di lato. I lati
+  del gemello sono usciti 0,67–0,82 rad/s per unità a sinistra contro
+  0,85–1,05 a destra (la destra gira di più, come diceva la
+  calibrazione): guadagni circa 1,2 e 0,86, e l'imbardata per unità
+  *chiesta* si è incontrata tra i lati (0,73 contro 0,83 dove quelli del
+  main erano 0,71 contro 0,86). A/B sul gemello contro il `main`
+  congelato (AB23, quattro giri di ogni casa, entrambi i registri vuoti):
+  48/48 arrivi su entrambi i bracci, 0 cadute, il ramo 9 s a viaggio più
+  veloce (casa_ingombra 107,9 s contro 117,1, mediana accoppiata
+  −12,5 s; casa_arredata 91,8 contro 101,5, −8,5). A/B di esplorazione
+  (e22, tutte e due le case da zero, tre sessioni, due giri di viaggi
+  sulla mappa congelata): mappe piene quanto quelle del main
+  (casa_ingombra 79 % contro 80, casa_arredata finita sulla parola della
+  papera dopo due sessioni contro le tre del main senza), viaggi 22/24
+  contro i 21/24 del main (la meta della camera è caduta in una tasca
+  non mappata per entrambi i bracci ed è stata rifiutata; il main ha
+  rifiutato anche l'ufficio una volta), 0 cadute, −10 s di mediana
+  accoppiata in entrambe le case. Il banco uguale nel rumore
+  ([docs/results.it.md](docs/results.it.md)).
 - **Il budget di tempo della svolta sul posto sulla velocità misurata dal
   registro; l'imbardata per unità dagli impulsi misurata e lasciata.** I
   secondi che una svolta sul posto ha prima di essere abbandonata come
