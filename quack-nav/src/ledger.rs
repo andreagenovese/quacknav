@@ -59,6 +59,21 @@
 //! within 0.35 m ahead, and the body moved; its yaw only when no turn in
 //! place ended within 2 s before it (the turn's coast would read as the
 //! step's veer); a turn only when it turned.
+//!
+//! One walk per state of the body: a load in the beak changes the walk,
+//! and the numbers of the loaded walk must not overwrite the free one's
+//! nor wait for it to be forgotten. The state is read from robotd, never
+//! guessed ([`BodyState`], [`BodyWatch`]): the mouth is a servo, and a
+//! mouth commanded shut that sits open past its target by 12° for a
+//! second has something in it; back under 6° for a second, it is empty
+//! (the twin's mouth never moves and sits 5° past its closed target: the
+//! twin never leaves the free walk). The
+//! carrying walk is keyed `<line>/<profile>/carrying`, starts from the
+//! free walk's numbers as they stand, counts its own on half the samples
+//! (the fast lane: the body is carrying rarely and briefly), and on a
+//! number it has not learned yet the free walk's answers. The walk
+//! switches as the state does, so a duck that drops what it carried is
+//! back on its free numbers at once.
 //! `QK_GAIT_LEDGER=0` leaves the priors alone: nothing learned, nothing
 //! written. `robot.gait` reports it and forgets it on request
 //! (`crate::tools`); `robot.map_status` carries the report as `gait`.
@@ -272,26 +287,114 @@ struct Entry {
 }
 
 impl Entry {
-    fn push(&mut self, number: Number, sample: f64) {
+    /// The samples before this number's value counts: the number's own,
+    /// halved on a walk's fast lane.
+    fn min_samples(number: Number, fast: bool) -> usize {
+        let n = number.min_samples();
+        if fast { n.div_ceil(2) } else { n }
+    }
+
+    fn refit(&mut self, number: Number, fast: bool) {
+        self.value = (self.samples.len() >= Self::min_samples(number, fast)).then(|| {
+            let (lo, hi) = number.bounds(self.prior);
+            median(&self.samples).clamp(lo, hi)
+        });
+    }
+
+    fn push(&mut self, number: Number, sample: f64, fast: bool) {
         self.samples.push(sample);
         if self.samples.len() > KEEP {
             self.samples.remove(0);
         }
         self.seen += 1;
-        self.value = (self.samples.len() >= number.min_samples()).then(|| {
-            let (lo, hi) = number.bounds(self.prior);
-            median(&self.samples).clamp(lo, hi)
-        });
+        self.refit(number, fast);
     }
 }
 
-/// One walk's ledger: a daemon line and a profile.
+/// One walk's ledger: a daemon line and a profile, and a state of the
+/// body when it is not the free one.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 struct Walk {
     numbers: BTreeMap<String, Entry>,
     /// Legs and turns that gave a sample.
     legs: u64,
     updated_unix: u64,
+    /// The fast lane: a walk the body is in rarely (carrying), whose
+    /// numbers count on half the samples and start from the free walk's.
+    #[serde(default)]
+    fast: bool,
+}
+
+/// The state of the body the walk is keyed by, read from robotd and never
+/// guessed: free, or carrying something in the beak — the mouth commanded
+/// shut and held open by what is in it (`joints[mouth] − targets[mouth]`
+/// on the state stream, [`BodyWatch`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum BodyState {
+    #[default]
+    Free,
+    Carrying,
+}
+
+impl BodyState {
+    pub fn name(self) -> &'static str {
+        match self {
+            BodyState::Free => "free",
+            BodyState::Carrying => "carrying",
+        }
+    }
+}
+
+/// The mouth held open by this much past where it was sent (rad) for
+/// [`BODY_HOLD_S`] is something in the beak; under [`MOUTH_FREE_RAD`] for
+/// as long, the beak is empty. The beak's travel is 35° (closed −5°, open
+/// 30°): a thing in it holds it open well into that, a servo a degree or
+/// two short of its stop does not — and the twin's mouth, which MuJoCo
+/// never moves, reads 0 against a closed target of −5°, a 5° gap for
+/// ever, under the threshold on purpose.
+const MOUTH_HELD_RAD: f64 = 12.0_f64.to_radians();
+const MOUTH_FREE_RAD: f64 = 6.0_f64.to_radians();
+const BODY_HOLD_S: f64 = 1.0;
+
+/// The body's state, watched on the state stream: the mouth's gap past its
+/// target, held either side of its thresholds for a second before the
+/// state moves. Pure: the cliff guard's body lane feeds it.
+#[derive(Debug, Default)]
+pub struct BodyWatch {
+    state: BodyState,
+    /// Since when the gap has said the other state (the body's clock).
+    other_since_ns: Option<u64>,
+}
+
+impl BodyWatch {
+    pub fn state(&self) -> BodyState {
+        self.state
+    }
+
+    /// One state: its clock and the mouth's gap past its target (`None`
+    /// from a daemon or a body that does not report it: the state stays).
+    /// The new state when this tick moves it.
+    pub fn tick(&mut self, t_ns: u64, gap: Option<f64>) -> Option<BodyState> {
+        let Some(gap) = gap else { return None };
+        let says_other = match self.state {
+            BodyState::Free => gap >= MOUTH_HELD_RAD,
+            BodyState::Carrying => gap <= MOUTH_FREE_RAD,
+        };
+        if !says_other {
+            self.other_since_ns = None;
+            return None;
+        }
+        let since = *self.other_since_ns.get_or_insert(t_ns);
+        if t_ns.saturating_sub(since) as f64 * 1e-9 < BODY_HOLD_S {
+            return None;
+        }
+        self.state = match self.state {
+            BodyState::Free => BodyState::Carrying,
+            BodyState::Carrying => BodyState::Free,
+        };
+        self.other_since_ns = None;
+        Some(self.state)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -310,8 +413,15 @@ impl Default for FileBody {
 #[derive(Debug)]
 pub struct Ledger {
     path: Option<PathBuf>,
-    /// `<daemon line>/<profile>`.
+    /// `<daemon line>/<profile>`, and `/carrying` after it when the body
+    /// is: the walk the samples go to and the numbers come from.
     key: String,
+    /// `<daemon line>/<profile>`: the free walk's key.
+    base_key: String,
+    /// The body's state, as robotd's state stream says it.
+    state: BodyState,
+    /// The mouth's last gap past its target (rad), for the report.
+    mouth_gap: Option<f64>,
     /// `[gait] yaw_trim` as the file set it: the trim the straight steps
     /// were walked with until one is learned, and the trim's prior.
     file_trim: f64,
@@ -361,7 +471,19 @@ impl Ledger {
             },
             None => FileBody::default(),
         };
-        let mut l = Self { path, key, file_trim, file_gains, body, dirty: false, written: None, turned_at: None };
+        let mut l = Self {
+            path,
+            base_key: key.clone(),
+            key,
+            state: BodyState::Free,
+            mouth_gap: None,
+            file_trim,
+            file_gains,
+            body,
+            dirty: false,
+            written: None,
+            turned_at: None,
+        };
         l.refresh_priors();
         l
     }
@@ -373,16 +495,27 @@ impl Ledger {
 
     /// The priors are the code's, not the file's: a build with other
     /// priors re-bounds what was learned.
+    /// The priors are the code's, not the file's: a build with other
+    /// priors re-bounds what was learned. A carrying walk's priors are the
+    /// free walk's numbers as they stand — learned where they are, coded
+    /// where not — and it is on the fast lane.
     fn refresh_priors(&mut self) {
+        let fast = self.state != BodyState::Free;
+        let priors: Vec<(Number, f64)> = Number::ALL
+            .iter()
+            .map(|&n| {
+                let coded = n.prior(self.file_trim);
+                let from_base = fast.then(|| self.body.walks.get(&self.base_key).and_then(|b| b.numbers.get(n.name())).and_then(|e| e.value)).flatten();
+                (n, from_base.unwrap_or(coded))
+            })
+            .collect();
         let w = self.body.walks.entry(self.key.clone()).or_default();
-        for n in Number::ALL {
+        w.fast = fast;
+        for (n, prior) in priors {
             let e = w.numbers.entry(n.name().into()).or_default();
-            e.prior = n.prior(self.file_trim);
+            e.prior = prior;
             e.unit = n.unit().into();
-            e.value = (e.samples.len() >= n.min_samples()).then(|| {
-                let (lo, hi) = n.bounds(e.prior);
-                median(&e.samples).clamp(lo, hi)
-            });
+            e.refit(n, fast);
         }
     }
 
@@ -394,9 +527,42 @@ impl Ledger {
         self.body.walks.get_mut(&self.key).expect("the walk's entry is made at open")
     }
 
-    /// The learned value of a number, when there is one.
+    /// The learned value of a number, when there is one: this walk's, or
+    /// — on a carrying walk that has not learned it yet — the free walk's.
     pub fn value(&self, n: Number) -> Option<f64> {
-        self.walk().numbers.get(n.name()).and_then(|e| e.value)
+        let own = self.walk().numbers.get(n.name()).and_then(|e| e.value);
+        own.or_else(|| (self.state != BodyState::Free).then(|| self.body.walks.get(&self.base_key).and_then(|b| b.numbers.get(n.name())).and_then(|e| e.value)).flatten())
+    }
+
+    /// The body's state the walk is keyed by.
+    pub fn state(&self) -> BodyState {
+        self.state
+    }
+
+    /// The body moved to another state: the samples go to that state's
+    /// walk from now on, and its numbers are laid over the coded ones
+    /// (the free walk's where it has none yet).
+    pub fn set_state(&mut self, state: BodyState) {
+        if state == self.state {
+            return;
+        }
+        self.state = state;
+        self.key = match state {
+            BodyState::Free => self.base_key.clone(),
+            other => format!("{}/{}", self.base_key, other.name()),
+        };
+        self.refresh_priors();
+        self.dirty = true;
+        tracing::info!(walk = %self.key, "gait ledger: the body's state changed; this walk's numbers from here");
+    }
+
+    /// One state of the body from the stream: the mouth's gap past its
+    /// target, through [`BodyWatch`]'s hold. The new state when it moved.
+    pub fn observe_body(&mut self, watch: &mut BodyWatch, t_ns: u64, mouth_gap: Option<f64>) -> Option<BodyState> {
+        self.mouth_gap = mouth_gap.or(self.mouth_gap);
+        let moved = watch.tick(t_ns, mouth_gap)?;
+        self.set_state(moved);
+        Some(moved)
     }
 
     /// What is laid over the coded numbers.
@@ -443,8 +609,9 @@ impl Ledger {
         let w = self.walk_mut();
         w.legs += 1;
         w.updated_unix = unix_now();
+        let fast = w.fast;
         let e = w.numbers.entry(n.name().into()).or_default();
-        e.push(n, sample);
+        e.push(n, sample, fast);
         let (value, seen) = (e.value, e.seen);
         self.dirty = true;
         tracing::debug!(number = n.name(), sample = format!("{sample:.3}"), value = ?value.map(|v| format!("{v:.3}")), seen, "gait ledger: a sample");
@@ -598,6 +765,10 @@ impl Ledger {
         json!({
             "on": true,
             "walk": self.key,
+            "state": self.state.name(),
+            "mouth_gap_rad": self.mouth_gap.map(round4),
+            "walks": self.body.walks.keys().collect::<Vec<_>>(),
+            "fast": w.fast,
             "path": self.path.as_ref().map(|p| p.display().to_string()),
             "legs": w.legs,
             "updated_unix": w.updated_unix,
@@ -725,6 +896,13 @@ pub fn coast(extra_rad: f64) -> Option<f64> {
 /// twist going to the odometry standing still ([`SettleWatch`]).
 pub fn settle(secs: f64) {
     let _ = with(|l| l.observe_settle(secs));
+}
+
+/// One state of the body from the stream: the mouth's gap past its
+/// target (`None` where the daemon does not report the joint), through
+/// the caller's [`BodyWatch`]. The ledger's walk follows the state.
+pub fn body(watch: &mut BodyWatch, t_ns: u64, mouth_gap: Option<f64>) {
+    let _ = with(|l| l.observe_body(watch, t_ns, mouth_gap));
 }
 
 /// The time a turn in place of `want` radians gets ([`Ledger::turn_budget_s`]):
@@ -1004,6 +1182,68 @@ mod tests {
         assert_eq!(l.learned().settle_s, Some(0.35));
         l.observe_settle(5.0);
         assert_eq!(l.walk().numbers["settle_s"].seen, MIN_SAMPLES as u64, "past the cap is not a settle");
+    }
+
+    #[test]
+    fn the_mouth_held_open_is_a_body_carrying_and_the_walk_follows_the_state() {
+        let ns = |s: f64| (s * 1e9) as u64;
+        let mut w = BodyWatch::default();
+        // A gap at the threshold for less than a second: nothing; the
+        // beak empty again resets the hold.
+        assert_eq!(w.tick(ns(0.0), Some(0.25)), None);
+        assert_eq!(w.tick(ns(0.5), Some(0.25)), None);
+        assert_eq!(w.tick(ns(0.6), Some(0.0)), None);
+        assert_eq!(w.tick(ns(1.0), Some(0.25)), None);
+        assert_eq!(w.tick(ns(1.9), Some(0.25)), None);
+        assert_eq!(w.tick(ns(2.05), Some(0.25)), Some(BodyState::Carrying));
+        // Between the thresholds nothing moves; a daemon not reporting
+        // the joint leaves the state.
+        assert_eq!(w.tick(ns(3.0), Some(0.15)), None);
+        assert_eq!(w.tick(ns(5.0), None), None);
+        assert_eq!(w.state(), BodyState::Carrying);
+        assert_eq!(w.tick(ns(6.0), Some(0.05)), None);
+        assert_eq!(w.tick(ns(7.1), Some(0.05)), Some(BodyState::Free));
+        // The twin's mouth: 5° short of its closed target, for ever, and free.
+        let mut t = BodyWatch::default();
+        for i in 0..100 {
+            assert_eq!(t.tick(ns(i as f64 * 0.05), Some(0.0873)), None);
+        }
+        assert_eq!(t.state(), BodyState::Free);
+
+        // The ledger: the free walk learned a speed; the body picks
+        // something up.
+        let mut l = Ledger::in_memory(0.0);
+        let prior = quack_duck::gait::priors().m_per_s;
+        walk_straight(&mut l, MIN_SAMPLES, prior * 1.2, 0.0);
+        let free_speed = l.value(Number::MPerS).unwrap();
+        let mut w = BodyWatch::default();
+        assert_eq!(l.observe_body(&mut w, ns(0.0), Some(0.3)), None);
+        assert_eq!(l.observe_body(&mut w, ns(1.5), Some(0.3)), Some(BodyState::Carrying));
+        assert_eq!(l.state(), BodyState::Carrying);
+        assert_eq!(l.key, format!("{}/carrying", l.base_key));
+        assert_eq!(l.report()["state"], "carrying");
+        assert_eq!(l.report()["fast"], true);
+        // Nothing learned of its own yet: the free walk's numbers answer,
+        // and they are its priors.
+        assert_eq!(l.value(Number::MPerS), Some(free_speed));
+        assert_eq!(l.learned().m_per_s, Some(free_speed));
+        assert_eq!(l.walk().numbers["m_per_s"].prior, free_speed);
+        // The fast lane: half the samples, and the loaded walk is slower.
+        walk_straight(&mut l, MIN_SAMPLES.div_ceil(2) - 1, prior * 0.9, 0.0);
+        assert_eq!(l.value(Number::MPerS), Some(free_speed), "under the fast lane's minimum, still the free walk's");
+        walk_straight(&mut l, 1, prior * 0.9, 0.0);
+        let loaded = l.value(Number::MPerS).unwrap();
+        assert!((loaded - prior * 0.9).abs() < 1e-6, "{loaded}");
+        // The free walk is untouched; dropping the load is back on it.
+        assert_eq!(l.observe_body(&mut w, ns(10.0), Some(0.0)), None);
+        assert_eq!(l.observe_body(&mut w, ns(11.5), Some(0.0)), Some(BodyState::Free));
+        assert_eq!(l.value(Number::MPerS), Some(free_speed));
+        assert_eq!(l.report()["fast"], false);
+        assert_eq!(l.report()["walks"].as_array().unwrap().len(), 2);
+        // Picked up again: the loaded walk is remembered.
+        assert_eq!(l.observe_body(&mut w, ns(20.0), Some(0.3)), None);
+        assert_eq!(l.observe_body(&mut w, ns(21.5), Some(0.3)), Some(BodyState::Carrying));
+        assert!((l.value(Number::MPerS).unwrap() - loaded).abs() < 1e-9);
     }
 
     #[test]
