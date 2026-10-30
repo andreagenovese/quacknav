@@ -1107,6 +1107,42 @@ daemon-v0.17.6 + set v8, two twins at a time (`rl-runs/twin-work/P8/`).
   was zero on both arms (−0.003 against +0.004 rad/s) — the body walked
   straight under either; what asked for the larger one in AB23 is not
   known.
+  One walk per state of the body (branch `ledger-state`, 2026-10-30).
+  What robotd says of the body: a policy label (`walk`, `stand`, a
+  skill's name, `held` while somebody holds the duck), `picked_up`,
+  measured joints and commanded targets, velocities and currents — and
+  no "carrying" of its own. The mouth is a servo (closed −5°, open 30°,
+  `robot.mouth` 0–1, no skill drives it), so a load in the beak is the
+  one state the daemon shows without being asked: the mouth commanded
+  shut and held open by what is in it, `joints[mouth] − targets[mouth]`.
+  The watch holds either side of its thresholds for a second before the
+  state moves: 12° past the target and the body is carrying, 6° and it
+  is free. The first cut had 5° and 2°, and the twin was "carrying" at
+  once: MuJoCo never moves the mouth, so it reads 0 against a closed
+  target of −5° — a 5° gap for ever, now under the threshold on
+  purpose, and the twin's `robot.gait` says `free` with `mouth_gap_rad`
+  0.0873. What the state does to the walk — the carrying walk keyed
+  `<line>/<profile>/carrying`, its priors the free walk's numbers as
+  they stand, half the samples before its own count, the free walk's
+  answering where it has none — is tested in the ledger's own tests
+  (the free walk's speed kept while the loaded walk learns a slower one
+  on three samples, the free one back at once when the load is gone,
+  the loaded one remembered when it is picked up again); on the twin
+  the body never carries, and the A/B can only say the free walk did
+  not change. AB24, frozen `main` 5efc2dd against the branch, four tours
+  of each house, both ledgers empty: 48/48 arrived on both arms, 0
+  falls; casa_ingombra 108.4 s a journey against main's 102.0 (medians
+  103.0 against 96.5, paired +0.0 s median, +6.5 mean), casa_arredata
+  91.3 against 91.8 (medians 87.5 against 84.5, paired −0.5 median,
+  −0.5 mean) — the same walk within noise; the body free throughout,
+  one walk in the branch's file, `mouth_gap_rad` 0.0873 all along. The
+  trim once more: the branch's casa_ingombra learned −0.105 and its
+  casa_arredata −0.013 (AB23: −0.082 and −0.052; e22: −0.011 and
+  −0.028; main: −0.014). Three runs out of four put casa_ingombra's trim
+  past −0.08 since the settle was learned, casa_arredata's never: the
+  shorter stand reads the stop's own yaw in that house's many short
+  legs, or something else does — to be measured on its own before the
+  trim is trusted on a house like it.
 
 ## Known limits
 

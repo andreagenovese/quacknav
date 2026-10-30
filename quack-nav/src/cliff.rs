@@ -215,6 +215,10 @@ struct StateBits {
     /// daemon predating it.
     #[serde(default)]
     joints: Vec<f64>,
+    /// What was commanded, in the same order; empty from a daemon
+    /// predating it.
+    #[serde(default)]
+    targets: Vec<f64>,
     safety: SafetyBits,
     odom: OdomBits,
     /// "walk" while the gait runs; anything else is a standing body.
@@ -759,6 +763,10 @@ fn body_lane(
     // The settle, for the gait ledger: from the applied twist going to
     // the odometry standing still (`crate::ledger::SettleWatch`).
     let mut settle = crate::ledger::SettleWatch::default();
+    // The body's state, for the gait ledger's key: the mouth held open
+    // past where it was sent is something in the beak
+    // (`crate::ledger::BodyWatch`).
+    let mut body_state = crate::ledger::BodyWatch::default();
     loop {
         let mut line = String::new();
         if reader.read_line(&mut line)? == 0 {
@@ -782,6 +790,9 @@ fn body_lane(
         if let Some(secs) = settle.tick(bits.t_ns, twist_on, odom) {
             crate::ledger::settle(secs);
         }
+        let mouth = proto::JOINT_NAMES.iter().position(|n| *n == "mouth");
+        let mouth_gap = mouth.and_then(|i| Some(*bits.joints.get(i)? - *bits.targets.get(i)?));
+        crate::ledger::body(&mut body_state, bits.t_ns, mouth_gap);
         *body.lock().expect("body pose poisoned") = Some(BodyPose {
             head: bits.head_joints(),
             gravity: bits.safety.gravity,

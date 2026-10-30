@@ -426,13 +426,19 @@ Each line's numbers live in a file of their own,
 
 Those numbers are priors. **The gait ledger** measures the walk on the
 duck's own legs — a free forward step gives the speed and the trim that
-keeps it straight, a long curving leg the yaw per unit of command, a turn
-in place its rate and, read off the map at the next leg, its coast — and
-lays the median of the last 32 samples over the prior once 5 are in (the trim 10),
-bounded about it (a bad session cannot take the duck far). It is kept
-beside the map, `/var/lib/quack-nav/gait-ledger.json`, per daemon line
-and profile, so every run starts where the last one got and a new line
-of Pollen's starts from its own priors. `robot.gait` reports it and
+keeps it straight, a long curving leg the yaw per unit of command, the
+stick's curving pulses each side's yaw per unit (the two together, the
+left and right gains), a turn in place its rate and, read off the map
+at the next leg, its coast, the body's state stream the settle after a
+stop — and lays the median of the last 32 samples over the prior once
+5 are in (the trim 10, a side 16), bounded about it (a bad session
+cannot take the duck far). It is kept beside the map,
+`/var/lib/quack-nav/gait-ledger.json`, per daemon line and profile, so
+every run starts where the last one got and a new line of Pollen's
+starts from its own priors; and per state of the body, read from
+robotd — a mouth commanded shut and held open by what is in it is a
+duck carrying, with a walk of its own that starts from the free one's
+numbers and learns on half the samples. `robot.gait` reports it and
 forgets it on request; `robot.map_status` carries it as `gait`;
 `QK_GAIT_LEDGER=0` leaves the priors alone
 ([docs/control-contract.md](docs/control-contract.md), the module

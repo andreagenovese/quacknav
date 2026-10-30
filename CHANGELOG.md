@@ -13,6 +13,27 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Added
 
+- **One walk per state of the body: free, or carrying.** A load in the
+  beak changes the walk, and its numbers must neither overwrite the free
+  walk's nor wait for them to be forgotten. The state is read from
+  robotd, never guessed: the mouth is a servo, and a mouth commanded
+  shut that sits open past its target by 12° for a second has something
+  in it (back under 6° for a second, it is empty) — `joints[mouth] −
+  targets[mouth]` on the state stream. The ledger's key gains
+  `/carrying`; the carrying walk starts from the free walk's numbers as
+  they stand, counts its own on half the samples (the fast lane: the
+  body carries rarely and briefly), answers with the free walk's where
+  it has none yet, and the walk switches as the state does — a duck
+  that drops what it carried is on its free numbers at once. The twin's
+  mouth never moves in MuJoCo and sits 5° past its closed target, under
+  the threshold on purpose: the twin never leaves the free walk, and
+  what the state does to the walk waits for a duck with a beak.
+  `robot.gait` reports `state`, `mouth_gap_rad`, `walks` and `fast`
+  ([docs/control-contract.md](docs/control-contract.md)). Twin A/B
+  against frozen `main` (AB24, four tours of each house, both ledgers
+  empty): 48/48 arrived on both arms, 0 falls, the times the same
+  within noise (casa_ingombra paired median +0.0 s, casa_arredata
+  −0.5), the body free throughout and one walk in the file.
 - **The ledger learns the settle after a stop and the walk's left/right
   yaw gains.** The settle — how long the body goes on after its twist is
   gone, the coded 0.6 s of the velstand lines, which sets the mapper's

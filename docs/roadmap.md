@@ -46,8 +46,9 @@ arrived, no falls; the saved map relocalized from every wake spot.
 The numbers of the walk — how fast a command really moves the body, how much it veers, how a
 turn ends — are no longer constants per release: the duck learns them on its own legs, keeps
 them beside the map, and starts every session from them. A daemon or policy update from
-Pollen changes the walk; the duck adapts and keeps navigating. Next: one set of numbers per
-state of the body (a load in the beak changes the walk), and the few numbers still coded.
+Pollen changes the walk; the duck adapts and keeps navigating. One set of numbers per state
+of the body (a load in the beak changes the walk), the state read from the daemon. Left: the
+one number the walk does not give as a number, and the test of a walk that really changed.
 
 **Done when:** the twin on a newer daemon than the one the numbers were measured on, with the
 ledger empty, maps and navigates as well as on its own; no file to edit, no release to cut.
