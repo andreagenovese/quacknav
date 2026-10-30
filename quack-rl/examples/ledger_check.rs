@@ -45,7 +45,7 @@ fn main() -> anyhow::Result<()> {
     let journeys = num("--journeys", 12.0) as u64;
     let seed0 = num("--seed0", 100_000.0) as u64;
     let family = opt("--family");
-    quack_nav::ledger::init(None, 0.0);
+    quack_nav::ledger::init(None, 0.0, (1.0, 1.0));
     let prior = quack_duck::gait::priors();
     println!("truth: speed_at_03 {:.4} (prior {:.4})  veer {:+.3} rad/s → trim {:+.3} (prior 0)  yaw_per_unit {:.3} (prior {:.3})  turn_coast {:.3} (prior {:.3})",
         calib.speed_at_03, prior.m_per_s, calib.straight_veer, -calib.straight_veer / calib.yaw_per_unit, calib.yaw_per_unit, prior.yaw_rate_per_unit, calib.turn_coast_rad, prior.coast_prior_rad);

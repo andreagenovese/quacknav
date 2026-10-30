@@ -68,16 +68,20 @@ cambiata in 0.17.9).
 dopo il suo ultimo pezzo (circa 5 cm al passo del set v8), misurata sul
 gemello e modellata o fermata come quella della svolta, e la fine di
 `robot.move` fermata allo stesso modo (oggi la svolta dello strumento
-prosegue fino al deadman); i prossimi numeri del registro —
-l'assestamento dopo uno stop, i guadagni sinistra/destra delle svolte;
+prosegue fino al deadman); i prossimi numeri del registro — una
+camminata per stato del corpo (un carico nel becco, letto da robotd),
 l'imbardata per unità, che gli impulsi di 0,6 s dello stick non possono
 dare come un numero solo (AB21, 2026-10-28: cala col comando, 0,99 rad/s
 per unità a |vyaw| 0,3 fino a 0,76 a 0,7, e sotto il guadagno dello
 stick fa un anello — una curva di guadagno per taglia di comando, o uno
-stick che chiude la rotta sull'odometria); una camminata per stato del
-corpo (un carico nel becco, letto da robotd) — e quack-control che mostra
+stick che chiude la rotta sull'odometria) — e quack-control che mostra
 `gait`; la velocità della svolta è nel budget della svolta dal 2026-10-28
-(ramo `ledger-turn`); un'esplorazione delimitata (dell'utente, 2026-10-27):
+(ramo `ledger-turn`), l'assestamento dopo uno stop e i guadagni
+sinistra/destra imparati dal 2026-10-29 (ramo `ledger-settle`:
+l'assestamento 0,12 s sul gemello contro i 0,6 scritti, le soste mezzo
+secondo più corte e i viaggi 9 s più veloci; una cosa da tenere
+d'occhio, la correzione dell'AB23 a −0,08 dove quella di ogni altra
+corsa è −0,01…−0,03); un'esplorazione delimitata (dell'utente, 2026-10-27):
 "esplora 2×3" nomina i lati della mappa in metri, dalla voce o da
 quack-control, e l'esploratore tiene frontiere e viaggi dentro quel
 rettangolo intorno a dove è partito, qualunque pavimento ci sia oltre; un

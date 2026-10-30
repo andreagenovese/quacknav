@@ -61,7 +61,7 @@ fn main() -> anyhow::Result<()> {
     };
     if args.iter().any(|a| a == "--ledger") {
         anyhow::ensure!(threads == 1, "--ledger is one walk learned in order: --threads 1");
-        quack_nav::ledger::init(None, 0.0);
+        quack_nav::ledger::init(None, 0.0, (1.0, 1.0));
     }
     let mut who = Vec::new();
     if args.iter().any(|a| a == "--stick") {

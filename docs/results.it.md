@@ -1117,6 +1117,75 @@ casa_arredata, daemon-v0.17.6 + set v8, due gemelli alla volta
   casa_ingombra (110 svolte) e 0,96 dopo casa_arredata (151): il budget
   di una svolta da 1,5 rad a 4,7 e 4,1 s dove era 7,0, due volte e mezzo
   il tempo della svolta stessa.
+  L'assestamento e i lati (ramo `ledger-settle`, 2026-10-29).
+  L'assestamento è osservato dove arriva lo stato del corpo, nella corsia
+  del corpo della guardia dislivelli a 20 Hz: lo stato il cui comando
+  applicato è sparito fa partire l'orologio, il primo la cui odometria
+  si è mossa sotto 0,02 m/s e 0,05 rad/s rispetto allo stato prima lo
+  ferma; un comando di nuovo prima, o due secondi passati, e non c'è
+  campione. Sul gemello legge 0,12 s (la mediana di 32; i campioni
+  0,05–0,42, i più a 0,06, 0,12 e 0,18 — la grana del flusso a 20 Hz),
+  dove il numero scritto era 0,6: la settleprobe del 2026-10-08
+  misurava dal *comando* a zero, e lo smorzamento che robotd fa da sé
+  del comando applicato prende la maggior parte di quel tempo; misurato
+  dalla scomparsa del comando applicato, com'è la quiete del mapper, il
+  corpo è fermo quasi subito. Ogni sosta con dentro uno stop è 0,48 s
+  più corta per questo, e la finestra di quiete del mapper si apre
+  altrettanto prima. I lati si leggono dagli impulsi dello stick, che
+  non possono dare l'imbardata per unità come un numero solo (sopra) ma
+  possono dare il rapporto dei due lati agli stessi comandi: ogni
+  impulso a |vyaw| 0,3–0,6 (il clamp a 0,7 escluso, dove la curva è più
+  piatta) dà l'imbardata del suo lato per unità di *sterzata* mandata,
+  `vyaw × guadagno`; la correzione di deriva non è nel denominatore —
+  cancella la deriva, e la deriva è nell'imbardata, quindi con dentro
+  la deriva si legge come differenza tra i lati (la camminata perturbata
+  del banco, deriva 0,12 rad/s: 0,99 a sinistra contro 0,55 a destra
+  dove i lati della camminata sono 0,75 e 0,84, invertiti; con la
+  correzione fuori, 0,97 contro 0,74, ancora l'avanzo della deriva
+  dentro un impulso — l'avvio del passo scala la correzione, la deriva
+  è intera — quindi una camminata la cui correzione in forza supera
+  0,06 rad/s non dà campioni di lato, e restano i guadagni del file). Il
+  numero di un lato aspetta 16 campioni (l'imbardata di un impulso ha
+  una dispersione di metà del suo guadagno, dice la calibrazione; i lati
+  differiscono di un decimo); il guadagno di ogni lato è la media dei
+  due sul proprio, tra 0,75 e 1,25. Sul gemello i lati leggono 0,67 a
+  sinistra contro 0,95 a destra nella casa_ingombra dell'AB23, 0,69
+  contro 0,98 in casa_arredata, 0,82 contro 1,05 e 0,75 contro 0,85
+  nell'e22 — la destra gira di più per unità, come dicevano i guadagni
+  d'impulso della calibrazione (0,75, 0,84) — per guadagni circa 1,2 a
+  sinistra e 0,86 a destra; e nelle tracce l'imbardata per unità di
+  quanto *chiesto* si è incontrata tra i lati, 0,73 contro 0,83 (main
+  0,71 contro 0,86) in casa_ingombra, 0,79 contro 0,85 (main 0,79 contro
+  1,02) in casa_arredata. AB23, `main` congelato 678ca25 contro il ramo,
+  quattro giri di ogni casa, entrambi i registri vuoti: 48/48 arrivi su
+  entrambi i bracci, 0 cadute, il ramo più veloce in entrambe le case —
+  casa_ingombra 107,9 s a viaggio contro 117,1 (mediane 99,5 contro
+  113,5, accoppiata −12,5 s mediana, −9,2 media), casa_arredata 91,8
+  contro 101,5 (mediane 87,5 contro 92,5, accoppiata −8,5 mediana, −9,7
+  media): il mezzo secondo delle soste, sessanta-cento volte a viaggio.
+  Poiché l'assestamento sposta la finestra di quiete del mapper, anche
+  l'A/B di esplorazione (e22, ogni braccio tutte e due le case da zero,
+  tre sessioni da 30 minuti, poi la mappa congelata e due giri di
+  viaggi): casa_ingombra 79 % mappata contro l'80 del main (il main l'ha
+  dichiarata finita nella terza sessione, l'ignoto in pezzi da 2,3 m²;
+  il ramo ha chiuso la seconda e la terza bloccato con 5,1 e 4,9 m²
+  fuori portata; stanze entro due punti — bagno 0,95 contro 0,92),
+  casa_arredata finita sulla parola della papera dopo due sessioni
+  (2,4 m² rimasti) contro le tre del main finite bloccate al 77 %
+  (5,1 m²); viaggi 22/24 contro 21/24 — la meta della camera
+  (−2,10, −1,10) è caduta in una tasca non mappata delle mappe di
+  entrambi i bracci ed è stata rifiutata in entrambi i giri da entrambi,
+  e il main ha rifiutato anche l'ufficio una volta — 0 cadute, i viaggi
+  arrivati casa_ingombra 99,0 s contro 110,1 (accoppiata −10,0 mediana),
+  casa_arredata 97,8 contro 105,2 (accoppiata −10,0). Il registro
+  nell'e22 ha imparato l'assestamento 0,123 in entrambe le case, i lati
+  0,82/1,05 e 0,75/0,85, la correzione −0,011 e −0,028. Un'osservazione
+  aperta: il ramo dell'AB23 ha imparato una correzione di −0,082 poi
+  −0,052 dove quella del main era −0,014 e quella del ramo nell'e22
+  −0,011 e −0,028, e sotto di essa l'imbardata dei passi dritti
+  dall'odometria era zero su entrambi i bracci (−0,003 contro +0,004
+  rad/s) — il corpo camminava dritto sotto entrambe; cosa abbia chiesto
+  la più grande nell'AB23 non si sa.
 
 ## Limiti noti
 

@@ -13,6 +13,42 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Added
 
+- **The ledger learns the settle after a stop and the walk's left/right
+  yaw gains.** The settle — how long the body goes on after its twist is
+  gone, the coded 0.6 s of the velstand lines, which sets the mapper's
+  still window and the length of every stand — is watched on the body's
+  state stream: from the state whose applied twist is gone to the first
+  whose odometry stands still, bounded 0–1.5 s. The twin learned 0.12 s
+  (samples 0.05–0.42): the coded number was measured from the command
+  going to zero, the ledger measures from the applied twist vanishing,
+  which robotd smooths out on its own, and from there the body is still
+  almost at once — every stand 0.48 s shorter. The gains: the stick's
+  0.6 s pulses cannot give the yaw per unit as one number, but they give
+  the two sides' ratio at the same commands (|vyaw| 0.3–0.6, the clamp
+  left out): each side's yaw per unit of steering sent is its own
+  number (16 samples before it counts: a pulse's yaw is the noisiest
+  sample there is), each side's gain is the two sides' mean over its
+  own, within 0.75–1.25, laid under every walking yaw command once both
+  sides are learned. The trim is left out of the denominator (it
+  cancels the veer, it does not steer: with it in, the bench's perturbed
+  walk read its veer as 0.99 against 0.55 between sides where the walk's
+  own are 0.75 and 0.84), and a walk that veers past 0.06 rad/s gives
+  no side sample at all. The twin's sides came out 0.67–0.82 rad/s per
+  unit to the left against 0.85–1.05 to the right (the right turns
+  more, as the calibration had it): gains about 1.2 and 0.86, and the
+  yaw per unit *asked* met between the sides (0.73 against 0.83 where
+  main's were 0.71 against 0.86). Twin A/B against frozen `main`
+  (AB23, four tours of each house, both ledgers empty): 48/48 arrived
+  on both arms, 0 falls, the branch 9 s a journey faster (casa_ingombra
+  107.9 s against 117.1, paired median −12.5 s; casa_arredata 91.8
+  against 101.5, −8.5). Exploration A/B (e22, both houses from nothing,
+  three sessions, two rounds of journeys on the frozen map): maps as
+  full as main's (casa_ingombra 79 % against 80, casa_arredata done on
+  the duck's own word after two sessions against main's three without),
+  journeys 22/24 against main's 21/24 (the bedroom's goal fell in an
+  unmapped pocket for both arms and was refused; main refused the
+  office once too), 0 falls, −10 s paired medians in both houses. The
+  bench the same within noise ([docs/results.md](docs/results.md)).
 - **A turn in place's time budget on the rate the ledger measured; the
   pulses' yaw per unit measured and left.** The seconds a turn in place
   gets before it is given up as not turning were twice its time at

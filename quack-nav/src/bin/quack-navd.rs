@@ -41,7 +41,7 @@ fn main() -> anyhow::Result<()> {
     quack_duck::gait::set_active(config.gait.profile);
     tracing::info!(profile = ?config.gait.profile, gait = ?config.gait, "quack-navd: the walk");
     // What this duck learned of its own walk, laid over the numbers.
-    quack_nav::ledger::init(Some(config.ledger_path.clone().into()), config.gait.yaw_trim);
+    quack_nav::ledger::init(Some(config.ledger_path.clone().into()), config.gait.yaw_trim, (config.gait.yaw_gain_left, config.gait.yaw_gain_right));
 
     // The mapper, when this daemon hosts it (`[maploc]`): the released robotd
     // publishes what it needs, and the rest of the navigation reads the map

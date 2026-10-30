@@ -1044,6 +1044,69 @@ daemon-v0.17.6 + set v8, two twins at a time (`rl-runs/twin-work/P8/`).
   branch's rate came out at 0.82 rad/s after casa_ingombra (110 turns)
   and 0.96 after casa_arredata (151): a 1.5 rad turn's budget at 4.7 and
   4.1 s where it had been 7.0, two and a half times the turn's own time.
+  The settle and the sides (branch `ledger-settle`, 2026-10-29). The
+  settle is watched where the body's state arrives, in the cliff guard's
+  body lane at 20 Hz: the state whose applied twist is gone starts the
+  clock, the first whose odometry moved under 0.02 m/s and 0.05 rad/s
+  from the state before stops it; a twist back first, or two seconds
+  gone by, and there is no sample. On the twin it reads 0.12 s (the
+  median of 32; the samples 0.05–0.42, most at 0.06, 0.12 and 0.18 —
+  the 20 Hz stream's own grain), where the coded number was 0.6: the
+  settleprobe of 2026-10-08 measured from the *command* going to zero,
+  and robotd's own smoothing of the applied twist takes most of that
+  time; measured from the applied twist vanishing, as the mapper's
+  stillness is, the body is still almost at once. Every stand with a
+  stop in it is 0.48 s shorter for it, and the mapper's still window
+  opens that much earlier. The sides are read off the stick's pulses,
+  which cannot give the yaw per unit as one number (above) but can give
+  the ratio of the two sides at the same commands: each pulse at |vyaw|
+  0.3–0.6 (the 0.7 clamp left out, where the curve is flattest) gives
+  its side's yaw per unit of *steering* sent, `vyaw × gain`; the trim is
+  not in the denominator — it cancels the veer, and the veer is in the
+  yaw, so with it in the veer reads as a side difference (the bench's
+  perturbed walk, veer 0.12 rad/s: 0.99 to the left against 0.55 to the
+  right where the walk's sides are 0.75 and 0.84, inverted; with the
+  trim out, 0.97 against 0.74, still the veer's leftover inside a pulse
+  — the gait's turning on scales the trim, the veer is whole — so a
+  walk whose trim in force is past 0.06 rad/s gives no side sample, and
+  the file's gains stand). A side's number waits for 16 samples (a
+  pulse's yaw has a spread of half its gain, the calibration says; the
+  sides differ by a tenth); each side's gain is the two sides' mean over
+  its own, within 0.75–1.25. On the twin the sides read 0.67 left
+  against 0.95 right in AB23's casa_ingombra, 0.69 against 0.98 in
+  casa_arredata, 0.82 against 1.05 and 0.75 against 0.85 in e22's — the
+  right turns more per unit, as the calibration's pulse gains (0.75,
+  0.84) had it — for gains about 1.2 left and 0.86 right; and in the
+  traces the yaw per unit of what was *asked* met between the sides,
+  0.73 against 0.83 (main 0.71 against 0.86) in casa_ingombra, 0.79
+  against 0.85 (main 0.79 against 1.02) in casa_arredata. AB23, frozen
+  `main` 678ca25 against the branch, four tours of each house, both
+  ledgers empty: 48/48 arrived on both arms, 0 falls, the branch faster
+  in both houses — casa_ingombra 107.9 s a journey against 117.1
+  (medians 99.5 against 113.5, paired −12.5 s median, −9.2 mean),
+  casa_arredata 91.8 against 101.5 (medians 87.5 against 92.5, paired
+  −8.5 median, −9.7 mean): the stands' half second, sixty to a hundred
+  times a journey. Because the settle moves the mapper's still window,
+  the exploration A/B too (e22, each arm both houses from nothing,
+  three sessions of 30 minutes, then the map frozen and two rounds of
+  journeys): casa_ingombra 79 % mapped against main's 80 (main declared
+  it done in the third session, the unknown in pieces of 2.3 m²; the
+  branch ended its second and third stuck with 5.1 and 4.9 m² out of
+  reach; rooms within two points — bath 0.95 against 0.92), casa_arredata
+  done on the duck's own word after two sessions (2.4 m² left) against
+  main's three ending stuck at 77 % (5.1 m²); journeys 22/24 against
+  21/24 — the bedroom's goal (−2.10, −1.10) fell in an unmapped pocket of
+  both arms' maps and was refused in both rounds by both, and main
+  refused the office once as well — 0 falls, the arrived journeys
+  casa_ingombra 99.0 s against 110.1 (paired −10.0 median), casa_arredata
+  97.8 against 105.2 (paired −10.0). The ledger on e22 learned the
+  settle 0.123 in both houses, the sides 0.82/1.05 and 0.75/0.85, the
+  trim −0.011 and −0.028. One open observation: AB23's branch learned a
+  trim of −0.082 then −0.052 where main's was −0.014 and e22's branch
+  −0.011 and −0.028, and under it the straight steps' yaw by odometry
+  was zero on both arms (−0.003 against +0.004 rad/s) — the body walked
+  straight under either; what asked for the larger one in AB23 is not
+  known.
 
 ## Known limits
 

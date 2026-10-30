@@ -756,6 +756,9 @@ fn body_lane(
         ),
     )?;
     let mut stillness = quack_duck::gait::Stillness::default();
+    // The settle, for the gait ledger: from the applied twist going to
+    // the odometry standing still (`crate::ledger::SettleWatch`).
+    let mut settle = crate::ledger::SettleWatch::default();
     loop {
         let mut line = String::new();
         if reader.read_line(&mut line)? == 0 {
@@ -774,6 +777,11 @@ fn body_lane(
             continue;
         };
         let moving = stillness.moving(&bits.policy, bits.motion.applied, bits.t_ns);
+        let twist_on = quack_duck::gait::walking(&bits.policy, bits.motion.applied);
+        let odom = bits.odom.yaw.map(|yaw| (bits.odom.position[0], bits.odom.position[1], yaw));
+        if let Some(secs) = settle.tick(bits.t_ns, twist_on, odom) {
+            crate::ledger::settle(secs);
+        }
         *body.lock().expect("body pose poisoned") = Some(BodyPose {
             head: bits.head_joints(),
             gravity: bits.safety.gravity,

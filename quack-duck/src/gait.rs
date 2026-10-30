@@ -166,8 +166,10 @@ const STILL_TWIST: f64 = 1e-3;
 /// The mapper's still windows began in that, smeared, and agreed with the
 /// map too little to correct the pose: 9 corrections a round against
 /// alpha's 30, and the pose 0.3-0.5 m off in long journeys.
+/// The ledger's settle once it has learned one ([`learn`]), the profile's
+/// until then.
 fn velstand_settle_ns() -> u64 {
-    (Profile::Velstand.numbers().settle_s * 1e9) as u64
+    (learned().settle_s.unwrap_or(Profile::Velstand.numbers().settle_s) * 1e9) as u64
 }
 
 /// [`walking`] with velstand's settle: a stream's own memory of the last
@@ -229,6 +231,15 @@ pub fn numbers() -> Numbers {
     if let Some(v) = l.coast_rad {
         n.coast_prior_rad = v;
     }
+    if let Some(v) = l.settle_s {
+        n.settle_s = v;
+    }
+    if let Some(v) = l.yaw_gain_left {
+        n.yaw_gain_left = v;
+    }
+    if let Some(v) = l.yaw_gain_right {
+        n.yaw_gain_right = v;
+    }
     n
 }
 
@@ -254,9 +265,23 @@ pub struct Learned {
     pub yaw_trim: Option<f64>,
     /// The turn in place's coast past its stop (rad).
     pub coast_rad: Option<f64>,
+    /// How long the body goes on after its twist is gone (s).
+    pub settle_s: Option<f64>,
+    /// The yaw gains by side: the side that turns more per unit is sent
+    /// less, the two together as the one number says.
+    pub yaw_gain_left: Option<f64>,
+    pub yaw_gain_right: Option<f64>,
 }
 
-static LEARNED: std::sync::RwLock<Learned> = std::sync::RwLock::new(Learned { m_per_s: None, yaw_rate_per_unit: None, yaw_trim: None, coast_rad: None });
+static LEARNED: std::sync::RwLock<Learned> = std::sync::RwLock::new(Learned {
+    m_per_s: None,
+    yaw_rate_per_unit: None,
+    yaw_trim: None,
+    coast_rad: None,
+    settle_s: None,
+    yaw_gain_left: None,
+    yaw_gain_right: None,
+});
 
 /// Lay what the ledger learned over the coded numbers, for every reader
 /// from now on. `Learned::default()` takes it all back.
@@ -274,14 +299,15 @@ pub(crate) const YAW_MAX: f64 = 0.9;
 
 impl GaitConfig {
     /// The yaw actually sent for a wanted yaw while walking at `vx`. The
-    /// trim is the ledger's once it has learned one ([`learned`]), the
-    /// file's or the profile's until then.
+    /// trim and the side's gain are the ledger's once it has learned them
+    /// ([`learned`]), the file's or the profile's until then.
     pub fn yaw(&self, vx: f64, vyaw: f64) -> f64 {
         if vx <= 0.0 {
             return vyaw;
         }
-        let gain = if vyaw > 0.0 { self.yaw_gain_left } else { self.yaw_gain_right };
-        let trim = learned().yaw_trim.unwrap_or(self.yaw_trim);
+        let l = learned();
+        let gain = if vyaw > 0.0 { l.yaw_gain_left.unwrap_or(self.yaw_gain_left) } else { l.yaw_gain_right.unwrap_or(self.yaw_gain_right) };
+        let trim = l.yaw_trim.unwrap_or(self.yaw_trim);
         (vyaw * gain + trim).clamp(-self.yaw_max, self.yaw_max)
     }
 
