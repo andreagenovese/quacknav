@@ -15,6 +15,29 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Aggiunto
 
+- **Una camminata per stato del corpo: libero, o che porta qualcosa.**
+  Un carico nel becco cambia la camminata, e i suoi numeri non devono né
+  sovrascrivere quelli della camminata libera né aspettare che vengano
+  dimenticati. Lo stato è letto da robotd, mai indovinato: il becco è un
+  servo, e un becco comandato chiuso che resta aperto oltre il suo target
+  di 12° per un secondo ha qualcosa dentro (sotto i 6° per un secondo, è
+  vuoto) — `joints[mouth] − targets[mouth]` sul flusso di stato. La
+  chiave del registro acquista `/carrying`; la camminata che porta parte
+  dai numeri della camminata libera com'è, conta i propri con metà dei
+  campioni (la corsia rapida: il corpo porta di rado e per poco),
+  risponde con quelli della libera dove non ne ha ancora, e la camminata
+  cambia col cambiare dello stato — una papera che posa ciò che portava
+  è subito sui suoi numeri liberi. Il becco del gemello in MuJoCo non si
+  muove mai e sta 5° oltre il suo target chiuso, sotto la soglia
+  apposta: il gemello non lascia mai la camminata libera, e cosa lo
+  stato fa alla camminata aspetta una papera col becco. `robot.gait`
+  riporta `state`, `mouth_gap_rad`, `walks` e `fast`
+  ([docs/control-contract.it.md](docs/control-contract.it.md)). A/B sul
+  gemello contro il `main` congelato (AB24, quattro giri di ogni casa,
+  entrambi i registri vuoti): 48/48 arrivi su entrambi i bracci, 0
+  cadute, tempi uguali nel rumore (casa_ingombra mediana accoppiata
+  +0,0 s, casa_arredata −0,5), il corpo libero per tutto il tempo e una
+  sola camminata nel file.
 - **Il registro impara l'assestamento dopo uno stop e i guadagni di
   imbardata sinistra/destra della camminata.** L'assestamento — quanto il
   corpo continua dopo che il suo comando è sparito, i 0,6 s scritti delle

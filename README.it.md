@@ -448,13 +448,20 @@ linea. I numeri di ogni linea stanno in un file a sé,
 Quei numeri sono prior. **Il registro d'andatura** misura la camminata
 sulle gambe della papera stessa — un passo libero in avanti dà la
 velocità e la correzione che lo tiene dritto, una gamba lunga in curva
-l'imbardata per unità di comando, una svolta sul posto la sua velocità
-e, letta sulla mappa alla gamba dopo, la sua coda — e posa la mediana
-degli ultimi 32 campioni sopra il prior quando ne ha 5 (la correzione 10), vincolata intorno
-a lui (una sessione sbagliata non porta la papera lontano). Sta accanto
-alla mappa, `/var/lib/quack-nav/gait-ledger.json`, per linea di daemon e
-profilo, così ogni avvio parte da dove è arrivato l'ultimo e una linea
-nuova di Pollen parte dai suoi prior. `robot.gait` lo riporta e lo
+l'imbardata per unità di comando, gli impulsi curvi dello stick
+l'imbardata per unità di ciascun lato (i due insieme, i guadagni
+sinistra e destra), una svolta sul posto la sua velocità e, letta sulla
+mappa alla gamba dopo, la sua coda, il flusso di stato del corpo
+l'assestamento dopo uno stop — e posa la mediana degli ultimi 32
+campioni sopra il prior quando ne ha 5 (la correzione 10, un lato 16),
+vincolata intorno a lui (una sessione sbagliata non porta la papera
+lontano). Sta accanto alla mappa, `/var/lib/quack-nav/gait-ledger.json`,
+per linea di daemon e profilo, così ogni avvio parte da dove è arrivato
+l'ultimo e una linea nuova di Pollen parte dai suoi prior; e per stato
+del corpo, letto da robotd — un becco comandato chiuso e tenuto aperto
+da ciò che ha dentro è una papera che porta qualcosa, con una camminata
+sua che parte dai numeri di quella libera e impara con metà dei
+campioni. `robot.gait` lo riporta e lo
 dimentica a richiesta; `robot.map_status` lo porta come `gait`;
 `QK_GAIT_LEDGER=0` lascia stare i prior
 ([docs/control-contract.it.md](docs/control-contract.it.md), il modulo

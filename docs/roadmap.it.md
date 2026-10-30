@@ -46,9 +46,10 @@ viaggio arrivato, nessuna caduta; la mappa salvata rilocalizzata da ogni punto d
 I numeri della camminata — quanto un comando muove davvero il corpo, quanto deriva, come
 finisce una svolta — non sono più costanti per release: la papera li impara sulle proprie
 gambe, li tiene accanto alla mappa, e parte da lì a ogni sessione. Un aggiornamento del daemon
-o delle policy di Pollen cambia la camminata; la papera si adatta e continua a navigare. Poi:
-un gruppo di numeri per stato del corpo (un carico nel becco cambia la camminata), e i pochi
-numeri ancora scritti.
+o delle policy di Pollen cambia la camminata; la papera si adatta e continua a navigare. Un
+gruppo di numeri per stato del corpo (un carico nel becco cambia la camminata), lo stato letto
+dal daemon. Restano: l'unico numero che la camminata non dà come un numero, e la prova di una
+camminata cambiata davvero.
 
 **Fatto quando:** il gemello su un daemon più nuovo di quello su cui i numeri erano stati misurati,
 col registro vuoto, mappa e naviga come sul proprio; nessun file da modificare, nessuna

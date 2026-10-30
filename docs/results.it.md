@@ -1186,6 +1186,44 @@ casa_arredata, daemon-v0.17.6 + set v8, due gemelli alla volta
   dall'odometria era zero su entrambi i bracci (−0,003 contro +0,004
   rad/s) — il corpo camminava dritto sotto entrambe; cosa abbia chiesto
   la più grande nell'AB23 non si sa.
+  Una camminata per stato del corpo (ramo `ledger-state`, 2026-10-30).
+  Cosa dice robotd del corpo: un'etichetta di policy (`walk`, `stand`,
+  il nome di una skill, `held` mentre qualcuno tiene la papera),
+  `picked_up`, giunture misurate e target comandati, velocità e correnti
+  — e nessun "porta qualcosa" suo. Il becco è un servo (chiuso −5°,
+  aperto 30°, `robot.mouth` 0–1, nessuna skill lo guida), quindi un
+  carico nel becco è l'unico stato che il daemon mostra senza che glielo
+  si chieda: il becco comandato chiuso e tenuto aperto da ciò che ha
+  dentro, `joints[mouth] − targets[mouth]`. L'osservatore tiene da un
+  lato o dall'altro delle sue soglie per un secondo prima che lo stato
+  si muova: 12° oltre il target e il corpo porta, 6° ed è libero. La
+  prima stesura aveva 5° e 2°, e il gemello era subito "carrying":
+  MuJoCo non muove mai il becco, quindi legge 0 contro un target chiuso
+  di −5° — un divario di 5° per sempre, ora sotto la soglia apposta, e
+  il `robot.gait` del gemello dice `free` con `mouth_gap_rad` 0,0873.
+  Cosa lo stato fa alla camminata — la camminata che porta con chiave
+  `<linea>/<profilo>/carrying`, i suoi prior i numeri della camminata
+  libera com'è, metà dei campioni prima che contino i propri, la libera
+  che risponde dove non ne ha — è provato nei test del registro stesso
+  (la velocità della libera tenuta mentre quella carica ne impara una
+  più lenta su tre campioni, la libera di nuovo subito quando il carico
+  non c'è più, quella carica ricordata quando lo riprende); sul gemello
+  il corpo non porta mai, e l'A/B può dire solo che la camminata libera
+  non è cambiata. AB24, `main` congelato 5efc2dd contro il ramo, quattro
+  giri di ogni casa, entrambi i registri vuoti: 48/48 arrivi su entrambi
+  i bracci, 0 cadute; casa_ingombra 108,4 s a viaggio contro i 102,0 del
+  main (mediane 103,0 contro 96,5, accoppiata +0,0 s mediana, +6,5
+  media), casa_arredata 91,3 contro 91,8 (mediane 87,5 contro 84,5,
+  accoppiata −0,5 mediana, −0,5 media) — la stessa camminata nel rumore;
+  il corpo libero per tutto il tempo, una sola camminata nel file del
+  ramo, `mouth_gap_rad` 0,0873 sempre. La correzione di nuovo: la
+  casa_ingombra del ramo ha imparato −0,105 e la sua casa_arredata
+  −0,013 (AB23: −0,082 e −0,052; e22: −0,011 e −0,028; main: −0,014).
+  Tre corse su quattro mettono la correzione di casa_ingombra oltre
+  −0,08 da quando l'assestamento è imparato, quella di casa_arredata
+  mai: la sosta più corta legge l'imbardata propria dello stop nelle
+  tante gambe corte di quella casa, o è qualcos'altro — da misurare a
+  parte prima di fidarsi della correzione in una casa come quella.
 
 ## Limiti noti
 
