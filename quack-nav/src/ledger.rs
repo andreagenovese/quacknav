@@ -24,7 +24,7 @@
 //! | number | from | taken by |
 //! |---|---|---|
 //! | `m_per_s` | a free forward step's distance by the map's pose over its time | the planner's strides, the stands' spacing, the guards' reach |
-//! | `yaw_trim` | a straight step's yaw rate by odometry, as the trim that would cancel it | every walking command sent (`GaitConfig::yaw`) |
+//! | `yaw_trim` | a run of 3–8 consecutive straight steps: its yaw rate by odometry, as the trim that would cancel it (one step's yaw is the gait's sway, 0.15 rad/s about a veer of 0.01; a run's averages the sway out); the last 128 kept, not 32 | every walking command sent (`GaitConfig::yaw`) |
 //! | `yaw_rate_per_unit` | a curving leg of [`LEG_MIN_S`] or more: its yaw rate per unit of command | the stick's steering gain, the guards' arcs |
 //! | `coast_rad` | the yaw past a turn in place's close, read off the map at the next leg | how far short of the goal a turn in place stops |
 //! | `turn_rate_rad_s` | a turn in place's rate over its own time | the time a turn in place gets before it is given up ([`turn_budget_s`]); the turns are closed on odometry |
@@ -101,6 +101,20 @@ pub const MIN_SAMPLES: usize = 5;
 /// twin's casa_arredata) and the noisiest (a 0.6 s step's yaw by
 /// odometry).
 pub const MIN_SAMPLES_TRIM: usize = 10;
+/// Samples kept for the trim: four times the rest. Its sample is the
+/// noisiest there is against the smallest signal — a straight step's yaw
+/// by odometry spreads 0.15 rad/s about a veer of 0.01 (the twin,
+/// 2026-10-30), and the median of 32 wandered ±0.04 for noise alone —
+/// and the veer is the slowest-changing property of the body.
+pub const KEEP_TRIM: usize = 128;
+/// A trim sample is a run of consecutive straight steps, not one: the
+/// gait's sway averages out over the run, the veer does not. A run ends
+/// at a curving step, a turn, a step that does not count, a gap longer
+/// than [`RUN_GAP_S`], or [`RUN_MAX_STEPS`]; under [`RUN_MIN_STEPS`] it
+/// gives no sample.
+pub const RUN_MIN_STEPS: usize = 3;
+pub const RUN_MAX_STEPS: usize = 8;
+const RUN_GAP_S: f64 = 1.5;
 /// The file is rewritten no more often than this while samples come.
 const WRITE_EVERY: Duration = Duration::from_secs(30);
 /// Nothing ahead nearer than this for a step to count as the gait's.
@@ -215,6 +229,14 @@ impl Number {
         }
     }
 
+    /// Samples kept: the last [`KEEP`], the trim's [`KEEP_TRIM`].
+    fn keep(self) -> usize {
+        match self {
+            Number::YawTrim => KEEP_TRIM,
+            _ => KEEP,
+        }
+    }
+
     /// Where a learned value may lie, about the prior.
     fn bounds(self, prior: f64) -> (f64, f64) {
         match self {
@@ -303,7 +325,7 @@ impl Entry {
 
     fn push(&mut self, number: Number, sample: f64, fast: bool) {
         self.samples.push(sample);
-        if self.samples.len() > KEEP {
+        if self.samples.len() > number.keep() {
             self.samples.remove(0);
         }
         self.seen += 1;
@@ -433,6 +455,19 @@ pub struct Ledger {
     written: Option<Instant>,
     /// When the last turn in place ended (the body's clock).
     turned_at: Option<Instant>,
+    /// The run of straight steps under way, for the trim's sample.
+    run: Option<StraightRun>,
+}
+
+/// Consecutive straight steps, summed: the trim's sample is their yaw
+/// over their time ([`RUN_MIN_STEPS`]..=[`RUN_MAX_STEPS`]).
+#[derive(Debug, Clone, Copy)]
+struct StraightRun {
+    dyaw: f64,
+    secs: f64,
+    steps: usize,
+    /// When the last step ended (the body's clock).
+    ended_at: Instant,
 }
 
 fn median(v: &[f64]) -> f64 {
@@ -483,6 +518,7 @@ impl Ledger {
             dirty: false,
             written: None,
             turned_at: None,
+            run: None,
         };
         l.refresh_priors();
         l
@@ -596,6 +632,39 @@ impl Ledger {
         self.value(Number::YawTrim).unwrap_or(self.file_trim)
     }
 
+    /// A straight step into the run under way — a new one after a gap of
+    /// [`RUN_GAP_S`] — and the run's sample when it reaches
+    /// [`RUN_MAX_STEPS`]. Whether the trim took a sample.
+    fn extend_run(&mut self, started: Instant, ended: Instant, dyaw: f64, secs: f64) -> bool {
+        let mut took = false;
+        if self.run.is_some_and(|r| started.saturating_duration_since(r.ended_at).as_secs_f64() > RUN_GAP_S) {
+            took = self.end_run();
+        }
+        let r = self.run.get_or_insert(StraightRun { dyaw: 0.0, secs: 0.0, steps: 0, ended_at: ended });
+        r.dyaw += dyaw;
+        r.secs += secs;
+        r.steps += 1;
+        r.ended_at = ended;
+        if r.steps >= RUN_MAX_STEPS {
+            took |= self.end_run();
+        }
+        took
+    }
+
+    /// The run under way is over: its yaw over its time, as the trim that
+    /// would cancel it, is the trim's sample when it had the steps.
+    /// Whether the trim took one.
+    fn end_run(&mut self) -> bool {
+        let Some(r) = self.run.take() else { return false };
+        if r.steps < RUN_MIN_STEPS || r.secs <= 0.0 {
+            return false;
+        }
+        let ypu = quack_duck::gait::numbers().yaw_rate_per_unit;
+        let trim = self.trim_in_force() - r.dyaw / r.secs / ypu;
+        self.take(Number::YawTrim, trim);
+        true
+    }
+
     /// The gain a yaw of this sign is sent with now.
     fn gain_in_force(&self, vyaw: f64) -> f64 {
         let (l, r) = self.gains().unwrap_or(self.file_gains);
@@ -625,9 +694,18 @@ impl Ledger {
     pub fn observe_step(&mut self, before: &Snapshot, after: &Snapshot, vx: f64, vyaw: f64, secs: f64, near_ahead_m: f64) -> Vec<Number> {
         let mut took = Vec::new();
         if vx <= 0.05 || secs < 0.2 || near_ahead_m <= FREE_AHEAD_M || !before.trusted || !after.trusted {
+            // A step that does not count ends the straight run.
+            if self.end_run() {
+                took.push(Number::YawTrim);
+            }
             return took;
         }
-        let (Some(p0), Some(p1)) = (before.pose, after.pose) else { return took };
+        let (Some(p0), Some(p1)) = (before.pose, after.pose) else {
+            if self.end_run() {
+                took.push(Number::YawTrim);
+            }
+            return took;
+        };
         let walked = (p1.0 - p0.0).hypot(p1.1 - p0.1);
         let speed = walked / secs * 0.3 / vx;
         if speed > 0.02 && speed < 0.6 {
@@ -635,24 +713,34 @@ impl Ledger {
             took.push(Number::MPerS);
         } else {
             // The body did not move, or the pose jumped: not the gait.
+            if self.end_run() {
+                took.push(Number::YawTrim);
+            }
             return took;
         }
         // The yaw, not on the heels of a turn in place: its coast would
         // read as the step's.
         if self.turned_at.is_some_and(|t| before.at.saturating_duration_since(t).as_secs_f64() < AFTER_TURN_S) {
+            if self.end_run() {
+                took.push(Number::YawTrim);
+            }
             return took;
         }
         let dyaw = match (before.odom, after.odom) {
             (Some(a), Some(b)) => wrap(b.2 - a.2),
             _ => wrap(p1.2 - p0.2),
         };
-        if vyaw.abs() < 0.1 {
-            // The veer, as the trim that would cancel it: the yaw the
-            // body turned on its own at the trim it was sent with.
-            let ypu = quack_duck::gait::numbers().yaw_rate_per_unit;
-            let trim = self.trim_in_force() - dyaw / secs / ypu;
-            self.take(Number::YawTrim, trim);
+        // A step that steers ends the straight run, whatever its size.
+        if vyaw.abs() >= 0.1 && self.end_run() {
             took.push(Number::YawTrim);
+        }
+        if vyaw.abs() < 0.1 {
+            // A straight step: into the run. The run's yaw over its time,
+            // as the trim that would cancel it, is the sample (the module:
+            // one step's yaw is the gait's sway, a run's is the veer).
+            if self.extend_run(before.at, after.at, dyaw, secs) {
+                took.push(Number::YawTrim);
+            }
         } else if vyaw.abs() > 0.3 {
             if secs >= PULSE_MIN_S && vyaw.abs() <= PULSE_MAX_VYAW {
                 // This side's yaw per unit of steering sent over a pulse:
@@ -704,6 +792,7 @@ impl Ledger {
     /// was commanded. The steps right after it give no yaw sample.
     pub fn observe_turn(&mut self, at: Instant, turned_rad: f64, secs: f64) -> bool {
         self.turned_at = Some(at);
+        self.end_run();
         if turned_rad < 0.25 || secs < 0.1 {
             return false;
         }
@@ -773,6 +862,8 @@ impl Ledger {
             "legs": w.legs,
             "updated_unix": w.updated_unix,
             "min_samples": {"default": MIN_SAMPLES, "yaw_trim": MIN_SAMPLES_TRIM, "sides": MIN_SAMPLES_SIDE},
+            "keep": {"default": KEEP, "yaw_trim": KEEP_TRIM},
+            "trim_run": {"min_steps": RUN_MIN_STEPS, "max_steps": RUN_MAX_STEPS, "pending_steps": self.run.map_or(0, |r| r.steps)},
             "numbers": numbers,
         })
     }
@@ -972,12 +1063,32 @@ mod tests {
     fn the_veer_becomes_the_trim_that_cancels_it() {
         let mut l = Ledger::in_memory(0.02);
         let ypu = quack_duck::gait::priors().yaw_rate_per_unit;
-        // The body drifts left 0.1 rad/s on a straight step sent with trim 0.02.
-        walk_straight(&mut l, MIN_SAMPLES_TRIM - 1, 0.1, 0.1);
-        assert_eq!(l.value(Number::YawTrim), None, "the trim waits for more samples than the rest");
+        // The body drifts left 0.1 rad/s on straight steps sent with trim
+        // 0.02. A sample is a run of RUN_MAX_STEPS of them, and the trim
+        // waits for more samples than the rest.
+        walk_straight(&mut l, RUN_MAX_STEPS * MIN_SAMPLES_TRIM - 1, 0.1, 0.1);
+        assert_eq!(l.value(Number::YawTrim), None);
+        assert_eq!(l.walk().numbers["yaw_trim"].seen as usize, MIN_SAMPLES_TRIM - 1);
         walk_straight(&mut l, 1, 0.1, 0.1);
         let trim = l.value(Number::YawTrim).unwrap();
         assert!((trim - (0.02 - 0.1 / ypu)).abs() < 1e-6, "{trim}");
+        // Two straight steps and a curving one: too short a run, no sample.
+        let seen = l.walk().numbers["yaw_trim"].seen;
+        walk_straight(&mut l, RUN_MIN_STEPS - 1, 0.1, 0.1);
+        let t0 = Instant::now();
+        let before = snap(t0, (0.0, 0.0, 0.0), (0.0, 0.0, 0.0), true);
+        let after = snap(t0 + Duration::from_millis(600), (0.06, 0.0, 0.2), (0.06, 0.0, 0.2), true);
+        // (No side sample either: a trim this far is a veer the sides
+        // cannot be read apart from.)
+        assert_eq!(l.observe_step(&before, &after, 0.3, 0.5, 0.6, f64::INFINITY), vec![Number::MPerS]);
+        assert_eq!(l.walk().numbers["yaw_trim"].seen, seen);
+        // Three, then the curve: a sample.
+        walk_straight(&mut l, RUN_MIN_STEPS, 0.1, 0.1);
+        assert!(l.observe_step(&before, &after, 0.3, 0.5, 0.6, f64::INFINITY).contains(&Number::YawTrim));
+        assert_eq!(l.walk().numbers["yaw_trim"].seen, seen + 1);
+        // The trim keeps more samples than the rest.
+        walk_straight(&mut l, RUN_MAX_STEPS * KEEP_TRIM, 0.1, 0.1);
+        assert_eq!(l.walk().numbers["yaw_trim"].samples.len(), KEEP_TRIM);
     }
 
     #[test]
@@ -1019,14 +1130,22 @@ mod tests {
         let mut l = Ledger::in_memory(0.0);
         let t0 = Instant::now();
         l.observe_turn(t0, 1.0, 1.0);
-        // A straight step 1 s after the turn: the speed counts, the yaw not.
-        let before = snap(t0 + Duration::from_secs(1), (0.0, 0.0, 0.0), (0.0, 0.0, 0.0), true);
-        let after = snap(t0 + Duration::from_millis(1600), (0.06, 0.0, 0.2), (0.06, 0.0, 0.2), true);
-        assert_eq!(l.observe_step(&before, &after, 0.3, 0.0, 0.6, f64::INFINITY), vec![Number::MPerS]);
-        // Three seconds after: both.
-        let before = snap(t0 + Duration::from_secs(3), (0.0, 0.0, 0.0), (0.0, 0.0, 0.0), true);
-        let after = snap(t0 + Duration::from_millis(3600), (0.06, 0.0, 0.2), (0.06, 0.0, 0.2), true);
-        assert_eq!(l.observe_step(&before, &after, 0.3, 0.0, 0.6, f64::INFINITY), vec![Number::MPerS, Number::YawTrim]);
+        // Straight steps 1 s after the turn, a run's worth: the speed
+        // counts, the yaw not — no run is begun on the heels of a turn.
+        for _ in 0..RUN_MAX_STEPS {
+            let before = snap(t0 + Duration::from_secs(1), (0.0, 0.0, 0.0), (0.0, 0.0, 0.0), true);
+            let after = snap(t0 + Duration::from_millis(1600), (0.06, 0.0, 0.2), (0.06, 0.0, 0.2), true);
+            assert_eq!(l.observe_step(&before, &after, 0.3, 0.0, 0.6, f64::INFINITY), vec![Number::MPerS]);
+        }
+        assert_eq!(l.walk().numbers["yaw_trim"].seen, 0);
+        // Three seconds after: the run fills and the trim takes its sample.
+        for i in 0..RUN_MAX_STEPS {
+            let before = snap(t0 + Duration::from_secs(3), (0.0, 0.0, 0.0), (0.0, 0.0, 0.0), true);
+            let after = snap(t0 + Duration::from_millis(3600), (0.06, 0.0, 0.2), (0.06, 0.0, 0.2), true);
+            let took = l.observe_step(&before, &after, 0.3, 0.0, 0.6, f64::INFINITY);
+            assert_eq!(took, if i + 1 == RUN_MAX_STEPS { vec![Number::MPerS, Number::YawTrim] } else { vec![Number::MPerS] });
+        }
+        assert_eq!(l.walk().numbers["yaw_trim"].seen, 1);
     }
 
     #[test]
