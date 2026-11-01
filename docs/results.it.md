@@ -1279,6 +1279,23 @@ casa_arredata, daemon-v0.17.6 + set v8, due gemelli alla volta
   77 in quella arredata), quindi l'anello da 128 si riempie in qualche
   sessione, e la mediana di 29–77 porta un errore standard di
   0,007–0,012.
+  La prova N2 su daemon-v0.18.3 (S12, 2026-11-01): la linea 0.18 di
+  Pollen (API 44 → 47: la galleria del libretto, l'aggiornamento del
+  sistema, la telemetria; la camminata intatta, il predittore di caduta
+  armato solo dopo 200 ms in piedi; il set di policy ancora v8),
+  `daemon = auto` che la prende come linea 0.17 validata su 0.17.6,
+  nulla modificato, registro vuoto, due gemelli sullo stack col registro
+  acceso e spento, casa_arredata da zero poi due giri di viaggi:
+  entrambi i bracci hanno dichiarato la casa finita dopo due sessioni
+  (78 % mappata col registro, 2,9 m² rimasti; 77 % senza, 2,4 m²),
+  stanze entro tre punti, 12/12 viaggi su entrambi, 0 cadute, il braccio
+  col registro 102,3 s a viaggio contro 108,2 (mediane 101,5 contro
+  104,0, accoppiata −5,0 s mediana); il registro ha imparato da vuoto
+  0,099 m/s (2 089 passi), un assestamento di 0,126 s, una correzione di
+  −0,044 da 43 campioni di fila, i lati 0,81 contro 0,93, una coda di
+  0,288 e una svolta sul posto a 0,752 rad/s — l'unico numero lontano
+  dai suoi valori su 0.17.6 (0,85–1,02 lì), da guardare ai prossimi giri
+  su quello stack prima di leggerci qualcosa.
 - **Il bordo sui libri dov'è il bordo** (ramo `rim-booking`,
   2026-11-01). Un dislivello andava sui libri a `range_m`, la distanza
   del pavimento del primo raggio che non lo trova: il pavimento di quel
@@ -1370,6 +1387,39 @@ casa_arredata, daemon-v0.17.6 + set v8, due gemelli alla volta
   `range_m` cade profondo, e la voce aperta è il fantasma nel
   passaggio, che appartiene alla posa al momento della prenotazione,
   non a dove si posa il disco.
+
+- **Una mossa finisce dove dice** (ramo `move-ends`, 2026-11-01; l'N3
+  della roadmap). Una mossa a tempo lascia il suo ultimo comando in
+  robotd, che lo tiene fino al suo deadman mezzo secondo oltre; le
+  svolte sul posto dell'esploratore mandano uno zero esplicito alla loro
+  fine dal 2026-10-27 (lo stop della svolta), i cammini e `robot.move`
+  no. Ora `robot.move` ne manda uno dopo il suo tempo salvo che il
+  chiamante chieda di tenere (`hold`, una mossa a cui un'altra segue
+  subito), e un passo di mappatura ne manda uno alla fine del cammino
+  quando segue una sosta; un passo senza sosta — gli impulsi
+  dell'esploratore, uno dietro l'altro — lascia il passo in corsa.
+  Misurato sul gemello (casa_arredata, la camminata dello stick, set
+  v8), quattro per tipo dall'odometria di robotd a 20 Hz fino a corpo
+  fermo: una camminata da 2 s a vx 0,3 era a 0,16–0,17 m allo scadere
+  del suo tempo in entrambi i casi (c'è dentro l'avvio del passo), poi è
+  andata avanti 1,2 cm con lo zero (0,9–1,5) ed era ferma 0,83–0,96 s
+  dopo il suo tempo, contro 5,1 cm tenuta (4,7–5,6) e ferma dopo
+  1,23–1,40 s; una svolta da 1,5 s a 0,8 rad/s aveva girato 33–64° allo
+  scadere del tempo (il passo gira a 0,75–1,0 rad/s a quel comando, e ci
+  mette un po' ad arrivarci), poi è andata avanti 5,6–10° con lo zero,
+  ferma 0,64–0,76 s dopo, contro 30,5–38,3° tenuta, ferma 1,05–1,26 s
+  dopo. Una delle quattro camminate tenute si è mossa di 3 cm in tutto —
+  quella volta il passo non ha preso il comando; le altre tre concordano
+  al centimetro. Quindi la fine di una mossa è ora entro 2 cm e 10° da
+  dove finisce il suo tempo, dove era 5 cm e 35°; la sosta dopo un passo
+  di mappatura comincia 0,4 s prima su un corpo già fermo. A/B sul
+  gemello contro il `main` congelato 5ded400 (AB26, quattro giri di ogni
+  casa, entrambi i registri vuoti): 48/48 arrivi su entrambi i bracci, 0
+  cadute; casa_ingombra 104,8 s a viaggio contro 103,8 (mediane 96,5
+  contro 103,0, accoppiata +0,0 s mediana, +1,0 media), casa_arredata
+  90,6 contro 91,2 (mediane 87,5 contro 88,0, accoppiata −0,5 mediana,
+  −0,5 media) — la stessa camminata nel rumore, perché le gambe dei
+  viaggi sono gli impulsi dello stick, che questo non tocca.
 
 ## Limiti noti
 

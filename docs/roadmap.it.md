@@ -55,10 +55,12 @@ camminata cambiata davvero.
 col registro vuoto, mappa e naviga come sul proprio; nessun file da modificare, nessuna
 release da tagliare.
 
-### N3 — Un corpo che si ferma dove dice
+### N3 — Un corpo che si ferma dove dice · **fatto**
 
 Un movimento risponde quando il corpo è fermo, con quello che ha fatto, non quando il comando
-è partito. L'ultimo tratto della gamba e la fine del tool sono tenuti come già lo è la svolta.
+è partito. L'ultimo tratto della gamba e la fine del tool sono tenuti come già lo è la svolta:
+sul gemello una mossa finisce entro 2 cm e 10° da dove finisce il suo tempo, dove la tenuta del
+daemon ne lasciava 5 cm e un terzo di angolo retto.
 
 **Fatto quando:** un `robot.move` di lunghezza dichiarata finisce entro una tolleranza dichiarata
 sul gemello, e l'A/B del gemello non mostra regressioni.

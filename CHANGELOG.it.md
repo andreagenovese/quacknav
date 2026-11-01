@@ -15,6 +15,27 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Modificato
 
+- **Una mossa finisce dove dice.** Una mossa a tempo lasciava il suo
+  ultimo comando in robotd, che lo tiene fino al suo deadman mezzo
+  secondo oltre — circa 5 cm di cammino al passo del set v8, un terzo di
+  angolo retto di svolta — camminati dentro la sosta dopo un passo di
+  mappatura e oltre la fine di un `robot.move`. `robot.move` ora manda
+  uno zero esplicito dopo il suo tempo (`"hold": true` tiene invece
+  l'ultimo comando, per una mossa a cui un'altra segue subito; la
+  risposta dice `held`), e `robot.map_step` ne manda uno alla fine del
+  cammino quando segue una sosta, così la sosta comincia dove il cammino
+  ha detto; un passo senza sosta — gli impulsi dell'esploratore — lascia
+  il passo in corsa. Le svolte dell'esploratore lo facevano dal
+  2026-10-27. Misurato sul gemello, quattro mosse di ogni tipo
+  dall'odometria a 20 Hz fino a corpo fermo: una camminata da 2 s a
+  vx 0,3 è andata avanti 1,2 cm oltre il suo tempo con lo zero (1,5 al
+  più) contro 5,1 cm tenuta (5,6 al più), ed era ferma 0,9 s dopo il suo
+  tempo contro 1,3; una svolta da 1,5 s a 0,8 rad/s è andata avanti 7°
+  oltre il suo tempo (10 al più) contro 35° tenuta (38 al più), ferma
+  0,7 s dopo contro 1,2. A/B sul gemello contro
+  il `main` congelato (AB26, quattro giri di ogni casa, entrambi i
+  registri vuoti): 48/48 arrivi su entrambi i bracci, 0 cadute, tempi
+  uguali nel rumore (mediane accoppiate +0,0 e −0,5 s).
 - **Il bordo di un buco va sui libri dov'è il bordo.** Un dislivello
   era prenotato a `range_m`, la distanza del pavimento del primo raggio
   che non lo trova: un punto dentro il buco di quanto le righe del
@@ -244,7 +265,14 @@ carta, mai su una papera fisica; i dettagli sono in
   finita dalla papera), 12/12 viaggi, 0 cadute, lo stesso col registro
   spento sullo stesso stack (78 %, 12/12, 0 cadute, mediana accoppiata
   0,0 s) — la camminata non è cambiata tra 0.17.6 e 0.17.9, e la papera
-  ci ha girato sopra così com'è
+  ci ha girato sopra così com'è. Su daemon-v0.18.3 (API v47,
+  2026-10-30; la stessa camminata, il predittore di caduta armato solo
+  da in piedi), la stessa prova: `daemon = auto` l'ha presa come linea
+  0.17, la casa finita in due sessioni su entrambi i bracci (78 % col
+  registro, 77 % senza), 12/12 viaggi ciascuno, 0 cadute, il braccio
+  col registro 5 s a viaggio più veloce (mediana accoppiata), il
+  registro che impara 0,099 m/s, un assestamento di 0,13 s, una svolta a
+  0,75 rad/s e i lati 0,81/0,93
   ([docs/results.it.md](docs/results.it.md)). La
   deriva del simulatore agisce ora sotto ogni comando in avanti, non solo
   sotto |vyaw| < 0,1 (una correzione oltre quella soglia girava il corpo

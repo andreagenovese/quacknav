@@ -1194,6 +1194,22 @@ daemon-v0.17.6 + set v8, two twins at a time (`rl-runs/twin-work/P8/`).
   77 in the furnished one), so the ring of 128 fills over a few
   sessions, and the median of 29–77 carries a standard error of
   0.007–0.012.
+  The N2 test on daemon-v0.18.3 (S12, 2026-11-01): Pollen's 0.18 line
+  (API 44 → 47: the vet book's gallery, the OS update, the telemetry;
+  the walk untouched, the fall predictor armed only after 200 ms
+  standing; the policy set still v8), `daemon = auto` taking it as the
+  0.17 line validated on 0.17.6, nothing edited, the ledger empty, two
+  twins on the stack with the ledger on and off, casa_arredata from
+  nothing then two rounds of journeys: both arms declared the house done
+  after two sessions (78 % mapped with the ledger, 2.9 m² left; 77 %
+  without, 2.4 m²), rooms within three points, 12/12 journeys on both, 0
+  falls, the ledger's arm 102.3 s a journey against 108.2 (medians
+  101.5 against 104.0, paired −5.0 s median); the ledger learned from
+  empty 0.099 m/s (2 089 steps), a settle of 0.126 s, a trim of −0.044
+  from 43 run samples, the sides 0.81 against 0.93, a coast of 0.288
+  and a turn in place at 0.752 rad/s — the one number off its 0.17.6
+  values (0.85–1.02 there), worth a look on the next tours of that
+  stack before anything is read into it.
 - **The rim on the books where the rim is** (branch `rim-booking`,
   2026-11-01). A drop went on the books at `range_m`, the floor
   distance of the first beam that found no floor: that beam's floor is
@@ -1277,6 +1293,37 @@ daemon-v0.17.6 + set v8, two twins at a time (`rl-runs/twin-work/P8/`).
   neither seals the passage nor adds much; its gain is where `range_m`
   falls deep, and the open item is the phantom in the passage, which
   belongs to the pose at booking, not to where the disc is laid.
+
+- **A move ends where it says** (branch `move-ends`, 2026-11-01; the
+  roadmap's N3). A timed move leaves its last command in robotd, which
+  holds it to its deadman half a second on; the explorer's turns in
+  place have sent one explicit zero at their end since 2026-10-27 (the
+  turn stop), the walks and `robot.move` had not. Now `robot.move` sends
+  one after its time unless the caller asks to `hold` (a move another
+  follows at once), and a mapping step sends one at its walk's end when
+  a stand follows; a step with no stand — the explorer's pulses, one
+  after the other — leaves the gait running. Measured on the twin
+  (casa_arredata, the stick's walk, set v8), four of each by robotd's
+  odometry at 20 Hz until the body stood still: a 2 s walk at vx 0.3
+  reached 0.16–0.17 m when its time ran out either way (the gait's own
+  start-up is in that), then went on 1.2 cm with the zero (0.9–1.5)
+  and was still 0.83–0.96 s after its time, against 5.1 cm held
+  (4.7–5.6) and still after 1.23–1.40 s; a 1.5 s turn at 0.8 rad/s had
+  turned 33–64° when its time ran out (the gait turns 0.75–1.0 rad/s
+  at that command, and takes a while to), then went on 5.6–10° with the
+  zero, still 0.64–0.76 s after, against 30.5–38.3° held, still
+  1.05–1.26 s after. One of the four held walks moved 3 cm in all — the
+  gait did not take the command that once; the three others agree to a
+  centimetre. So a move's end is now within 2 cm and 10° of where its
+  time ends, where it had been 5 cm and 35°; the stand after a mapping
+  step begins 0.4 s sooner on a body already still. Twin A/B against
+  frozen `main` 5ded400 (AB26, four tours of each house, both ledgers
+  empty): 48/48 arrived on both arms, 0 falls; casa_ingombra 104.8 s a
+  journey against 103.8 (medians 96.5 against 103.0, paired +0.0 s
+  median, +1.0 mean), casa_arredata 90.6 against 91.2 (medians 87.5
+  against 88.0, paired −0.5 median, −0.5 mean) — the same walk within
+  noise, as the journeys' legs are the stick's pulses, which this does
+  not touch.
 
 ## Known limits
 
