@@ -60,7 +60,16 @@ apart agreeing on the speed and the turn; on Pollen's daemon-v0.17.9
 stack with nothing edited and the ledger empty, casa_arredata done in
 two sessions, 12/12, 0 falls, ledger on and off the same — the walk did
 not change in 0.17.9).
-**Remaining**, in order: the walking leg's own hold to
+Then the rim booked where the rim is (branch `rim-booking`, 2026-11-01:
+a disc at the middle of the span the floor ends in, beside the beam's
+own point, which sat 12–42 cm inside the hole; the first cut, instead
+of it, cost one hole fall in 12 600 shields and was taken back).
+**Remaining**, in order: the phantom drop in the 0.49 m corridor
+passage beside the stairwell — a booked point 0.2–0.3 m north of the
+rim, the pose's error at the moment of booking, which sealed one bath
+in four on each arm of e23 and never in e21/e22 (a drop booked on a
+pose the map later corrects should move or go with it; today a booked
+point stays where the pose of the moment put it); the walking leg's own hold to
 the deadman after its last chunk (about 5 cm at set v8's pace), measured
 on the twin and modelled or stopped like the turn's, and `robot.move`'s
 own end stopped the same way (today the tool's turn goes on to the

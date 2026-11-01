@@ -54,6 +54,16 @@ pub(super) const REACH_SLOPE_M: f64 = 0.03;
 pub(super) fn edge_discriminate() -> bool {
     quack_duck::env::qk("EDGE_DISCRIMINATE").is_none_or(|v| v != "0")
 }
+/// `QK_RIM_BOOK=0`: a drop goes on the books at `range_m`, the beam whose
+/// floor is already missing, as before 2026-11-01 — inside the hole by
+/// the sensor's row spacing. On by default: at the rim's estimate
+/// (`crate::cliff::Drop::rim_m`).
+pub(super) fn rim_book() -> bool {
+    quack_duck::env::qk("RIM_BOOK").is_none_or(|v| v != "0")
+}
+/// The rim's estimate gets a disc of its own only this far short of the
+/// beam's point; nearer, the beam's disc covers it.
+pub(super) const RIM_APART_M: f64 = 0.05;
 pub(super) const EDGE_BEARING_RAD: f64 = 0.12;
 pub(super) const EDGE_RANGE_M: f64 = 0.35;
 /// Sealed in by its own local obstacles: forget those within this
@@ -203,9 +213,21 @@ impl Job {
             .flat_map(|(k, f)| f.drops.iter().map(move |d| (k, f, d)))
             .flat_map(|(k, f, d)| {
                 let b = yaw + d.bearing;
+                // The rim's estimate, not `range_m`: that beam's floor is
+                // already missing, so the point is inside the hole by the
+                // sensor's row spacing (`Drop::rim_m`).
+                // The beam's own point, `range_m`, is inside the hole by
+                // the sensor's row spacing; the rim's estimate
+                // (`Drop::rim_m`) goes on the books beside it, not instead
+                // of it, when the two are apart — the hole's inside stays
+                // booked as it was, and the rim's side gains its disc.
                 let r = d.range_m.max(0.2);
+                let near = if rim_book() { d.rim_m().max(0.2) } else { r };
                 let hole = !edge_discriminate() || Self::is_true_hole(f, d);
                 let radius = if hole { DROP_RADIUS_M } else { OBSTACLE_RADIUS_M };
+                if hole {
+                    tracing::debug!(x = format!("{:.2}", x + r * b.cos()), y = format!("{:.2}", y + r * b.sin()), r = format!("{r:.2}"), near = format!("{near:.2}"), edge_min = format!("{:.2}", d.edge_min_m), range = format!("{:.2}", d.range_m), bearing_deg = format!("{:.0}", d.bearing.to_degrees()), "map explore: a hole point proposed");
+                }
                 // The rim, and — for a true hole — the floor that is not
                 // there behind it (see `DROP_REACH_M`): only where the ray
                 // meets the rim head-on, which is where its range is the
@@ -233,11 +255,11 @@ impl Job {
                     reach
                 };
                 let steps = (reach / DROP_RADIUS_M).round().max(0.0) as usize;
-                (0..=steps)
-                    .map(|i| {
-                        let along = r + i as f64 * DROP_RADIUS_M;
-                        (k, ((x + along * b.cos(), y + along * b.sin()), radius))
-                    })
+                let rim_disc = (r - near > RIM_APART_M).then_some(near);
+                rim_disc
+                    .into_iter()
+                    .chain((0..=steps).map(|i| r + i as f64 * DROP_RADIUS_M))
+                    .map(|along| (k, ((x + along * b.cos(), y + along * b.sin()), radius)))
                     .collect::<Vec<_>>()
             })
             .collect();

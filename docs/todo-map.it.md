@@ -64,7 +64,18 @@ velocità e svolta; sullo stack daemon-v0.17.9 di Pollen senza nulla
 modificato e col registro vuoto, casa_arredata finita in due sessioni,
 12/12, 0 cadute, registro acceso e spento uguali — la camminata non è
 cambiata in 0.17.9).
-**Da fare**, in ordine: la tenuta della gamba camminata fino al deadman
+Poi il bordo prenotato dov'è il bordo (ramo `rim-booking`, 2026-11-01:
+un disco al punto medio dello span in cui finisce il pavimento, accanto
+al punto del raggio, che stava 12–42 cm dentro il buco; la prima
+stesura, al suo posto, è costata una caduta in un buco su 12 600 scudi
+ed è stata ritirata).
+**Da fare**, in ordine: il dislivello fantasma nel passaggio da 0,49 m
+del corridoio accanto alla tromba delle scale — un punto prenotato
+0,2–0,3 m a nord del bordo, l'errore della posa al momento della
+prenotazione, che ha sigillato un bagno su quattro per ogni braccio
+dell'e23 e mai nell'e21/e22 (un dislivello prenotato su una posa che la
+mappa poi corregge dovrebbe spostarsi o andarsene con lei; oggi un
+punto prenotato resta dove l'ha messo la posa del momento); la tenuta della gamba camminata fino al deadman
 dopo il suo ultimo pezzo (circa 5 cm al passo del set v8), misurata sul
 gemello e modellata o fermata come quella della svolta, e la fine di
 `robot.move` fermata allo stesso modo (oggi la svolta dello strumento

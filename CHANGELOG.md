@@ -13,6 +13,46 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Changed
 
+- **A hole's rim goes on the books where the rim is.** A drop was
+  booked at `range_m`, the floor distance of the first beam that found
+  no floor: a point inside the hole by the sensor's row spacing —
+  0.03–0.17 m on the simulator's hole ahead at every pitch
+  (`examples/drop_edge`), 12–42 cm on the bench's stairwells — so the
+  route's margin was measured from inside the hole. The rim lies
+  between that beam and the last one below it that still met the floor
+  (`edge_min_m`); `Drop::rim_m` is the middle of that span (within
+  ±0.07 m of the rim either way, the example says; 0.10 m short of
+  `range_m` when no beam below saw the floor), and the books take a
+  disc there *beside* the beam's own, when the two are 5 cm or more
+  apart — not instead of it: booked instead, the rays that give no
+  reach (oblique ones, obstacle edges) lost the hole's inside, and one
+  seed of the shields (a hole's corner in the mixed family, calib v8l,
+  the reckless-straight brain) walked in where `main` had timed out;
+  booked beside, the books are a superset of main's and that seed
+  arrives. The guards keep `edge_min_m` as their nearer bound.
+  `QK_RIM_BOOK=0` books as before. Shields (600 seeds, three reckless
+  brains, calibs v8l and v8m, 12 600 journeys each) against frozen
+  `main`: hole falls 0 and 0 against main's 0 and 1 (the same corner
+  seed, at the other calib), tip-overs the same within noise (637 and
+  613 against 627 and 611), routes refused fewer (14 and 12 against 16
+  and 14), the body farther from the stairwells' rims (closest approach
+  0.04–0.07 m against 0.02–0.05); one tip-over of the branch's where
+  main arrives (mixed seed 300224, the reckless-back brain, 24 bumps by
+  a mover beside a hole after the rim's disc routed it the other way),
+  and the bench the same (98.6/98.6 % against 98.6/98.8, the stick's
+  closest approach to a rim 0.097 m against 0.074).
+  Exploration A/B on the twin (e23, both houses from nothing, three
+  sessions, four rounds of journeys): 0 falls on either arm; maps and
+  journeys the same within the exploration's own noise, each arm
+  losing one house's bath (main's casa_arredata, the branch's
+  casa_ingombra) to phantom drops in the 0.49 m corridor passage beside
+  the stairwell — a pose error at booking, which the old booking makes
+  as well (three phantoms there on main's arm, one on the branch's);
+  two more explorations of casa_ingombra with the rim's disc reached
+  the bath (0.92 and 0.94 of its floor, 6/6 journeys each, 0 falls),
+  and on the twin the old booking's discs already sat a median 4.5 cm
+  inside the rim, so the disc's cost and gain are both small there; the
+  gain is the bench's deep rims.
 - **The trim's sample is a run of straight steps, and its ring four
   times the rest.** Since the settle was learned, casa_ingombra's trim
   had landed at −0.08…−0.11 in three runs of four, casa_arredata's at

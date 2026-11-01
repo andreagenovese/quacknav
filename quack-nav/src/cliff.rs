@@ -110,6 +110,22 @@ pub struct Drop {
     pub kind: DropKind,
 }
 
+impl Drop {
+    /// Where the rim most likely is along the beam: the middle of the span
+    /// the floor ends in, `edge_min_m..range_m`, or [`EDGE_UNKNOWN_M`]
+    /// short of `range_m` when no beam below saw the floor. `range_m`
+    /// itself is inside the hole by the sensor's row spacing — 0.03–0.17 m
+    /// on the simulator's hole ahead (`examples/drop_edge`, every pitch,
+    /// walking or standing), 12–42 cm on the bench's stairwells — and a
+    /// disc booked there leaves the route's margin measured from inside
+    /// the hole; `edge_min_m` is floor the duck can stand on, 0.07–0.14 m
+    /// short of the rim ahead. The middle lands within ±0.07 m of the rim
+    /// either way. The guards keep `edge_min_m` as their nearer bound.
+    pub fn rim_m(&self) -> f64 {
+        if self.edge_min_m > 0.0 { 0.5 * (self.edge_min_m + self.range_m) } else { (self.range_m - EDGE_UNKNOWN_M).max(0.0) }
+    }
+}
+
 /// Something standing in a beam's way, in the body frame.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Obstacle {
@@ -938,7 +954,7 @@ mod tests {
             2
         );
         assert!(
-            judged.drops.iter().all(|d| d.edge_min_m == 0.0),
+            judged.drops.iter().all(|d| d.edge_min_m == 0.0 && (d.rim_m() - (d.range_m - EDGE_UNKNOWN_M).max(0.0)).abs() < 1e-9),
             "the bottom row over the drop: the edge may be right at the beak"
         );
 
@@ -952,6 +968,9 @@ mod tests {
         assert_eq!(judged.drops.len(), 2, "{judged:?}");
         for d in &judged.drops {
             assert!(d.edge_min_m > 0.2 && d.edge_min_m < d.range_m, "{d:?}");
+            // The rim's estimate lies between the two.
+            assert!(d.rim_m() > d.edge_min_m && d.rim_m() < d.range_m, "{d:?}");
+            assert!((d.rim_m() - 0.5 * (d.edge_min_m + d.range_m)).abs() < 1e-9);
         }
 
         let mut status = CliffStatus::default();

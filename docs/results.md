@@ -1194,6 +1194,89 @@ daemon-v0.17.6 + set v8, two twins at a time (`rl-runs/twin-work/P8/`).
   77 in the furnished one), so the ring of 128 fills over a few
   sessions, and the median of 29–77 carries a standard error of
   0.007–0.012.
+- **The rim on the books where the rim is** (branch `rim-booking`,
+  2026-11-01). A drop went on the books at `range_m`, the floor
+  distance of the first beam that found no floor: that beam's floor is
+  already missing, so the point is inside the hole by the sensor's row
+  spacing. `examples/drop_edge` measures it on the simulator's hole
+  0.5 m ahead and one beside the lane, at −3°, −6°, −9° and −11°,
+  walking and standing: `range_m` lands inside the hole every time,
+  0.03–0.17 m deep; `edge_min_m`, the last beam below it that still met
+  the floor, lands 0.07–0.14 m outside ahead (and inside, obliquely, for
+  the hole beside); the middle of the two lands within ±0.07 m of the
+  rim ahead and within 0.08 of it beside. On the bench's stairwells the
+  beam's point was 12–42 cm inside (the pilot's finalize, 2026-10-26).
+  A disc booked inside the hole leaves the route's margin — the drop
+  radius and the planner's — measured from inside it. `Drop::rim_m` is
+  the middle, or 0.10 m short of `range_m` when no beam below saw the
+  floor. The first cut booked it *instead* of the beam's point: the
+  shields (600 seeds, three reckless brains) at calib v8l gave one hole
+  fall in 12 600 where frozen `main` gave none — the mixed family's
+  seed 300570 with the reckless-straight brain, a hole's north-east
+  corner with a box 8 cm past its rim; replayed, main times out there
+  (its closest approach 0.22 m), the branch walks in; with the booking
+  switched back in the same binary (`QK_RIM_BOOK=0`) it times out
+  again. Why: the rim's disc had replaced the beam's, and on the rays
+  that give no reach — oblique ones, obstacle edges — the hole's inside
+  lost its disc (273 hole points booked against 370 in that replay).
+  The second cut books the rim's disc *beside* the beam's when the two
+  are 5 cm or more apart: the books a superset of main's, the inside as
+  it was, the rim's side with its disc; seed 300570 then arrives (222 s,
+  closest approach 0.20 m). Shields on the second cut against frozen
+  `main` a658937 (600 seeds, three brains, calibs v8l and v8m, 12 600
+  journeys each): hole falls 0 and 0 against main's 0 and 1 — main's
+  one is seed 300570 at v8m, the same corner, which the branch arrives
+  at both calibs; tip-overs 637 and 613 against 627 and 611; timeouts
+  1162 and 1123 against 1174 and 1133; routes refused as "no way on the
+  map" 14 and 12 against 16 and 14 — the narrow-passage risk did not
+  show; the stairwell family's closest approach to a rim 0.052, 0.057
+  and 0.039 m (back, random, straight at v8l) against main's 0.046,
+  0.021 and 0.037, and 0.069, 0.024, 0.055 against 0.045, 0.034, 0.042
+  at v8m — farther, as a disc nearer the rim should keep it. One fall
+  of the branch's where main arrives: mixed seed 300224 at v8l with
+  the reckless-back brain, a tip-over (24 bumps by a mover beside a
+  hole, the duck at the hole's edge when it went) after the rim's disc
+  routed it the other way round — with `QK_RIM_BOOK=0` in the same
+  binary it arrives as main does; counted here, as main's corner fall
+  is above. The unchanged bench (60 seeds, the stick and the pilot):
+  arrivals 98.6 and 98.6 % against 98.6 and 98.8, times 77.6 and 73.6 s
+  against 78.2 and 74.1, the stick's closest approach to a rim 0.097 m
+  against 0.074, the pilot's 0.093 against 0.088. Exploration A/B
+  on the twin (e23, each arm both houses from nothing, three sessions of
+  30 minutes, then four rounds of journeys on the frozen map — the only
+  A/B where the books fill from the sensor; the journey A/Bs run on the
+  oracle's true rims): 0 falls on either arm; casa_ingombra main 80 %
+  mapped, done in its third session, the branch 63 % then stuck with
+  21.8 m² out of reach (the bath wing, its floor 0.08 known);
+  casa_arredata main 68 % then stuck twice with 7.8 m² (its bath 0.09),
+  the branch 77 %, done in its second session (bath 0.93); journeys
+  20/24 and 20/24 for main against 19/24 and 23/24 — the misses all
+  refusals of goals in the unmapped part, no fall — the arrived ones
+  casa_ingombra 115.4 s against 123.0 (paired −5.0 s median),
+  casa_arredata 105.1 against 85.3 (+5.0). Each arm lost one bath, and
+  the harness's reading of the books says why: *phantom* drops — more
+  than 0.20 m from any hole — in the 0.49 m corridor passage beside the
+  stairwell, 0.2–0.3 m north of its rim (main's arm three of them at
+  (2.1–2.4, 0.18–0.26) in casa_arredata, the branch's one at (2.1,
+  0.21) in casa_ingombra): a pose error at booking that the old booking
+  makes as well, and which a disc 7 cm nearer the floor can only make
+  more decisive. The two A/Bs before (e21, e22) had reached all eight
+  baths on both bookings. A paired check on casa_ingombra alone (S10:
+  the same binary with and without the rim's disc, two sessions and a
+  round): the disc's arm fell at the office door in its first session —
+  an obstacle 0.10 m ahead for several steps, nothing to do with a rim,
+  and the harness gave up the rest — while the arm without reached the
+  bath (0.93) and its books put the hole discs a median 4.5 cm inside
+  the rim already (36 % outside, 30 % deeper than 0.10 m: the twin's
+  sensor sees its rims close; the 12–42 cm were the bench's stairwells
+  at −6°). Two more explorations with the disc (S11, two twins, two
+  sessions and a round each): the bath reached in both (0.88 then 0.92,
+  0.94 then 0.94), 6/6 journeys each, 0 falls, rim coverage 0.90/0.55
+  and 0.85/0.53 — main's usual — with three and four phantoms, all at
+  the living room's sunken corner. So on the twin the rim's disc
+  neither seals the passage nor adds much; its gain is where `range_m`
+  falls deep, and the open item is the phantom in the passage, which
+  belongs to the pose at booking, not to where the disc is laid.
 
 ## Known limits
 
