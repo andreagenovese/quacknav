@@ -1224,6 +1224,61 @@ casa_arredata, daemon-v0.17.6 + set v8, due gemelli alla volta
   mai: la sosta più corta legge l'imbardata propria dello stop nelle
   tante gambe corte di quella casa, o è qualcos'altro — da misurare a
   parte prima di fidarsi della correzione in una casa come quella.
+  Misurato (2026-10-30; ramo `ledger-trim`, 2026-11-01). Due giri di
+  viaggi per casa sul main, col flusso di stato di robotd registrato a
+  20 Hz accanto alla traccia — l'orologio, il comando applicato,
+  l'odometria — e tre letture. La risposta della camminata ai comandi
+  di imbardata piccoli: in pezzi di cammino da 0,6 s, l'imbardata
+  applicata (la correzione dentro) contro la velocità di imbardata
+  dell'odometria è una retta di pendenza 1,0 rad/s per unità da ±0,05 a
+  ±0,5 in entrambe le case (casa_ingombra: −0,051 a −0,05, +0,072 a
+  +0,05, −0,521 a −0,55), nessuna zona morta: una correzione di −0,05
+  gira il corpo di −0,05. L'imbardata propria dello stop: dall'ultimo
+  stato con un comando, +0,007 rad a 0,12 s e −0,007 a 1 s in
+  casa_ingombra, −0,015 e −0,043 in casa_arredata, sui cinque e otto
+  stop abbastanza lunghi da leggerla — piccola, e fuori questione,
+  perché gli impulsi dello stick sono uno dietro l'altro (le finestre di
+  cammino durano 4,3 s, sette impulsi) senza soste dentro: la sosta più
+  corta non ha mai toccato i campioni della correzione. La causa è il
+  campione stesso: l'imbardata di un passo dritto letta dall'odometria
+  ha una dispersione di 0,17 rad/s (casa_ingombra) e 0,14
+  (casa_arredata) attorno a una deriva di +0,005 e +0,001, dieci-trenta
+  volte il segnale; la mediana di 32 porta un errore standard di
+  0,032–0,038 rad/s, quindi la correzione vaga di ±0,03–0,05 per solo
+  rumore, e la sua retroazione attraverso il corpo (la pendenza 1,0 su
+  32 campioni) è troppo lenta per riportarla indietro — una ripetizione
+  della regola su qualsiasi traccia, con le velocità fisse, se ne va al
+  limite, e i −0,08…−0,11 di casa_ingombra erano quel vagare (la corsa
+  di questa misura: −0,052 e −0,010). La cura su `ledger-trim`: un
+  campione della correzione è una fila di 3–8 passi dritti consecutivi,
+  la loro imbardata sul loro tempo — il dondolio del passo si media
+  lungo la fila, la deriva no — chiusa da un passo in curva, una svolta
+  sul posto, un passo che non conta o un vuoto di 1,5 s; e l'anello
+  della correzione tiene 128 campioni dove gli altri ne tengono 32
+  (errore standard circa 0,017 su passi singoli, meno su file). La
+  camminata perturbata del banco (deriva 0,12 rad/s a 0,88 rad/s per
+  unità, la correzione esatta −0,136): campioni di fila di −0,05…−0,15
+  e la correzione imparata a −0,119 su sei semi; su 40 semi in ordine,
+  arrivi 98,2 % contro il 97,9 del main sulla stessa camminata, 69,0 s
+  a viaggio contro 68,2, urti 3,26 contro 2,24 (clutter 9,3 contro 5,2,
+  mixed 9,4 contro 4,9 — le famiglie del banco sono 40 viaggi l'una, e
+  gli urti dello stick lì vanno da 4 a 9 tra corse dello stesso
+  codice). AB25, `main` congelato 2aaa912 contro il ramo, quattro giri
+  di ogni casa, entrambi i registri vuoti: 48/48 arrivi su entrambi i
+  bracci, 0 cadute; casa_ingombra 105,1 s a viaggio contro i 101,8 del
+  main (mediane 99,5 contro 97,0, accoppiata +1,0 s mediana, +3,4
+  media), casa_arredata 91,5 contro 92,1 (mediane 86,0 contro 89,0,
+  accoppiata +0,0 mediana, −0,7 media) — la stessa camminata nel
+  rumore. La correzione: il ramo ha imparato −0,037 in casa_ingombra da
+  29 campioni di fila e −0,034 in casa_arredata da 77, i campioni di
+  fila dispersi di 0,044 e 0,052 rad/s dove i passi singoli si
+  disperdono di 0,15–0,17 — le due case concordano a tre millesimi, dove
+  il campione a passo singolo le aveva messe a 0,09 di distanza; la
+  correzione del main è finita a −0,052. Un campione di fila arriva ogni
+  quattro-cinque passi dritti (29 in quattro giri della casa ingombra,
+  77 in quella arredata), quindi l'anello da 128 si riempie in qualche
+  sessione, e la mediana di 29–77 porta un errore standard di
+  0,007–0,012.
 
 ## Limiti noti
 

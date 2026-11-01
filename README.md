@@ -425,8 +425,10 @@ Each line's numbers live in a file of their own,
 `quack-duck/src/daemon/v0_16.rs` and `v0_17.rs`.
 
 Those numbers are priors. **The gait ledger** measures the walk on the
-duck's own legs — a free forward step gives the speed and the trim that
-keeps it straight, a long curving leg the yaw per unit of command, the
+duck's own legs — a free forward step gives the speed, a run of them
+the trim that keeps the walk straight (one step's yaw is the gait's
+sway; the trim keeps 128 samples where the rest keep 32), a long
+curving leg the yaw per unit of command, the
 stick's curving pulses each side's yaw per unit (the two together, the
 left and right gains), a turn in place its rate and, read off the map
 at the next leg, its coast, the body's state stream the settle after a

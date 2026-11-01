@@ -73,10 +73,11 @@ showing `gait`; the turn in place's rate is in the turn's budget since
 2026-10-28 (branch `ledger-turn`), the settle after a stop and the
 left/right gains learned since 2026-10-29 (branch `ledger-settle`: the
 settle 0.12 s on the twin against the coded 0.6, the stands half a
-second shorter and the journeys 9 s faster; one thing to watch, casa_ingombra's
-trim at −0.08…−0.11 in three runs of four since, casa_arredata's never
-— the stop's own yaw read by the shorter stand, or something else, to be
-measured on its own), one walk per
+second shorter and the journeys 9 s faster; casa_ingombra's trim at −0.08…−0.11 in three
+runs of four since, measured on 2026-10-30 to be the sample's own
+noise — a straight step's yaw spreads 0.15 rad/s about a veer of 0.01
+— and fixed on branch `ledger-trim`: a run of 3–8 straight steps per
+sample, 128 kept), one walk per
 state of the body since 2026-10-30 (branch `ledger-state`: carrying,
 read off robotd's mouth servo — what it does to the walk waits for a
 duck with a beak, the twin's never moves); a bounded

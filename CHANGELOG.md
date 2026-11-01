@@ -11,6 +11,34 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ## [Unreleased]
 
+### Changed
+
+- **The trim's sample is a run of straight steps, and its ring four
+  times the rest.** Since the settle was learned, casa_ingombra's trim
+  had landed at −0.08…−0.11 in three runs of four, casa_arredata's at
+  −0.01…−0.03. Measured on the twin with the body's state stream
+  recorded beside the trace (2026-10-30): no dead zone — the walk
+  answers the applied yaw linearly, 1.0 rad/s per unit down to ±0.05;
+  the stop's own yaw small (−0.005…−0.04 rad within a second) and the
+  stick's pulses back-to-back, so the shorter stand was not it. The
+  cause is noise: a straight 0.6 s step's yaw by odometry spreads
+  0.15–0.17 rad/s about a veer of 0.01, and the median of 32 such
+  samples wanders ±0.035 for noise alone — the −0.1 values were that
+  wander with its slow feedback. Now a trim sample is a run of 3–8
+  consecutive straight steps (their yaw over their time: the gait's sway
+  averages out, the veer does not), ended by a curving step, a turn, a
+  step that does not count or a gap of 1.5 s, and the trim keeps the
+  last 128 samples (standard error about 0.017). `robot.gait` reports
+  `keep` and the run pending. The bench's perturbed walk (veer 0.12
+  rad/s): the trim learned −0.12 (the exact −0.136) from run samples of
+  −0.05…−0.15, arrivals 98.2 % against main's 97.9 on the same walk.
+  Twin A/B against frozen `main` (AB25, four tours of each house, both
+  ledgers empty): 48/48 arrived on both arms, 0 falls, the times the
+  same within noise (paired medians +1.0 and +0.0 s); the trim learned
+  −0.037 in casa_ingombra and −0.034 in casa_arredata from 29 and 77
+  run samples spreading 0.04–0.05 (single steps: 0.15), where main's
+  ended at −0.052 — the two houses agree now.
+
 ### Added
 
 - **One walk per state of the body: free, or carrying.** A load in the

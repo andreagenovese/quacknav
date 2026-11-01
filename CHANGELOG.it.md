@@ -13,6 +13,37 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ## [Unreleased]
 
+### Modificato
+
+- **Il campione della correzione di deriva è una fila di passi dritti, e
+  il suo anello quattro volte gli altri.** Da quando l'assestamento è
+  imparato, la correzione di casa_ingombra era finita a −0,08…−0,11 in
+  tre corse su quattro, quella di casa_arredata a −0,01…−0,03. Misurato
+  sul gemello col flusso di stato del corpo registrato accanto alla
+  traccia (2026-10-30): nessuna zona morta — la camminata risponde
+  all'imbardata applicata linearmente, 1,0 rad/s per unità fino a
+  ±0,05; l'imbardata propria dello stop piccola (−0,005…−0,04 rad entro
+  un secondo) e gli impulsi dello stick uno dietro l'altro, quindi non
+  era la sosta più corta. La causa è il rumore: l'imbardata di un passo
+  dritto da 0,6 s letta dall'odometria si disperde di 0,15–0,17 rad/s
+  attorno a una deriva di 0,01, e la mediana di 32 campioni così vaga di
+  ±0,035 per solo rumore — i valori a −0,1 erano quel vagare con la sua
+  retroazione lenta. Ora un campione della correzione è una fila di 3–8
+  passi dritti consecutivi (la loro imbardata sul loro tempo: il
+  dondolio del passo si media, la deriva no), chiusa da un passo in
+  curva, una svolta, un passo che non conta o un vuoto di 1,5 s, e la
+  correzione tiene gli ultimi 128 campioni (errore standard circa
+  0,017). `robot.gait` riporta `keep` e la fila in sospeso. La camminata
+  perturbata del banco (deriva 0,12 rad/s): la correzione imparata
+  −0,12 (l'esatta −0,136) da campioni di fila di −0,05…−0,15, arrivi
+  98,2 % contro il 97,9 del main sulla stessa camminata. A/B sul gemello
+  contro il `main` congelato (AB25, quattro giri di ogni casa, entrambi
+  i registri vuoti): 48/48 arrivi su entrambi i bracci, 0 cadute, tempi
+  uguali nel rumore (mediane accoppiate +1,0 e +0,0 s); la correzione
+  imparata −0,037 in casa_ingombra e −0,034 in casa_arredata da 29 e 77
+  campioni di fila dispersi di 0,04–0,05 (passi singoli: 0,15), dove
+  quella del main è finita a −0,052 — le due case ora concordano.
+
 ### Aggiunto
 
 - **Una camminata per stato del corpo: libero, o che porta qualcosa.**
