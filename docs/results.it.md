@@ -1279,6 +1279,97 @@ casa_arredata, daemon-v0.17.6 + set v8, due gemelli alla volta
   77 in quella arredata), quindi l'anello da 128 si riempie in qualche
   sessione, e la mediana di 29–77 porta un errore standard di
   0,007–0,012.
+- **Il bordo sui libri dov'è il bordo** (ramo `rim-booking`,
+  2026-11-01). Un dislivello andava sui libri a `range_m`, la distanza
+  del pavimento del primo raggio che non lo trova: il pavimento di quel
+  raggio manca già, quindi il punto è dentro il buco di quanto le righe
+  del sensore sono spaziate. `examples/drop_edge` lo misura sul buco del
+  simulatore 0,5 m davanti e su uno accanto alla corsia, a −3°, −6°, −9°
+  e −11°, camminando e fermi: `range_m` cade dentro il buco ogni volta,
+  0,03–0,17 m in profondità; `edge_min_m`, l'ultimo raggio sotto di lui
+  che ha ancora incontrato il pavimento, cade 0,07–0,14 m fuori davanti
+  (e dentro, di sbieco, per il buco accanto); il punto medio dei due
+  cade entro ±0,07 m dal bordo davanti ed entro 0,08 accanto. Sulle
+  trombe delle scale del banco il punto del raggio era 12–42 cm dentro
+  (il finalize del pilota, 2026-10-26). Un disco prenotato dentro il buco
+  lascia il margine della rotta — il raggio del dislivello e quello del
+  planner — misurato da dentro. `Drop::rim_m` è il punto medio, o 0,10 m
+  prima di `range_m` quando nessun raggio sotto ha visto il pavimento.
+  La prima stesura lo prenotava *al posto* del punto del raggio: gli
+  scudi (600 semi, tre cervelli sconsiderati) alla calibrazione v8l
+  hanno dato una caduta in un buco su 12 600 dove il `main` congelato ne
+  dava nessuna — il seme 300570 della famiglia mixed col cervello
+  dritto, l'angolo nord-est di un buco con una scatola 8 cm oltre il
+  bordo; ripetuto, il main lì va in timeout (il suo avvicinamento minimo
+  0,22 m), il ramo ci entra; con la prenotazione rimessa come prima nello
+  stesso binario (`QK_RIM_BOOK=0`) va di nuovo in timeout. Perché: il
+  disco del bordo aveva sostituito quello del raggio, e sui raggi che non
+  danno portata — quelli obliqui, i bordi degli ostacoli — l'interno del
+  buco aveva perso il suo disco (273 punti di buco prenotati contro 370
+  in quella ripetizione). La seconda stesura prenota il disco del bordo
+  *accanto* a quello del raggio quando i due distano 5 cm o più: i libri
+  un soprainsieme di quelli del main, l'interno com'era, il lato del
+  bordo col suo disco; il seme 300570 allora arriva (222 s, avvicinamento
+  minimo 0,20 m). Scudi sulla seconda stesura contro il `main` congelato
+  a658937 (600 semi, tre cervelli, calibrazioni v8l e v8m, 12 600 viaggi
+  ciascuna): cadute nei buchi 0 e 0 contro 0 e 1 del main — quella del
+  main è il seme 300570 a v8m, lo stesso angolo, dove il ramo arriva a
+  entrambe le calibrazioni; ribaltamenti 637 e 613 contro 627 e 611;
+  timeout 1162 e 1123 contro 1174 e 1133; rotte rifiutate come "no way
+  on the map" 14 e 12 contro 16 e 14 — il rischio dei passaggi stretti
+  non si è visto; l'avvicinamento minimo a un bordo nella famiglia delle
+  scale 0,052, 0,057 e 0,039 m (indietro, casuale, dritto a v8l) contro
+  0,046, 0,021 e 0,037 del main, e 0,069, 0,024, 0,055 contro 0,045,
+  0,034, 0,042 a v8m — più lontano, come deve tenere un disco più vicino
+  al bordo. Una caduta del ramo dove il main arriva: seme 300224 di mixed
+  a v8l col cervello all'indietro, un ribaltamento (24 urti da un mover
+  accanto a un buco, la papera al bordo del buco quando è andata giù)
+  dopo che il disco del bordo l'ha instradata dall'altro lato — con
+  `QK_RIM_BOOK=0` nello stesso binario arriva come il main; contata qui,
+  come la caduta all'angolo del main sopra. Il banco invariato (60 semi,
+  lo stick e il pilota): arrivi 98,6 e 98,6 % contro 98,6 e 98,8, tempi
+  77,6 e 73,6 s contro 78,2 e 74,1, l'avvicinamento minimo dello stick a
+  un bordo 0,097 m contro 0,074, quello del pilota 0,093 contro 0,088. A/B di esplorazione
+  sul gemello (e23, ogni braccio tutte e due le case da zero, tre
+  sessioni da 30 minuti, poi quattro giri di viaggi sulla mappa congelata
+  — l'unico A/B in cui i libri si riempiono dal sensore; gli A/B di
+  viaggio girano sui bordi veri dell'oracolo): 0 cadute su entrambi i
+  bracci; casa_ingombra main 80 % mappata, finita nella terza
+  sessione, il ramo 63 % poi bloccato con 21,8 m² fuori portata (l'ala
+  del bagno, il suo pavimento 0,08 noto); casa_arredata main 68 % poi
+  bloccato due volte con 7,8 m² (il suo bagno 0,09), il ramo 77 %,
+  finita nella seconda sessione (bagno 0,93); viaggi 20/24 e 20/24 per
+  il main contro 19/24 e 23/24 — i mancati tutti rifiuti di mete nella
+  parte non mappata, nessuna caduta — quelli arrivati casa_ingombra
+  115,4 s contro 123,0 (accoppiata −5,0 s mediana), casa_arredata 105,1
+  contro 85,3 (+5,0). Ogni braccio ha perso un bagno, e la lettura dei
+  libri fatta dalla prova dice perché: dischi *fantasma* — a più di
+  0,20 m da ogni buco — nel passaggio da 0,49 m del corridoio accanto
+  alla tromba delle scale, 0,2–0,3 m a nord del suo bordo (il braccio
+  del main tre a (2,1–2,4, 0,18–0,26) in casa_arredata, quello del ramo
+  uno a (2,1, 0,21) in casa_ingombra): un errore di posa al momento
+  della prenotazione che fa anche la prenotazione vecchia, e che un
+  disco 7 cm più vicino al pavimento può solo rendere più decisivo. I
+  due A/B prima (e21, e22) avevano raggiunto tutti e otto i bagni con
+  entrambe le prenotazioni. Un controllo accoppiato sulla sola
+  casa_ingombra (S10: lo stesso binario con e senza il disco del bordo,
+  due sessioni e un giro): il braccio col disco è caduto alla porta
+  dell'ufficio nella prima sessione — un ostacolo a 0,10 m davanti per
+  diversi passi, niente a che fare con un bordo, e la prova ha
+  rinunciato al resto — mentre il braccio senza ha raggiunto il bagno
+  (0,93) e i suoi libri mettevano già i dischi dei buchi a una mediana
+  di 4,5 cm dentro il bordo (36 % fuori, 30 % oltre 0,10 m dentro: il
+  sensore del gemello vede i suoi bordi da vicino; i 12–42 cm erano le
+  trombe delle scale del banco a −6°). Altre due esplorazioni col disco
+  (S11, due gemelli, due sessioni e un giro ciascuno): il bagno
+  raggiunto in entrambi (0,88 poi 0,92, 0,94 poi 0,94), 6/6 viaggi
+  ciascuno, 0 cadute, copertura del bordo 0,90/0,55 e 0,85/0,53 — la
+  solita del main — con tre e quattro fantasmi, tutti all'angolo
+  ribassato del soggiorno. Quindi sul gemello il disco del bordo né
+  sigilla il passaggio né aggiunge molto; il suo guadagno è dove
+  `range_m` cade profondo, e la voce aperta è il fantasma nel
+  passaggio, che appartiene alla posa al momento della prenotazione,
+  non a dove si posa il disco.
 
 ## Limiti noti
 

@@ -15,6 +15,50 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Modificato
 
+- **Il bordo di un buco va sui libri dov'è il bordo.** Un dislivello
+  era prenotato a `range_m`, la distanza del pavimento del primo raggio
+  che non lo trova: un punto dentro il buco di quanto le righe del
+  sensore sono spaziate — 0,03–0,17 m sul buco davanti del simulatore a
+  ogni inclinazione (`examples/drop_edge`), 12–42 cm sulle trombe delle
+  scale del banco — quindi il margine della rotta era misurato da dentro
+  il buco. Il bordo sta tra quel raggio e l'ultimo sotto di lui che ha
+  ancora incontrato il pavimento (`edge_min_m`); `Drop::rim_m` è il
+  punto medio di quello span (entro ±0,07 m dal bordo in ogni caso, dice
+  l'esempio; 0,10 m prima di `range_m` quando nessun raggio sotto ha
+  visto il pavimento), e i libri prendono un disco lì *accanto* a quello
+  del raggio, quando i due distano 5 cm o più — non al suo posto:
+  prenotato al suo posto, i raggi che non danno portata (quelli obliqui,
+  i bordi degli ostacoli) perdevano l'interno del buco, e un seme degli
+  scudi (l'angolo di un buco nella famiglia mixed, calibrazione v8l, il
+  cervello sconsiderato dritto) ci è entrato dove il `main` andava in
+  timeout; prenotato accanto, i libri sono un soprainsieme di quelli del
+  main e quel seme arriva. Le guardie tengono `edge_min_m` come limite
+  vicino. `QK_RIM_BOOK=0` prenota come prima. Scudi (600 semi, tre
+  cervelli sconsiderati, calibrazioni v8l e v8m, 12 600 viaggi
+  ciascuna) contro il `main` congelato: cadute nei buchi 0 e 0 contro 0
+  e 1 del main (lo stesso seme dell'angolo, all'altra calibrazione),
+  ribaltamenti uguali nel rumore (637 e 613 contro 627 e 611), rotte
+  rifiutate meno (14 e 12 contro 16 e 14), il corpo più lontano dai
+  bordi delle trombe delle scale (avvicinamento minimo 0,04–0,07 m
+  contro 0,02–0,05); un ribaltamento del ramo dove il main arriva (seme
+  300224 di mixed, il cervello sconsiderato all'indietro, 24 urti da un
+  mover accanto a un buco dopo che il disco del bordo l'ha instradato
+  dall'altra parte), e il banco uguale (98,6/98,6 % contro 98,6/98,8,
+  l'avvicinamento minimo dello stick a un bordo 0,097 m contro 0,074).
+  A/B di esplorazione sul gemello (e23, tutte e due le case da zero,
+  tre sessioni, quattro giri di viaggi): 0 cadute su entrambi i bracci;
+  mappe e viaggi uguali nel rumore proprio dell'esplorazione, ogni
+  braccio ha perso il bagno di una casa (casa_arredata il main,
+  casa_ingombra il ramo) per dischi fantasma nel passaggio da 0,49 m
+  del corridoio accanto alla tromba delle scale — un errore di posa al
+  momento della prenotazione, che fa anche la prenotazione vecchia (tre
+  fantasmi lì sul braccio del main, uno su quello del ramo); altre due
+  esplorazioni di casa_ingombra col disco del bordo hanno raggiunto il
+  bagno (0,92 e 0,94 del suo pavimento, 6/6 viaggi ciascuna, 0 cadute),
+  e sul gemello i dischi della prenotazione vecchia stavano già a una
+  mediana di 4,5 cm dentro il bordo, quindi lì costo e guadagno del
+  disco sono entrambi piccoli; il guadagno sono i bordi profondi del
+  banco.
 - **Il campione della correzione di deriva è una fila di passi dritti, e
   il suo anello quattro volte gli altri.** Da quando l'assestamento è
   imparato, la correzione di casa_ingombra era finita a −0,08…−0,11 in
