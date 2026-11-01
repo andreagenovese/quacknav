@@ -514,6 +514,17 @@
    "doc": "`QK_REANCHOR=0`: no trip back to mapped floor now and then to close a loop while the exploration walks new floor (see the explorer's run)."
   },
   {
+   "name": "QK_RIM_BOOK",
+   "group": "QK",
+   "read_as": "on unless 0",
+   "type": "switch",
+   "default": "1",
+   "where": [
+    "quack-nav/src/explore/books.rs"
+   ],
+   "doc": "`QK_RIM_BOOK=0`: a drop goes on the books at `range_m`, the beam whose floor is already missing, as before 2026-11-01 — inside the hole by the sensor's row spacing."
+  },
+  {
    "name": "QK_RIM_TOUR",
    "group": "QK",
    "read_as": "1 on, 0 off, else the caller's default",
