@@ -203,7 +203,10 @@ impl Job {
             .flat_map(|(k, f)| f.drops.iter().map(move |d| (k, f, d)))
             .flat_map(|(k, f, d)| {
                 let b = yaw + d.bearing;
-                let r = d.range_m.max(0.2);
+                // The rim's estimate, not `range_m`: that beam's floor is
+                // already missing, so the point is inside the hole by the
+                // sensor's row spacing (`Drop::rim_m`).
+                let r = d.rim_m().max(0.2);
                 let hole = !edge_discriminate() || Self::is_true_hole(f, d);
                 let radius = if hole { DROP_RADIUS_M } else { OBSTACLE_RADIUS_M };
                 // The rim, and — for a true hole — the floor that is not
