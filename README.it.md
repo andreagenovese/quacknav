@@ -447,8 +447,10 @@ linea. I numeri di ogni linea stanno in un file a sé,
 
 Quei numeri sono prior. **Il registro d'andatura** misura la camminata
 sulle gambe della papera stessa — un passo libero in avanti dà la
-velocità e la correzione che lo tiene dritto, una gamba lunga in curva
-l'imbardata per unità di comando, gli impulsi curvi dello stick
+velocità, una fila di passi la correzione che tiene dritta la camminata
+(l'imbardata di un passo solo è il dondolio del passo; la correzione
+tiene 128 campioni dove gli altri ne tengono 32), una gamba lunga in
+curva l'imbardata per unità di comando, gli impulsi curvi dello stick
 l'imbardata per unità di ciascun lato (i due insieme, i guadagni
 sinistra e destra), una svolta sul posto la sua velocità e, letta sulla
 mappa alla gamba dopo, la sua coda, il flusso di stato del corpo

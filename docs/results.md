@@ -1143,6 +1143,57 @@ daemon-v0.17.6 + set v8, two twins at a time (`rl-runs/twin-work/P8/`).
   shorter stand reads the stop's own yaw in that house's many short
   legs, or something else does — to be measured on its own before the
   trim is trusted on a house like it.
+  Measured (2026-10-30; branch `ledger-trim`, 2026-11-01). Two rounds
+  of journeys per house on main, with robotd's state stream recorded
+  at 20 Hz beside the trace — the clock, the applied twist, the
+  odometry — and three readings of it. The walk's answer to small yaw
+  commands: in 0.6 s pieces of walking, the applied yaw (the trim in
+  it) against the odometry's yaw rate is a line of slope 1.0 rad/s per
+  unit from ±0.05 to ±0.5 in both houses (casa_ingombra: −0.051 at
+  −0.05, +0.072 at +0.05, −0.521 at −0.55), no dead zone: a trim of
+  −0.05 turns the body by −0.05. The stop's own yaw: from the last
+  state with a twist, +0.007 rad at 0.12 s and −0.007 at 1 s in
+  casa_ingombra, −0.015 and −0.043 in casa_arredata, on the five and
+  eight stops long enough to read — small, and beside the point, since
+  the stick's pulses run back-to-back (the walking windows are 4.3 s
+  long, seven pulses) with no stand in them: the shorter stand never
+  touched the trim's samples. The cause is the sample itself: a
+  straight step's yaw by odometry has a spread of 0.17 rad/s
+  (casa_ingombra) and 0.14 (casa_arredata) about a veer of +0.005 and
+  +0.001, ten to thirty times the signal; the median of 32 carries a
+  standard error of 0.032–0.038 rad/s, so the trim wanders ±0.03–0.05
+  on noise alone, and its feedback through the body (the slope of 1.0
+  over 32 samples) is too slow to pull it back — a replay of the rule
+  over any trace, with the rates fixed, walks off to the bound, and the
+  −0.08…−0.11 of casa_ingombra were that wander (this measurement's own
+  run: −0.052 and −0.010). The fix on `ledger-trim`: a trim sample is a
+  run of 3–8 consecutive straight steps, their yaw over their time —
+  the gait's sway averages out across the run, the veer does not —
+  ended by a curving step, a turn in place, a step that does not count
+  or a gap of 1.5 s; and the trim's ring holds 128 samples where the
+  rest hold 32 (standard error about 0.017 on single steps, less on
+  runs). The bench's perturbed walk (veer 0.12 rad/s at 0.88 rad/s per
+  unit, the exact trim −0.136): run samples of −0.05…−0.15 and the trim
+  learned at −0.119 over six seeds; over 40 seeds in order, arrivals
+  98.2 % against main's 97.9 on the same walk, 69.0 s a journey against
+  68.2, bumps 3.26 against 2.24 (clutter 9.3 against 5.2, mixed 9.4
+  against 4.9 — the bench's families are 40 journeys each, and the
+  stick's bumps in them run from 4 to 9 between runs of the same code).
+  AB25, frozen `main` 2aaa912 against the branch, four tours of each
+  house, both ledgers empty: 48/48 arrived on both arms, 0 falls;
+  casa_ingombra 105.1 s a journey against main's 101.8 (medians 99.5
+  against 97.0, paired +1.0 s median, +3.4 mean), casa_arredata 91.5
+  against 92.1 (medians 86.0 against 89.0, paired +0.0 median, −0.7
+  mean) — the same walk within noise. The trim: the branch learned
+  −0.037 in casa_ingombra from 29 run samples and −0.034 in
+  casa_arredata from 77, the run samples spreading 0.044 and 0.052
+  rad/s where single steps spread 0.15–0.17 — the two houses agree to
+  three thousandths, where single-step sampling had put them 0.09
+  apart; main's own trim ended at −0.052. A run sample comes every
+  four to five straight steps (29 in four tours of the cluttered house,
+  77 in the furnished one), so the ring of 128 fills over a few
+  sessions, and the median of 29–77 carries a standard error of
+  0.007–0.012.
 
 ## Known limits
 

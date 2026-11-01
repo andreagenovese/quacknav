@@ -78,10 +78,12 @@ stick che chiude la rotta sull'odometria) — e quack-control che mostra
 (ramo `ledger-turn`), l'assestamento dopo uno stop e i guadagni
 sinistra/destra imparati dal 2026-10-29 (ramo `ledger-settle`:
 l'assestamento 0,12 s sul gemello contro i 0,6 scritti, le soste mezzo
-secondo più corte e i viaggi 9 s più veloci; una cosa da tenere
-d'occhio, la correzione di casa_ingombra a −0,08…−0,11 in tre corse su
-quattro da allora, quella di casa_arredata mai — l'imbardata propria
-dello stop letta dalla sosta più corta, o altro, da misurare a parte), una camminata per stato del corpo dal 2026-10-30
+secondo più corte e i viaggi 9 s più veloci; la correzione di
+casa_ingombra a −0,08…−0,11 in tre corse su quattro da allora, misurata
+il 2026-10-30 come rumore del campione stesso — l'imbardata di un passo
+dritto si disperde di 0,15 rad/s attorno a una deriva di 0,01 — e
+curata sul ramo `ledger-trim`: una fila di 3–8 passi dritti per
+campione, 128 tenuti), una camminata per stato del corpo dal 2026-10-30
 (ramo `ledger-state`: porta qualcosa, letto dal servo del becco di
 robotd — cosa faccia alla camminata aspetta una papera col becco, quello
 del gemello non si muove mai); un'esplorazione delimitata (dell'utente, 2026-10-27):
