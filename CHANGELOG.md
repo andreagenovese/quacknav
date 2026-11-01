@@ -13,6 +13,25 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Changed
 
+- **A move ends where it says.** A timed move left its last command in
+  robotd, which holds it to its deadman half a second on — about 5 cm of
+  walk at set v8's pace, a third of a right angle of turn — walked into
+  the stand after a mapping step and past the end of a `robot.move`.
+  `robot.move` now sends one explicit zero after its time (`"hold":
+  true` keeps the last command instead, for a move another follows at
+  once; the reply says `held`), and `robot.map_step` sends one at the
+  walk's end when a stand follows, so the stand begins where the walk
+  said; a step with no stand — the explorer's pulses — leaves the gait
+  running. The explorer's turns had this since 2026-10-27. Measured on
+  the twin, four moves of each kind by odometry at 20 Hz until the body
+  was still: a 2 s walk at vx 0.3 went on 1.2 cm past its time with the
+  zero (1.5 at most) against 5.1 cm held (5.6 at most), and was still
+  0.9 s after its time against 1.3; a 1.5 s turn at 0.8 rad/s went on
+  7° past its time (10 at most) against 35° held (38 at most), still
+  0.7 s after against 1.2. Twin A/B against frozen `main` (AB26, four
+  tours of each house, both ledgers empty): 48/48 arrived on both arms,
+  0 falls, the times the same within noise (paired medians +0.0 and
+  −0.5 s).
 - **A hole's rim goes on the books where the rim is.** A drop was
   booked at `range_m`, the floor distance of the first beam that found
   no floor: a point inside the hole by the sensor's row spacing —
@@ -220,7 +239,13 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
   sessions (81 %, the house declared done by the duck), 12/12 journeys,
   0 falls, the same with the ledger off on the same stack (78 %, 12/12,
   0 falls, paired median 0.0 s) — the walk did not change between
-  0.17.6 and 0.17.9, and the duck ran on it as is
+  0.17.6 and 0.17.9, and the duck ran on it as is. On daemon-v0.18.3
+  (API v47, 2026-10-30; the same walk, the fall predictor armed only
+  from standing), the same test: `daemon = auto` took it as the 0.17
+  line, the house done in two sessions on both arms (78 % with the
+  ledger, 77 % without), 12/12 journeys each, 0 falls, the ledger's arm
+  5 s a journey faster (paired median), the ledger learning 0.099 m/s,
+  a settle of 0.13 s, a turn at 0.75 rad/s and the sides 0.81/0.93
   ([docs/results.md](docs/results.md)).
   The simulator's veer now acts under every forward command, not only
   under |vyaw| < 0.1 (a trim past that turned the simulated body the

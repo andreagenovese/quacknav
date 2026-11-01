@@ -53,10 +53,12 @@ one number the walk does not give as a number, and the test of a walk that reall
 **Done when:** the twin on a newer daemon than the one the numbers were measured on, with the
 ledger empty, maps and navigates as well as on its own; no file to edit, no release to cut.
 
-### N3 — A body that stops where it says
+### N3 — A body that stops where it says · **done**
 
 A move answers when the body is still, with what it did, not when the command was sent. The
-leg's last chunk and the tool's own end are held the way the turn's already is.
+leg's last chunk and the tool's own end are held the way the turn's already is: a move ends
+within 2 cm and 10° of where its time ends on the twin, where the daemon's hold had left 5 cm
+and a third of a right angle.
 
 **Done when:** a `robot.move` of a stated length ends within a stated tolerance on the twin, and
 the twin's A/B shows no regression.

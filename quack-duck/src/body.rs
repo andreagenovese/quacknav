@@ -99,6 +99,15 @@ pub fn trimmed(gait: &crate::gait::GaitConfig, mut params: proto::MoveParams) ->
 /// held on every non-arc leg, 682 s held on straight legs alone. For long
 /// straight legs (a corridor, a human drive) it is the formula to use; the
 /// explorer's legs are too short for it as it stands.
+/// One explicit zero: the body stops now. A timed move ends without one,
+/// and robotd holds its last command to its deadman (500 ms) — at set v8's
+/// pace about 5 cm of walk, a third of a right angle of turn — so a move
+/// that is to end where it says sends this at its end; a move that another
+/// follows at once (the explorer's pulses) does not, and the gait runs on.
+pub fn stop_twist(control: &mut Option<Control>) -> Result<(), String> {
+    notify(control, &proto::Call::RobotMove(proto::MoveParams { vx: 0.0, vy: 0.0, vyaw: 0.0 }))
+}
+
 /// A timed `robot.move`, optionally holding its heading by taps: the
 /// yaw source is a closure — the cliff guard's odometry heading where
 /// there is one — so the body's lane knows nothing of the navigation

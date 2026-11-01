@@ -63,17 +63,18 @@ not change in 0.17.9).
 Then the rim booked where the rim is (branch `rim-booking`, 2026-11-01:
 a disc at the middle of the span the floor ends in, beside the beam's
 own point, which sat 12–42 cm inside the hole; the first cut, instead
-of it, cost one hole fall in 12 600 shields and was taken back).
+of it, cost one hole fall in 12 600 shields and was taken back). And a
+move that ends where it says (branch `move-ends`, 2026-11-01: one
+explicit zero after `robot.move` unless held, and at a mapping step's
+walk's end when a stand follows — on the twin 1.2 cm and 7° past the
+time asked where the deadman's hold had left 5 cm and 35°; A/B 48/48,
+0 falls, times the same).
 **Remaining**, in order: the phantom drop in the 0.49 m corridor
 passage beside the stairwell — a booked point 0.2–0.3 m north of the
 rim, the pose's error at the moment of booking, which sealed one bath
 in four on each arm of e23 and never in e21/e22 (a drop booked on a
 pose the map later corrects should move or go with it; today a booked
-point stays where the pose of the moment put it); the walking leg's own hold to
-the deadman after its last chunk (about 5 cm at set v8's pace), measured
-on the twin and modelled or stopped like the turn's, and `robot.move`'s
-own end stopped the same way (today the tool's turn goes on to the
-deadman); the ledger's last coded number, the yaw per unit, which the
+point stays where the pose of the moment put it); the ledger's last coded number, the yaw per unit, which the
 stick's 0.6 s pulses cannot give as one number (AB21, 2026-10-28: it
 falls with the command, 0.99 rad/s per unit at |vyaw| 0.3 to 0.76 at
 0.7, and under the stick's gain it loops — a gain curve by command size,

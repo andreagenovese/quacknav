@@ -1312,7 +1312,8 @@ pub fn execute(name: &str, args: &Value, robot: &mut Robot) -> Result<Value, Str
             let params = quack_duck::body::move_params(args);
             let duration = quack_duck::body::number(args, "duration_s").clamp(0.0, quack_duck::body::MAX_MOVE_DURATION_S);
             let params = quack_duck::body::trimmed(&robot.places.gait, params);
-            guarded_move(robot, params, duration).map(|r| with_obeyed(r, obeyed))
+            let hold = args.get("hold").and_then(Value::as_bool).unwrap_or(false);
+            guarded_move(robot, params, duration, hold).map(|r| with_obeyed(r, obeyed))
         }
         other => Err(format!("this is not a navigation tool: `{other}`")),
     }
@@ -1416,7 +1417,12 @@ fn drop_words(d: &crate::cliff::Drop) -> String {
 /// within reach ends it (one explicit zero), whatever the pose says and
 /// whether or not there is a map — the sensor sees the hole where the duck
 /// is. Forward moves only: backing up and sidesteps are not covered.
-fn guarded_move(robot: &mut Robot, params: proto::MoveParams, duration: f64) -> Result<Value, String> {
+/// The move ends where it says: one explicit zero at its end, unless the
+/// caller asked to `hold` — a move another follows at once, where the
+/// zero would stop and restart the gait — in which case robotd keeps the
+/// last command to its deadman, half a second on, as every move did before
+/// 2026-11-01.
+fn guarded_move(robot: &mut Robot, params: proto::MoveParams, duration: f64, hold: bool) -> Result<Value, String> {
     let cliff = robot.places.cliff.clone();
     let cover = MoveCover::of(cliff.as_ref().map(|c| c.snapshot()).as_ref(), &params);
     let mut guard = || -> Option<String> {
@@ -1425,12 +1431,15 @@ fn guarded_move(robot: &mut Robot, params: proto::MoveParams, duration: f64) -> 
         move_drop_ahead(&status, Instant::now(), heading).map(|d| drop_words(&d))
     };
     let stopped = quack_duck::body::timed_move_guarded(&mut robot.control, params, duration, None, &mut guard)?;
+    if stopped.is_none() && !hold {
+        quack_duck::body::stop_twist(&mut robot.control)?;
+    }
     Ok(match stopped {
         Some((why, walked_s)) => {
             tracing::warn!(why, walked_s = format!("{walked_s:.2}"), "robot.move: stopped early by the cliff guard");
-            json!({"done": false, "stopped": why, "walked_s": round2(walked_s), "cliff_guard": cover.word()})
+            json!({"done": false, "stopped": why, "walked_s": round2(walked_s), "cliff_guard": cover.word(), "held": false})
         }
-        None => json!({"done": true, "walked_s": duration, "cliff_guard": cover.word()}),
+        None => json!({"done": true, "walked_s": duration, "cliff_guard": cover.word(), "held": hold}),
     })
 }
 
@@ -2578,6 +2587,13 @@ fn map_step(robot: &mut Robot, args: &Value) -> Result<Value, String> {
         if quack_duck::body::timed_move_guarded(&mut robot.control, params, walk_s, hold, &mut guard)?.is_some() {
             return Err(HELD.into());
         }
+        // A stand follows: the walk ends here, not at robotd's deadman
+        // half a second on (about 5 cm at set v8's pace, walked into the
+        // stand and taken off its still window). A step with no stand is
+        // one of a run — the explorer's pulses — and the gait runs on.
+        if stop_s > 0.0 {
+            quack_duck::body::stop_twist(&mut robot.control)?;
+        }
     }
     // The stand; the duck's own is cut short by the user's stop, so the
     // robot is theirs at once.
@@ -2877,6 +2893,27 @@ mod move_guard_tests {
         assert!(r["stopped_own"].as_str().unwrap().contains(crate::homecoming::WHY_BOOT), "{r}");
         assert_eq!(explore.status().state, crate::explore::State::Stopped);
         assert!(explore.held());
+    }
+
+    /// A move by hand ends where it says: one explicit zero after its
+    /// time, so robotd does not walk it on to its deadman; `hold: true`
+    /// keeps the last command instead, for a move another follows at once.
+    #[test]
+    fn a_move_by_hand_ends_with_a_zero_unless_held() {
+        let (_dir, path, lines) = fake_robotd();
+        let mut robot = Robot::detached();
+        robot.control = Some(quack_duck::Control::connect(&path).unwrap());
+        let r = execute("robot.move", &json!({"vx": 0.3, "duration_s": 0.2}), &mut robot).unwrap();
+        assert_eq!((r["done"].as_bool(), r["held"].as_bool()), (Some(true), Some(false)), "{r}");
+        std::thread::sleep(Duration::from_millis(100));
+        let sent = sent_vx(&lines);
+        assert!(sent.len() >= 2 && sent[sent.len() - 1] == 0.0 && sent[sent.len() - 2] > 0.0, "{sent:?}");
+        let before = sent.len();
+        let r = execute("robot.move", &json!({"vx": 0.3, "duration_s": 0.2, "hold": true}), &mut robot).unwrap();
+        assert_eq!(r["held"], true, "{r}");
+        std::thread::sleep(Duration::from_millis(100));
+        let sent = sent_vx(&lines);
+        assert!(sent.len() > before && sent[before..].iter().all(|v| *v > 0.0), "{:?}", &sent[before..]);
     }
 
     /// A map socket that accepts every call and keeps what it was asked.
