@@ -79,7 +79,7 @@ documento del protocollo con la propria versione.
 controllo di versione del contratto; un evento raggiunge un iscritto prima di quando sarebbe
 arrivato il polling successivo.
 
-### N5 — Fare, non solo camminare
+### N5 — Fare, non solo camminare · **in corso**
 
 La papera esegue le skill che il suo daemon ha già — una presa, un calcio, sedersi e alzarsi —
 quando le si chiede, come un lavoro solo: si avvicina, si squadra alla distanza allenata,

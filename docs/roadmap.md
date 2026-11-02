@@ -75,7 +75,7 @@ first that fails and reporting each. A protocol document with its own version.
 **Done when:** the voice satellite and the control page run on the client library against the
 contract's version check; an event reaches a subscriber before the next poll would have.
 
-### N5 — Doing, not only walking
+### N5 — Doing, not only walking · **in progress**
 
 The duck carries out the skills its daemon already has — a pick, a kick, sit and stand — when
 asked, as one job: walk near, square up at the trained distance, run the skill, wait for the
