@@ -19,6 +19,7 @@ metodo che questo daemon non ha risponde `METHOD_NOT_FOUND` (−32601), un campo
 | `nav.claim` | v3 | `{holder, ttl_s?, token?}` — un nome per le persone, 60 s di base e 300 al più, il token quando si rinnova da un'altra connessione | `{token, holder, ttl_s}`; −32010 quando un'altra connessione lo tiene |
 | `nav.release` | v3 | `{token?}` — la connessione di chi lo tiene può ometterlo | `{released, holder?}` |
 | `nav.jobs` | v4 | `{steps: [{tool, args}…], on_failure?}` per partire (1–32 passi, `stop` di base o `continue`); `{}` per lo stato; `{stop: true}` per finirla | `{queued, on_failure}`; `{running, steps, done}`; `{stopping}` |
+| `nav.act` | v5 | `{skill, at?}` — una skill che `robot.skills` nomina; `at` `"here"` (predefinito), il nome di un posto o `{x, y}` | `{queued, started}`; la fine su `queue` |
 | `nav.catalog` | prima di v1 | — | i tool, ciascuno `{name, description, parameters}` |
 | `nav.call` | prima di v1 | `{name, args}` | la risposta del tool; un errore del tool è −32000 col suo messaggio |
 | `nav.knobs` | prima di v1 | vedi [`knobs.it.md`](knobs.it.md) | |
@@ -65,11 +66,25 @@ dell'utente — chiude il passo in corso e la coda. Una coda alla volta. Muove l
 prestito tenuto da un'altra connessione la rifiuta, e i suoi passi girano col prestito della
 connessione che l'ha chiesta.
 
+## Fare (v5)
+
+`nav.act {skill, at?}` esegue una delle skill di `robotd` come una coda sua: prima una camminata
+fino a `at` quando c'è, poi `robot.do`, sorvegliato fino alla fine sull'etichetta della policy del
+flusso di stato — comincia quando l'etichetta lascia `walk`/`stand` e finisce quando ci torna. Il
+passo della skill risponde `{skill, ran_s, label, body}` (`body` lo stato del registro della
+camminata: `free` o `carrying`), oppure fallisce col motivo: robotd l'ha rifiutata, non è mai
+cominciata, non è finita nel suo tempo (la durata della tabella più 6 s, o 12 s più 6 s quando la
+tabella non ne dà), o il corpo è caduto o è stato tenuto. Le skill si leggono da `robot.skills` a
+run time; una sconosciuta è rifiutata nominando quelle che la papera ha. Il catalogo porta lo
+stesso come due tool per un agente che conosce solo `nav.call`: `robot.skills` (niente si muove) e
+`robot.act {skill, at?}` (avvia la coda, risponde subito); `robot.act` può anche essere un passo
+di `nav.jobs`. Fare muove la papera: rispetta il prestito, e uno stop lo chiude.
+
 ## Un client in Rust
 
 `quack-nav-client` (in questo workspace) è un client bloccante su questi tipi: `Client::connect`,
 `hello` (un daemon di prima di `nav.hello` risponde come una v0, i suoi tool funzionano ancora),
-`catalog`, `call(tool, args)`, `claim`/`release` (v3), `jobs`/`jobs_state`/`jobs_stop` (v4), e `subscribe(socket, topics)` — gli eventi su una connessione loro,
+`catalog`, `call(tool, args)`, `claim`/`release` (v3), `jobs`/`jobs_state`/`jobs_stop` (v4), `act` (v5), e `subscribe(socket, topics)` — gli eventi su una connessione loro,
 come un iteratore. `cargo run -p quack-nav-client --example watch -- <socket> [argomento…]` li
 stampa.
 
@@ -86,6 +101,7 @@ stampa.
 
 ## Storia
 
+- **v5** (2026-11-02) — fare: `nav.act`; i tool `robot.skills` e `robot.act`.
 - **v4** (2026-11-02) — una coda di lavori: `nav.jobs`, l'argomento `queue`.
 - **v3** (2026-11-02) — un proprietario alla volta: `nav.claim`, `nav.release`, il codice
   −32010, l'argomento `lease`.

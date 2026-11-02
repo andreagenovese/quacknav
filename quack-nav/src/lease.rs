@@ -20,7 +20,7 @@ use serde_json::Value;
 pub const MAX_TTL_S: f64 = 300.0;
 
 /// The tools that move the duck, and so need the lease when one is held.
-pub const MOVING: [&str; 5] = ["robot.go_to", "robot.map_explore", "robot.map_step", "robot.move", "nav.jobs"];
+pub const MOVING: [&str; 7] = ["robot.go_to", "robot.map_explore", "robot.map_step", "robot.move", "robot.act", "nav.jobs", "nav.act"];
 
 /// A call that only stops: never refused.
 pub fn is_stop(tool: &str, args: &Value) -> bool {

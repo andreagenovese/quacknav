@@ -163,6 +163,18 @@ impl Client {
         self.request(proto::method::JOBS, json!({"stop": true}))
     }
 
+    /// `nav.act`: one of the duck's skills (as `robot.skills` names them),
+    /// at a place's name or `{x, y}` when given (the duck walks there
+    /// first). Starts a queue and answers at once; its end comes on the
+    /// `queue` topic. v5.
+    pub fn act(&mut self, skill: &str, at: Option<Value>) -> Result<Value, Error> {
+        let mut p = json!({"skill": skill});
+        if let Some(at) = at {
+            p["at"] = at;
+        }
+        self.request(proto::method::ACT, p)
+    }
+
     /// `nav.release`: give the lease back. Whether one was released. v3.
     pub fn release(&mut self, token: Option<&str>) -> Result<bool, Error> {
         let p = token.map_or_else(|| json!({}), |t| json!({"token": t}));

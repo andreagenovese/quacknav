@@ -468,6 +468,10 @@ pub struct CliffStatus {
     pub frames: u64,
     /// Frames judged in the last [`MEMORY`].
     pub recent: Vec<CliffFrame>,
+    /// The policy label of robotd's newest state — `walk`, `stand`, a
+    /// skill's name while it runs, `held` while somebody holds the duck: how
+    /// `nav.act` sees a skill begin and end.
+    pub policy: Option<String>,
 }
 
 impl CliffStatus {
@@ -817,6 +821,7 @@ fn body_lane(
         });
         let mut s = shared.lock().expect("cliff status poisoned");
         s.body_seen = true;
+        s.policy = Some(bits.policy.clone());
         if bits.odom.yaw.is_some() {
             s.odom_yaw = bits.odom.yaw;
             s.odom_xy = Some((bits.odom.position[0], bits.odom.position[1]));

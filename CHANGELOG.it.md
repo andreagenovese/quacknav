@@ -145,6 +145,18 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Aggiunto
 
+- **Fare, non solo camminare: `nav.act`** (protocollo v5, l'N5 della
+  roadmap). La papera esegue una delle skill di `robotd` — le policy di
+  Pollen, lette da `robot.skills` a run time, mai una lista scritta qui —
+  come un lavoro: prima una camminata fino a `at` quando c'è, poi
+  `robot.do`, sorvegliato fino alla fine sull'etichetta della policy del
+  flusso di stato (comincia quando l'etichetta lascia `walk`/`stand`,
+  finisce quando ci torna). Il passo dice quanto è durata e lo stato del
+  corpo dopo (`free` o `carrying`, dal registro della camminata), o
+  perché no: rifiutata, mai cominciata, non finita nel suo tempo,
+  caduta. Il catalogo acquista `robot.skills` e `robot.act` per gli
+  agenti che conoscono solo `nav.call`, e `robot.act` può essere un
+  passo di `nav.jobs` — "vai in bagno e prendilo". Il client ha `act`.
 - **Una coda di lavori: `nav.jobs`** (protocollo v4). L'agente
   pianifica "vai in bagno, poi a casa"; la papera la esegue sulla
   scheda, passo per passo, ciascuno fino alla sua fine — un viaggio fino

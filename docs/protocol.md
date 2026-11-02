@@ -18,6 +18,7 @@ answers `METHOD_NOT_FOUND` (−32601), an unknown member `INVALID_PARAMS` (−32
 | `nav.claim` | v3 | `{holder, ttl_s?, token?}` — a name for people, 60 s by default and 300 at most, the token when renewing from another connection | `{token, holder, ttl_s}`; −32010 when another connection holds it |
 | `nav.release` | v3 | `{token?}` — the holder's own connection may leave it out | `{released, holder?}` |
 | `nav.jobs` | v4 | `{steps: [{tool, args}…], on_failure?}` to start (1–32 steps, `stop` by default or `continue`); `{}` for the state; `{stop: true}` to end it | `{queued, on_failure}`; `{running, steps, done}`; `{stopping}` |
+| `nav.act` | v5 | `{skill, at?}` — a skill `robot.skills` names; `at` `"here"` (default), a place's name or `{x, y}` | `{queued, started}`; the end on `queue` |
 | `nav.catalog` | before v1 | — | the tools, each `{name, description, parameters}` |
 | `nav.call` | before v1 | `{name, args}` | the tool's answer; a tool's own error is −32000 with its message |
 | `nav.knobs` | before v1 | see [`knobs.md`](knobs.md) | |
@@ -62,6 +63,20 @@ the user's `robot.go_to {"stop": true}` — ends the step under way and the queu
 time. It moves the duck, so a lease held by another connection refuses it, and its steps run
 with the lease of the connection that asked.
 
+## Acting (v5)
+
+`nav.act {skill, at?}` carries out one of `robotd`'s skills as a queue of its own: a walk to `at`
+first when it is given, then `robot.do`, watched to its end on the state stream's policy label —
+it begins when the label leaves `walk`/`stand` and ends when it comes back. The skill step
+answers `{skill, ran_s, label, body}` (`body` the gait ledger's state: `free` or `carrying`), or
+fails with the reason: robotd refused it, it never began, it did not end in its time (its table
+length and 6 s, or 12 s and 6 s when the table gives none), or the body fell or was held. The
+skills are read from `robot.skills` at run time; an unknown one is refused naming the ones the
+duck has. The catalogue carries the same as two tools for an agent that only knows `nav.call`:
+`robot.skills` (nothing moves) and `robot.act {skill, at?}` (starts the queue, answers at once);
+`robot.act` may also be a step of `nav.jobs`. Acting moves the duck: it respects the lease, and
+a stop ends it.
+
 ## A client in Rust
 
 `quack-nav-client` (in this workspace) is a blocking client on these types: `Client::connect`,
@@ -82,6 +97,7 @@ an iterator. `cargo run -p quack-nav-client --example watch -- <socket> [topic�
 
 ## History
 
+- **v5** (2026-11-02) — acting: `nav.act`; the tools `robot.skills` and `robot.act`.
 - **v4** (2026-11-02) — a queue of jobs: `nav.jobs`, the `queue` topic.
 - **v3** (2026-11-02) — one owner at a time: `nav.claim`, `nav.release`, the code −32010, the
   `lease` topic.

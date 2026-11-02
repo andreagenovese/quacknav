@@ -114,6 +114,31 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
+/// The acting tools the daemon serves beside the navigation's (v5).
+const ACT_SKILLS: &str = "robot.skills";
+const ACT_TOOL: &str = "robot.act";
+/// A queue's skill step, internal: `nav.act`'s second step.
+const ACT_STEP: &str = "nav.act.skill";
+
+/// The catalogue: the navigation's tools and the acting ones.
+fn catalog() -> Value {
+    let mut tools = quack_nav::tools::catalog();
+    tools.push(json!({
+        "name": ACT_SKILLS,
+        "description": "What the duck can do besides walking: its skills, as robotd has them now (a pick from the floor, the kicks, sit and stand, whatever its policy set adds). Nothing moves.",
+        "parameters": {"type": "object", "properties": {}}
+    }));
+    tools.push(json!({
+        "name": ACT_TOOL,
+        "description": "Do one of the duck's skills (robot.skills names them): \"pick it up\", \"kick the ball\", \"sit down\". With `at` (a place's name, or {x, y} in map metres) the duck walks there first, then does it. Starts in the background and returns at once: answer the user now and end your turn. Its end — done, or why not — comes on the events (queue) and in nav.jobs. Call robot.go_to with stop=true to stop it.",
+        "parameters": {"type": "object", "properties": {
+            "skill": {"type": "string", "description": "the skill's name, from robot.skills"},
+            "at": {"description": "\"here\" (the default), a place's name, or {\"x\": …, \"y\": …}"}
+        }, "required": ["skill"]}
+    }));
+    Value::Array(tools)
+}
+
 /// What the daemon's callers reach beyond the tools.
 struct Daemon {
     robot: Arc<Mutex<Robot>>,
@@ -132,8 +157,20 @@ impl Daemon {
     /// One tool, as `nav.call` runs it for connection `conn`: the lease
     /// checked, a stop reaching the duck's own motion first, then the tool
     /// under the robot's lock. `Err((code, message))`.
-    fn call_tool(&self, conn: u64, name: &str, args: &Value) -> Result<Value, (i64, String)> {
+    fn call_tool(self: &Arc<Self>, conn: u64, name: &str, args: &Value) -> Result<Value, (i64, String)> {
         use quack_nav_proto::code;
+        match name {
+            ACT_SKILLS => return self.skills().map(|s| json!({"skills": s.iter().map(|(n, d)| json!({"name": n, "duration_s": d})).collect::<Vec<_>>()})).map_err(|e| (code::TOOL_ERROR, e)),
+            ACT_TOOL => {
+                let p: quack_nav_proto::ActParams = serde_json::from_value(args.clone()).map_err(|e| (code::INVALID_PARAMS, format!("robot.act: {e}")))?;
+                return self.act(conn, p);
+            }
+            ACT_STEP => {
+                let skill = args.get("skill").and_then(Value::as_str).unwrap_or_default();
+                return self.do_skill(skill).map_err(|e| (code::TOOL_ERROR, e));
+            }
+            _ => {}
+        }
         if !quack_nav::tools::handles(name) {
             return Err((code::METHOD_NOT_FOUND, format!("this daemon has no tool `{name}`")));
         }
@@ -147,6 +184,115 @@ impl Daemon {
         quack_nav::tools::before_the_lock(&self.shutdown.explore, name, args);
         let mut robot = self.robot.lock().expect("robot poisoned");
         quack_nav::tools::execute(name, args, &mut robot).map_err(|e| (code::TOOL_ERROR, e))
+    }
+
+    /// robotd's skills now (`robot.skills`): the table's and the built-ins.
+    fn skills(&self) -> Result<Vec<(String, Option<f64>)>, String> {
+        let mut robot = self.robot.lock().expect("robot poisoned");
+        let r = quack_duck::body::request(&mut robot.control, &duck_ipc_proto::Call::RobotSkills)?;
+        if let Some(e) = r.error {
+            return Err(format!("robot.skills: {}", e.message));
+        }
+        Ok(quack_nav::act::skills(&r.result.unwrap_or(Value::Null)))
+    }
+
+    /// One skill, asked of robotd and watched to its end (the policy label
+    /// leaving `walk`/`stand` and coming back), the robot's lock held only
+    /// for the asking.
+    fn do_skill(&self, skill: &str) -> Result<Value, String> {
+        let skills = self.skills()?;
+        let Some((_, length)) = skills.iter().find(|(n, _)| n == skill).cloned() else {
+            return Err(format!("no skill `{skill}` on this duck (it has: {})", skills.iter().map(|(n, _)| n.as_str()).collect::<Vec<_>>().join(", ")));
+        };
+        let (cliff, map) = {
+            let mut robot = self.robot.lock().expect("robot poisoned");
+            let r = quack_duck::body::request(&mut robot.control, &duck_ipc_proto::Call::RobotDo(duck_ipc_proto::DoParams { skill: skill.to_string() }))?;
+            if let Some(e) = r.error {
+                return Err(format!("robotd refused `{skill}`: {}", e.message));
+            }
+            (robot.places.cliff.clone(), robot.places.map.clone())
+        };
+        let Some(cliff) = cliff else { return Ok(json!({"skill": skill, "seen": "no state stream to watch it on"})) };
+        let seen = quack_nav::act::watch(
+            || cliff.snapshot().policy,
+            || map.as_ref().and_then(|m| m.snapshot().latest).is_some_and(|f| f.seated),
+            std::thread::sleep,
+            length,
+        );
+        let carrying = quack_nav::ledger::report().get("state").and_then(Value::as_str).map(str::to_string);
+        match seen {
+            quack_nav::act::Seen::Ran { secs, label } => Ok(json!({"skill": skill, "ran_s": (secs * 10.0).round() / 10.0, "label": label, "body": carrying})),
+            quack_nav::act::Seen::NeverBegan => Err(format!("`{skill}` never began: the body stayed on its walk")),
+            quack_nav::act::Seen::DidNotEnd { label } => Err(format!("`{skill}` ({label}) did not end in its time")),
+            quack_nav::act::Seen::Fell { label } => Err(format!("the duck fell or was held during `{skill}` ({label})")),
+        }
+    }
+
+    /// `nav.act` / `robot.act`: a queue of its own — a walk to `at` first
+    /// when given, then the skill.
+    fn act(self: &Arc<Self>, conn: u64, p: quack_nav_proto::ActParams) -> Result<Value, (i64, String)> {
+        use quack_nav_proto::code;
+        let skills = self.skills().map_err(|e| (code::TOOL_ERROR, e))?;
+        if !skills.iter().any(|(n, _)| *n == p.skill) {
+            return Err((code::INVALID_PARAMS, format!("no skill `{}` on this duck (it has: {})", p.skill, skills.iter().map(|(n, _)| n.as_str()).collect::<Vec<_>>().join(", "))));
+        }
+        let mut steps = Vec::new();
+        match &p.at {
+            None => {}
+            Some(Value::String(here)) if here == "here" => {}
+            Some(Value::String(place)) => steps.push(quack_nav::queue::Step { tool: "robot.go_to".into(), args: json!({"place": place}) }),
+            Some(v) if v.get("x").is_some() && v.get("y").is_some() => steps.push(quack_nav::queue::Step { tool: "robot.go_to".into(), args: json!({"x": v["x"], "y": v["y"]}) }),
+            Some(other) => return Err((code::INVALID_PARAMS, format!("robot.act: `at` is \"here\", a place's name or {{x, y}}, not {other}"))),
+        }
+        steps.push(quack_nav::queue::Step { tool: ACT_STEP.into(), args: json!({"skill": p.skill}) });
+        self.start_queue(conn, steps, quack_nav::queue::OnFailure::Stop)
+    }
+
+    /// Start a queue for connection `conn`, refused when one runs or another
+    /// connection holds the lease.
+    fn start_queue(self: &Arc<Self>, conn: u64, steps: Vec<quack_nav::queue::Step>, on_failure: quack_nav::queue::OnFailure) -> Result<Value, (i64, String)> {
+        use quack_nav_proto::{code, topic};
+        let (verdict, _) = self.owner.lock().expect("owner poisoned").check(conn, "nav.jobs", &json!({}), std::time::Instant::now());
+        if let quack_nav::lease::Verdict::Held { holder, .. } = verdict {
+            return Err((code::LEASED, format!("{holder} holds the duck: a queue is refused")));
+        }
+        let mut slot = self.queue.lock().expect("queue poisoned");
+        if slot.is_some() {
+            return Err((code::TOOL_ERROR, "a queue is already running; stop it first (nav.jobs {\"stop\": true})".into()));
+        }
+        let stop = quack_nav::queue::Stop::default();
+        let n = steps.len();
+        let said = Arc::new(Mutex::new(json!({"running": true, "steps": n, "done": []})));
+        *slot = Some((stop.clone(), said.clone()));
+        drop(slot);
+        let d = self.clone();
+        std::thread::Builder::new()
+            .name("queue".into())
+            .spawn(move || {
+                d.events.publish(topic::QUEUE, json!({"state": "started", "steps": n, "tools": steps.iter().map(|s| s.tool.clone()).collect::<Vec<_>>()}));
+                let report = quack_nav::queue::run(
+                    &steps,
+                    on_failure,
+                    &stop,
+                    |tool, args| d.call_tool(conn, tool, args).map_err(|(_, e)| e),
+                    || {
+                        let st = d.shutdown.explore.status();
+                        (st.state.as_str().to_string(), st.reason.clone())
+                    },
+                    |o| {
+                        d.events.publish(topic::QUEUE, json!({"state": "step", "index": o.index, "tool": o.tool, "ok": o.ok, "reason": o.reason, "result": o.result}));
+                        if let Some(done) = said.lock().expect("said poisoned").get_mut("done").and_then(Value::as_array_mut) {
+                            done.push(json!({"index": o.index, "tool": o.tool, "ok": o.ok, "reason": o.reason}));
+                        }
+                    },
+                    std::thread::sleep,
+                );
+                tracing::info!(state = report.state, steps = report.steps.len(), "queue ended");
+                d.events.publish(topic::QUEUE, json!({"state": report.state, "steps": report.steps.iter().map(|o| json!({"index": o.index, "tool": o.tool, "ok": o.ok, "reason": o.reason})).collect::<Vec<_>>()}));
+                *d.queue.lock().expect("queue poisoned") = None;
+            })
+            .expect("the queue thread starts");
+        Ok(json!({"queued": n, "started": true, "on_failure": if on_failure == quack_nav::queue::OnFailure::Stop { "stop" } else { "continue" }}))
     }
 
     /// Say a lease's end on the `lease` topic.
@@ -320,7 +466,14 @@ fn answer(line: &str, daemon: &Arc<Daemon>, conn: u64) -> Value {
             }
             Err(e) => error(id, code::INVALID_PARAMS, &format!("nav.hello: {e}")),
         },
-        m::CATALOG => json!({"jsonrpc": "2.0", "id": id, "result": quack_nav::tools::catalog()}),
+        m::CATALOG => json!({"jsonrpc": "2.0", "id": id, "result": catalog()}),
+        m::ACT => match serde_json::from_value::<quack_nav_proto::ActParams>(params) {
+            Ok(p) => match daemon.act(conn, p) {
+                Ok(v) => json!({"jsonrpc": "2.0", "id": id, "result": v}),
+                Err((c, e)) => error(id, c, &e),
+            },
+            Err(e) => error(id, code::INVALID_PARAMS, &format!("nav.act: {e}")),
+        },
         m::CALL => {
             let name = params.get("name").and_then(Value::as_str).unwrap_or_default().to_owned();
             let args = params.get("args").cloned().unwrap_or(json!({}));
@@ -372,7 +525,7 @@ fn answer(line: &str, daemon: &Arc<Daemon>, conn: u64) -> Value {
 
 /// `nav.jobs`: start a queue, answer its state, or stop it.
 fn jobs(id: Value, params: Value, daemon: &Arc<Daemon>, conn: u64) -> Value {
-    use quack_nav_proto::{code, topic};
+    use quack_nav_proto::code;
     let p = match serde_json::from_value::<quack_nav_proto::JobsParams>(params) {
         Ok(p) => p,
         Err(e) => return error(id, code::INVALID_PARAMS, &format!("nav.jobs: {e}")),
@@ -396,7 +549,7 @@ fn jobs(id: Value, params: Value, daemon: &Arc<Daemon>, conn: u64) -> Value {
     if steps.is_empty() || steps.len() > quack_nav::queue::MAX_STEPS {
         return error(id, code::INVALID_PARAMS, &format!("nav.jobs: 1 to {} steps", quack_nav::queue::MAX_STEPS));
     }
-    if let Some(bad) = steps.iter().find(|s| !quack_nav::tools::handles(&s.tool)) {
+    if let Some(bad) = steps.iter().find(|s| !quack_nav::tools::handles(&s.tool) && s.tool != ACT_TOOL && s.tool != ACT_SKILLS) {
         return error(id, code::INVALID_PARAMS, &format!("nav.jobs: no tool `{}`", bad.tool));
     }
     let on_failure = match p.on_failure.as_deref() {
@@ -404,49 +557,28 @@ fn jobs(id: Value, params: Value, daemon: &Arc<Daemon>, conn: u64) -> Value {
         Some("continue") => quack_nav::queue::OnFailure::Continue,
         Some(other) => return error(id, code::INVALID_PARAMS, &format!("nav.jobs: on_failure is `stop` or `continue`, not `{other}`")),
     };
-    // The lease: a queue moves the duck.
-    let (verdict, _) = daemon.owner.lock().expect("owner poisoned").check(conn, "nav.jobs", &json!({}), std::time::Instant::now());
-    if let quack_nav::lease::Verdict::Held { holder, .. } = verdict {
-        return error(id, code::LEASED, &format!("{holder} holds the duck: nav.jobs is refused"));
+    let mut expanded = Vec::new();
+    for st in steps {
+        if st.tool == ACT_TOOL {
+            let p: quack_nav_proto::ActParams = match serde_json::from_value(st.args.clone()) {
+                Ok(p) => p,
+                Err(e) => return error(id, code::INVALID_PARAMS, &format!("nav.jobs: robot.act: {e}")),
+            };
+            if let Some(at) = &p.at
+                && at.as_str() != Some("here")
+            {
+                let args = if let Some(place) = at.as_str() { json!({"place": place}) } else { json!({"x": at["x"], "y": at["y"]}) };
+                expanded.push(quack_nav::queue::Step { tool: "robot.go_to".into(), args });
+            }
+            expanded.push(quack_nav::queue::Step { tool: ACT_STEP.into(), args: json!({"skill": p.skill}) });
+        } else {
+            expanded.push(quack_nav::queue::Step { tool: st.tool, args: st.args });
+        }
     }
-    let mut slot = daemon.queue.lock().expect("queue poisoned");
-    if slot.is_some() {
-        return error(id, code::TOOL_ERROR, "nav.jobs: a queue is already running; stop it first (nav.jobs {\"stop\": true})");
+    match daemon.start_queue(conn, expanded, on_failure) {
+        Ok(v) => ok(v),
+        Err((c, e)) => error(id, c, &format!("nav.jobs: {e}")),
     }
-    let stop = quack_nav::queue::Stop::default();
-    let said = Arc::new(Mutex::new(json!({"running": true, "steps": steps.len(), "done": []})));
-    *slot = Some((stop.clone(), said.clone()));
-    drop(slot);
-    let steps: Vec<quack_nav::queue::Step> = steps.into_iter().map(|s| quack_nav::queue::Step { tool: s.tool, args: s.args }).collect();
-    let n = steps.len();
-    let d = daemon.clone();
-    std::thread::Builder::new()
-        .name("queue".into())
-        .spawn(move || {
-            d.events.publish(topic::QUEUE, json!({"state": "started", "steps": n}));
-            let report = quack_nav::queue::run(
-                &steps,
-                on_failure,
-                &stop,
-                |tool, args| d.call_tool(conn, tool, args).map_err(|(_, e)| e),
-                || {
-                    let st = d.shutdown.explore.status();
-                    (st.state.as_str().to_string(), st.reason.clone())
-                },
-                |o| {
-                    d.events.publish(topic::QUEUE, json!({"state": "step", "index": o.index, "tool": o.tool, "ok": o.ok, "reason": o.reason}));
-                    if let Some(done) = said.lock().expect("said poisoned").get_mut("done").and_then(Value::as_array_mut) {
-                        done.push(json!({"index": o.index, "tool": o.tool, "ok": o.ok, "reason": o.reason}));
-                    }
-                },
-                std::thread::sleep,
-            );
-            tracing::info!(state = report.state, steps = report.steps.len(), "nav.jobs: the queue ended");
-            d.events.publish(topic::QUEUE, json!({"state": report.state, "steps": report.steps.iter().map(|o| json!({"index": o.index, "tool": o.tool, "ok": o.ok, "reason": o.reason})).collect::<Vec<_>>()}));
-            *d.queue.lock().expect("queue poisoned") = None;
-        })
-        .expect("the queue thread starts");
-    ok(json!({"queued": n, "on_failure": if on_failure == quack_nav::queue::OnFailure::Stop { "stop" } else { "continue" }}))
 }
 
 fn error(id: Value, code: i64, message: &str) -> Value {

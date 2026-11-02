@@ -45,10 +45,18 @@
 //! the board, each to its end, saying each end on [`topic::QUEUE`]; the
 //! first that fails stops the queue unless `on_failure` is `continue`. With
 //! no steps it answers the queue's state; with `stop` it ends it.
+//!
+//! # v5 — doing, not only walking
+//!
+//! [`method::ACT`] carries out one of `robotd`'s skills — read from
+//! `robot.skills` at run time — as a queue of its own: a walk to `at`
+//! first when given, then `robot.do`, watched to its end on the state
+//! stream's policy label. The catalogue gains `robot.skills` and
+//! `robot.act`, the same for an agent that only knows `nav.call`.
 
 use serde::{Deserialize, Serialize};
 
-pub const API_VERSION: u32 = 4;
+pub const API_VERSION: u32 = 5;
 
 /// The methods `quack-navd` serves.
 pub mod method {
@@ -76,8 +84,11 @@ pub mod method {
     /// A queue of jobs run on the board ([`super::JobsParams`]). v4.
     pub const JOBS: &str = "nav.jobs";
 
+    /// One of robotd's skills, carried out as a job ([`super::ActParams`]). v5.
+    pub const ACT: &str = "nav.act";
+
     /// Every method this version serves, in the order `nav.hello` lists them.
-    pub const ALL: [&str; 9] = [HELLO, CATALOG, CALL, KNOBS, RESTART, SUBSCRIBE, CLAIM, RELEASE, JOBS];
+    pub const ALL: [&str; 10] = [HELLO, CATALOG, CALL, KNOBS, RESTART, SUBSCRIBE, CLAIM, RELEASE, JOBS, ACT];
 }
 
 /// The event topics. v2.
@@ -255,6 +266,16 @@ pub struct JobStep {
     pub tool: String,
     #[serde(default)]
     pub args: serde_json::Value,
+}
+
+/// `nav.act`: the skill, by the name `robot.skills` gives it, and where:
+/// absent or `"here"` as the duck stands, a named place, or `{x, y}`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ActParams {
+    pub skill: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub at: Option<serde_json::Value>,
 }
 
 /// What a skew between the client's build and the daemon's means, for the

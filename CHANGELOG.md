@@ -132,6 +132,18 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Added
 
+- **Doing, not only walking: `nav.act`** (protocol v5, the roadmap's
+  N5). The duck carries out one of `robotd`'s skills — Pollen's
+  policies, read from `robot.skills` at run time, never a list coded
+  here — as a job: a walk to `at` first when given, then `robot.do`,
+  watched to its end on the state stream's policy label (it begins when
+  the label leaves `walk`/`stand`, ends when it comes back). The step
+  says how long it ran and the body's state after (`free` or
+  `carrying`, from the gait ledger), or why not: refused, never began,
+  did not end in its time, fell. The catalogue gains `robot.skills` and
+  `robot.act` for agents that only know `nav.call`, and `robot.act` may
+  be a step of `nav.jobs` — "go to the bath and pick it up". The client
+  has `act`.
 - **A queue of jobs: `nav.jobs`** (protocol v4). The agent plans "go to
   the bath, then home"; the duck runs it on the board, step by step,
   each to its end — a journey to its arrival — and says each step's end
