@@ -1,5 +1,8 @@
 # Il contratto di controllo
 
+Il filo su cui viaggiano questi tool — `nav.hello`, la versione, i codici d'errore — è
+[`protocol.it.md`](protocol.it.md); il servizio intorno a loro è [`design/service.it.md`](design/service.it.md).
+
 Che cosa offre quack-navd a un programma che lo gestisce — una vista della
 mappa, un piano di controllo, uno script. Scritto il 2026-10-01 per
 [quack-control](https://github.com/andreagenovese/quack-control) (la

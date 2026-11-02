@@ -145,6 +145,17 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Aggiunto
 
+- **Il protocollo ha una versione: `nav.hello`.** Il primo passo del
+  servizio nello stile di `robotd` ([docs/design/service.it.md](docs/design/service.it.md),
+  l'N4 della roadmap): un crate `quack-nav-proto` tiene la versione, i
+  nomi dei metodi, parametri e risultati e i codici d'errore, e sia il
+  daemon sia i suoi client compilano contro di lui. `nav.hello` risponde
+  `{api_version, daemon_version, revision, methods, events}`; un client
+  può dire chi è e contro quale versione è compilato, e una differenza
+  si registra e si serve, mai si rifiuta, come fa `robotd`. I campi
+  sconosciuti si rifiutano per nome. `nav.catalog` e `nav.call` sono
+  invariati. Il filo e la sua storia: [docs/protocol.it.md](docs/protocol.it.md).
+
 - **Una camminata per stato del corpo: libero, o che porta qualcosa.**
   Un carico nel becco cambia la camminata, e i suoi numeri non devono né
   sovrascrivere quelli della camminata libera né aspettare che vengano

@@ -1,5 +1,8 @@
 # The control contract
 
+The wire these tools travel on — `nav.hello`, the version, the error codes — is
+[`protocol.md`](protocol.md); the service around them is [`design/service.md`](design/service.md).
+
 What quack-navd offers a program that manages it — a map view, a control
 plane, a script. Written 2026-10-01 for
 [quack-control](https://github.com/andreagenovese/quack-control) (the

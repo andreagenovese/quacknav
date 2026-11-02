@@ -132,6 +132,17 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Added
 
+- **The protocol has a version: `nav.hello`.** The first step of the
+  service in `robotd`'s style ([docs/design/service.md](docs/design/service.md),
+  the roadmap's N4): a `quack-nav-proto` crate holds the version, the
+  method names, the params and results and the error codes, and both
+  the daemon and its clients build against it. `nav.hello` answers
+  `{api_version, daemon_version, revision, methods, events}`; a client
+  may say who it is and which version it was built against, and a skew
+  is logged and served, never refused, as `robotd` does. Unknown members
+  are refused by name. `nav.catalog` and `nav.call` are unchanged. The
+  wire and its history: [docs/protocol.md](docs/protocol.md).
+
 - **One walk per state of the body: free, or carrying.** A load in the
   beak changes the walk, and its numbers must neither overwrite the free
   walk's nor wait for them to be forgotten. The state is read from

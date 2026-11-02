@@ -200,18 +200,31 @@ fn answer(line: &str, daemon: &Daemon) -> Value {
     let robot = &daemon.robot;
     let request: Value = match serde_json::from_str(line) {
         Ok(value) => value,
-        Err(e) => return error(Value::Null, -32700, &format!("not JSON: {e}")),
+        Err(e) => return error(Value::Null, quack_nav_proto::code::PARSE_ERROR, &format!("not JSON: {e}")),
     };
     let id = request.get("id").cloned().unwrap_or(Value::Null);
     let method = request.get("method").and_then(Value::as_str).unwrap_or_default();
     let params = request.get("params").cloned().unwrap_or(json!({}));
+    use quack_nav_proto::{code, method as m};
     match method {
-        "nav.catalog" => json!({"jsonrpc": "2.0", "id": id, "result": quack_nav::tools::catalog()}),
-        "nav.call" => {
+        m::HELLO => match serde_json::from_value::<quack_nav_proto::HelloParams>(params) {
+            Ok(hello) => {
+                let who = hello.client.as_deref().unwrap_or("a client");
+                match hello.api_version.and_then(|v| quack_nav_proto::skew(v, quack_nav_proto::API_VERSION)) {
+                    Some(skew) => tracing::info!(client = who, skew, "nav.hello"),
+                    None => tracing::info!(client = who, api_version = quack_nav_proto::API_VERSION, "nav.hello"),
+                }
+                let result = quack_nav_proto::HelloResult::of_this_build(env!("CARGO_PKG_VERSION"), option_env!("QUACK_NAV_REVISION"));
+                json!({"jsonrpc": "2.0", "id": id, "result": result})
+            }
+            Err(e) => error(id, code::INVALID_PARAMS, &format!("nav.hello: {e}")),
+        },
+        m::CATALOG => json!({"jsonrpc": "2.0", "id": id, "result": quack_nav::tools::catalog()}),
+        m::CALL => {
             let name = params.get("name").and_then(Value::as_str).unwrap_or_default().to_owned();
             let args = params.get("args").cloned().unwrap_or(json!({}));
             if !quack_nav::tools::handles(&name) {
-                return error(id, -32601, &format!("this daemon has no tool `{name}`"));
+                return error(id, code::METHOD_NOT_FOUND, &format!("this daemon has no tool `{name}`"));
             }
             // A STOP, or a move by hand, reaches the duck's own motion
             // before the lock its step holds (see `tools::before_the_lock`).
@@ -222,15 +235,15 @@ fn answer(line: &str, daemon: &Daemon) -> Value {
             };
             match result {
                 Ok(value) => json!({"jsonrpc": "2.0", "id": id, "result": value}),
-                Err(e) => error(id, -32000, &e),
+                Err(e) => error(id, code::TOOL_ERROR, &e),
             }
         }
-        "nav.knobs" => match quack_nav::knobs::answer(&params, std::path::Path::new(&daemon.knobs_env)) {
+        m::KNOBS => match quack_nav::knobs::answer(&params, std::path::Path::new(&daemon.knobs_env)) {
             Ok(value) => json!({"jsonrpc": "2.0", "id": id, "result": value}),
-            Err(e) => error(id, -32000, &e),
+            Err(e) => error(id, code::TOOL_ERROR, &e),
         },
-        "nav.restart" => json!({"jsonrpc": "2.0", "id": id, "result": restart(daemon)}),
-        other => error(id, -32601, &format!("unknown method `{other}`")),
+        m::RESTART => json!({"jsonrpc": "2.0", "id": id, "result": restart(daemon)}),
+        other => error(id, code::METHOD_NOT_FOUND, &format!("unknown method `{other}`")),
     }
 }
 

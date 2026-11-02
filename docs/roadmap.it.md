@@ -65,7 +65,7 @@ daemon ne lasciava 5 cm e un terzo di angolo retto.
 **Fatto quando:** un `robot.move` di lunghezza dichiarata finisce entro una tolleranza dichiarata
 sul gemello, e l'A/B del gemello non mostra regressioni.
 
-### N4 — Un servizio nello stile di robotd
+### N4 — Un servizio nello stile di robotd · **in corso**
 
 Un contratto tipizzato e versionato per tutto ciò che quack-nav fa, con un `hello` che dice
 quale versione parla; eventi spinti a chi si è iscritto — il progresso di un viaggio, un
