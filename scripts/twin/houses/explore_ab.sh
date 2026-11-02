@@ -17,6 +17,22 @@ W=${TWIN_WORK:?a work dir}
 MAIN=${MAIN_REPO:?a built checkout of main}
 DEV=${DEV_REPO:?a built checkout of the branch}
 TRUTH=$(cd "$(dirname "$0")" && pwd)
+# One A/B at a time on these twins: both arms use /tmp/qa and /tmp/qb and
+# ports 7881–7882, and a second A/B started beside a first wipes their
+# state and saves its house's map into the other's run (e24, 2026-11-01:
+# an outer loop left running after a stop ran casa_arredata beside a
+# restarted casa_ingombra, whose map came out under the other name).
+LOCK=/tmp/quack-twin-ab.lock
+if ! mkdir $LOCK 2>/dev/null; then
+  holder=$(cat $LOCK/pid 2>/dev/null)
+  if [ -n "$holder" ] && kill -0 $holder 2>/dev/null; then
+    echo "explore_ab: another A/B (pid $holder) holds the twins; not starting" >&2
+    exit 1
+  fi
+  echo "explore_ab: a stale lock (pid ${holder:-none} gone); taking it" >&2
+fi
+echo $$ > $LOCK/pid
+trap 'rm -rf $LOCK' EXIT INT TERM
 for h in ${=HOUSES:-apartment casa_arredata casa_libera}; do
   mkdir -p $W/E/main/$h $W/E/dev/$h
   # Each house from nothing: a map left from the house before is tried at
