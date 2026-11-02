@@ -87,7 +87,9 @@ per unità a |vyaw| 0,3 fino a 0,76 a 0,7, e sotto il guadagno dello
 stick fa un anello — una curva di guadagno per taglia di comando, o uno
 stick che chiude la rotta sull'odometria) — e quack-control che mostra
 `gait`; la velocità della svolta è nel budget della svolta dal 2026-10-28
-(ramo `ledger-turn`), l'assestamento dopo uno stop e i guadagni
+(ramo `ledger-turn`), campionata da svolte di 0,6 rad o più dal
+2026-11-02 (il tempo di una svolta corta è per lo più il suo avvio di
+0,40 s), l'assestamento dopo uno stop e i guadagni
 sinistra/destra imparati dal 2026-10-29 (ramo `ledger-settle`:
 l'assestamento 0,12 s sul gemello contro i 0,6 scritti, le soste mezzo
 secondo più corte e i viaggi 9 s più veloci; la correzione di

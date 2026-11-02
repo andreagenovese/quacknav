@@ -15,6 +15,24 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Modificato
 
+- **La velocità della svolta sul posto da svolte abbastanza grandi da
+  raggiungerla.** Il tempo di una svolta è 0,40 s di avvio più la sua
+  ampiezza a 1,43 rad/s (255 svolte dello stick sul gemello, AB26),
+  quindi la velocità sul tempo di una svolta corta è per lo più il suo
+  avvio — 0,31–0,80 rad/s a un quarto di giro contro 1,05–1,27 a mezzo o
+  più — e una casa di svolte corte aveva imparato 0,75 (S12, daemon
+  0.18.3) dove la successiva aveva imparato 1,05. Il registro ora
+  campiona la velocità da svolte di 0,6 rad o più. Scudi e banco contro
+  il `main` congelato uguali al viaggio (non usano il registro).
+- **Un A/B di esplorazione alla volta sui gemelli.** Entrambi i bracci
+  di `scripts/twin/houses/explore_ab.sh` usano le stesse cartelle di
+  stato e le stesse porte; un secondo A/B partito accanto a un primo ci
+  è entrato dentro (e24: un ciclo rimasto acceso dopo uno stop ha
+  esplorato una casa accanto al rilancio dell'altra, e la mappa della
+  seconda è finita nella corsa della prima). Un lucchetto col pid di chi
+  lo tiene ora rifiuta un secondo A/B, prende un lucchetto orfano, e si
+  rilascia all'uscita.
+
 - **Una mossa finisce dove dice.** Una mossa a tempo lasciava il suo
   ultimo comando in robotd, che lo tiene fino al suo deadman mezzo
   secondo oltre — circa 5 cm di cammino al passo del set v8, un terzo di
