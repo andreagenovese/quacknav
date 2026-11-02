@@ -1428,6 +1428,10 @@ pub struct Job {
     refused_cleared: bool,
     /// What the sensor met that the map has not inked: walls for the planner.
     local: Vec<ExtraWall>,
+    /// The holes booked lately, held in the odometry's frame too, so a
+    /// correction of the pose they were booked on moves them with it
+    /// (`books::DropAnchor`).
+    anchors: Vec<DropAnchor>,
     /// Where the body has been, a point every [`TRAIL_STEP_M`]: lanes the
     /// planner may always use. The body's own passage is the one fact
     /// about passability the map, the margins and the books cannot deny
@@ -1638,6 +1642,7 @@ impl Job {
             goal: None,
             refused_cleared: false,
             local: Vec::new(),
+            anchors: Vec::new(),
             target: None,
             last_back: None,
             last_pose_stand: None,
@@ -2514,6 +2519,39 @@ fn a_new_job_inherits_the_drops_and_the_trail() {
     assert_eq!(s.local, drops, "the fresh status shows them too");
     assert_eq!(s.trail, trail);
 }
+
+/// A hole booked lately follows the map's correction of the pose it was
+/// booked on: the odometry did not jump, the map's pose did, and the
+/// point moves by the same correction. An old anchor is let go, a point
+/// moved under 2 cm is left, and the odometry's drift in between is
+/// taken as part of the move.
+#[test]
+    fn a_hole_booked_lately_follows_the_maps_correction_of_the_pose() {
+        let now = Instant::now();
+        let mut job = Job::new(vec![], 60.0, false, now);
+        // Booked at a map pose (2.0, 0.5, −π/2) that odometry had at
+        // (10.0, 10.0, 0.0): the rim 0.35 m ahead-south, at (2.0, 0.15).
+        let map_pose = (2.0, 0.5, -std::f64::consts::FRAC_PI_2);
+        let odom_pose = (10.0, 10.0, 0.0);
+        job.local.push(((2.0, 0.15), DROP_RADIUS_M));
+        job.anchor_drop((2.0, 0.15), map_pose, odom_pose, now);
+        job.local.push(((5.0, 5.0), DROP_RADIUS_M));
+        job.anchor_drop((5.0, 5.0), map_pose, odom_pose, now);
+        // The map corrects the pose 0.25 m north (the duck was farther
+        // north than it believed); the odometry stays.
+        let corrected = (2.0, 0.25, -std::f64::consts::FRAC_PI_2);
+        let moved = job.reanchor_drops(corrected, odom_pose, now + Duration::from_secs(5));
+        assert_eq!(moved, 2);
+        let rim = job.local.iter().find(|(p, _)| (p.0 - 2.0).abs() < 1e-6).unwrap().0;
+        assert!((rim.1 - (-0.10)).abs() < 1e-6, "{rim:?}: the rim moved south with the pose");
+        // The same pose again: nothing to move.
+        assert_eq!(job.reanchor_drops(corrected, odom_pose, now + Duration::from_secs(6)), 0);
+        // Past ANCHOR_RECENT_S the anchors are let go: a later correction
+        // leaves the points where they are.
+        assert_eq!(job.reanchor_drops(map_pose, odom_pose, now + Duration::from_secs_f64(ANCHOR_RECENT_S + 1.0)), 0);
+        assert!(job.anchors.is_empty());
+        assert!((job.local[0].0.1 - (-0.10)).abs() < 1e-6);
+    }
 
 /// Standing on a booked drop strikes it, and the reach booked behind
 /// it; an obstacle edge and a far drop stay.
