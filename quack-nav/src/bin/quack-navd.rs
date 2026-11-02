@@ -87,7 +87,7 @@ fn main() -> anyhow::Result<()> {
             pose: map.as_ref().and_then(|m| m.snapshot().latest).map(|f| (f.tracking, f.untrusted, f.seated, f.pose())),
         });
     }
-    let daemon = Arc::new(Daemon { robot: robot.clone(), knobs_env: config.knobs_env.clone(), shutdown, events });
+    let daemon = Arc::new(Daemon { robot: robot.clone(), knobs_env: config.knobs_env.clone(), shutdown, events, owner: Mutex::new(quack_nav::lease::Owner::default()), next_conn: std::sync::atomic::AtomicU64::new(1) });
 
     // A job asked for on a pose the mapper no longer trusts (the duck may
     // have been moved while it rested) finds the pose first, with the
@@ -120,6 +120,17 @@ struct Daemon {
     knobs_env: String,
     shutdown: Shutdown,
     events: quack_nav::events::Hub,
+    /// The lease on the duck's motion (`nav.claim`), if one is held.
+    owner: Mutex<quack_nav::lease::Owner>,
+    next_conn: std::sync::atomic::AtomicU64,
+}
+
+impl Daemon {
+    /// Say a lease's end on the `lease` topic.
+    fn lease_ended(&self, lease: &quack_nav::lease::Lease, why: &str) {
+        tracing::info!(holder = %lease.holder, why, "lease ended");
+        self.events.publish(quack_nav_proto::topic::LEASE, json!({"state": "ended", "holder": lease.holder, "why": why}));
+    }
 }
 
 /// How the daemon goes: the running job stopped, the mapping session
@@ -201,6 +212,7 @@ fn serve(stream: UnixStream, daemon: Arc<Daemon>) {
         }
     };
     let mut subscribed = false;
+    let conn = daemon.next_conn.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     for line in BufReader::new(stream).lines() {
         let Ok(line) = line else { break };
         if line.trim().is_empty() {
@@ -208,11 +220,16 @@ fn serve(stream: UnixStream, daemon: Arc<Daemon>) {
         }
         let reply = match subscription(&line) {
             Some((id, params)) => subscribe(id, params, &daemon, &out, &mut subscribed),
-            None => answer(&line, &daemon),
+            None => answer(&line, &daemon, conn),
         };
         if writeln!(out.lock().expect("lane poisoned"), "{reply}").is_err() {
             break;
         }
+    }
+    // The holder's connection closed: its lease ends with it.
+    let gone = daemon.owner.lock().expect("owner poisoned").gone(conn);
+    if let Some(l) = gone {
+        daemon.lease_ended(&l, "its connection closed");
     }
 }
 
@@ -258,7 +275,7 @@ fn subscribe(id: Value, params: Value, daemon: &Daemon, out: &Arc<Mutex<UnixStre
     json!({"jsonrpc": "2.0", "id": id, "result": quack_nav_proto::SubscribeResult { topics }})
 }
 
-fn answer(line: &str, daemon: &Daemon) -> Value {
+fn answer(line: &str, daemon: &Daemon, conn: u64) -> Value {
     let robot = &daemon.robot;
     let request: Value = match serde_json::from_str(line) {
         Ok(value) => value,
@@ -288,6 +305,15 @@ fn answer(line: &str, daemon: &Daemon) -> Value {
             if !quack_nav::tools::handles(&name) {
                 return error(id, code::METHOD_NOT_FOUND, &format!("this daemon has no tool `{name}`"));
             }
+            // The lease: a tool that moves the duck from anyone but its
+            // holder is refused; a stop never is, and ends the lease.
+            let (verdict, ended) = daemon.owner.lock().expect("owner poisoned").check(conn, &name, &args, std::time::Instant::now());
+            if let Some(l) = ended {
+                daemon.lease_ended(&l, if quack_nav::lease::is_stop(&name, &args) { "a stop" } else { "its time ran out" });
+            }
+            if let quack_nav::lease::Verdict::Held { holder, left_s } = verdict {
+                return error(id, code::LEASED, &format!("{holder} holds the duck (for {left_s:.0} s more, or until it lets go): `{name}` is refused; a stop is not"));
+            }
             // A STOP, or a move by hand, reaches the duck's own motion
             // before the lock its step holds (see `tools::before_the_lock`).
             quack_nav::tools::before_the_lock(&daemon.shutdown.explore, &name, &args);
@@ -298,6 +324,37 @@ fn answer(line: &str, daemon: &Daemon) -> Value {
             match result {
                 Ok(value) => json!({"jsonrpc": "2.0", "id": id, "result": value}),
                 Err(e) => error(id, code::TOOL_ERROR, &e),
+            }
+        }
+        m::CLAIM => {
+            let p = match serde_json::from_value::<quack_nav_proto::ClaimParams>(params) {
+                Ok(p) => p,
+                Err(e) => return error(id, code::INVALID_PARAMS, &format!("nav.claim: {e}")),
+            };
+            let now = std::time::Instant::now();
+            let claimed = daemon.owner.lock().expect("owner poisoned").claim(conn, &p.holder, p.ttl_s, p.token.as_deref(), now);
+            match claimed {
+                Ok(l) => {
+                    daemon.events.publish(quack_nav_proto::topic::LEASE, json!({"state": "held", "holder": l.holder, "why": "claimed"}));
+                    let ttl_s = (l.until.saturating_duration_since(now).as_secs_f64() * 10.0).round() / 10.0;
+                    json!({"jsonrpc": "2.0", "id": id, "result": quack_nav_proto::ClaimResult { token: l.token, holder: l.holder, ttl_s }})
+                }
+                Err(quack_nav::lease::Verdict::Held { holder, left_s }) => error(id, code::LEASED, &format!("{holder} holds the duck for {left_s:.0} s more")),
+                Err(quack_nav::lease::Verdict::Free) => error(id, code::TOOL_ERROR, "nav.claim: no lease"),
+            }
+        }
+        m::RELEASE => {
+            let p = match serde_json::from_value::<quack_nav_proto::ReleaseParams>(params) {
+                Ok(p) => p,
+                Err(e) => return error(id, code::INVALID_PARAMS, &format!("nav.release: {e}")),
+            };
+            let released = daemon.owner.lock().expect("owner poisoned").release(conn, p.token.as_deref());
+            match released {
+                Some(l) => {
+                    daemon.lease_ended(&l, "given back");
+                    json!({"jsonrpc": "2.0", "id": id, "result": {"released": true, "holder": l.holder}})
+                }
+                None => json!({"jsonrpc": "2.0", "id": id, "result": {"released": false}}),
             }
         }
         m::KNOBS => match quack_nav::knobs::answer(&params, std::path::Path::new(&daemon.knobs_env)) {

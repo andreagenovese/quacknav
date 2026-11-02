@@ -132,6 +132,16 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Added
 
+- **One owner at a time: `nav.claim`** (protocol v3). Without a lease
+  anyone may drive, as before. A connection that claims the duck holds
+  its motion for up to 300 s, renewed by claiming again: `robot.go_to`,
+  `robot.map_explore`, `robot.map_step` and `robot.move` from anyone
+  else are refused (−32010) naming the holder. Reads always pass, and a
+  stop always does — and ends the lease; safety does not wait for
+  ownership. The lease ends at `nav.release`, at its ttl and when its
+  connection closes, said on the `lease` topic. The client has `claim`
+  and `release`. The lease is the navigation's, not the motors':
+  `robotd` stays the only owner of the joints.
 - **A client crate: `quack-nav-client`.** A blocking client on the
   protocol's types — connect, hello, the catalogue, a tool call, a
   subscription as an iterator of events — so a satellite, a control

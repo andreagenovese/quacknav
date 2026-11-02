@@ -15,6 +15,8 @@ answers `METHOD_NOT_FOUND` (−32601), an unknown member `INVALID_PARAMS` (−32
 |---|---|---|---|
 | `nav.hello` | v1 | `{client?, api_version?}` — who asks and the version it was built against, for the daemon's log | `{api_version, daemon_version, revision, methods, events}` |
 | `nav.subscribe` | v2 | `{topics?}` — all when absent | `{topics}` granted; an unknown topic refused by name. From then on the connection carries `nav.event` notifications; once per connection |
+| `nav.claim` | v3 | `{holder, ttl_s?, token?}` — a name for people, 60 s by default and 300 at most, the token when renewing from another connection | `{token, holder, ttl_s}`; −32010 when another connection holds it |
+| `nav.release` | v3 | `{token?}` — the holder's own connection may leave it out | `{released, holder?}` |
 | `nav.catalog` | before v1 | — | the tools, each `{name, description, parameters}` |
 | `nav.call` | before v1 | `{name, args}` | the tool's answer; a tool's own error is −32000 with its message |
 | `nav.knobs` | before v1 | see [`knobs.md`](knobs.md) | |
@@ -35,6 +37,16 @@ closed. Polling `robot.map_status` stays correct.
 | `pose` | the map's pose becomes trusted or untrusted | `{tracking, untrusted, pose}` |
 | `fall` | the body sits or falls while a job runs | `{pose}` |
 | `question` | the explorer asks what a place is | `{pose}` |
+| `lease` | the lease was taken or ended (v3) | `{state, holder, why}` |
+
+## The lease (v3)
+
+Without a lease anyone may drive, as before. A connection that claims holds the duck's motion:
+`robot.go_to`, `robot.map_explore`, `robot.map_step` and `robot.move` from any other connection
+answer −32010 naming the holder. Reads always pass. **A stop always passes** — `robot.go_to` or
+`robot.map_explore` with `{"stop": true}` — and ends a lease held by someone else. A lease ends at
+`nav.release`, at its ttl, and when the holder's connection closes; the `lease` topic says
+`{state, holder, why}` (an end by the ttl is said at the next call that finds it).
 
 ## A client in Rust
 
@@ -51,10 +63,13 @@ an iterator. `cargo run -p quack-nav-client --example watch -- <socket> [topic�
 | −32601 | no such method, or no such tool |
 | −32600 | a second `nav.subscribe` on the same connection |
 | −32602 | a param this method does not take, named |
+| −32010 | another connection holds the lease on the duck's motion; the message names it |
 | −32000 | the tool answered with an error: its message says why |
 
 ## History
 
+- **v3** (2026-11-02) — one owner at a time: `nav.claim`, `nav.release`, the code −32010, the
+  `lease` topic.
 - **v2** (2026-11-02) — events: `nav.subscribe`, `nav.event`, the topics `job`, `job.progress`,
   `pose`, `fall`, `question`.
 - **v1** (2026-11-02) — `nav.hello`. The version on the wire, the methods and events a build

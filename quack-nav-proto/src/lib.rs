@@ -30,10 +30,18 @@
 //! interleaved with the answers to whatever else the client asks on it.
 //! Best effort and in order; a subscriber that does not read is closed, not
 //! waited for.
+//!
+//! # v3 — one owner at a time
+//!
+//! [`method::CLAIM`] gives a connection a short lease: while it holds it the
+//! tools that move the duck are refused to every other connection with
+//! [`code::LEASED`] and the holder's name. Reads never are, a stop never
+//! is (and a stop ends the lease). [`method::RELEASE`], the ttl and the
+//! holder's connection closing end it. The [`topic::LEASE`] event says so.
 
 use serde::{Deserialize, Serialize};
 
-pub const API_VERSION: u32 = 2;
+pub const API_VERSION: u32 = 3;
 
 /// The methods `quack-navd` serves.
 pub mod method {
@@ -53,8 +61,13 @@ pub mod method {
     /// A notification the daemon writes to a subscriber ([`super::Event`]). v2.
     pub const EVENT: &str = "nav.event";
 
+    /// A lease on the duck's motion ([`super::ClaimParams`]). v3.
+    pub const CLAIM: &str = "nav.claim";
+    /// The lease given back ([`super::ReleaseParams`]). v3.
+    pub const RELEASE: &str = "nav.release";
+
     /// Every method this version serves, in the order `nav.hello` lists them.
-    pub const ALL: [&str; 6] = [HELLO, CATALOG, CALL, KNOBS, RESTART, SUBSCRIBE];
+    pub const ALL: [&str; 8] = [HELLO, CATALOG, CALL, KNOBS, RESTART, SUBSCRIBE, CLAIM, RELEASE];
 }
 
 /// The event topics. v2.
@@ -69,8 +82,11 @@ pub mod topic {
     pub const FALL: &str = "fall";
     /// The explorer asks the person what a place is: `{pose}`.
     pub const QUESTION: &str = "question";
+    /// The lease was taken, given back, ended by a stop, by its ttl or by
+    /// its connection: `{state, holder, why}`. v3.
+    pub const LEASE: &str = "lease";
 
-    pub const ALL: [&str; 5] = [JOB, JOB_PROGRESS, POSE, FALL, QUESTION];
+    pub const ALL: [&str; 6] = [JOB, JOB_PROGRESS, POSE, FALL, QUESTION, LEASE];
 }
 
 /// JSON-RPC error codes. The first four are the specification's; the
@@ -82,6 +98,9 @@ pub mod code {
     pub const INVALID_PARAMS: i64 = -32602;
     /// A tool answered with an error: its message says why.
     pub const TOOL_ERROR: i64 = -32000;
+    /// Another connection holds the lease on the duck's motion; the message
+    /// names it. v3.
+    pub const LEASED: i64 = -32010;
 }
 
 /// `nav.hello` takes nothing, or what the client wants known about itself
@@ -165,6 +184,42 @@ pub struct Event {
     /// The daemon's monotonic seconds.
     pub t: f64,
     pub data: serde_json::Value,
+}
+
+/// `nav.claim`: who claims, for how long (at most 300 s), and the token of
+/// the lease it holds when renewing from another connection.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ClaimParams {
+    pub holder: String,
+    #[serde(default = "ClaimParams::default_ttl")]
+    pub ttl_s: f64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub token: Option<String>,
+}
+
+impl ClaimParams {
+    fn default_ttl() -> f64 {
+        60.0
+    }
+}
+
+/// What `nav.claim` answers.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ClaimResult {
+    pub token: String,
+    pub holder: String,
+    /// Seconds until it ends unless renewed.
+    pub ttl_s: f64,
+}
+
+/// `nav.release`: the lease's token (the holder's own connection may leave
+/// it out).
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReleaseParams {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub token: Option<String>,
 }
 
 /// What a skew between the client's build and the daemon's means, for the

@@ -16,6 +16,8 @@ metodo che questo daemon non ha risponde `METHOD_NOT_FOUND` (−32601), un campo
 |---|---|---|---|
 | `nav.hello` | v1 | `{client?, api_version?}` — chi chiede e la versione contro cui è compilato, per il log del daemon | `{api_version, daemon_version, revision, methods, events}` |
 | `nav.subscribe` | v2 | `{topics?}` — tutti se assente | `{topics}` concessi; un argomento sconosciuto rifiutato per nome. Da lì la connessione porta le notifiche `nav.event`; una volta per connessione |
+| `nav.claim` | v3 | `{holder, ttl_s?, token?}` — un nome per le persone, 60 s di base e 300 al più, il token quando si rinnova da un'altra connessione | `{token, holder, ttl_s}`; −32010 quando un'altra connessione lo tiene |
+| `nav.release` | v3 | `{token?}` — la connessione di chi lo tiene può ometterlo | `{released, holder?}` |
 | `nav.catalog` | prima di v1 | — | i tool, ciascuno `{name, description, parameters}` |
 | `nav.call` | prima di v1 | `{name, args}` | la risposta del tool; un errore del tool è −32000 col suo messaggio |
 | `nav.knobs` | prima di v1 | vedi [`knobs.it.md`](knobs.it.md) | |
@@ -36,12 +38,23 @@ chiusa. Interrogare `robot.map_status` resta corretto.
 | `pose` | la posa della mappa diventa fidata o non fidata | `{tracking, untrusted, pose}` |
 | `fall` | il corpo si siede o cade mentre un lavoro gira | `{pose}` |
 | `question` | l'esploratore chiede cos'è un posto | `{pose}` |
+| `lease` | il prestito è stato preso o è finito (v3) | `{state, holder, why}` |
+
+## Il prestito (v3)
+
+Senza prestito chiunque può guidare, come prima. Una connessione che lo chiede tiene il moto della
+papera: `robot.go_to`, `robot.map_explore`, `robot.map_step` e `robot.move` da qualunque altra
+connessione rispondono −32010 nominando chi lo tiene. Le letture passano sempre. **Uno stop passa
+sempre** — `robot.go_to` o `robot.map_explore` con `{"stop": true}` — e chiude un prestito tenuto
+da altri. Un prestito finisce con `nav.release`, allo scadere del ttl, e quando la connessione di
+chi lo tiene si chiude; l'argomento `lease` dice `{state, holder, why}` (una fine per ttl si dice
+alla prima chiamata che la trova).
 
 ## Un client in Rust
 
 `quack-nav-client` (in questo workspace) è un client bloccante su questi tipi: `Client::connect`,
 `hello` (un daemon di prima di `nav.hello` risponde come una v0, i suoi tool funzionano ancora),
-`catalog`, `call(tool, args)`, e `subscribe(socket, topics)` — gli eventi su una connessione loro,
+`catalog`, `call(tool, args)`, `claim`/`release` (v3), e `subscribe(socket, topics)` — gli eventi su una connessione loro,
 come un iteratore. `cargo run -p quack-nav-client --example watch -- <socket> [argomento…]` li
 stampa.
 
@@ -53,10 +66,13 @@ stampa.
 | −32601 | nessun metodo, o nessun tool, con quel nome |
 | −32600 | un secondo `nav.subscribe` sulla stessa connessione |
 | −32602 | un parametro che questo metodo non prende, nominato |
+| −32010 | un'altra connessione tiene il prestito sul moto della papera; il messaggio la nomina |
 | −32000 | il tool ha risposto con un errore: il suo messaggio dice perché |
 
 ## Storia
 
+- **v3** (2026-11-02) — un proprietario alla volta: `nav.claim`, `nav.release`, il codice
+  −32010, l'argomento `lease`.
 - **v2** (2026-11-02) — eventi: `nav.subscribe`, `nav.event`, gli argomenti `job`,
   `job.progress`, `pose`, `fall`, `question`.
 - **v1** (2026-11-02) — `nav.hello`. La versione sul filo, i metodi e gli eventi che una build

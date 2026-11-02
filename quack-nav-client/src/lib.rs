@@ -131,6 +131,25 @@ impl Client {
     pub fn call(&mut self, tool: &str, args: Value) -> Result<Value, Error> {
         self.request(proto::method::CALL, json!({"name": tool, "args": args}))
     }
+
+    /// `nav.claim`: the duck's motion is this connection's for `ttl_s`
+    /// (at most 300), renewed by claiming again — with the token from
+    /// another connection. Refused with [`proto::code::LEASED`] when
+    /// another connection holds it. v3.
+    pub fn claim(&mut self, holder: &str, ttl_s: f64, token: Option<&str>) -> Result<proto::ClaimResult, Error> {
+        let mut p = json!({"holder": holder, "ttl_s": ttl_s});
+        if let Some(t) = token {
+            p["token"] = json!(t);
+        }
+        let v = self.request(proto::method::CLAIM, p)?;
+        serde_json::from_value(v).map_err(|e| Error::Protocol(format!("nav.claim: {e}")))
+    }
+
+    /// `nav.release`: give the lease back. Whether one was released. v3.
+    pub fn release(&mut self, token: Option<&str>) -> Result<bool, Error> {
+        let p = token.map_or_else(|| json!({}), |t| json!({"token": t}));
+        Ok(self.request(proto::method::RELEASE, p)?.get("released").and_then(Value::as_bool).unwrap_or(false))
+    }
 }
 
 /// The events on these topics (all when empty), on a connection of their

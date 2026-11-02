@@ -145,6 +145,17 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Aggiunto
 
+- **Un proprietario alla volta: `nav.claim`** (protocollo v3). Senza
+  prestito chiunque può guidare, come prima. Una connessione che chiede
+  la papera tiene il suo moto fino a 300 s, rinnovato chiedendolo di
+  nuovo: `robot.go_to`, `robot.map_explore`, `robot.map_step` e
+  `robot.move` da chiunque altro sono rifiutati (−32010) col nome di chi
+  lo tiene. Le letture passano sempre, e uno stop sempre — e chiude il
+  prestito; la sicurezza non aspetta la proprietà. Il prestito finisce
+  con `nav.release`, allo scadere del ttl e quando la sua connessione si
+  chiude, detto sull'argomento `lease`. Il client ha `claim` e
+  `release`. Il prestito è della navigazione, non dei motori: `robotd`
+  resta l'unico proprietario delle giunture.
 - **Un crate client: `quack-nav-client`.** Un client bloccante sui tipi
   del protocollo — connessione, hello, il catalogo, una chiamata a un
   tool, un'iscrizione come iteratore di eventi — così un satellite, una
