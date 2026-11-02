@@ -31,11 +31,19 @@ chiusa. Interrogare `robot.map_status` resta corretto.
 
 | argomento | quando | dati |
 |---|---|---|
-| `job` | lo stato di un lavoro cambia; per un viaggio, appena la sua meta è nota (una partenza senza meta è detta esplorazione un secondo dopo) | `{state, kind, goal, reason, self_started}` — `kind` `journey`, `explore` o `own` (il moto proprio della papera) |
+| `job` | lo stato di un lavoro cambia; per un viaggio, appena la sua meta è nota (una partenza senza meta è detta esplorazione tre secondi dopo) | `{state, kind, goal, reason, self_started}` — `kind` `journey`, `explore` o `own` (il moto proprio della papera) |
 | `job.progress` | una volta al secondo mentre un lavoro gira | `{legs, refusals, target_distance_m, route_m}` |
 | `pose` | la posa della mappa diventa fidata o non fidata | `{tracking, untrusted, pose}` |
 | `fall` | il corpo si siede o cade mentre un lavoro gira | `{pose}` |
 | `question` | l'esploratore chiede cos'è un posto | `{pose}` |
+
+## Un client in Rust
+
+`quack-nav-client` (in questo workspace) è un client bloccante su questi tipi: `Client::connect`,
+`hello` (un daemon di prima di `nav.hello` risponde come una v0, i suoi tool funzionano ancora),
+`catalog`, `call(tool, args)`, e `subscribe(socket, topics)` — gli eventi su una connessione loro,
+come un iteratore. `cargo run -p quack-nav-client --example watch -- <socket> [argomento…]` li
+stampa.
 
 ## Codici d'errore
 

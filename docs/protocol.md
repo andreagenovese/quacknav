@@ -30,11 +30,18 @@ closed. Polling `robot.map_status` stays correct.
 
 | topic | when | data |
 |---|---|---|
-| `job` | a job's state changes; for a journey, once its goal is known (a start with no goal is said as an exploration a second on) | `{state, kind, goal, reason, self_started}` — `kind` `journey`, `explore` or `own` (the duck's own motion) |
+| `job` | a job's state changes; for a journey, once its goal is known (a start with no goal is said as an exploration three seconds on) | `{state, kind, goal, reason, self_started}` — `kind` `journey`, `explore` or `own` (the duck's own motion) |
 | `job.progress` | once a second while a job runs | `{legs, refusals, target_distance_m, route_m}` |
 | `pose` | the map's pose becomes trusted or untrusted | `{tracking, untrusted, pose}` |
 | `fall` | the body sits or falls while a job runs | `{pose}` |
 | `question` | the explorer asks what a place is | `{pose}` |
+
+## A client in Rust
+
+`quack-nav-client` (in this workspace) is a blocking client on these types: `Client::connect`,
+`hello` (a daemon from before `nav.hello` answers as a v0, its tools still work), `catalog`,
+`call(tool, args)`, and `subscribe(socket, topics)` — the events on a connection of their own, as
+an iterator. `cargo run -p quack-nav-client --example watch -- <socket> [topic…]` prints them.
 
 ## Error codes
 

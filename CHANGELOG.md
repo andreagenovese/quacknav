@@ -132,6 +132,13 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Added
 
+- **A client crate: `quack-nav-client`.** A blocking client on the
+  protocol's types — connect, hello, the catalogue, a tool call, a
+  subscription as an iterator of events — so a satellite, a control
+  page or a script stops writing the wire by hand. A daemon from before
+  `nav.hello` answers as a v0 and its tools still work. The `watch`
+  example prints a daemon's events; on the twin it heard a journey from
+  its start to `arrived at (0.60, 0.00)`.
 - **Events, pushed: `nav.subscribe`** (protocol v2). A connection that
   subscribes hears `job` (a job started, got its goal, ended — done,
   stopped, failed — with its reason), `job.progress` once a second,

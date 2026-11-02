@@ -23,7 +23,8 @@ pub const QUEUE: usize = 256;
 const WATCH_EVERY: Duration = Duration::from_millis(200);
 /// How long a job that started without a goal is given to show one
 /// before it is said to be an exploration.
-const GOAL_WAIT: Duration = Duration::from_secs(1);
+const GOAL_WAIT: Duration = Duration::from_secs(3);
+// (A journey's goal came 1.7 s after its start on the twin, 2026-11-02.)
 /// `job.progress` at most this often.
 const PROGRESS_EVERY: Duration = Duration::from_secs(1);
 
@@ -251,9 +252,9 @@ mod tests {
         // Done.
         let ev = changes(&mut seen, &facts("done", Some((3.0, 4.0)), true, false, false), t0 + Duration::from_millis(1500));
         assert!(ev.iter().any(|e| e.0 == topic::JOB && e.1["state"] == "done"), "{ev:?}");
-        // An exploration: no goal, said as one a second on; a question asked.
+        // An exploration: no goal, said as one past GOAL_WAIT; a question asked.
         assert!(changes(&mut seen, &facts("running", None, true, false, false), t0 + Duration::from_millis(1700)).iter().all(|e| e.0 != topic::JOB));
-        let ev = changes(&mut seen, &facts("running", None, true, false, true), t0 + Duration::from_millis(2800));
+        let ev = changes(&mut seen, &facts("running", None, true, false, true), t0 + Duration::from_millis(1700) + GOAL_WAIT);
         assert!(ev.iter().any(|e| e.0 == topic::QUESTION), "{ev:?}");
         assert!(ev.iter().any(|e| e.0 == topic::JOB && e.1["kind"] == "explore"), "{ev:?}");
     }

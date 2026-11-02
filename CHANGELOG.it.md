@@ -145,6 +145,14 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Aggiunto
 
+- **Un crate client: `quack-nav-client`.** Un client bloccante sui tipi
+  del protocollo — connessione, hello, il catalogo, una chiamata a un
+  tool, un'iscrizione come iteratore di eventi — così un satellite, una
+  pagina di controllo o uno script smettono di scrivere il filo a mano.
+  Un daemon di prima di `nav.hello` risponde come una v0 e i suoi tool
+  funzionano ancora. L'esempio `watch` stampa gli eventi di un daemon;
+  sul gemello ha sentito un viaggio dalla partenza a `arrived at (0.60,
+  0.00)`.
 - **Eventi, spinti: `nav.subscribe`** (protocollo v2). Una connessione
   che si iscrive sente `job` (un lavoro partito, con la sua meta,
   finito — fatto, fermato, fallito — col suo motivo), `job.progress` una

@@ -303,6 +303,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "quack-nav-client"
+version = "0.3.0-rc3"
+dependencies = [
+ "quack-nav-proto",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "quack-nav-proto"
 version = "0.3.0-rc3"
 dependencies = [
