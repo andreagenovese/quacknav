@@ -22,10 +22,18 @@
 //! [`method::HELLO`]: which version is speaking, which build, which methods
 //! and events it serves. `nav.catalog` and `nav.call` are unchanged from
 //! before the version existed, and stay.
+//!
+//! # v2 — events, pushed
+//!
+//! [`method::SUBSCRIBE`] turns a connection into a stream of
+//! [`method::EVENT`] notifications ([`Event`]) on the [`topic`]s asked for,
+//! interleaved with the answers to whatever else the client asks on it.
+//! Best effort and in order; a subscriber that does not read is closed, not
+//! waited for.
 
 use serde::{Deserialize, Serialize};
 
-pub const API_VERSION: u32 = 1;
+pub const API_VERSION: u32 = 2;
 
 /// The methods `quack-navd` serves.
 pub mod method {
@@ -40,8 +48,29 @@ pub mod method {
     /// Under systemd, answer, then restart with the knobs read anew.
     pub const RESTART: &str = "nav.restart";
 
+    /// The connection becomes a stream of events ([`super::SubscribeParams`]). v2.
+    pub const SUBSCRIBE: &str = "nav.subscribe";
+    /// A notification the daemon writes to a subscriber ([`super::Event`]). v2.
+    pub const EVENT: &str = "nav.event";
+
     /// Every method this version serves, in the order `nav.hello` lists them.
-    pub const ALL: [&str; 5] = [HELLO, CATALOG, CALL, KNOBS, RESTART];
+    pub const ALL: [&str; 6] = [HELLO, CATALOG, CALL, KNOBS, RESTART, SUBSCRIBE];
+}
+
+/// The event topics. v2.
+pub mod topic {
+    /// A job's state changed: `{state, kind, goal, reason, self_started}`.
+    pub const JOB: &str = "job";
+    /// At most once a second while a job runs: `{legs, refusals, target_distance_m, route_m}`.
+    pub const JOB_PROGRESS: &str = "job.progress";
+    /// The map's pose became trusted, or stopped being: `{tracking, untrusted, pose}`.
+    pub const POSE: &str = "pose";
+    /// The body is down or seated during a job: `{pose}`.
+    pub const FALL: &str = "fall";
+    /// The explorer asks the person what a place is: `{pose}`.
+    pub const QUESTION: &str = "question";
+
+    pub const ALL: [&str; 5] = [JOB, JOB_PROGRESS, POSE, FALL, QUESTION];
 }
 
 /// JSON-RPC error codes. The first four are the specification's; the
@@ -93,9 +122,49 @@ impl HelloResult {
             daemon_version: daemon_version.to_string(),
             revision: revision.map(str::to_string),
             methods: method::ALL.iter().map(|m| m.to_string()).collect(),
-            events: Vec::new(),
+            events: topic::ALL.iter().map(|t| t.to_string()).collect(),
         }
     }
+}
+
+/// `nav.subscribe`: the topics wanted, all of them when absent.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SubscribeParams {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub topics: Option<Vec<String>>,
+}
+
+/// What `nav.subscribe` answers: the topics granted (an unknown one is
+/// refused by name, not dropped).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SubscribeResult {
+    pub topics: Vec<String>,
+}
+
+impl SubscribeParams {
+    /// The topics this asks for, checked against [`topic::ALL`].
+    pub fn granted(&self) -> Result<Vec<String>, String> {
+        let asked: Vec<String> = match &self.topics {
+            None => topic::ALL.iter().map(|t| t.to_string()).collect(),
+            Some(t) => t.clone(),
+        };
+        if let Some(bad) = asked.iter().find(|t| !topic::ALL.contains(&t.as_str())) {
+            return Err(format!("no topic `{bad}` (there are: {})", topic::ALL.join(", ")));
+        }
+        Ok(asked)
+    }
+}
+
+/// One `nav.event` notification's params.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct Event {
+    pub topic: String,
+    /// Per connection, from 1, without gaps: a client can tell it missed one.
+    pub seq: u64,
+    /// The daemon's monotonic seconds.
+    pub t: f64,
+    pub data: serde_json::Value,
 }
 
 /// What a skew between the client's build and the daemon's means, for the
@@ -129,6 +198,16 @@ mod tests {
         let e = serde_json::from_value::<HelloParams>(serde_json::json!({"client": "x", "colour": "blue"})).unwrap_err();
         assert!(e.to_string().contains("colour"), "{e}");
         assert_eq!(serde_json::from_value::<HelloParams>(serde_json::json!({})).unwrap(), HelloParams::default());
+    }
+
+    #[test]
+    fn a_subscription_grants_what_exists_and_names_what_does_not() {
+        assert_eq!(SubscribeParams::default().granted().unwrap().len(), topic::ALL.len());
+        let p = SubscribeParams { topics: Some(vec!["job".into(), "fall".into()]) };
+        assert_eq!(p.granted().unwrap(), vec!["job", "fall"]);
+        let e = SubscribeParams { topics: Some(vec!["weather".into()]) }.granted().unwrap_err();
+        assert!(e.contains("weather"), "{e}");
+        assert_eq!(HelloResult::of_this_build("x", None).events, topic::ALL);
     }
 
     #[test]

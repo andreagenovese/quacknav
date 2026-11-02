@@ -74,7 +74,20 @@ fn main() -> anyhow::Result<()> {
     if mapper.is_some() {
         save_on_signal(shutdown.clone())?;
     }
-    let daemon = Arc::new(Daemon { robot: robot.clone(), knobs_env: config.knobs_env.clone(), shutdown });
+    // Events pushed to subscribers (`nav.subscribe`): a watcher reads the
+    // job's status and the map's pose and publishes what changed.
+    let events = quack_nav::events::Hub::default();
+    {
+        let (explore, map) = {
+            let r = robot.lock().expect("robot poisoned");
+            (r.places.explore.clone(), r.places.map.clone())
+        };
+        quack_nav::events::spawn(events.clone(), move || quack_nav::events::Facts {
+            job: explore.status().to_json(),
+            pose: map.as_ref().and_then(|m| m.snapshot().latest).map(|f| (f.tracking, f.untrusted, f.seated, f.pose())),
+        });
+    }
+    let daemon = Arc::new(Daemon { robot: robot.clone(), knobs_env: config.knobs_env.clone(), shutdown, events });
 
     // A job asked for on a pose the mapper no longer trusts (the duck may
     // have been moved while it rested) finds the pose first, with the
@@ -106,6 +119,7 @@ struct Daemon {
     robot: Arc<Mutex<Robot>>,
     knobs_env: String,
     shutdown: Shutdown,
+    events: quack_nav::events::Hub,
 }
 
 /// How the daemon goes: the running job stopped, the mapping session
@@ -175,25 +189,73 @@ fn restart(daemon: &Daemon) -> Value {
     })
 }
 
-/// One caller, one thread, NDJSON in and out — robotd's own shape.
+/// One caller, one thread, NDJSON in and out — robotd's own shape. A
+/// subscription adds a second writer on the same connection, the events'
+/// (`nav.subscribe`), so the lane's writes go through one lock.
 fn serve(stream: UnixStream, daemon: Arc<Daemon>) {
-    let mut out = match stream.try_clone() {
-        Ok(out) => out,
+    let out = match stream.try_clone() {
+        Ok(out) => Arc::new(Mutex::new(out)),
         Err(e) => {
             tracing::warn!(error = %e, "the caller's lane could not be split");
             return;
         }
     };
+    let mut subscribed = false;
     for line in BufReader::new(stream).lines() {
         let Ok(line) = line else { break };
         if line.trim().is_empty() {
             continue;
         }
-        let reply = answer(&line, &daemon);
-        if writeln!(out, "{reply}").is_err() {
+        let reply = match subscription(&line) {
+            Some((id, params)) => subscribe(id, params, &daemon, &out, &mut subscribed),
+            None => answer(&line, &daemon),
+        };
+        if writeln!(out.lock().expect("lane poisoned"), "{reply}").is_err() {
             break;
         }
     }
+}
+
+/// The request, when it is a `nav.subscribe`.
+fn subscription(line: &str) -> Option<(Value, Value)> {
+    let request: Value = serde_json::from_str(line).ok()?;
+    (request.get("method").and_then(Value::as_str) == Some(quack_nav_proto::method::SUBSCRIBE))
+        .then(|| (request.get("id").cloned().unwrap_or(Value::Null), request.get("params").cloned().unwrap_or(json!({}))))
+}
+
+/// `nav.subscribe`: the topics granted, and from then on the events on
+/// this connection, written by a thread of their own. Once per connection.
+fn subscribe(id: Value, params: Value, daemon: &Daemon, out: &Arc<Mutex<UnixStream>>, subscribed: &mut bool) -> Value {
+    use quack_nav_proto::code;
+    let params = match serde_json::from_value::<quack_nav_proto::SubscribeParams>(params) {
+        Ok(p) => p,
+        Err(e) => return error(id, code::INVALID_PARAMS, &format!("nav.subscribe: {e}")),
+    };
+    let topics = match params.granted() {
+        Ok(t) => t,
+        Err(e) => return error(id, code::INVALID_PARAMS, &format!("nav.subscribe: {e}")),
+    };
+    if *subscribed {
+        return error(id, code::INVALID_REQUEST, "nav.subscribe: this connection is already subscribed; open another for other topics");
+    }
+    *subscribed = true;
+    let events = daemon.events.subscribe(&topics);
+    let lane = out.clone();
+    std::thread::Builder::new()
+        .name("subscriber".into())
+        .spawn(move || {
+            for event in events {
+                let note = json!({"jsonrpc": "2.0", "method": quack_nav_proto::method::EVENT, "params": event});
+                if writeln!(lane.lock().expect("lane poisoned"), "{note}").is_err() {
+                    return;
+                }
+            }
+            // Dropped by the hub (it fell behind): the connection goes too.
+            let _ = lane.lock().expect("lane poisoned").shutdown(std::net::Shutdown::Both);
+        })
+        .expect("the subscriber thread starts");
+    tracing::info!(topics = ?topics, "nav.subscribe");
+    json!({"jsonrpc": "2.0", "id": id, "result": quack_nav_proto::SubscribeResult { topics }})
 }
 
 fn answer(line: &str, daemon: &Daemon) -> Value {

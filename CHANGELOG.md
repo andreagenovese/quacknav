@@ -132,6 +132,17 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Added
 
+- **Events, pushed: `nav.subscribe`** (protocol v2). A connection that
+  subscribes hears `job` (a job started, got its goal, ended — done,
+  stopped, failed — with its reason), `job.progress` once a second,
+  `pose` (trusted or not), `fall` and `question`, as notifications
+  between the answers to anything else it asks; `seq` without gaps, so a
+  client can tell it missed one. The events come from one watcher that
+  reads the job's status and the map's pose five times a second while
+  someone listens; nothing in the navigation waits on a subscriber, and
+  one more than 256 events behind is dropped. Polling `robot.map_status`
+  stays correct. On the twin a short journey was heard from the pose
+  found to `arrived at (0.60, 0.00)`, with its progress each second.
 - **The protocol has a version: `nav.hello`.** The first step of the
   service in `robotd`'s style ([docs/design/service.md](docs/design/service.md),
   the roadmap's N4): a `quack-nav-proto` crate holds the version, the

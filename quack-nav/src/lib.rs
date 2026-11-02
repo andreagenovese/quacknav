@@ -36,6 +36,7 @@
 
 pub mod cliff;
 pub mod config;
+pub mod events;
 pub mod explore;
 pub mod frontier;
 pub mod homecoming;

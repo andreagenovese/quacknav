@@ -145,6 +145,18 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Aggiunto
 
+- **Eventi, spinti: `nav.subscribe`** (protocollo v2). Una connessione
+  che si iscrive sente `job` (un lavoro partito, con la sua meta,
+  finito — fatto, fermato, fallito — col suo motivo), `job.progress` una
+  volta al secondo, `pose` (fidata o no), `fall` e `question`, come
+  notifiche tra le risposte a qualunque altra cosa chieda; `seq` senza
+  buchi, così un client sa se ne ha perso uno. Gli eventi nascono da un
+  osservatore che legge lo stato del lavoro e la posa della mappa cinque
+  volte al secondo mentre qualcuno ascolta; niente nella navigazione
+  aspetta un iscritto, e uno indietro di più di 256 eventi viene tolto.
+  Interrogare `robot.map_status` resta corretto. Sul gemello un viaggio
+  corto si è sentito dalla posa trovata a `arrived at (0.60, 0.00)`, col
+  suo progresso ogni secondo.
 - **Il protocollo ha una versione: `nav.hello`.** Il primo passo del
   servizio nello stile di `robotd` ([docs/design/service.it.md](docs/design/service.it.md),
   l'N4 della roadmap): un crate `quack-nav-proto` tiene la versione, i
