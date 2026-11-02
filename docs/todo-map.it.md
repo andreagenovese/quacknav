@@ -74,13 +74,14 @@ tenuta, e alla fine del cammino di un passo di mappatura quando segue
 una sosta — sul gemello 1,2 cm e 7° oltre il tempo chiesto dove la
 tenuta del deadman ne lasciava 5 cm e 35°; A/B 48/48, 0 cadute, tempi
 uguali).
-**Da fare**, in ordine: il dislivello fantasma nel passaggio da 0,49 m
-del corridoio accanto alla tromba delle scale — un punto prenotato
-0,2–0,3 m a nord del bordo, l'errore della posa al momento della
-prenotazione, che ha sigillato un bagno su quattro per ogni braccio
-dell'e23 e mai nell'e21/e22 (un dislivello prenotato su una posa che la
-mappa poi corregge dovrebbe spostarsi o andarsene con lei; oggi un
-punto prenotato resta dove l'ha messo la posa del momento); l'ultimo numero scritto del registro,
+Il dislivello fantasma nel passaggio da 0,49 m del corridoio accanto
+alla tromba delle scale — un punto prenotato 0,2–0,3 m fuori dal bordo
+su una posa che la mappa ha corretto un attimo dopo, che sigillava il
+bagno — ora segue le correzioni della sua posa per 60 s (ramo
+`drop-anchors`, 2026-11-02: un fantasma nel passaggio in 0
+esplorazioni su 4 con gli agganci contro 1 su 5 senza; pochi eventi,
+continuare a contare).
+**Da fare**, in ordine: l'ultimo numero scritto del registro,
 l'imbardata per unità, che gli impulsi di 0,6 s dello stick non possono
 dare come un numero solo (AB21, 2026-10-28: cala col comando, 0,99 rad/s
 per unità a |vyaw| 0,3 fino a 0,76 a 0,7, e sotto il guadagno dello
