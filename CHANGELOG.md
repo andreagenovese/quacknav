@@ -13,6 +13,23 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Changed
 
+- **The turn in place's rate from turns big enough to reach it.** A
+  turn's time is 0.40 s of start plus its size at 1.43 rad/s (255 turns
+  of the stick's on the twin, AB26), so the rate over a short turn's own
+  time is mostly its start — 0.31–0.80 rad/s at a quarter turn against
+  1.05–1.27 at a half or more — and a house of short turns had learned
+  0.75 (S12, daemon 0.18.3) where the next learned 1.05. The ledger now
+  samples the rate from turns of 0.6 rad or more. Shields and bench
+  against frozen `main` the same to the journey (they do not run the
+  ledger).
+- **One exploration A/B at a time on the twins.** Both arms of
+  `scripts/twin/houses/explore_ab.sh` use the same state directories and
+  ports; a second A/B started beside a first ran into its state (e24: a
+  loop left running after a stop explored one house beside the other's
+  restart, and the second's map was saved into the first's run). A lock
+  with the holder's pid now refuses a second A/B, takes over a stale
+  lock, and is released on exit.
+
 - **A move ends where it says.** A timed move left its last command in
   robotd, which holds it to its deadman half a second on — about 5 cm of
   walk at set v8's pace, a third of a right angle of turn — walked into

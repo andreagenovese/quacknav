@@ -80,7 +80,8 @@ falls with the command, 0.99 rad/s per unit at |vyaw| 0.3 to 0.76 at
 0.7, and under the stick's gain it loops — a gain curve by command size,
 or a stick that closes its heading on odometry) — and quack-control
 showing `gait`; the turn in place's rate is in the turn's budget since
-2026-10-28 (branch `ledger-turn`), the settle after a stop and the
+2026-10-28 (branch `ledger-turn`), sampled from turns of 0.6 rad or more
+since 2026-11-02 (a short turn's time is mostly its 0.40 s start), the settle after a stop and the
 left/right gains learned since 2026-10-29 (branch `ledger-settle`: the
 settle 0.12 s on the twin against the coded 0.6, the stands half a
 second shorter and the journeys 9 s faster; casa_ingombra's trim at −0.08…−0.11 in three

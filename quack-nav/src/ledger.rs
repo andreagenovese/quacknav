@@ -151,6 +151,9 @@ const SETTLE_MAX_S: f64 = 2.0;
 /// The slowest turn in place measured on any side before the ledger
 /// (30°/s): the rate a turn's time budget assumes until one is learned.
 const TURN_RATE_FLOOR_RAD_S: f64 = 0.5;
+/// A turn in place this big or bigger gives a rate sample (see
+/// [`Ledger::observe_turn`]): shorter, its time is mostly its start.
+pub const TURN_RATE_MIN_RAD: f64 = 0.6;
 
 /// The numbers the ledger keeps, by name in the file, with their bounds
 /// about the prior: `(low, high)` as factors of the prior, or absolute
@@ -793,7 +796,14 @@ impl Ledger {
     pub fn observe_turn(&mut self, at: Instant, turned_rad: f64, secs: f64) -> bool {
         self.turned_at = Some(at);
         self.end_run();
-        if turned_rad < 0.25 || secs < 0.1 {
+        // A turn's time is 0.40 s of starting plus its size at 1.43 rad/s
+        // (255 turns of the twin's stick, AB26, 2026-11-01), so a short
+        // turn's rate over its own time is mostly the start: 0.3–0.8
+        // rad/s at a quarter turn against 1.1 at a half or more, and a
+        // house of short turns learned 0.75 where the next learned 1.05.
+        // The rate is sampled from turns of [`TURN_RATE_MIN_RAD`] or more,
+        // where the start is a small part of it.
+        if turned_rad < TURN_RATE_MIN_RAD || secs < 0.1 {
             return false;
         }
         self.take(Number::TurnRateRadS, turned_rad / secs);
