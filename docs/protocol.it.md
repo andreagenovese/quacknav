@@ -18,6 +18,7 @@ metodo che questo daemon non ha risponde `METHOD_NOT_FOUND` (−32601), un campo
 | `nav.subscribe` | v2 | `{topics?}` — tutti se assente | `{topics}` concessi; un argomento sconosciuto rifiutato per nome. Da lì la connessione porta le notifiche `nav.event`; una volta per connessione |
 | `nav.claim` | v3 | `{holder, ttl_s?, token?}` — un nome per le persone, 60 s di base e 300 al più, il token quando si rinnova da un'altra connessione | `{token, holder, ttl_s}`; −32010 quando un'altra connessione lo tiene |
 | `nav.release` | v3 | `{token?}` — la connessione di chi lo tiene può ometterlo | `{released, holder?}` |
+| `nav.jobs` | v4 | `{steps: [{tool, args}…], on_failure?}` per partire (1–32 passi, `stop` di base o `continue`); `{}` per lo stato; `{stop: true}` per finirla | `{queued, on_failure}`; `{running, steps, done}`; `{stopping}` |
 | `nav.catalog` | prima di v1 | — | i tool, ciascuno `{name, description, parameters}` |
 | `nav.call` | prima di v1 | `{name, args}` | la risposta del tool; un errore del tool è −32000 col suo messaggio |
 | `nav.knobs` | prima di v1 | vedi [`knobs.it.md`](knobs.it.md) | |
@@ -39,6 +40,7 @@ chiusa. Interrogare `robot.map_status` resta corretto.
 | `fall` | il corpo si siede o cade mentre un lavoro gira | `{pose}` |
 | `question` | l'esploratore chiede cos'è un posto | `{pose}` |
 | `lease` | il prestito è stato preso o è finito (v3) | `{state, holder, why}` |
+| `queue` | una coda è partita, un passo è finito, la coda è finita (v4) | `{state, …}` (sotto) |
 
 ## Il prestito (v3)
 
@@ -50,11 +52,24 @@ da altri. Un prestito finisce con `nav.release`, allo scadere del ttl, e quando 
 chi lo tiene si chiude; l'argomento `lease` dice `{state, holder, why}` (una fine per ttl si dice
 alla prima chiamata che la trova).
 
+## La coda (v4)
+
+`nav.jobs` esegue i suoi passi in ordine sulla scheda. Un passo è un tool coi suoi argomenti come
+li prende `nav.call`; un passo che avvia un lavoro (`robot.go_to`, `robot.map_explore`) finisce
+quando finisce il lavoro — `done` è un successo, `failed` o `stopped` un fallimento col motivo del
+lavoro — e ogni altro passo finisce con la sua risposta. La fine di ogni passo si dice
+sull'argomento `queue` (`{state: "step", index, tool, ok, reason}`), e quella della coda (`{state:
+"done" | "failed" | "stopped", steps}`). Al primo fallimento la coda si ferma salvo che
+`on_failure` sia `continue`. Uno stop — `nav.jobs {"stop": true}` o il `robot.go_to {"stop": true}`
+dell'utente — chiude il passo in corso e la coda. Una coda alla volta. Muove la papera, quindi un
+prestito tenuto da un'altra connessione la rifiuta, e i suoi passi girano col prestito della
+connessione che l'ha chiesta.
+
 ## Un client in Rust
 
 `quack-nav-client` (in questo workspace) è un client bloccante su questi tipi: `Client::connect`,
 `hello` (un daemon di prima di `nav.hello` risponde come una v0, i suoi tool funzionano ancora),
-`catalog`, `call(tool, args)`, `claim`/`release` (v3), e `subscribe(socket, topics)` — gli eventi su una connessione loro,
+`catalog`, `call(tool, args)`, `claim`/`release` (v3), `jobs`/`jobs_state`/`jobs_stop` (v4), e `subscribe(socket, topics)` — gli eventi su una connessione loro,
 come un iteratore. `cargo run -p quack-nav-client --example watch -- <socket> [argomento…]` li
 stampa.
 
@@ -71,6 +86,7 @@ stampa.
 
 ## Storia
 
+- **v4** (2026-11-02) — una coda di lavori: `nav.jobs`, l'argomento `queue`.
 - **v3** (2026-11-02) — un proprietario alla volta: `nav.claim`, `nav.release`, il codice
   −32010, l'argomento `lease`.
 - **v2** (2026-11-02) — eventi: `nav.subscribe`, `nav.event`, gli argomenti `job`,

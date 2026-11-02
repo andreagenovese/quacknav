@@ -132,6 +132,15 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Added
 
+- **A queue of jobs: `nav.jobs`** (protocol v4). The agent plans "go to
+  the bath, then home"; the duck runs it on the board, step by step,
+  each to its end — a journey to its arrival — and says each step's end
+  on the `queue` topic. The first failure stops the queue unless asked
+  to go on; a stop ends the step under way and the queue. One queue at a
+  time; it moves the duck, so it respects the lease. The runner is
+  `quack_nav::queue`, pure and tested; the daemon runs the steps on the
+  same path as `nav.call`. The client has `jobs`, `jobs_state` and
+  `jobs_stop`.
 - **One owner at a time: `nav.claim`** (protocol v3). Without a lease
   anyone may drive, as before. A connection that claims the duck holds
   its motion for up to 300 s, renewed by claiming again: `robot.go_to`,

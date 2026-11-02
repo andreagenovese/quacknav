@@ -145,6 +145,15 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Aggiunto
 
+- **Una coda di lavori: `nav.jobs`** (protocollo v4). L'agente
+  pianifica "vai in bagno, poi a casa"; la papera la esegue sulla
+  scheda, passo per passo, ciascuno fino alla sua fine — un viaggio fino
+  all'arrivo — e dice la fine di ogni passo sull'argomento `queue`. Il
+  primo fallimento ferma la coda salvo che si chieda di proseguire; uno
+  stop chiude il passo in corso e la coda. Una coda alla volta; muove la
+  papera, quindi rispetta il prestito. L'esecutore è `quack_nav::queue`,
+  puro e provato; il daemon esegue i passi sullo stesso percorso di
+  `nav.call`. Il client ha `jobs`, `jobs_state` e `jobs_stop`.
 - **Un proprietario alla volta: `nav.claim`** (protocollo v3). Senza
   prestito chiunque può guidare, come prima. Una connessione che chiede
   la papera tiene il suo moto fino a 300 s, rinnovato chiedendolo di

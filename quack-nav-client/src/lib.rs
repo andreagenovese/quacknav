@@ -145,6 +145,24 @@ impl Client {
         serde_json::from_value(v).map_err(|e| Error::Protocol(format!("nav.claim: {e}")))
     }
 
+    /// `nav.jobs`: run these steps (`(tool, args)`) in order on the board,
+    /// each to its end; `go_on` keeps going past a failed step. The steps'
+    /// ends arrive on the `queue` topic. v4.
+    pub fn jobs(&mut self, steps: &[(&str, Value)], go_on: bool) -> Result<Value, Error> {
+        let steps: Vec<Value> = steps.iter().map(|(t, a)| json!({"tool": t, "args": a})).collect();
+        self.request(proto::method::JOBS, json!({"steps": steps, "on_failure": if go_on { "continue" } else { "stop" }}))
+    }
+
+    /// The queue's state: `{running: false}`, or the steps done so far. v4.
+    pub fn jobs_state(&mut self) -> Result<Value, Error> {
+        self.request(proto::method::JOBS, json!({}))
+    }
+
+    /// End the queue and the step under way. v4.
+    pub fn jobs_stop(&mut self) -> Result<Value, Error> {
+        self.request(proto::method::JOBS, json!({"stop": true}))
+    }
+
     /// `nav.release`: give the lease back. Whether one was released. v3.
     pub fn release(&mut self, token: Option<&str>) -> Result<bool, Error> {
         let p = token.map_or_else(|| json!({}), |t| json!({"token": t}));

@@ -38,10 +38,17 @@
 //! [`code::LEASED`] and the holder's name. Reads never are, a stop never
 //! is (and a stop ends the lease). [`method::RELEASE`], the ttl and the
 //! holder's connection closing end it. The [`topic::LEASE`] event says so.
+//!
+//! # v4 — a queue of jobs
+//!
+//! [`method::JOBS`] takes steps (`{tool, args}`) and runs them in order on
+//! the board, each to its end, saying each end on [`topic::QUEUE`]; the
+//! first that fails stops the queue unless `on_failure` is `continue`. With
+//! no steps it answers the queue's state; with `stop` it ends it.
 
 use serde::{Deserialize, Serialize};
 
-pub const API_VERSION: u32 = 3;
+pub const API_VERSION: u32 = 4;
 
 /// The methods `quack-navd` serves.
 pub mod method {
@@ -66,8 +73,11 @@ pub mod method {
     /// The lease given back ([`super::ReleaseParams`]). v3.
     pub const RELEASE: &str = "nav.release";
 
+    /// A queue of jobs run on the board ([`super::JobsParams`]). v4.
+    pub const JOBS: &str = "nav.jobs";
+
     /// Every method this version serves, in the order `nav.hello` lists them.
-    pub const ALL: [&str; 8] = [HELLO, CATALOG, CALL, KNOBS, RESTART, SUBSCRIBE, CLAIM, RELEASE];
+    pub const ALL: [&str; 9] = [HELLO, CATALOG, CALL, KNOBS, RESTART, SUBSCRIBE, CLAIM, RELEASE, JOBS];
 }
 
 /// The event topics. v2.
@@ -85,8 +95,10 @@ pub mod topic {
     /// The lease was taken, given back, ended by a stop, by its ttl or by
     /// its connection: `{state, holder, why}`. v3.
     pub const LEASE: &str = "lease";
+    /// A queue's step ended, or the queue did: `{state, index?, tool?, ok?, reason?}`. v4.
+    pub const QUEUE: &str = "queue";
 
-    pub const ALL: [&str; 6] = [JOB, JOB_PROGRESS, POSE, FALL, QUESTION, LEASE];
+    pub const ALL: [&str; 7] = [JOB, JOB_PROGRESS, POSE, FALL, QUESTION, LEASE, QUEUE];
 }
 
 /// JSON-RPC error codes. The first four are the specification's; the
@@ -220,6 +232,29 @@ pub struct ClaimResult {
 pub struct ReleaseParams {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub token: Option<String>,
+}
+
+/// `nav.jobs`: steps to run, what to do when one fails, or a stop. With
+/// neither steps nor stop it answers the queue's state.
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct JobsParams {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub steps: Option<Vec<JobStep>>,
+    /// `stop` (the default) or `continue`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub on_failure: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub stop: Option<bool>,
+}
+
+/// One step: a tool and its args, as `nav.call` takes them.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct JobStep {
+    pub tool: String,
+    #[serde(default)]
+    pub args: serde_json::Value,
 }
 
 /// What a skew between the client's build and the daemon's means, for the

@@ -17,6 +17,7 @@ answers `METHOD_NOT_FOUND` (−32601), an unknown member `INVALID_PARAMS` (−32
 | `nav.subscribe` | v2 | `{topics?}` — all when absent | `{topics}` granted; an unknown topic refused by name. From then on the connection carries `nav.event` notifications; once per connection |
 | `nav.claim` | v3 | `{holder, ttl_s?, token?}` — a name for people, 60 s by default and 300 at most, the token when renewing from another connection | `{token, holder, ttl_s}`; −32010 when another connection holds it |
 | `nav.release` | v3 | `{token?}` — the holder's own connection may leave it out | `{released, holder?}` |
+| `nav.jobs` | v4 | `{steps: [{tool, args}…], on_failure?}` to start (1–32 steps, `stop` by default or `continue`); `{}` for the state; `{stop: true}` to end it | `{queued, on_failure}`; `{running, steps, done}`; `{stopping}` |
 | `nav.catalog` | before v1 | — | the tools, each `{name, description, parameters}` |
 | `nav.call` | before v1 | `{name, args}` | the tool's answer; a tool's own error is −32000 with its message |
 | `nav.knobs` | before v1 | see [`knobs.md`](knobs.md) | |
@@ -38,6 +39,7 @@ closed. Polling `robot.map_status` stays correct.
 | `fall` | the body sits or falls while a job runs | `{pose}` |
 | `question` | the explorer asks what a place is | `{pose}` |
 | `lease` | the lease was taken or ended (v3) | `{state, holder, why}` |
+| `queue` | a queue started, a step ended, the queue ended (v4) | `{state, …}` (below) |
 
 ## The lease (v3)
 
@@ -47,6 +49,18 @@ answer −32010 naming the holder. Reads always pass. **A stop always passes** �
 `robot.map_explore` with `{"stop": true}` — and ends a lease held by someone else. A lease ends at
 `nav.release`, at its ttl, and when the holder's connection closes; the `lease` topic says
 `{state, holder, why}` (an end by the ttl is said at the next call that finds it).
+
+## The queue (v4)
+
+`nav.jobs` runs its steps in order on the board. A step is a tool and its args as `nav.call`
+takes them; a step that starts a job (`robot.go_to`, `robot.map_explore`) ends when the job does
+— `done` is a success, `failed` or `stopped` a failure with the job's reason — and any other step
+ends with its answer. Each step's end is said on the `queue` topic (`{state: "step", index, tool,
+ok, reason}`), and the queue's (`{state: "done" | "failed" | "stopped", steps}`). On the first
+failure the queue stops unless `on_failure` is `continue`. A stop — `nav.jobs {"stop": true}` or
+the user's `robot.go_to {"stop": true}` — ends the step under way and the queue. One queue at a
+time. It moves the duck, so a lease held by another connection refuses it, and its steps run
+with the lease of the connection that asked.
 
 ## A client in Rust
 
@@ -68,6 +82,7 @@ an iterator. `cargo run -p quack-nav-client --example watch -- <socket> [topic�
 
 ## History
 
+- **v4** (2026-11-02) — a queue of jobs: `nav.jobs`, the `queue` topic.
 - **v3** (2026-11-02) — one owner at a time: `nav.claim`, `nav.release`, the code −32010, the
   `lease` topic.
 - **v2** (2026-11-02) — events: `nav.subscribe`, `nav.event`, the topics `job`, `job.progress`,

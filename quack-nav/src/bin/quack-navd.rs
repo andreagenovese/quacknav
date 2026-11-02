@@ -87,7 +87,7 @@ fn main() -> anyhow::Result<()> {
             pose: map.as_ref().and_then(|m| m.snapshot().latest).map(|f| (f.tracking, f.untrusted, f.seated, f.pose())),
         });
     }
-    let daemon = Arc::new(Daemon { robot: robot.clone(), knobs_env: config.knobs_env.clone(), shutdown, events, owner: Mutex::new(quack_nav::lease::Owner::default()), next_conn: std::sync::atomic::AtomicU64::new(1) });
+    let daemon = Arc::new(Daemon { robot: robot.clone(), knobs_env: config.knobs_env.clone(), shutdown, events, owner: Mutex::new(quack_nav::lease::Owner::default()), next_conn: std::sync::atomic::AtomicU64::new(1), queue: Mutex::new(None) });
 
     // A job asked for on a pose the mapper no longer trusts (the duck may
     // have been moved while it rested) finds the pose first, with the
@@ -123,9 +123,32 @@ struct Daemon {
     /// The lease on the duck's motion (`nav.claim`), if one is held.
     owner: Mutex<quack_nav::lease::Owner>,
     next_conn: std::sync::atomic::AtomicU64,
+    /// The queue of jobs under way (`nav.jobs`): its stop and what it has
+    /// said so far.
+    queue: Mutex<Option<(quack_nav::queue::Stop, Arc<Mutex<Value>>)>>,
 }
 
 impl Daemon {
+    /// One tool, as `nav.call` runs it for connection `conn`: the lease
+    /// checked, a stop reaching the duck's own motion first, then the tool
+    /// under the robot's lock. `Err((code, message))`.
+    fn call_tool(&self, conn: u64, name: &str, args: &Value) -> Result<Value, (i64, String)> {
+        use quack_nav_proto::code;
+        if !quack_nav::tools::handles(name) {
+            return Err((code::METHOD_NOT_FOUND, format!("this daemon has no tool `{name}`")));
+        }
+        let (verdict, ended) = self.owner.lock().expect("owner poisoned").check(conn, name, args, std::time::Instant::now());
+        if let Some(l) = ended {
+            self.lease_ended(&l, if quack_nav::lease::is_stop(name, args) { "a stop" } else { "its time ran out" });
+        }
+        if let quack_nav::lease::Verdict::Held { holder, left_s } = verdict {
+            return Err((code::LEASED, format!("{holder} holds the duck (for {left_s:.0} s more, or until it lets go): `{name}` is refused; a stop is not")));
+        }
+        quack_nav::tools::before_the_lock(&self.shutdown.explore, name, args);
+        let mut robot = self.robot.lock().expect("robot poisoned");
+        quack_nav::tools::execute(name, args, &mut robot).map_err(|e| (code::TOOL_ERROR, e))
+    }
+
     /// Say a lease's end on the `lease` topic.
     fn lease_ended(&self, lease: &quack_nav::lease::Lease, why: &str) {
         tracing::info!(holder = %lease.holder, why, "lease ended");
@@ -275,8 +298,7 @@ fn subscribe(id: Value, params: Value, daemon: &Daemon, out: &Arc<Mutex<UnixStre
     json!({"jsonrpc": "2.0", "id": id, "result": quack_nav_proto::SubscribeResult { topics }})
 }
 
-fn answer(line: &str, daemon: &Daemon, conn: u64) -> Value {
-    let robot = &daemon.robot;
+fn answer(line: &str, daemon: &Arc<Daemon>, conn: u64) -> Value {
     let request: Value = match serde_json::from_str(line) {
         Ok(value) => value,
         Err(e) => return error(Value::Null, quack_nav_proto::code::PARSE_ERROR, &format!("not JSON: {e}")),
@@ -302,30 +324,12 @@ fn answer(line: &str, daemon: &Daemon, conn: u64) -> Value {
         m::CALL => {
             let name = params.get("name").and_then(Value::as_str).unwrap_or_default().to_owned();
             let args = params.get("args").cloned().unwrap_or(json!({}));
-            if !quack_nav::tools::handles(&name) {
-                return error(id, code::METHOD_NOT_FOUND, &format!("this daemon has no tool `{name}`"));
-            }
-            // The lease: a tool that moves the duck from anyone but its
-            // holder is refused; a stop never is, and ends the lease.
-            let (verdict, ended) = daemon.owner.lock().expect("owner poisoned").check(conn, &name, &args, std::time::Instant::now());
-            if let Some(l) = ended {
-                daemon.lease_ended(&l, if quack_nav::lease::is_stop(&name, &args) { "a stop" } else { "its time ran out" });
-            }
-            if let quack_nav::lease::Verdict::Held { holder, left_s } = verdict {
-                return error(id, code::LEASED, &format!("{holder} holds the duck (for {left_s:.0} s more, or until it lets go): `{name}` is refused; a stop is not"));
-            }
-            // A STOP, or a move by hand, reaches the duck's own motion
-            // before the lock its step holds (see `tools::before_the_lock`).
-            quack_nav::tools::before_the_lock(&daemon.shutdown.explore, &name, &args);
-            let result = {
-                let mut robot = robot.lock().expect("robot poisoned");
-                quack_nav::tools::execute(&name, &args, &mut robot)
-            };
-            match result {
+            match daemon.call_tool(conn, &name, &args) {
                 Ok(value) => json!({"jsonrpc": "2.0", "id": id, "result": value}),
-                Err(e) => error(id, code::TOOL_ERROR, &e),
+                Err((c, e)) => error(id, c, &e),
             }
         }
+        m::JOBS => jobs(id, params, daemon, conn),
         m::CLAIM => {
             let p = match serde_json::from_value::<quack_nav_proto::ClaimParams>(params) {
                 Ok(p) => p,
@@ -364,6 +368,85 @@ fn answer(line: &str, daemon: &Daemon, conn: u64) -> Value {
         m::RESTART => json!({"jsonrpc": "2.0", "id": id, "result": restart(daemon)}),
         other => error(id, code::METHOD_NOT_FOUND, &format!("unknown method `{other}`")),
     }
+}
+
+/// `nav.jobs`: start a queue, answer its state, or stop it.
+fn jobs(id: Value, params: Value, daemon: &Arc<Daemon>, conn: u64) -> Value {
+    use quack_nav_proto::{code, topic};
+    let p = match serde_json::from_value::<quack_nav_proto::JobsParams>(params) {
+        Ok(p) => p,
+        Err(e) => return error(id, code::INVALID_PARAMS, &format!("nav.jobs: {e}")),
+    };
+    let ok = |v: Value| json!({"jsonrpc": "2.0", "id": id, "result": v});
+    if p.stop == Some(true) {
+        let running = daemon.queue.lock().expect("queue poisoned").as_ref().map(|(stop, _)| stop.clone());
+        return match running {
+            Some(stop) => {
+                stop.now();
+                let _ = daemon.call_tool(conn, "robot.go_to", &json!({"stop": true}));
+                ok(json!({"stopping": true}))
+            }
+            None => ok(json!({"stopping": false, "reason": "no queue is running"})),
+        };
+    }
+    let Some(steps) = p.steps else {
+        let state = daemon.queue.lock().expect("queue poisoned").as_ref().map(|(_, said)| said.lock().expect("said poisoned").clone());
+        return ok(state.unwrap_or_else(|| json!({"running": false})));
+    };
+    if steps.is_empty() || steps.len() > quack_nav::queue::MAX_STEPS {
+        return error(id, code::INVALID_PARAMS, &format!("nav.jobs: 1 to {} steps", quack_nav::queue::MAX_STEPS));
+    }
+    if let Some(bad) = steps.iter().find(|s| !quack_nav::tools::handles(&s.tool)) {
+        return error(id, code::INVALID_PARAMS, &format!("nav.jobs: no tool `{}`", bad.tool));
+    }
+    let on_failure = match p.on_failure.as_deref() {
+        None | Some("stop") => quack_nav::queue::OnFailure::Stop,
+        Some("continue") => quack_nav::queue::OnFailure::Continue,
+        Some(other) => return error(id, code::INVALID_PARAMS, &format!("nav.jobs: on_failure is `stop` or `continue`, not `{other}`")),
+    };
+    // The lease: a queue moves the duck.
+    let (verdict, _) = daemon.owner.lock().expect("owner poisoned").check(conn, "nav.jobs", &json!({}), std::time::Instant::now());
+    if let quack_nav::lease::Verdict::Held { holder, .. } = verdict {
+        return error(id, code::LEASED, &format!("{holder} holds the duck: nav.jobs is refused"));
+    }
+    let mut slot = daemon.queue.lock().expect("queue poisoned");
+    if slot.is_some() {
+        return error(id, code::TOOL_ERROR, "nav.jobs: a queue is already running; stop it first (nav.jobs {\"stop\": true})");
+    }
+    let stop = quack_nav::queue::Stop::default();
+    let said = Arc::new(Mutex::new(json!({"running": true, "steps": steps.len(), "done": []})));
+    *slot = Some((stop.clone(), said.clone()));
+    drop(slot);
+    let steps: Vec<quack_nav::queue::Step> = steps.into_iter().map(|s| quack_nav::queue::Step { tool: s.tool, args: s.args }).collect();
+    let n = steps.len();
+    let d = daemon.clone();
+    std::thread::Builder::new()
+        .name("queue".into())
+        .spawn(move || {
+            d.events.publish(topic::QUEUE, json!({"state": "started", "steps": n}));
+            let report = quack_nav::queue::run(
+                &steps,
+                on_failure,
+                &stop,
+                |tool, args| d.call_tool(conn, tool, args).map_err(|(_, e)| e),
+                || {
+                    let st = d.shutdown.explore.status();
+                    (st.state.as_str().to_string(), st.reason.clone())
+                },
+                |o| {
+                    d.events.publish(topic::QUEUE, json!({"state": "step", "index": o.index, "tool": o.tool, "ok": o.ok, "reason": o.reason}));
+                    if let Some(done) = said.lock().expect("said poisoned").get_mut("done").and_then(Value::as_array_mut) {
+                        done.push(json!({"index": o.index, "tool": o.tool, "ok": o.ok, "reason": o.reason}));
+                    }
+                },
+                std::thread::sleep,
+            );
+            tracing::info!(state = report.state, steps = report.steps.len(), "nav.jobs: the queue ended");
+            d.events.publish(topic::QUEUE, json!({"state": report.state, "steps": report.steps.iter().map(|o| json!({"index": o.index, "tool": o.tool, "ok": o.ok, "reason": o.reason})).collect::<Vec<_>>()}));
+            *d.queue.lock().expect("queue poisoned") = None;
+        })
+        .expect("the queue thread starts");
+    ok(json!({"queued": n, "on_failure": if on_failure == quack_nav::queue::OnFailure::Stop { "stop" } else { "continue" }}))
 }
 
 fn error(id: Value, code: i64, message: &str) -> Value {
