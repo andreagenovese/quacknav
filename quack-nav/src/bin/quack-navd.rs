@@ -218,6 +218,7 @@ impl Daemon {
             || map.as_ref().and_then(|m| m.snapshot().latest).is_some_and(|f| f.seated),
             std::thread::sleep,
             length,
+            quack_nav::act::parks(skill),
         );
         let carrying = quack_nav::ledger::report().get("state").and_then(Value::as_str).map(str::to_string);
         match seen {
@@ -274,7 +275,26 @@ impl Daemon {
                     &steps,
                     on_failure,
                     &stop,
-                    |tool, args| d.call_tool(conn, tool, args).map_err(|(_, e)| e),
+                    |tool, args| {
+                        let first = d.call_tool(conn, tool, args).map_err(|(_, e)| e);
+                        // A walk refused because the pose is not trusted yet
+                        // (just after a sit, a rise, a carry): the queue waits
+                        // for the map to vouch for it again, then tries once more.
+                        match first {
+                            Err(e) if quack_nav::queue::STARTS_A_JOB.contains(&tool) && e.contains("not sure of its position") && !stop.asked() => {
+                                let map = d.robot.lock().expect("robot poisoned").places.map.clone();
+                                let deadline = std::time::Instant::now() + std::time::Duration::from_secs(60);
+                                while std::time::Instant::now() < deadline && !stop.asked() {
+                                    if map.as_ref().and_then(|m| m.snapshot().latest).is_some_and(|f| f.tracking && !f.untrusted) {
+                                        return d.call_tool(conn, tool, args).map_err(|(_, e)| e);
+                                    }
+                                    std::thread::sleep(std::time::Duration::from_millis(500));
+                                }
+                                Err(e)
+                            }
+                            other => other,
+                        }
+                    },
                     || {
                         let st = d.shutdown.explore.status();
                         (st.state.as_str().to_string(), st.reason.clone())

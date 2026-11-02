@@ -74,7 +74,10 @@ flusso di stato — comincia quando l'etichetta lascia `walk`/`stand` e finisce 
 passo della skill risponde `{skill, ran_s, label, body}` (`body` lo stato del registro della
 camminata: `free` o `carrying`), oppure fallisce col motivo: robotd l'ha rifiutata, non è mai
 cominciata, non è finita nel suo tempo (la durata della tabella più 6 s, o 12 s più 6 s quando la
-tabella non ne dà), o il corpo è caduto o è stato tenuto. Le skill si leggono da `robot.skills` a
+tabella non ne dà), o il corpo è caduto o è stato tenuto — tranne `sit_toggle` che si siede, la cui fine è il corpo
+seduto con l'etichetta ferma per 2,5 s. Una camminata della coda rifiutata perché la posa non è
+ancora fidata (subito dopo una seduta, un'alzata) aspetta fino a un minuto che la mappa la
+convalidi, poi riprova una volta. Le skill si leggono da `robot.skills` a
 run time; una sconosciuta è rifiutata nominando quelle che la papera ha. Il catalogo porta lo
 stesso come due tool per un agente che conosce solo `nav.call`: `robot.skills` (niente si muove) e
 `robot.act {skill, at?}` (avvia la coda, risponde subito); `robot.act` può anche essere un passo

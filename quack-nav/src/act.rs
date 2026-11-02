@@ -22,6 +22,15 @@ pub const DEFAULT_LENGTH: Duration = Duration::from_secs(12);
 /// Beyond its own length a skill is given this much more to hand back.
 pub const END_MARGIN: Duration = Duration::from_secs(6);
 const POLL: Duration = Duration::from_millis(100);
+/// A skill that parks the body (`sit_toggle` sitting down) ends when its
+/// label has held this long on a seated body: seated is where it was going,
+/// not a fall.
+pub const PARKED: Duration = Duration::from_millis(2500);
+
+/// The skills that may end with the body seated.
+pub fn parks(skill: &str) -> bool {
+    skill == "sit_toggle"
+}
 
 /// The skills `robot.skills` names: the table's entries, then the
 /// built-ins, each with its length when the table gives one.
@@ -57,9 +66,10 @@ pub enum Seen {
 /// Watch a skill through the policy label: `label` reads it (`None` while
 /// unknown), `fallen` whether the body is down, `sleep` waits. `length` is
 /// the skill's own, when known.
-pub fn watch(mut label: impl FnMut() -> Option<String>, mut fallen: impl FnMut() -> bool, mut sleep: impl FnMut(Duration), length: Option<f64>) -> Seen {
+pub fn watch(mut label: impl FnMut() -> Option<String>, mut fallen: impl FnMut() -> bool, mut sleep: impl FnMut(Duration), length: Option<f64>, parks: bool) -> Seen {
     let mut waited = Duration::ZERO;
     let mut began: Option<(Duration, String)> = None;
+    let mut seated_since: Option<Duration> = None;
     let limit = length.map(Duration::from_secs_f64).unwrap_or(DEFAULT_LENGTH) + END_MARGIN;
     loop {
         sleep(POLL);
@@ -75,7 +85,16 @@ pub fn watch(mut label: impl FnMut() -> Option<String>, mut fallen: impl FnMut()
                 }
             }
             Some((at, l)) => {
-                if fallen() || now.as_deref() == Some("held") {
+                let down = fallen();
+                if parks && down && now.as_deref() != Some("held") {
+                    let since = *seated_since.get_or_insert(waited);
+                    if waited - since >= PARKED {
+                        return Seen::Ran { secs: (waited - *at).as_secs_f64(), label: now.unwrap_or_else(|| l.clone()) };
+                    }
+                    continue;
+                }
+                seated_since = None;
+                if down || now.as_deref() == Some("held") {
                     return Seen::Fell { label: l.clone() };
                 }
                 if resting {
@@ -120,7 +139,7 @@ mod tests {
 
     #[test]
     fn a_skill_is_seen_to_begin_and_end_by_its_label() {
-        let seen = watch(script(&[(3, "walk"), (12, "ball_kick_left"), (5, "walk")]), || false, |_| {}, Some(1.2));
+        let seen = watch(script(&[(3, "walk"), (12, "ball_kick_left"), (5, "walk")]), || false, |_| {}, Some(1.2), false);
         match seen {
             Seen::Ran { secs, label } => assert!(label == "ball_kick_left" && (secs - 1.2).abs() < 1e-6, "{secs} {label}"),
             s => panic!("{s:?}"),
@@ -129,11 +148,15 @@ mod tests {
 
     #[test]
     fn a_skill_that_never_began_did_not_end_or_fell_is_said_so() {
-        assert_eq!(watch(script(&[(100, "walk")]), || false, |_| {}, None), Seen::NeverBegan);
-        assert!(matches!(watch(script(&[(2, "walk"), (1000, "ground_pick")]), || false, |_| {}, Some(2.0)), Seen::DidNotEnd { .. }));
+        assert_eq!(watch(script(&[(100, "walk")]), || false, |_| {}, None, false), Seen::NeverBegan);
+        assert!(matches!(watch(script(&[(2, "walk"), (1000, "ground_pick")]), || false, |_| {}, Some(2.0), false), Seen::DidNotEnd { .. }));
         let n = Cell::new(0);
-        let fell = watch(script(&[(2, "walk"), (100, "ground_pick")]), || { n.set(n.get() + 1); n.get() > 5 }, |_| {}, None);
+        let fell = watch(script(&[(2, "walk"), (100, "ground_pick")]), || { n.set(n.get() + 1); n.get() > 5 }, |_| {}, None, false);
         assert!(matches!(fell, Seen::Fell { .. }));
-        assert!(matches!(watch(script(&[(2, "walk"), (5, "roulade"), (5, "held")]), || false, |_| {}, None), Seen::Fell { .. }));
+        assert!(matches!(watch(script(&[(2, "walk"), (5, "roulade"), (5, "held")]), || false, |_| {}, None, false), Seen::Fell { .. }));
+        // Sitting down parks the body seated: an arrival, not a fall.
+        let k = Cell::new(0);
+        let sat = watch(script(&[(2, "walk"), (100, "sit")]), || { k.set(k.get() + 1); k.get() > 8 }, |_| {}, None, true);
+        assert!(matches!(sat, Seen::Ran { .. }), "{sat:?}");
     }
 }

@@ -70,7 +70,9 @@ first when it is given, then `robot.do`, watched to its end on the state stream'
 it begins when the label leaves `walk`/`stand` and ends when it comes back. The skill step
 answers `{skill, ran_s, label, body}` (`body` the gait ledger's state: `free` or `carrying`), or
 fails with the reason: robotd refused it, it never began, it did not end in its time (its table
-length and 6 s, or 12 s and 6 s when the table gives none), or the body fell or was held. The
+length and 6 s, or 12 s and 6 s when the table gives none), or the body fell or was held — except `sit_toggle` sitting down, whose end is the body
+seated with its label held 2.5 s. A queue's walk refused because the pose is not trusted yet (just
+after a sit, a rise) waits up to a minute for the map to vouch for it, then tries once more. The
 skills are read from `robot.skills` at run time; an unknown one is refused naming the ones the
 duck has. The catalogue carries the same as two tools for an agent that only knows `nav.call`:
 `robot.skills` (nothing moves) and `robot.act {skill, at?}` (starts the queue, answers at once);
