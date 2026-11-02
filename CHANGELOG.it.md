@@ -15,6 +15,22 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Modificato
 
+- **Un buco prenotato da poco segue la correzione della sua posa fatta
+  dalla mappa.** Un dislivello prenotato su una posa che la mappa ha
+  corretto un attimo dopo restava dove quella posa l'aveva messo —
+  0,2–0,3 m fuori dal suo bordo, nel passaggio da 0,49 m del corridoio
+  accanto alla tromba delle scale, dove sigillava il bagno. Ogni buco
+  prenotato è ora tenuto anche nel sistema dell'odometria, e per 60 s le
+  correzioni della posa fatte dalla mappa lo spostano con sé. Scudi e
+  banco uguali al `main` (la posa del simulatore quasi non salta). Sul
+  gemello, nelle esplorazioni di e24, e24b ed e25 contro il `main`
+  congelato: un fantasma nel passaggio in 0 esplorazioni su 4 con gli
+  agganci contro 1 su 5 senza (quella del main: due dischi a (2,10,
+  0,18) e (1,97, 0,19), il bagno perso a 0,10), gli agganci che spostano
+  79–103 punti prenotati a esplorazione, cadute pari (una a testa
+  nell'e25, nello stesso punto del corridoio). Pochi eventi: la misura
+  da tenere è il conteggio dei fantasmi nelle prossime esplorazioni.
+
 - **La velocità della svolta sul posto da svolte abbastanza grandi da
   raggiungerla.** Il tempo di una svolta è 0,40 s di avvio più la sua
   ampiezza a 1,43 rad/s (255 svolte dello stick sul gemello, AB26),

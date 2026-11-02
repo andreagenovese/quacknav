@@ -13,6 +13,21 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Changed
 
+- **A hole booked lately follows the map's correction of its pose.** A
+  drop booked on a pose the map corrected a moment later stayed where
+  that pose had put it — 0.2–0.3 m off its rim, in the 0.49 m corridor
+  passage beside the stairwell, where it sealed the bath. Every hole
+  booked is now held in the odometry's frame as well, and for 60 s the
+  map's corrections of the pose move it along. Shields and bench the
+  same as `main` (the simulator's pose hardly jumps). On the twin, over
+  the explorations of e24, e24b and e25 against frozen `main`: a phantom
+  in the passage in 0 of 4 explorations with the anchors against 1 of 5
+  without (main's: two drops at (2.10, 0.18) and (1.97, 0.19), the bath
+  lost at 0.10), the anchors moving 79–103 booked points an
+  exploration, falls even (one each in e25, at the same corridor spot).
+  Few events: the measure to keep is the phantom count over the next
+  explorations.
+
 - **The turn in place's rate from turns big enough to reach it.** A
   turn's time is 0.40 s of start plus its size at 1.43 rad/s (255 turns
   of the stick's on the twin, AB26), so the rate over a short turn's own

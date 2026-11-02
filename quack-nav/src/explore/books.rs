@@ -108,6 +108,42 @@ pub(super) const STRIKE_M: f64 = 0.06;
 /// A sensor obstacle within this distance of one already recorded is the
 /// same obstacle.
 pub(super) const LOCAL_DEDUP_M: f64 = 0.10;
+/// A hole booked this recently follows the pose it was booked on: the
+/// point is kept in the odometry's frame as well, and when the map
+/// corrects the pose — a window agreeing with the map, a loop closing —
+/// the point moves with the correction. Older than this the odometry has
+/// drifted too far to say where the point was, and the point stays where
+/// the map put it. The phantom this is for: a drop booked 0.2–0.3 m off
+/// its rim on a pose the map corrected a moment later, which sealed the
+/// 0.49 m passage beside the stairwell (e23, 2026-11-01, one bath in four
+/// lost on each arm).
+pub(super) const ANCHOR_RECENT_S: f64 = 60.0;
+/// A point moved by less than this is left where it is.
+const ANCHOR_MOVE_M: f64 = 0.02;
+
+/// A hole on the books, held in the odometry's frame too (see
+/// [`ANCHOR_RECENT_S`]).
+#[derive(Debug, Clone, Copy)]
+pub(super) struct DropAnchor {
+    /// Where the map has it now.
+    pub(super) at_map: (f64, f64),
+    /// Where it is in the odometry's own frame, which does not jump.
+    pub(super) at_odom: (f64, f64),
+    pub(super) booked: Instant,
+}
+
+/// A point in frame `b` (a body pose in it) taken to the body's own frame.
+fn to_body(b: (f64, f64, f64), p: (f64, f64)) -> (f64, f64) {
+    let (dx, dy) = (p.0 - b.0, p.1 - b.1);
+    let (c, s) = (b.2.cos(), b.2.sin());
+    (c * dx + s * dy, -s * dx + c * dy)
+}
+
+/// A point in the body's own frame taken to frame `b`.
+fn from_body(b: (f64, f64, f64), p: (f64, f64)) -> (f64, f64) {
+    let (c, s) = (b.2.cos(), b.2.sin());
+    (b.0 + c * p.0 - s * p.1, b.1 + s * p.0 + c * p.1)
+}
 /// A frontier the duck could not reach is left alone within this radius.
 pub(super) const BLOCK_REFUSED_M: f64 = 0.3;
 
@@ -204,6 +240,13 @@ impl Job {
         let (Some(frame), Some(cliff)) = (robot.frame(), robot.cliff()) else { return };
         let (x, y, yaw) = frame.pose();
         let now = robot.now();
+        // The odometry's pose beside the map's: the holes booked lately
+        // follow the map's corrections, and the ones booked now are held
+        // in both frames.
+        let odom_pose = cliff.odom_xy.zip(cliff.odom_yaw).map(|((ox, oy), oyaw)| (ox, oy, oyaw));
+        if let Some(o) = odom_pose {
+            self.reanchor_drops((x, y, yaw), o, now);
+        }
         // Every drop point each fresh frame proposes, tagged with its frame.
         let proposals: Vec<(usize, ((f64, f64), f64))> = cliff
             .recent
@@ -285,7 +328,12 @@ impl Job {
                 on_walked += 1;
                 continue;
             }
-            self.remember_local(p, radius);
+            if self.remember_local(p, radius)
+                && radius >= DROP_RADIUS_M
+                && let Some(o) = odom_pose
+            {
+                self.anchor_drop(p, (x, y, yaw), o, now);
+            }
         }
         if on_walked > 0 {
             tracing::info!(on_walked, "map explore: drop points on floor the body walked; not booked");
@@ -382,21 +430,54 @@ impl Job {
             .any(|((dx, dy), r)| *r >= DROP_RADIUS_M && dist2((*dx, *dy), here) < near)
     }
 
-    /// Record what the sensor met, once per spot.
-    pub(super) fn remember_local(&mut self, point: (f64, f64), radius: f64) {
+    /// Record what the sensor met, once per spot. Whether it was new.
+    pub(super) fn remember_local(&mut self, point: (f64, f64), radius: f64) -> bool {
         // A drop where an untrusted pose puts it is a phantom, and the
         // planner keeps wide of it for the rest of the run.
         if radius >= DROP_RADIUS_M && !self.drops_bookable {
-            return;
+            return false;
         }
         if self
             .local
             .iter()
             .any(|(p, _)| dist2(*p, point) < LOCAL_DEDUP_M)
         {
-            return;
+            return false;
         }
         self.local.push((point, radius));
+        true
+    }
+
+    /// A hole just booked at `point`, with the map's pose and the
+    /// odometry's at the moment: held in the odometry's frame too, so the
+    /// map's next correction of that pose moves it ([`ANCHOR_RECENT_S`]).
+    pub(super) fn anchor_drop(&mut self, point: (f64, f64), map_pose: (f64, f64, f64), odom_pose: (f64, f64, f64), now: Instant) {
+        let at_odom = from_body(odom_pose, to_body(map_pose, point));
+        self.anchors.push(DropAnchor { at_map: point, at_odom, booked: now });
+    }
+
+    /// The map corrected the pose: every hole booked within
+    /// [`ANCHOR_RECENT_S`] is re-placed where its odometry-frame point now
+    /// lands in the map — the drop follows the pose it was booked on.
+    /// Anchors older than that are let go. How many points moved.
+    pub(super) fn reanchor_drops(&mut self, map_pose: (f64, f64, f64), odom_pose: (f64, f64, f64), now: Instant) -> usize {
+        self.anchors.retain(|a| now.duration_since(a.booked).as_secs_f64() <= ANCHOR_RECENT_S);
+        let mut moved = 0;
+        for a in self.anchors.iter_mut() {
+            let p = from_body(map_pose, to_body(odom_pose, a.at_odom));
+            if dist2(p, a.at_map) < ANCHOR_MOVE_M {
+                continue;
+            }
+            if let Some(entry) = self.local.iter_mut().find(|(q, r)| *r >= DROP_RADIUS_M && dist2(*q, a.at_map) < 1e-6) {
+                entry.0 = p;
+                a.at_map = p;
+                moved += 1;
+            }
+        }
+        if moved > 0 {
+            tracing::info!(moved, "map explore: booked holes moved with the map's correction of the pose they were booked on");
+        }
+        moved
     }
 
 }

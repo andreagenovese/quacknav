@@ -69,12 +69,13 @@ explicit zero after `robot.move` unless held, and at a mapping step's
 walk's end when a stand follows — on the twin 1.2 cm and 7° past the
 time asked where the deadman's hold had left 5 cm and 35°; A/B 48/48,
 0 falls, times the same).
-**Remaining**, in order: the phantom drop in the 0.49 m corridor
-passage beside the stairwell — a booked point 0.2–0.3 m north of the
-rim, the pose's error at the moment of booking, which sealed one bath
-in four on each arm of e23 and never in e21/e22 (a drop booked on a
-pose the map later corrects should move or go with it; today a booked
-point stays where the pose of the moment put it); the ledger's last coded number, the yaw per unit, which the
+The phantom drop in the 0.49 m corridor passage beside the stairwell —
+a point booked 0.2–0.3 m off the rim on a pose the map corrected a
+moment later, which sealed the bath — now follows the map's corrections
+of its pose for 60 s (branch `drop-anchors`, 2026-11-02: a phantom in
+the passage in 0 of 4 explorations with the anchors against 1 of 5
+without; few events, keep counting).
+**Remaining**, in order: the ledger's last coded number, the yaw per unit, which the
 stick's 0.6 s pulses cannot give as one number (AB21, 2026-10-28: it
 falls with the command, 0.99 rad/s per unit at |vyaw| 0.3 to 0.76 at
 0.7, and under the stick's gain it loops — a gain curve by command size,
