@@ -145,6 +145,16 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Aggiunto
 
+- **I satelliti sul crate client; N4 fatto.** La corsia della
+  navigazione di quacksat e il bridge di quack-control ora girano su
+  `quack-nav-client` e mandano `nav.hello`, registrando la versione del
+  protocollo; quack-control sente gli eventi e chiede lo stato
+  nell'istante in cui ne arriva uno. Il client ha ora un timeout di
+  risposta del chiamante (`connect_with`), per chiamate che si mettono in
+  coda dietro un'altra. La prova dell'N4 della roadmap, sul gemello: la
+  fine di un viaggio è arrivata alla pagina di controllo 0,01 s dopo che
+  quack-navd l'ha detta, quattro volte su quattro, dove il polling della
+  pagina impiegava 0,14–1,0 s.
 - **Fare, non solo camminare: `nav.act`** (protocollo v5, l'N5 della
   roadmap). La papera esegue una delle skill di `robotd` — le policy di
   Pollen, lette da `robot.skills` a run time, mai una lista scritta qui —

@@ -132,6 +132,15 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Added
 
+- **The satellites on the client crate; N4 done.** quacksat's
+  navigation lane and quack-control's bridge now run on
+  `quack-nav-client` and say `nav.hello`, logging the protocol version;
+  quack-control hears the events and asks for the status the moment
+  one comes. The client gained an answer timeout of the caller's
+  (`connect_with`), for calls that queue behind another. The roadmap's
+  N4 test, on the twin: a journey's end reached the control page 0.01 s
+  after quack-navd said it, four times of four, where the page's poll
+  took 0.14–1.0 s.
 - **Doing, not only walking: `nav.act`** (protocol v5, the roadmap's
   N5). The duck carries out one of `robotd`'s skills — Pollen's
   policies, read from `robot.skills` at run time, never a list coded

@@ -1448,6 +1448,18 @@ casa_arredata, daemon-v0.17.6 + set v8, due gemelli alla volta
   (tutto, ogni chiamata dal percorso nuovo) 48/48 su entrambi i bracci, 0
   cadute, mediane accoppiate 0,0 e +1,0 s.
 
+  La prova dell'N4 della roadmap (2026-11-03): la corsia della
+  navigazione di quacksat e il bridge di quack-control sono passati su
+  `quack-nav-client`, ciascuno mandando per primo `nav.hello`;
+  quack-control si iscrive agli eventi e chiede lo stato quando ne arriva
+  uno. Su un gemello, quattro viaggi corti sotto ciascuna pagina a turno,
+  il tempo dall'evento `job` done di quack-navd al flusso di eventi della
+  pagina che porta il viaggio fatto: 0,01 s ogni volta con gli eventi (il
+  quack-control del gemello ha salutato un demone v5) contro 1,00, 0,14,
+  0,26 e −0,04 s col polling del main (quello negativo è il polling che
+  legge lo stato done prima dell'osservatore degli eventi, che guarda
+  cinque volte al secondo).
+
 ## Limiti noti
 
 - **Il sensore non vede il pavimento più vicino di 0,4–0,6 m**

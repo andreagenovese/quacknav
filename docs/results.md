@@ -1349,6 +1349,17 @@ daemon-v0.17.6 + set v8, two twins at a time (`rl-runs/twin-work/P8/`).
   s; AB28 (all of it, every call through the new path) 48/48 both arms,
   0 falls, paired medians 0.0 and +1.0 s.
 
+  The roadmap's N4 test (2026-11-03): quacksat's navigation lane and
+  quack-control's bridge moved onto `quack-nav-client`, each saying
+  `nav.hello` first; quack-control subscribes to the events and asks for
+  the status when one comes. On one twin, four short journeys under each
+  page in turn, the time from quack-navd's own `job` done event to the
+  page's event stream carrying the journey done: 0.01 s every time with
+  the events (the twin's quack-control said hello to a v5 daemon) against
+  1.00, 0.14, 0.26 and −0.04 s with main's poll (the negative one the poll
+  reading the done state before the events' watcher, which looks five
+  times a second).
+
 ## Known limits
 
 - **The sensor cannot see the floor nearer than 0.4–0.6 m** (2026-10-27):
