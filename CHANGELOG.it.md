@@ -145,6 +145,69 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Aggiunto
 
+- **Fare, non solo camminare: `nav.act`** (protocollo v5, l'N5 della
+  roadmap). La papera esegue una delle skill di `robotd` — le policy di
+  Pollen, lette da `robot.skills` a run time, mai una lista scritta qui —
+  come un lavoro: prima una camminata fino a `at` quando c'è, poi
+  `robot.do`, sorvegliato fino alla fine sull'etichetta della policy del
+  flusso di stato (comincia quando l'etichetta lascia `walk`/`stand`,
+  finisce quando ci torna). Il passo dice quanto è durata e lo stato del
+  corpo dopo (`free` o `carrying`, dal registro della camminata), o
+  perché no: rifiutata, mai cominciata, non finita nel suo tempo,
+  caduta. Il catalogo acquista `robot.skills` e `robot.act` per gli
+  agenti che conoscono solo `nav.call`, e `robot.act` può essere un
+  passo di `nav.jobs` — "vai in bagno e prendilo". Il client ha `act`.
+- **Una coda di lavori: `nav.jobs`** (protocollo v4). L'agente
+  pianifica "vai in bagno, poi a casa"; la papera la esegue sulla
+  scheda, passo per passo, ciascuno fino alla sua fine — un viaggio fino
+  all'arrivo — e dice la fine di ogni passo sull'argomento `queue`. Il
+  primo fallimento ferma la coda salvo che si chieda di proseguire; uno
+  stop chiude il passo in corso e la coda. Una coda alla volta; muove la
+  papera, quindi rispetta il prestito. L'esecutore è `quack_nav::queue`,
+  puro e provato; il daemon esegue i passi sullo stesso percorso di
+  `nav.call`. Il client ha `jobs`, `jobs_state` e `jobs_stop`.
+- **Un proprietario alla volta: `nav.claim`** (protocollo v3). Senza
+  prestito chiunque può guidare, come prima. Una connessione che chiede
+  la papera tiene il suo moto fino a 300 s, rinnovato chiedendolo di
+  nuovo: `robot.go_to`, `robot.map_explore`, `robot.map_step` e
+  `robot.move` da chiunque altro sono rifiutati (−32010) col nome di chi
+  lo tiene. Le letture passano sempre, e uno stop sempre — e chiude il
+  prestito; la sicurezza non aspetta la proprietà. Il prestito finisce
+  con `nav.release`, allo scadere del ttl e quando la sua connessione si
+  chiude, detto sull'argomento `lease`. Il client ha `claim` e
+  `release`. Il prestito è della navigazione, non dei motori: `robotd`
+  resta l'unico proprietario delle giunture.
+- **Un crate client: `quack-nav-client`.** Un client bloccante sui tipi
+  del protocollo — connessione, hello, il catalogo, una chiamata a un
+  tool, un'iscrizione come iteratore di eventi — così un satellite, una
+  pagina di controllo o uno script smettono di scrivere il filo a mano.
+  Un daemon di prima di `nav.hello` risponde come una v0 e i suoi tool
+  funzionano ancora. L'esempio `watch` stampa gli eventi di un daemon;
+  sul gemello ha sentito un viaggio dalla partenza a `arrived at (0.60,
+  0.00)`.
+- **Eventi, spinti: `nav.subscribe`** (protocollo v2). Una connessione
+  che si iscrive sente `job` (un lavoro partito, con la sua meta,
+  finito — fatto, fermato, fallito — col suo motivo), `job.progress` una
+  volta al secondo, `pose` (fidata o no), `fall` e `question`, come
+  notifiche tra le risposte a qualunque altra cosa chieda; `seq` senza
+  buchi, così un client sa se ne ha perso uno. Gli eventi nascono da un
+  osservatore che legge lo stato del lavoro e la posa della mappa cinque
+  volte al secondo mentre qualcuno ascolta; niente nella navigazione
+  aspetta un iscritto, e uno indietro di più di 256 eventi viene tolto.
+  Interrogare `robot.map_status` resta corretto. Sul gemello un viaggio
+  corto si è sentito dalla posa trovata a `arrived at (0.60, 0.00)`, col
+  suo progresso ogni secondo.
+- **Il protocollo ha una versione: `nav.hello`.** Il primo passo del
+  servizio nello stile di `robotd` ([docs/design/service.it.md](docs/design/service.it.md),
+  l'N4 della roadmap): un crate `quack-nav-proto` tiene la versione, i
+  nomi dei metodi, parametri e risultati e i codici d'errore, e sia il
+  daemon sia i suoi client compilano contro di lui. `nav.hello` risponde
+  `{api_version, daemon_version, revision, methods, events}`; un client
+  può dire chi è e contro quale versione è compilato, e una differenza
+  si registra e si serve, mai si rifiuta, come fa `robotd`. I campi
+  sconosciuti si rifiutano per nome. `nav.catalog` e `nav.call` sono
+  invariati. Il filo e la sua storia: [docs/protocol.it.md](docs/protocol.it.md).
+
 - **Una camminata per stato del corpo: libero, o che porta qualcosa.**
   Un carico nel becco cambia la camminata, e i suoi numeri non devono né
   sovrascrivere quelli della camminata libera né aspettare che vengano

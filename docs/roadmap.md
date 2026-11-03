@@ -63,7 +63,7 @@ and a third of a right angle.
 **Done when:** a `robot.move` of a stated length ends within a stated tolerance on the twin, and
 the twin's A/B shows no regression.
 
-### N4 — A service in robotd's style
+### N4 — A service in robotd's style · **in progress**
 
 A typed, versioned contract for everything quack-nav does, with a `hello` that says which
 version is speaking; events pushed to whoever subscribed — a journey's progress, an arrival,
@@ -75,7 +75,7 @@ first that fails and reporting each. A protocol document with its own version.
 **Done when:** the voice satellite and the control page run on the client library against the
 contract's version check; an event reaches a subscriber before the next poll would have.
 
-### N5 — Doing, not only walking
+### N5 — Doing, not only walking · **in progress**
 
 The duck carries out the skills its daemon already has — a pick, a kick, sit and stand — when
 asked, as one job: walk near, square up at the trained distance, run the skill, wait for the

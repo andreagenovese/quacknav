@@ -1325,6 +1325,30 @@ daemon-v0.17.6 + set v8, two twins at a time (`rl-runs/twin-work/P8/`).
   noise, as the journeys' legs are the stick's pulses, which this does
   not touch.
 
+- **quack-navd as a service** (branches `service` and `service-lease`,
+  2026-11-02; the roadmap's N4 and N5). The protocol has a version and a
+  crate (`quack-nav-proto`, v1–v5), a client crate (`quack-nav-client`),
+  events pushed, a lease, a queue of jobs and `nav.act` over `robotd`'s
+  skills ([docs/design/service.md](design/service.md),
+  [docs/protocol.md](protocol.md)). Checked live on the twin: the hello;
+  a short journey heard from the pose found to its arrival, with its
+  progress each second; a lease refusing another connection's journey
+  by the holder's name while its reads passed, ended by that
+  connection's stop; the simulator's skills read from `robot.skills`
+  (roulade, kick_left, kick_right, ground_pick, sit_toggle); a five-step
+  queue — a journey, a place remembered, a walk then `kick_left` (0.5 s),
+  a journey to an unknown place, a return — stopped at the fourth with
+  its reason; a queue stopped midway ending "stopped on request". Two
+  faults the live run found and that were fixed: sitting down was read
+  as a fall (now a seated body with its label held 2.5 s is the end of
+  `sit_toggle`: sit 2.6 s, rise 0.9 s), and a queue's journey right after
+  a rise was refused on a pose not yet trusted (now the queue waits up
+  to a minute for the map and tries again: 9 s, then arrived). Twin A/Bs
+  against frozen `main` 06d9892, four tours of each house: AB27 (hello,
+  events, client) 48/48 both arms, 0 falls, paired medians 0.0 and 0.0
+  s; AB28 (all of it, every call through the new path) 48/48 both arms,
+  0 falls, paired medians 0.0 and +1.0 s.
+
 ## Known limits
 
 - **The sensor cannot see the floor nearer than 0.4–0.6 m** (2026-10-27):

@@ -1,0 +1,13 @@
+[package]
+name = "quack-nav-proto"
+description = "The wire between quack-navd and its clients: the version, the method names, the params and results, the error codes."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true

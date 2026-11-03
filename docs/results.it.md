@@ -1421,6 +1421,33 @@ casa_arredata, daemon-v0.17.6 + set v8, due gemelli alla volta
   −0,5 media) — la stessa camminata nel rumore, perché le gambe dei
   viaggi sono gli impulsi dello stick, che questo non tocca.
 
+- **quack-navd come servizio** (rami `service` e `service-lease`,
+  2026-11-02; l'N4 e l'N5 della roadmap). Il protocollo ha una versione e
+  un crate (`quack-nav-proto`, v1–v5), un crate client
+  (`quack-nav-client`), eventi spinti, un prestito, una coda di lavori e
+  `nav.act` sulle skill di `robotd`
+  ([docs/design/service.it.md](design/service.it.md),
+  [docs/protocol.it.md](protocol.it.md)). Provato dal vivo sul gemello:
+  l'hello; un viaggio corto sentito dalla posa trovata all'arrivo, col
+  suo progresso ogni secondo; un prestito che rifiuta il viaggio di
+  un'altra connessione col nome di chi lo tiene mentre le sue letture
+  passano, chiuso dallo stop di quella connessione; le skill del
+  simulatore lette da `robot.skills` (roulade, kick_left, kick_right,
+  ground_pick, sit_toggle); una coda di cinque passi — un viaggio, un
+  posto ricordato, una camminata poi `kick_left` (0,5 s), un viaggio
+  verso un posto sconosciuto, un ritorno — fermata al quarto col suo
+  motivo; una coda fermata a metà che chiude con "stopped on request".
+  Due difetti trovati dalla prova dal vivo e corretti: sedersi veniva
+  letto come una caduta (ora un corpo seduto con l'etichetta ferma 2,5 s
+  è la fine di `sit_toggle`: seduta 2,6 s, alzata 0,9 s), e il viaggio di
+  una coda subito dopo un'alzata veniva rifiutato su una posa non ancora
+  fidata (ora la coda aspetta fino a un minuto la mappa e riprova: 9 s,
+  poi arrivata). A/B sul gemello contro il `main` congelato 06d9892,
+  quattro giri di ogni casa: AB27 (hello, eventi, client) 48/48 su
+  entrambi i bracci, 0 cadute, mediane accoppiate 0,0 e 0,0 s; AB28
+  (tutto, ogni chiamata dal percorso nuovo) 48/48 su entrambi i bracci, 0
+  cadute, mediane accoppiate 0,0 e +1,0 s.
+
 ## Limiti noti
 
 - **Il sensore non vede il pavimento più vicino di 0,4–0,6 m**

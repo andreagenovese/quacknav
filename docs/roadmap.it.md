@@ -65,7 +65,7 @@ daemon ne lasciava 5 cm e un terzo di angolo retto.
 **Fatto quando:** un `robot.move` di lunghezza dichiarata finisce entro una tolleranza dichiarata
 sul gemello, e l'A/B del gemello non mostra regressioni.
 
-### N4 — Un servizio nello stile di robotd
+### N4 — Un servizio nello stile di robotd · **in corso**
 
 Un contratto tipizzato e versionato per tutto ciò che quack-nav fa, con un `hello` che dice
 quale versione parla; eventi spinti a chi si è iscritto — il progresso di un viaggio, un
@@ -79,7 +79,7 @@ documento del protocollo con la propria versione.
 controllo di versione del contratto; un evento raggiunge un iscritto prima di quando sarebbe
 arrivato il polling successivo.
 
-### N5 — Fare, non solo camminare
+### N5 — Fare, non solo camminare · **in corso**
 
 La papera esegue le skill che il suo daemon ha già — una presa, un calcio, sedersi e alzarsi —
 quando le si chiede, come un lavoro solo: si avvicina, si squadra alla distanza allenata,

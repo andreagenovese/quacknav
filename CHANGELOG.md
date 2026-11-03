@@ -132,6 +132,66 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Added
 
+- **Doing, not only walking: `nav.act`** (protocol v5, the roadmap's
+  N5). The duck carries out one of `robotd`'s skills — Pollen's
+  policies, read from `robot.skills` at run time, never a list coded
+  here — as a job: a walk to `at` first when given, then `robot.do`,
+  watched to its end on the state stream's policy label (it begins when
+  the label leaves `walk`/`stand`, ends when it comes back). The step
+  says how long it ran and the body's state after (`free` or
+  `carrying`, from the gait ledger), or why not: refused, never began,
+  did not end in its time, fell. The catalogue gains `robot.skills` and
+  `robot.act` for agents that only know `nav.call`, and `robot.act` may
+  be a step of `nav.jobs` — "go to the bath and pick it up". The client
+  has `act`.
+- **A queue of jobs: `nav.jobs`** (protocol v4). The agent plans "go to
+  the bath, then home"; the duck runs it on the board, step by step,
+  each to its end — a journey to its arrival — and says each step's end
+  on the `queue` topic. The first failure stops the queue unless asked
+  to go on; a stop ends the step under way and the queue. One queue at a
+  time; it moves the duck, so it respects the lease. The runner is
+  `quack_nav::queue`, pure and tested; the daemon runs the steps on the
+  same path as `nav.call`. The client has `jobs`, `jobs_state` and
+  `jobs_stop`.
+- **One owner at a time: `nav.claim`** (protocol v3). Without a lease
+  anyone may drive, as before. A connection that claims the duck holds
+  its motion for up to 300 s, renewed by claiming again: `robot.go_to`,
+  `robot.map_explore`, `robot.map_step` and `robot.move` from anyone
+  else are refused (−32010) naming the holder. Reads always pass, and a
+  stop always does — and ends the lease; safety does not wait for
+  ownership. The lease ends at `nav.release`, at its ttl and when its
+  connection closes, said on the `lease` topic. The client has `claim`
+  and `release`. The lease is the navigation's, not the motors':
+  `robotd` stays the only owner of the joints.
+- **A client crate: `quack-nav-client`.** A blocking client on the
+  protocol's types — connect, hello, the catalogue, a tool call, a
+  subscription as an iterator of events — so a satellite, a control
+  page or a script stops writing the wire by hand. A daemon from before
+  `nav.hello` answers as a v0 and its tools still work. The `watch`
+  example prints a daemon's events; on the twin it heard a journey from
+  its start to `arrived at (0.60, 0.00)`.
+- **Events, pushed: `nav.subscribe`** (protocol v2). A connection that
+  subscribes hears `job` (a job started, got its goal, ended — done,
+  stopped, failed — with its reason), `job.progress` once a second,
+  `pose` (trusted or not), `fall` and `question`, as notifications
+  between the answers to anything else it asks; `seq` without gaps, so a
+  client can tell it missed one. The events come from one watcher that
+  reads the job's status and the map's pose five times a second while
+  someone listens; nothing in the navigation waits on a subscriber, and
+  one more than 256 events behind is dropped. Polling `robot.map_status`
+  stays correct. On the twin a short journey was heard from the pose
+  found to `arrived at (0.60, 0.00)`, with its progress each second.
+- **The protocol has a version: `nav.hello`.** The first step of the
+  service in `robotd`'s style ([docs/design/service.md](docs/design/service.md),
+  the roadmap's N4): a `quack-nav-proto` crate holds the version, the
+  method names, the params and results and the error codes, and both
+  the daemon and its clients build against it. `nav.hello` answers
+  `{api_version, daemon_version, revision, methods, events}`; a client
+  may say who it is and which version it was built against, and a skew
+  is logged and served, never refused, as `robotd` does. Unknown members
+  are refused by name. `nav.catalog` and `nav.call` are unchanged. The
+  wire and its history: [docs/protocol.md](docs/protocol.md).
+
 - **One walk per state of the body: free, or carrying.** A load in the
   beak changes the walk, and its numbers must neither overwrite the free
   walk's nor wait for them to be forgotten. The state is read from

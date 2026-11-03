@@ -4,6 +4,8 @@ members = [
     "maploc",
     "quack-duck",
     "quack-nav",
+    "quack-nav-client",
+    "quack-nav-proto",
     "quack-rl",
 ]
 

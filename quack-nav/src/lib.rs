@@ -34,18 +34,22 @@
 //! nothing else: it is hosted by `quack-navd`, a daemon of its own
 //! (2026-09-22), and the voice satellite reaches it over a socket.
 
+pub mod act;
 pub mod cliff;
 pub mod config;
+pub mod events;
 pub mod explore;
 pub mod frontier;
 pub mod homecoming;
 pub mod knobs;
+pub mod lease;
 pub mod ledger;
 pub mod map;
 pub mod oracle;
 pub mod mapd;
 pub mod passage;
 pub mod places;
+pub mod queue;
 pub mod relocate;
 pub mod rlnav;
 pub mod sockets;

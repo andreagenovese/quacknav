@@ -1,0 +1,109 @@
+# The protocol
+
+quack-navd's wire: NDJSON, JSON-RPC 2.0, on its Unix socket (`socket` in the config,
+`/run/quack-nav/nav.sock` on the duck). The types are the `quack-nav-proto` crate's; the design
+is [`design/service.md`](design/service.md); the tools behind `nav.call` are
+[`control-contract.md`](control-contract.md).
+
+A client sends `nav.hello` first and logs what it gets. A version skew is logged and served,
+never refused: an older client does not call what it does not know; a method this daemon lacks
+answers `METHOD_NOT_FOUND` (−32601), an unknown member `INVALID_PARAMS` (−32602) naming it.
+
+## Methods
+
+| method | since | params | result |
+|---|---|---|---|
+| `nav.hello` | v1 | `{client?, api_version?}` — who asks and the version it was built against, for the daemon's log | `{api_version, daemon_version, revision, methods, events}` |
+| `nav.subscribe` | v2 | `{topics?}` — all when absent | `{topics}` granted; an unknown topic refused by name. From then on the connection carries `nav.event` notifications; once per connection |
+| `nav.claim` | v3 | `{holder, ttl_s?, token?}` — a name for people, 60 s by default and 300 at most, the token when renewing from another connection | `{token, holder, ttl_s}`; −32010 when another connection holds it |
+| `nav.release` | v3 | `{token?}` — the holder's own connection may leave it out | `{released, holder?}` |
+| `nav.jobs` | v4 | `{steps: [{tool, args}…], on_failure?}` to start (1–32 steps, `stop` by default or `continue`); `{}` for the state; `{stop: true}` to end it | `{queued, on_failure}`; `{running, steps, done}`; `{stopping}` |
+| `nav.act` | v5 | `{skill, at?}` — a skill `robot.skills` names; `at` `"here"` (default), a place's name or `{x, y}` | `{queued, started}`; the end on `queue` |
+| `nav.catalog` | before v1 | — | the tools, each `{name, description, parameters}` |
+| `nav.call` | before v1 | `{name, args}` | the tool's answer; a tool's own error is −32000 with its message |
+| `nav.knobs` | before v1 | see [`knobs.md`](knobs.md) | |
+| `nav.restart` | before v1 | — | `{restarting, reason?, hint?}` |
+
+## Events (v2)
+
+After `nav.subscribe` the daemon writes `{"jsonrpc": "2.0", "method": "nav.event", "params":
+{topic, seq, t, data}}` on that connection, between the answers to anything else asked on it.
+`seq` counts from 1 per connection without gaps; `t` is the daemon's monotonic seconds. Best
+effort and in order: a subscriber more than 256 events behind is dropped and its connection
+closed. Polling `robot.map_status` stays correct.
+
+| topic | when | data |
+|---|---|---|
+| `job` | a job's state changes; for a journey, once its goal is known (a start with no goal is said as an exploration three seconds on) | `{state, kind, goal, reason, self_started}` — `kind` `journey`, `explore` or `own` (the duck's own motion) |
+| `job.progress` | once a second while a job runs | `{legs, refusals, target_distance_m, route_m}` |
+| `pose` | the map's pose becomes trusted or untrusted | `{tracking, untrusted, pose}` |
+| `fall` | the body sits or falls while a job runs | `{pose}` |
+| `question` | the explorer asks what a place is | `{pose}` |
+| `lease` | the lease was taken or ended (v3) | `{state, holder, why}` |
+| `queue` | a queue started, a step ended, the queue ended (v4) | `{state, …}` (below) |
+
+## The lease (v3)
+
+Without a lease anyone may drive, as before. A connection that claims holds the duck's motion:
+`robot.go_to`, `robot.map_explore`, `robot.map_step` and `robot.move` from any other connection
+answer −32010 naming the holder. Reads always pass. **A stop always passes** — `robot.go_to` or
+`robot.map_explore` with `{"stop": true}` — and ends a lease held by someone else. A lease ends at
+`nav.release`, at its ttl, and when the holder's connection closes; the `lease` topic says
+`{state, holder, why}` (an end by the ttl is said at the next call that finds it).
+
+## The queue (v4)
+
+`nav.jobs` runs its steps in order on the board. A step is a tool and its args as `nav.call`
+takes them; a step that starts a job (`robot.go_to`, `robot.map_explore`) ends when the job does
+— `done` is a success, `failed` or `stopped` a failure with the job's reason — and any other step
+ends with its answer. Each step's end is said on the `queue` topic (`{state: "step", index, tool,
+ok, reason}`), and the queue's (`{state: "done" | "failed" | "stopped", steps}`). On the first
+failure the queue stops unless `on_failure` is `continue`. A stop — `nav.jobs {"stop": true}` or
+the user's `robot.go_to {"stop": true}` — ends the step under way and the queue. One queue at a
+time. It moves the duck, so a lease held by another connection refuses it, and its steps run
+with the lease of the connection that asked.
+
+## Acting (v5)
+
+`nav.act {skill, at?}` carries out one of `robotd`'s skills as a queue of its own: a walk to `at`
+first when it is given, then `robot.do`, watched to its end on the state stream's policy label —
+it begins when the label leaves `walk`/`stand` and ends when it comes back. The skill step
+answers `{skill, ran_s, label, body}` (`body` the gait ledger's state: `free` or `carrying`), or
+fails with the reason: robotd refused it, it never began, it did not end in its time (its table
+length and 6 s, or 12 s and 6 s when the table gives none), or the body fell or was held — except `sit_toggle` sitting down, whose end is the body
+seated with its label held 2.5 s. A queue's walk refused because the pose is not trusted yet (just
+after a sit, a rise) waits up to a minute for the map to vouch for it, then tries once more. The
+skills are read from `robot.skills` at run time; an unknown one is refused naming the ones the
+duck has. The catalogue carries the same as two tools for an agent that only knows `nav.call`:
+`robot.skills` (nothing moves) and `robot.act {skill, at?}` (starts the queue, answers at once);
+`robot.act` may also be a step of `nav.jobs`. Acting moves the duck: it respects the lease, and
+a stop ends it.
+
+## A client in Rust
+
+`quack-nav-client` (in this workspace) is a blocking client on these types: `Client::connect`,
+`hello` (a daemon from before `nav.hello` answers as a v0, its tools still work), `catalog`,
+`call(tool, args)`, and `subscribe(socket, topics)` — the events on a connection of their own, as
+an iterator. `cargo run -p quack-nav-client --example watch -- <socket> [topic…]` prints them.
+
+## Error codes
+
+| code | meaning |
+|---|---|
+| −32700 | the line was not JSON |
+| −32601 | no such method, or no such tool |
+| −32600 | a second `nav.subscribe` on the same connection |
+| −32602 | a param this method does not take, named |
+| −32010 | another connection holds the lease on the duck's motion; the message names it |
+| −32000 | the tool answered with an error: its message says why |
+
+## History
+
+- **v5** (2026-11-02) — acting: `nav.act`; the tools `robot.skills` and `robot.act`.
+- **v4** (2026-11-02) — a queue of jobs: `nav.jobs`, the `queue` topic.
+- **v3** (2026-11-02) — one owner at a time: `nav.claim`, `nav.release`, the code −32010, the
+  `lease` topic.
+- **v2** (2026-11-02) — events: `nav.subscribe`, `nav.event`, the topics `job`, `job.progress`,
+  `pose`, `fall`, `question`.
+- **v1** (2026-11-02) — `nav.hello`. The version on the wire, the methods and events a build
+  serves. `nav.catalog`, `nav.call`, `nav.knobs` and `nav.restart` as they were.
