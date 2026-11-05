@@ -1439,6 +1439,15 @@ daemon-v0.17.6 + set v8, two twins at a time (`rl-runs/twin-work/P8/`).
   the band would add about two points: left as it is.
 - **Exploring lingers in corridors** (half of each session in house2), going
   back over known floor to close loops.
+- **The journeys' A/Bs counted only the falls that ended a journey down.**
+  Until 2026-11-04 `twin_ab.py` saw a fall only with the trunk still under
+  7 cm, or the journey's own word, at the journey's end; a duck that fell and
+  got up counted as none. Recounted from quack-navd's logs, AB18 to AB28 (12
+  A/Bs, 1152 journeys, all arrived) hold 10 falls where this page reports none: AB18
+  1, AB21 1, AB23 1, AB24 5, AB27 1, AB28 1; branch 6, frozen `main` 4; all in
+  casa_ingombra, none in casa_arredata. Arrivals and times stand. `twin_ab.py`
+  now reports `falls` beside `ended down`. The log misses a little: robotd's
+  own fall message is 32 against quack-navd's 30 on the same logs.
 - **Twin only.** None of this has run on a physical duck yet; the gait, the
   depth sensor and the floor are MuJoCo's. With an assistant that also runs
   a house's automation (Arkimede), "explore the house" went to the house's

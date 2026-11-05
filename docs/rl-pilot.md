@@ -247,6 +247,8 @@ on the way to the bedroom, in the scene and not in the map: the oracle
 draws the truth as a mapper would (`QK_ORACLE_AS_MAPPED`), the true rims
 on the books (`QK_ORACLE_BOOK`) and the true pose, so what is measured is
 the navigation. Its traces went through `calibrate.sh` as the duck's will.
+It counts every fall (`falls`, quack-navd's `maploc: robot fell`) apart from
+the journeys that ended down (`ended down`).
 What the twin taught, each found in its traces and now in the simulator:
 
 - **Bumps tip the duck over.** The stick fell against the bag and against

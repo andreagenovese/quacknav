@@ -1548,6 +1548,16 @@ casa_arredata, daemon-v0.17.6 + set v8, due gemelli alla volta
   com'è.
 - **L'esplorazione si attarda nei corridoi** (metà di ogni sessione in house2),
   ripassando pavimento conosciuto per chiudere i loop.
+- **Gli A/B dei viaggi contavano solo le cadute che chiudevano un viaggio a
+  terra.** Fino al 2026-11-04 `twin_ab.py` vedeva una caduta solo con il tronco
+  ancora sotto i 7 cm, o con la parola del viaggio stesso, alla fine del
+  viaggio; una papera caduta e rialzata contava zero. Ricontate dai log di
+  quack-navd, da AB18 ad AB28 (12 A/B, 1152 viaggi, tutti arrivati) ci sono 10
+  cadute dove questa pagina non ne riporta: AB18 1, AB21 1, AB23 1, AB24 5, AB27 1,
+  AB28 1; ramo 6, `main` congelato 4; tutte in casa_ingombra, nessuna in
+  casa_arredata. Arrivi e tempi restano validi. Ora `twin_ab.py` riporta
+  `falls` accanto a `ended down`. Il log ne perde qualcuna: il messaggio di
+  caduta di robotd è 32 contro i 30 di quack-navd sugli stessi log.
 - **Solo gemello.** Niente di tutto questo ha ancora girato su una papera
   fisica; il passo, il sensore di profondità e il pavimento sono quelli di
   MuJoCo. Con un assistente che gestisce anche la domotica di una casa
