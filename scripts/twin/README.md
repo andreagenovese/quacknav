@@ -110,6 +110,12 @@ bump <name>`). `TWIN_MOVERS_SEED` fixes their dice;
 paper twin walks the same movers with the same numbers (quack-rl's
 `twin:<house>`), read from the same truth.
 
+What the duck touches: `TWIN_CONTACTS=<file>` (with the viewer or
+`TWIN_MOVERS`, not the plain body server) appends a JSON line per touch between
+a part of the duck and anything of the house but the floor: the part, the
+thing, when, how long, the peak force, the trunk's true pose, where in the
+trunk's frame (`viewer/contacts.py`). It is read every 20 ms and only reads.
+
 ## Measuring
 
 | script | what it answers |
