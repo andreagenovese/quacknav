@@ -797,6 +797,9 @@ pub struct Mapper {
     /// prior where the stand began, not on the last window's answer (see
     /// `absorb_window`).
     stand_moved: (f32, f32),
+    /// Where the tracking's last correction left the pose: a frozen map's
+    /// wider bar waits for the body to have left it (`tracking_cfg`).
+    last_fix: Option<(f32, f32)>,
     /// When the current stand began, while the body is still.
     still_since: Option<f32>,
     /// A job drives the body (the host's word, [`Mapper::set_engaged`]):
@@ -827,6 +830,23 @@ pub struct Mapper {
 /// pose alone, as before 2026-09-28.
 fn watchdog_rescue() -> bool {
     std::env::var("MAPLOC_WATCHDOG_RESCUE").map_or(true, |v| v != "0")
+}
+
+/// A frozen map's bar on where the tracking's correction ends, in metres
+/// (`TrackingConfig::max_residual_after_m` holds for a map still inked).
+/// That bar guards the ink, and a frozen map takes none, while under it the
+/// pose goes uncorrected just when it needs it: a pose 10 cm off matched
+/// back the right way ending at 3-6 cm, was refused window after window, and
+/// odometry carried it to 0.54 m (casa_ingombra on the twin, 2026-11-05).
+const FROZEN_MAX_RESIDUAL_AFTER_M: f32 = 0.06;
+/// How far from the last correction the body must be for that wider bar.
+const FROZEN_FIX_AFTER_M: f32 = 0.10;
+
+/// `MAPLOC_FROZEN_RESIDUAL_BAR=<metres>`: a frozen map's bar on the
+/// tracking's correction (0.06; 0.02 is the bar of a map still inked, as
+/// before 2026-11-06).
+fn frozen_residual_bar() -> f32 {
+    std::env::var("MAPLOC_FROZEN_RESIDUAL_BAR").ok().and_then(|v| v.parse().ok()).unwrap_or(FROZEN_MAX_RESIDUAL_AFTER_M)
 }
 
 /// `MAPLOC_LOCAL_AFTER_BOOT=0`: every loss on a resumed map searches the
@@ -1008,6 +1028,7 @@ impl Mapper {
             odom_window: Vec::new(),
             was_still: false,
             stand_moved: (0.0, 0.0),
+            last_fix: None,
             still_since: None,
             engaged: false,
             rest: None,
@@ -1811,6 +1832,7 @@ impl Mapper {
         let prior = (pose.0 - self.stand_moved.0, pose.1 - self.stand_moved.1, pose.2);
         let mut pose = pose;
         let mut correction: Option<Pose2> = None;
+        let tracking = self.tracking_cfg(pose);
         // A rescued window is not corrected by the rescue's match: applied,
         // one of them — a local alias at residual 0.05 — took a replay from
         // 0.06 m to 0.41 m. It is only not called a contradiction; the
@@ -1818,13 +1840,14 @@ impl Mapper {
         if self.cfg.tracking.enabled
             && let Some(grid) = self.stand_grid.as_mut()
             && let Some((delta, before, after, n_used)) =
-                tracking_correction(grid, composite, pose, prior, &self.cfg.tracking)
+                tracking_correction(grid, composite, pose, prior, &tracking)
         {
             pose = compose(pose, delta);
             correction = Some(delta);
             let tracked = self.slam.tracked();
             self.slam.set_tracked(compose(tracked, delta));
             let moved = compose(tracked, delta);
+            self.last_fix = Some((moved.0, moved.1));
             self.stand_moved.0 += moved.0 - tracked.0;
             self.stand_moved.1 += moved.1 - tracked.1;
             if self.cfg.tracking.cut_on_correction_m > 0.0
@@ -1921,15 +1944,17 @@ impl Mapper {
         if !self.cfg.tracking.enabled {
             return;
         }
+        let tracking = self.tracking_cfg(pose);
         let Some(grid) = self.stand_grid.as_mut() else {
             return;
         };
         let Some((delta, before, after, n_used)) =
-            tracking_correction(grid, &composite, pose, pose, &self.cfg.tracking)
+            tracking_correction(grid, &composite, pose, pose, &tracking)
         else {
             return;
         };
         let moved = compose(pose, delta);
+        self.last_fix = Some((moved.0, moved.1));
         self.slam.set_tracked(moved);
         notes.push(Note::TrackingCorrected {
             dx: moved.0 - pose.0,
@@ -2305,6 +2330,21 @@ impl Mapper {
     }
     fn frozen(&self) -> bool {
         self.cfg.frozen && !self.lost
+    }
+    /// The tracking's configuration at `pose` on this map: a frozen one has
+    /// its own bar on where a correction ends (see `frozen_residual_bar`),
+    /// once the body has walked `FROZEN_FIX_AFTER_M` from the last correction.
+    /// Before that a window is the same scene seen again, and along a wall
+    /// the scene barely pins, corrections under the wider bar add up: 0.18 m
+    /// walked in a five-minute stand where the inked bar holds it to 0.03
+    /// (`a_long_stand_does_not_walk_the_pose_along_a_wall`).
+    fn tracking_cfg(&self, pose: Pose2) -> TrackingConfig {
+        let mut cfg = self.cfg.tracking;
+        let walked = self.last_fix.is_none_or(|f| (pose.0 - f.0).hypot(pose.1 - f.1) >= FROZEN_FIX_AFTER_M);
+        if self.cfg.frozen && walked {
+            cfg.max_residual_after_m = frozen_residual_bar();
+        }
+        cfg
     }
 
     fn ink(&mut self, pose: Pose2, composite: &Scan) {
@@ -3020,6 +3060,22 @@ mod tests {
         assert!(mapper.untrusted() && !mapper.tracking(), "{notes:?}");
         assert!(notes.iter().any(|n| matches!(n, Note::RestEnded { why: "pushed", .. })));
         assert!(notes.iter().any(|n| matches!(n, Note::Untrusted)));
+    }
+
+    /// A frozen map's own bar on where a correction ends: from the start,
+    /// and again once the body has walked from the last correction, not
+    /// while it stands where that left it. A map still inked keeps its bar.
+    #[test]
+    fn a_frozen_map_widens_the_bar_only_once_walked() {
+        let (mut mapper, _, _) = mapped_room();
+        let inked = TrackingConfig::default().max_residual_after_m;
+        let bar = |m: &Mapper, x: f32| m.tracking_cfg((x, 0.0, 0.0)).max_residual_after_m;
+        assert_eq!(bar(&mapper, 0.0), inked);
+        mapper.set_frozen(true);
+        assert_eq!(bar(&mapper, 0.0), FROZEN_MAX_RESIDUAL_AFTER_M);
+        mapper.last_fix = Some((0.0, 0.0));
+        assert_eq!(bar(&mapper, 0.05), inked);
+        assert_eq!(bar(&mapper, FROZEN_FIX_AFTER_M), FROZEN_MAX_RESIDUAL_AFTER_M);
     }
 
     /// Seated while resting: picked up, maybe. Untrusted.

@@ -1558,6 +1558,23 @@ casa_arredata, daemon-v0.17.6 + set v8, due gemelli alla volta
   casa_arredata. Arrivi e tempi restano validi. Ora `twin_ab.py` riporta
   `falls` accanto a `ended down`. Il log ne perde qualcuna: il messaggio di
   caduta di robotd è 32 contro i 30 di quack-navd sugli stessi log.
+- **Su una mappa congelata la correzione del tracking aveva un limite pensato per l'inchiostro.**
+  Un confronto veniva rifiutato oltre 2 cm di residuo dopo la correzione, così
+  correzioni nella direzione giusta andavano perse e la posa si allontanava, fino
+  a 0,54 m con il tracking ancora vero. Dal 2026-11-06 una mappa congelata accetta
+  6 cm una volta che il corpo ha camminato 10 cm dall'ultima correzione
+  (`MAPLOC_FROZEN_RESIDUAL_BAR`); da fermo, e su una mappa ancora in disegno,
+  restano 2 cm. A/B sul gemello contro il commit precedente, senza backlash, stessa
+  mappa per casa, 12 giri: errore oltre 0,2 m dal 4,2 % allo 0,0 % del tempo e
+  massimo da 0,42 a 0,16 m in casa_ingombra, dall'1,0 % allo 0,0 % e da 0,22 a
+  0,18 m in casa_arredata. Arrivi e cadute non si sono mossi: 46/48 con 1 caduta
+  per braccio, 24/24 con nessuna. Rigioco di quelle 24 registrazioni, 2 cm contro
+  6 cm: dal 9,6 % al 7,0 %, meglio in 16 sessioni, peggio in 5, pari in 3. Il
+  rigioco legge più alto dei giri dal vivo. Nessun A/B con backlash o BAM, dove il
+  rigioco di una sola corsa guadagnava di più. Resta: nell'A/B su mappa congelata
+  di casa_ingombra entrambi i viaggi falliti sono una caduta da cui la papera non
+  si è rilocalizzata in tempo; la caduta del braccio nuovo è in una buca, con la
+  posa sbagliata di 4 cm; la causa non è stata trovata.
 - **Solo gemello.** Niente di tutto questo ha ancora girato su una papera
   fisica; il passo, il sensore di profondità e il pavimento sono quelli di
   MuJoCo. Con un assistente che gestisce anche la domotica di una casa

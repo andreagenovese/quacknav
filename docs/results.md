@@ -1448,6 +1448,21 @@ daemon-v0.17.6 + set v8, two twins at a time (`rl-runs/twin-work/P8/`).
   casa_ingombra, none in casa_arredata. Arrivals and times stand. `twin_ab.py`
   now reports `falls` beside `ended down`. The log misses a little: robotd's
   own fall message is 32 against quack-navd's 30 on the same logs.
+- **On a frozen map the tracking's correction had a bar made for ink.** A match
+  was refused above 2 cm of residual after it, so right-way corrections were
+  thrown away and the pose walked off, up to 0.54 m with tracking still true.
+  Since 2026-11-06 a frozen map takes 6 cm once the body has walked 10 cm from
+  the last correction (`MAPLOC_FROZEN_RESIDUAL_BAR`); at rest, and on a map
+  still being inked, 2 cm stands. Twin A/B against the parent, no backlash, same
+  map per house, 12 rounds: error over 0.2 m 4.2 % to 0.0 % of the time and
+  worst 0.42 to 0.16 m in casa_ingombra, 1.0 % to 0.0 % and 0.22 to 0.18 m in
+  casa_arredata. Arrivals and falls did not move: 46/48 with 1 fall each, 24/24
+  with none. Replay of those 24 recordings, 2 cm against 6 cm: 9.6 % to 7.0 %,
+  better in 16 sessions, worse in 5, level in 3. Replay reads higher than the
+  live runs. Not A/B tested with backlash or BAM, where the replay of one run
+  gained most. Left: in casa_ingombra's frozen-map A/B both failed journeys
+  are a fall the duck could not relocalize from in time; the new arm's fall was
+  into a hole, with the pose 4 cm off; its cause was not found.
 - **Twin only.** None of this has run on a physical duck yet; the gait, the
   depth sensor and the floor are MuJoCo's. With an assistant that also runs
   a house's automation (Arkimede), "explore the house" went to the house's
