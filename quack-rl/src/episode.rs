@@ -232,4 +232,20 @@ mod tests {
         }
         assert!(ok >= 4, "{ok}/6");
     }
+
+    /// Lost on its feet in a journey (a fall the frames never showed as
+    /// seated, BAM twin 2026-11-06: six minutes on one spot): the duck
+    /// looks around and walks, it does not stand on one view.
+    #[test]
+    fn a_lost_journey_walks_for_its_pose() {
+        let s = generate(3, 0, Some("clutter"));
+        let start = (s.start.0, s.start.1);
+        let mut j = Journey::new(s, Calib::default(), 3);
+        j.budget_s = 400.0;
+        j.body.lock().pose_lost = true;
+        let r = j.run(None);
+        let sim = j.body.lock();
+        assert!(r.reason.contains("could not find its position"), "{r:?}");
+        assert!(dist((sim.x, sim.y), start) > 0.3, "stood on one view: {:?} from {start:?}, {r:?}", (sim.x, sim.y));
+    }
 }

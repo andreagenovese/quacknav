@@ -1459,8 +1459,27 @@ daemon-v0.17.6 + set v8, two twins at a time (`rl-runs/twin-work/P8/`).
   casa_arredata. Arrivals and falls did not move: 46/48 with 1 fall each, 24/24
   with none. Replay of those 24 recordings, 2 cm against 6 cm: 9.6 % to 7.0 %,
   better in 16 sessions, worse in 5, level in 3. Replay reads higher than the
-  live runs. Not A/B tested with backlash or BAM, where the replay of one run
-  gained most. Left: in casa_ingombra's frozen-map A/B both failed journeys
+  live runs. The same A/B on BAM + backlash, on maps drawn without backlash:
+  arrivals 28/48 to 42/48 and 21/24 to 24/24, falls 5 to 2 and 1 to 0, error
+  over 0.2 m 48 % to 22 % and 39 % to 30 %. Its cost, seen once: after a fall
+  the new arm relocalized 2.8 m off, turned by about 180°, and tracked that
+  for 7 minutes to the round's end, 2 journeys lost. Relocalizing does not go
+  through this bar, but replaying from that moment the 2 cm bar declares lost
+  after 370 s and the 6 cm bar not in the 431 s left. Hence two changes. A
+  journey that lost its pose to a fall now looks round for it, turning and,
+  after a full circle, taking a short leg, instead of waiting. And after a fall
+  maploc believes a search only within 1 m and 0.6 rad of the pose it carried,
+  falling back on the nearest basin the search found there. A sit lifts that
+  rule: a duck sat down and put back may be anywhere. Replayed on 21 recorded
+  falls: 13 relocalized, all true, 0 false, median 50 s. Without the rule, on 18 of them:
+  5 relocalized, 2 of them false. On the twin, BAM + backlash, against
+  6e15068: arrivals 44/48 to 47/48 and 19/24 to 24/24, falls 1 to 2 and 2 to
+  0, worst pose error 5.91 m to 0.39 m and 0.43 m to 0.38 m. Both of the new
+  arm's falls relocalized true, in 16 s and 75 s. Without backlash both arms
+  were 48/48 and 24/24 with no falls. The limit: a duck carried off after a fall
+  without being sat down stays lost until a sit or a restart. Odometry cannot
+  tell that carry from the stand's own sway, which fired 3 false lifts in 21
+  falls. Left: in casa_ingombra's frozen-map A/B without backlash both failed journeys
   are a fall the duck could not relocalize from in time; the new arm's fall was
   into a hole, with the pose 4 cm off; its cause was not found.
 - **Twin only.** None of this has run on a physical duck yet; the gait, the

@@ -1570,9 +1570,30 @@ casa_arredata, daemon-v0.17.6 + set v8, due gemelli alla volta
   0,18 m in casa_arredata. Arrivi e cadute non si sono mossi: 46/48 con 1 caduta
   per braccio, 24/24 con nessuna. Rigioco di quelle 24 registrazioni, 2 cm contro
   6 cm: dal 9,6 % al 7,0 %, meglio in 16 sessioni, peggio in 5, pari in 3. Il
-  rigioco legge più alto dei giri dal vivo. Nessun A/B con backlash o BAM, dove il
-  rigioco di una sola corsa guadagnava di più. Resta: nell'A/B su mappa congelata
-  di casa_ingombra entrambi i viaggi falliti sono una caduta da cui la papera non
+  rigioco legge più alto dei giri dal vivo. Lo stesso A/B con BAM + backlash, su mappe disegnate senza
+  backlash: arrivi da 28/48 a 42/48 e da 21/24 a 24/24, cadute da 5 a 2 e da 1 a
+  0, errore oltre 0,2 m dal 48 % al 22 % e dal 39 % al 30 %. Il costo, visto una
+  volta: dopo una caduta il braccio nuovo si è rilocalizzato a 2,8 m, girato di
+  circa 180°, e ha seguito quella posa per 7 minuti fino alla fine del giro,
+  perdendo 2 viaggi. La rilocalizzazione non passa da questo limite, ma
+  rigiocando da quel momento il limite di 2 cm dichiara la perdita dopo 370 s e
+  quello di 6 cm non nei 431 s rimasti. Da qui due cambi. Un viaggio
+  che perde la posa per una caduta ora la cerca guardandosi intorno: gira e,
+  dopo un giro completo, fa un breve tratto, invece di aspettare. E dopo una
+  caduta maploc crede a una ricerca solo entro 1 m e 0,6 rad dalla posa che
+  aveva, ripiegando sul bacino più vicino che la ricerca ha trovato lì. Una
+  seduta toglie la regola: una papera fatta sedere e rimessa giù può essere
+  ovunque. Rigiocato su 21 cadute registrate: 13 rilocalizzate, tutte vere,
+  0 false, mediana 50 s. Senza la regola, su 18 di esse: 5 rilocalizzate, 2 delle quali false.
+  Sul gemello, BAM + backlash, contro 6e15068: arrivi da 44/48 a 47/48 e da
+  19/24 a 24/24, cadute da 1 a 2 e da 2 a 0, errore di posa massimo da 5,91 m a
+  0,39 m e da 0,43 m a 0,38 m. Entrambe le cadute del braccio nuovo si sono
+  rilocalizzate sul vero, in 16 s e 75 s. Senza backlash entrambi i bracci
+  48/48 e 24/24 senza cadute. Il limite: una papera spostata dopo una caduta
+  senza farla sedere resta persa fino a una seduta o a un riavvio. L'odometria
+  non distingue quello spostamento dall'oscillazione della stessa papera in
+  piedi, che ha dato 3 falsi sblocchi su 21 cadute. Resta: nell'A/B su mappa congelata di
+  casa_ingombra senza backlash entrambi i viaggi falliti sono una caduta da cui la papera non
   si è rilocalizzata in tempo; la caduta del braccio nuovo è in una buca, con la
   posa sbagliata di 4 cm; la causa non è stata trovata.
 - **Solo gemello.** Niente di tutto questo ha ancora girato su una papera

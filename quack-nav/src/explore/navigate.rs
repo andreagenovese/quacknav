@@ -117,7 +117,10 @@ impl Job {
             }
             // The pose: planned on only when maploc vouches for it; while
             // it does not, stand — standing still is what relocalization
-            // needs — and give up after `LOST_PATIENCE`. The exploration's
+            // needs — and give up after `LOST_PATIENCE`. On its feet, look
+            // and walk instead: maploc believes nothing from the spot it
+            // fell on, and a tumble it gets up from at once never shows in
+            // the frames as seated (BAM twin, 2026-11-06). The exploration's
             // own loop has its ways of finding itself again: handed back.
             if !robot.pose_trusted() {
                 if !journey {
@@ -131,10 +134,15 @@ impl Job {
                         if frame.seated { "the duck is seated or fallen and did not get up".into() } else { "the duck could not find its position again".into() },
                     );
                 }
-                let _ = stand(robot, FRONTIER_STOP_S);
+                if frame.seated {
+                    let _ = stand(robot, FRONTIER_STOP_S);
+                } else {
+                    self.relocate_step(robot);
+                }
                 continue;
             }
             self.lost_since = None;
+            self.relocate_steps = 0;
             let pose = frame.pose();
             let (x, y, _) = pose;
             let Ok(grid) = frame.grid() else {

@@ -2246,32 +2246,36 @@ impl Job {
             self.known.push((x, y));
         }
     }
-    /// One step of the search for the pose after a fall: a stand, so the
+    /// One step of the search for a lost pose: a stand, so the
     /// head sweeps and the mapper has its still window; then a turn in
     /// place of an eighth, so the next stand sees elsewhere; after a
-    /// whole circle, a short guarded leg ahead to a new viewpoint. Up to
+    /// whole circle, short guarded legs ahead in one line, for maploc believes
+    /// nothing it has not walked for; a leg refused turns instead. Up to
     /// [`LOST_PATIENCE`], then the job gives up — no leg of the job itself
     /// is walked on a pose the fall made a guess of (the user's,
     /// 2026-09-24: "after getting up, relocalizing is the first thing").
     fn relocate_step(&mut self, robot: &mut dyn Body) {
         self.relocate_steps += 1;
         if self.relocate_steps == 1 {
-            tracing::info!("map explore: up again after a fall; looking around for the pose before anything else");
+            tracing::info!("map explore: on its feet without a pose; looking around for it before anything else");
         }
         let _ = stand(robot, RELOCATE_STAND_S);
         if robot.pose_trusted() {
             return;
         }
-        if self.relocate_steps % (PANO_STEPS + 1) == 0 {
-            let leg = json!({"vx": 0.3, "vyaw": 0.0, "walk_s": 1.0, "stop_s": 0.0});
-            let walked = match robot.frame() {
-                Some(f) => self.guarded_step(robot, f.pose(), &leg).is_ok(),
+        let walked = self.relocate_steps > PANO_STEPS
+            && match robot.frame() {
+                Some(f) => {
+                    let leg = json!({"vx": 0.3, "vyaw": 0.0, "walk_s": 1.0, "stop_s": 0.0});
+                    self.guarded_step(robot, f.pose(), &leg).is_ok()
+                }
                 None => false,
             };
-            tracing::info!(walked, steps = self.relocate_steps, "map explore: after a fall, a circle seen and no pose; a short leg to see from elsewhere");
+        if walked {
+            tracing::info!(steps = self.relocate_steps, "map explore: a circle seen and no pose; a short leg to see from elsewhere");
         } else {
             let turned = self.turn_in_place(robot, 1.0, PANO_STEP_RAD);
-            tracing::info!(turned_deg = ?turned.map(|t| format!("{:.0}", t.to_degrees())), steps = self.relocate_steps, "map explore: after a fall, turning to look elsewhere");
+            tracing::info!(turned_deg = ?turned.map(|t| format!("{:.0}", t.to_degrees())), steps = self.relocate_steps, "map explore: no pose yet, turning to look elsewhere");
         }
     }
 

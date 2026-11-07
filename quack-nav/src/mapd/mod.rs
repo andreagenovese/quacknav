@@ -941,6 +941,7 @@ fn log_note(note: Note) {
         }
         Note::SuspectAfterSit => tracing::info!("maploc: robot sat — pose suspect until a window confirms it"),
         Note::SuspectAfterFall => tracing::info!("maploc: robot fell — pose suspect until a window confirms it"),
+        Note::SatAfterFall => tracing::info!("maploc: seated since the fall — the search is global again"),
         Note::ResumedUnverified { pose } => {
             tracing::warn!(
                 x = format!("{:.2}", pose.0),
