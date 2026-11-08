@@ -1479,7 +1479,15 @@ daemon-v0.17.6 + set v8, two twins at a time (`rl-runs/twin-work/P8/`).
   were 48/48 and 24/24 with no falls. The limit: a duck carried off after a fall
   without being sat down stays lost until a sit or a restart. Odometry cannot
   tell that carry from the stand's own sway, which fired 3 false lifts in 21
-  falls. Left: in casa_ingombra's frozen-map A/B without backlash both failed journeys
+  falls. Exploration from nothing against main (5f3870b), two runs per
+  arm, BAM + backlash and without: rooms' known floor level within a few
+  points. It found the same flaw in exploring: a tumble the frames never show
+  as seated left the explorer standing on one view for 3 minutes, then the
+  session failed, in both arms. Now an explorer on its feet without a pose
+  looks round and walks, as a journey does; on BAM it lost its pose to drift
+  4 times and found it again in 30 to 70 s each. Left from those runs, in
+  both arms: a fall or a loss near a session's end throws the whole session's
+  map away (3 of 16 house runs), since a lost duck does not save. Left: in casa_ingombra's frozen-map A/B without backlash both failed journeys
   are a fall the duck could not relocalize from in time; the new arm's fall was
   into a hole, with the pose 4 cm off; its cause was not found.
 - **Twin only.** None of this has run on a physical duck yet; the gait, the

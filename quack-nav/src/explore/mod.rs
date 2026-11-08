@@ -1845,12 +1845,15 @@ impl Job {
                         },
                     );
                 }
-                if self.fell.is_some() && !frame.seated {
-                    // Up again after a fall: finding the pose is the first
-                    // thing, before any leg of the job — look around.
+                if !frame.seated {
+                    // On its feet without a pose, after a fall or not:
+                    // finding it is the first thing, before any leg of the
+                    // job — look around. A tumble the frames never show as
+                    // seated is a fall all the same (BAM twin, casa_ingombra,
+                    // 2026-11-07: three minutes standing on one view).
                     self.relocate_step(robot);
                 } else {
-                    // Standing still is what relocalization needs.
+                    // Seated: wait for it to get up.
                     let _ = stand(robot, self.turn_stand_s());
                 }
                 continue;

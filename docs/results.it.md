@@ -1592,7 +1592,16 @@ casa_arredata, daemon-v0.17.6 + set v8, due gemelli alla volta
   48/48 e 24/24 senza cadute. Il limite: una papera spostata dopo una caduta
   senza farla sedere resta persa fino a una seduta o a un riavvio. L'odometria
   non distingue quello spostamento dall'oscillazione della stessa papera in
-  piedi, che ha dato 3 falsi sblocchi su 21 cadute. Resta: nell'A/B su mappa congelata di
+  piedi, che ha dato 3 falsi sblocchi su 21 cadute. Esplorazione da zero contro main (5f3870b), due giri per
+  braccio, BAM + backlash e senza: pavimento noto per stanza pari entro pochi
+  punti. Ha trovato lo stesso difetto in esplorazione: una caduta che i frame
+  non mostrano mai come seduta lasciava l'esploratore fermo su una sola vista
+  per 3 minuti, poi la sessione falliva, in entrambi i bracci. Ora un
+  esploratore in piedi senza posa si guarda intorno e cammina, come un
+  viaggio; con BAM ha perso la posa per deriva 4 volte e l'ha ritrovata ogni
+  volta in 30–70 s. Resta da quei giri, in entrambi i bracci: una caduta o una
+  perdita verso la fine di una sessione butta via la mappa di tutta la
+  sessione (3 giri-casa su 16), perché una papera persa non salva. Resta: nell'A/B su mappa congelata di
   casa_ingombra senza backlash entrambi i viaggi falliti sono una caduta da cui la papera non
   si è rilocalizzata in tempo; la caduta del braccio nuovo è in una buca, con la
   posa sbagliata di 4 cm; la causa non è stata trovata.
