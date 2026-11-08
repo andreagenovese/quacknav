@@ -1601,7 +1601,15 @@ casa_arredata, daemon-v0.17.6 + set v8, due gemelli alla volta
   viaggio; con BAM ha perso la posa per deriva 4 volte e l'ha ritrovata ogni
   volta in 30–70 s. Resta da quei giri, in entrambi i bracci: una caduta o una
   perdita verso la fine di una sessione butta via la mappa di tutta la
-  sessione (3 giri-casa su 16), perché una papera persa non salva. Resta: nell'A/B su mappa congelata di
+  sessione (3 giri-casa su 16), perché una papera persa non salvava. Mentre è persa nulla inchiostra,
+  quindi la mappa è intera e solo la posa è un'ipotesi: una papera persa ora
+  salva la mappa con l'ultima posa che conosceva in piedi, e rifiuta solo se
+  non ne ha conosciuta nessuna da quando la mappa è stata caricata. Un terzo
+  giro di entrambi i bracci contro main: è scattato una volta, dopo una
+  caduta 21 s dopo l'ultima posa nota; quella sessione è contata, e la
+  successiva si è svegliata a 0,00 m e ha finito la casa. Cadute nei tre
+  giri: main 3, ramo 4 su 12 giri-casa ciascuno, nessuna durante la nuova
+  ricerca o il nuovo salvataggio (passi, giri, un passo indietro). Resta: nell'A/B su mappa congelata di
   casa_ingombra senza backlash entrambi i viaggi falliti sono una caduta da cui la papera non
   si è rilocalizzata in tempo; la caduta del braccio nuovo è in una buca, con la
   posa sbagliata di 4 cm; la causa non è stata trovata.

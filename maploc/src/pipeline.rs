@@ -411,11 +411,35 @@ impl Slam {
             self.tracked,
         )
     }
+
+    /// The session as [`Slam::save`] writes it, with `tracked` in place of
+    /// the pose held now. A lost duck's pose is a guess, and the next boot
+    /// starts its search from the saved one; the last pose it knew is a
+    /// place on the map. The map itself is the same: nothing inks while
+    /// lost.
+    pub fn save_at<P: AsRef<Path>>(&self, path: P, tracked: Pose2) -> std::io::Result<()> {
+        save_session(path, self.mgr.frozen(), self.mgr.current(), &self.graph, &self.node_for_submap, tracked)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// `save_at` writes the map as `save` does, with the pose it is given.
+    #[test]
+    fn save_at_keeps_the_map_and_takes_the_pose() {
+        let dir = std::env::temp_dir().join(format!("maploc-save-at-{}", std::process::id()));
+        let (now, known) = (dir.join("now.session"), dir.join("known.session"));
+        let slam = Slam::new(SlamConfig::default());
+        slam.save(&now).unwrap();
+        slam.save_at(&known, (1.5, -0.5, 0.3)).unwrap();
+        let (a, b) = (SessionState::load(&now).unwrap().unwrap(), SessionState::load(&known).unwrap().unwrap());
+        assert_eq!(b.tracked, (1.5, -0.5, 0.3));
+        assert_eq!(a.node_for_submap, b.node_for_submap);
+        assert_eq!(a.frozen.len(), b.frozen.len());
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 
     /// A session resumed where the duck is found, far from where it was
     /// saved: the re-anchor of the empty current submap must carry the edge

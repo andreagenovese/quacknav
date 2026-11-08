@@ -1364,8 +1364,9 @@ pub fn explored_share(grid: &Grid) -> (f64, usize, usize) {
 
 impl ExploreHandle {
     /// A session ended: its progress goes on the books under the map's
-    /// name, and the map is saved under it — refused by the mapper while
-    /// the duck does not know where it is, and then the session is not
+    /// name, and the map is saved under it. A duck lost at the session's
+    /// end saves the map with the last pose it knew; refused only when it
+    /// knew none since the map was loaded, and then the session is not
     /// counted either (the map as it was saved last stays the map).
     fn end_session(&self, robot: &mut Robot, session: &Session, reason: &str, secs: f64) {
         let name = session.save_as.clone();

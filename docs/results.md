@@ -1487,7 +1487,14 @@ daemon-v0.17.6 + set v8, two twins at a time (`rl-runs/twin-work/P8/`).
   looks round and walks, as a journey does; on BAM it lost its pose to drift
   4 times and found it again in 30 to 70 s each. Left from those runs, in
   both arms: a fall or a loss near a session's end throws the whole session's
-  map away (3 of 16 house runs), since a lost duck does not save. Left: in casa_ingombra's frozen-map A/B without backlash both failed journeys
+  map away (3 of 16 house runs), since a lost duck did not save. Nothing
+  inks while lost, so the map is whole and only the pose is a guess: a lost
+  duck now saves the map with the last pose it knew on its feet, and refuses
+  only when it knew none since the map was loaded. A third run of both arms
+  against main: it fired once, after a fall 21 s from the last known pose; that
+  session counted, and the next one woke 0.00 m off and finished the house.
+  Falls over the three runs: main 3, branch 4 in 12 house runs each, none
+  during the new search or save (steps, turns, a step back). Left: in casa_ingombra's frozen-map A/B without backlash both failed journeys
   are a fall the duck could not relocalize from in time; the new arm's fall was
   into a hole, with the pose 4 cm off; its cause was not found.
 - **Twin only.** None of this has run on a physical duck yet; the gait, the
