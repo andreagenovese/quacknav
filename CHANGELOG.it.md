@@ -15,6 +15,26 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Modificato
 
+- **Dopo una caduta la papera ritrova dove si trova, e una papera persa
+  tiene la sua mappa.** Su un gemello con gli attuatori realistici di
+  Pollen e il gioco negli ingranaggi (BAM), una caduta è finita due volte
+  in una posa falsa creduta per minuti, una volta a 5,9 m. Ora: in piedi
+  senza posa, in viaggio o in esplorazione, la papera si guarda intorno
+  e, dopo un giro completo, fa brevi tratti, invece di restare su una
+  sola vista fino ad arrendersi; dopo una caduta maploc crede a una
+  ricerca solo entro 1 m e 0,6 rad dalla posa che aveva (una seduta lo
+  toglie: la papera può essere stata spostata ovunque); e una papera
+  persa a fine sessione salva la mappa con l'ultima posa che conosceva,
+  invece di buttare la sessione. Su una mappa congelata, una finestra
+  dopo un tratto camminato dall'ultima correzione può correggere la posa
+  con un residuo fino a 6 cm (prima 2 cm). Gemello, BAM + backlash,
+  contro `main` congelato: viaggi 44/48 → 47/48 e 19/24 → 24/24, errore
+  di posa massimo 5,91 m → 0,39 m; senza backlash pari. Esplorazione da
+  zero, tre giri per braccio: pavimento noto per stanza pari, cadute 3
+  contro 4 su 12 giri-casa ciascuno, nessuna durante la nuova ricerca o
+  il nuovo salvataggio. Resta: una papera spostata dopo una caduta senza
+  farla sedere resta persa fino a una seduta o a un riavvio; le cadute
+  BAM nei giri ampi sul posto.
 - **Un buco prenotato da poco segue la correzione della sua posa fatta
   dalla mappa.** Un dislivello prenotato su una posa che la mappa ha
   corretto un attimo dopo restava dove quella posa l'aveva messo —
