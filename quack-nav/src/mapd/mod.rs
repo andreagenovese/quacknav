@@ -490,6 +490,9 @@ fn worker(
     let mut last_save = Instant::now();
     let mut seq = 0u64;
     let mut unsaved = false;
+    // The last pose the duck knew on this map: a save while it is lost
+    // writes the map with it (see `Event::SaveAs`).
+    let mut known_pose: Option<(maploc::submap::Pose2, Instant)> = None;
     // The live map is the fresh one started at boot, its origin where the
     // duck woke (see `Event::Load`).
     let mut fresh_since_boot = config.wipe_on_boot;
@@ -599,6 +602,7 @@ fn worker(
                 (band_unsaved, band_stale) = (false, true);
                 let _ = std::fs::remove_file(maploc::band::band_path(&map_path));
                 unsaved = false;
+                known_pose = None;
                 rendered = None;
                 render_stale = true;
                 tracing::info!("maploc: session wiped by request");
@@ -614,15 +618,35 @@ fn worker(
                 // boot on it starts from there. Saved while the duck does
                 // not know where it is — down after a fall, carried, lost —
                 // that pose is a guess: the twin's house2, saved with the
-                // duck fallen at the stairwell, booted at (-65, -286).
-                let result = if !mapper.tracking() {
-                    Err("the duck does not know where it is right now (after a fall, a carry or a loss); save once its pose is confirmed again".to_string())
+                // duck fallen at the stairwell, booted at (-65, -286). So a
+                // lost duck saves the map with the last pose it knew: the
+                // map is whole, nothing inks while lost, and refusing threw
+                // a session's map away for a fall in its last minutes
+                // (3 house runs in 16, BAM twin, 2026-11-08). Lost since the
+                // map was loaded or wiped, it knew none: refused.
+                let at = if mapper.tracking() {
+                    Ok(None)
+                } else if let Some((pose, when)) = known_pose {
+                    tracing::info!(
+                        name,
+                        ago_s = format!("{:.0}", when.elapsed().as_secs_f64()),
+                        x = format!("{:.2}", pose.0),
+                        y = format!("{:.2}", pose.1),
+                        "maploc: lost now; the map is saved with the last pose the duck knew"
+                    );
+                    Ok(Some(pose))
                 } else {
-                    Ok(())
+                    Err("the duck does not know where it is right now (after a fall, a carry or a loss); save once its pose is confirmed again".to_string())
                 };
-                let result = result
-                    .and_then(|()| std::fs::create_dir_all(maps_dir(&map_path)).map_err(|e| format!("cannot create the map library: {e}")))
-                    .and_then(|()| mapper.slam().save(&path).map_err(|e| format!("cannot write the map: {e}")));
+                let result = at
+                    .and_then(|at| std::fs::create_dir_all(maps_dir(&map_path)).map(|()| at).map_err(|e| format!("cannot create the map library: {e}")))
+                    .and_then(|at| {
+                        match at {
+                            None => mapper.slam().save(&path),
+                            Some(pose) => mapper.slam().save_at(&path, pose),
+                        }
+                        .map_err(|e| format!("cannot write the map: {e}"))
+                    });
                 if result.is_ok() {
                     save_band(&band, &path, None);
                     band_library = Some(path.clone());
@@ -664,6 +688,7 @@ fn worker(
                         fresh_since_boot = false;
                         mapper =
                             Mapper::resumed_lost(mapper_config(config), Slam::from_session(SlamConfig::default(), session));
+                        known_pose = None;
                         band = load_band(&path);
                         band_library = Some(path.clone());
                         (band_unsaved, band_stale) = (true, true);
@@ -829,6 +854,14 @@ fn worker(
         for note in notes.drain(..) {
             log_note(note);
         }
+        // Known: tracking, not distrusted, on its feet (a fall or a sit
+        // turns the mapper lost at once, until a window confirms a pose).
+        if mapper.tracking()
+            && !mapper.untrusted()
+            && latest.as_ref().is_some_and(|s| !s.sitting && !s.fallen)
+        {
+            known_pose = Some((mapper.slam().tracked(), Instant::now()));
+        }
         if mapper.slam_mut().take_dirty() {
             unsaved = true;
             render_stale = true;
@@ -941,6 +974,7 @@ fn log_note(note: Note) {
         }
         Note::SuspectAfterSit => tracing::info!("maploc: robot sat — pose suspect until a window confirms it"),
         Note::SuspectAfterFall => tracing::info!("maploc: robot fell — pose suspect until a window confirms it"),
+        Note::SatAfterFall => tracing::info!("maploc: seated since the fall — the search is global again"),
         Note::ResumedUnverified { pose } => {
             tracing::warn!(
                 x = format!("{:.2}", pose.0),

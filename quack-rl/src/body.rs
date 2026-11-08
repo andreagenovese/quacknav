@@ -69,6 +69,8 @@ pub struct Sim {
     pub y: f64,
     pub yaw: f64,
     pub fell: bool,
+    /// maploc no longer vouches for the pose, the duck on its feet.
+    pub pose_lost: bool,
     /// The fall was a tip-over against something, not a hole.
     pub tipped: bool,
     contact_free: bool,
@@ -158,6 +160,7 @@ impl Sim {
             y: s.start.1,
             yaw: crate::wrap(s.start.2),
             fell: false,
+            pose_lost: false,
             tipped: false,
             contact_free: true,
             bumps: 0,
@@ -586,7 +589,8 @@ impl Body for SimBody {
     }
 
     fn pose_trusted(&self) -> bool {
-        !self.lock().fell
+        let sim = self.lock();
+        !sim.fell && !sim.pose_lost
     }
 
     fn frozen_map(&self) -> bool {

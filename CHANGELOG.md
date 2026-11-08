@@ -13,6 +13,24 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Changed
 
+- **After a fall the duck finds where it is, and a lost duck keeps its
+  map.** On a twin with Pollen's realistic actuators and gear backlash
+  (BAM), a fall twice ended in a false pose believed for minutes, once
+  5.9 m off. Now: on its feet without a pose, in a journey or exploring,
+  the duck looks round and, after a full circle, walks short legs,
+  instead of standing on one view until it gives up; after a fall
+  maploc believes a search only within 1 m and 0.6 rad of the pose it
+  carried (a sit lifts that: the duck may have been moved anywhere);
+  and a duck lost when a session ends saves the map with the last pose
+  it knew, instead of throwing the session away. On a frozen map, a
+  window walked from the last correction may correct the pose at up to
+  6 cm of residual (was 2 cm). Twin, BAM + backlash, against frozen
+  `main`: journeys 44/48 → 47/48 and 19/24 → 24/24, worst pose error
+  5.91 m → 0.39 m; without backlash level. Exploration from nothing,
+  three runs per arm: floor known per room level, falls 3 against 4 in
+  12 house runs each, none during the new search or save. Left: a duck
+  carried off after a fall without being sat down stays lost until a
+  sit or a restart; BAM falls in wide turns in place.
 - **A hole booked lately follows the map's correction of its pose.** A
   drop booked on a pose the map corrected a moment later stayed where
   that pose had put it — 0.2–0.3 m off its rim, in the 0.49 m corridor
@@ -132,6 +150,15 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Added
 
+- **The satellites on the client crate; N4 done.** quacksat's
+  navigation lane and quack-control's bridge now run on
+  `quack-nav-client` and say `nav.hello`, logging the protocol version;
+  quack-control hears the events and asks for the status the moment
+  one comes. The client gained an answer timeout of the caller's
+  (`connect_with`), for calls that queue behind another. The roadmap's
+  N4 test, on the twin: a journey's end reached the control page 0.01 s
+  after quack-navd said it, four times of four, where the page's poll
+  took 0.14–1.0 s.
 - **Doing, not only walking: `nav.act`** (protocol v5, the roadmap's
   N5). The duck carries out one of `robotd`'s skills — Pollen's
   policies, read from `robot.skills` at run time, never a list coded

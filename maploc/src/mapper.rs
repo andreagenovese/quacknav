@@ -429,8 +429,9 @@ pub struct MapperConfig {
     /// against the map every window means the map is locally wrong far
     /// more often than the robot moved, so a search winner farther than
     /// this from the odometry-carried pose is an alias, not a pose
-    /// (measured: winners at residual 0.000 3.6 m off, twice). A sit, a
-    /// fall or a session resume keep the global search. 0 = global.
+    /// (measured: winners at residual 0.000 3.6 m off, twice). A fall holds
+    /// to it too, see `after_fall_near`; a sit or a session resume keep
+    /// the global search. 0 = global.
     pub hard_lost_search_radius_m: f32,
     /// ... and a search winner turned more than this from it is an alias
     /// too. 0 = any heading.
@@ -612,6 +613,8 @@ pub enum Note {
     SuspectAfterSit,
     /// The robot fell: same treatment as a sit — a fall can drag and spin.
     SuspectAfterFall,
+    /// Seated since the fall: the search is global again.
+    SatAfterFall,
     /// Soft suspicion (sit/fall/resume) expired: nothing could judge the
     /// pose either way for `suspect_give_up_windows` windows, so tracking
     /// resumed at the odometry-carried pose, unverified.
@@ -737,6 +740,9 @@ pub struct Mapper {
     /// twin the duck got up elsewhere and relocalized 0.64 m off), so the
     /// valley test applies as at a boot, and nothing resumes unverified.
     after_fall: bool,
+    /// The search after a fall holds to the carried pose (`after_fall_near`)
+    /// until a sit says the body may be anywhere.
+    fall_near: bool,
     /// Booted on a saved map and not yet confirmed anywhere on it: the
     /// confirmation of a candidate needs travel, not just a second look.
     booting: bool,
@@ -797,6 +803,9 @@ pub struct Mapper {
     /// prior where the stand began, not on the last window's answer (see
     /// `absorb_window`).
     stand_moved: (f32, f32),
+    /// Where the tracking's last correction left the pose: a frozen map's
+    /// wider bar waits for the body to have left it (`tracking_cfg`).
+    last_fix: Option<(f32, f32)>,
     /// When the current stand began, while the body is still.
     still_since: Option<f32>,
     /// A job drives the body (the host's word, [`Mapper::set_engaged`]):
@@ -827,6 +836,23 @@ pub struct Mapper {
 /// pose alone, as before 2026-09-28.
 fn watchdog_rescue() -> bool {
     std::env::var("MAPLOC_WATCHDOG_RESCUE").map_or(true, |v| v != "0")
+}
+
+/// A frozen map's bar on where the tracking's correction ends, in metres
+/// (`TrackingConfig::max_residual_after_m` holds for a map still inked).
+/// That bar guards the ink, and a frozen map takes none, while under it the
+/// pose goes uncorrected just when it needs it: a pose 10 cm off matched
+/// back the right way ending at 3-6 cm, was refused window after window, and
+/// odometry carried it to 0.54 m (casa_ingombra on the twin, 2026-11-05).
+const FROZEN_MAX_RESIDUAL_AFTER_M: f32 = 0.06;
+/// How far from the last correction the body must be for that wider bar.
+const FROZEN_FIX_AFTER_M: f32 = 0.10;
+
+/// `MAPLOC_FROZEN_RESIDUAL_BAR=<metres>`: a frozen map's bar on the
+/// tracking's correction (0.06; 0.02 is the bar of a map still inked, as
+/// before 2026-11-06).
+fn frozen_residual_bar() -> f32 {
+    std::env::var("MAPLOC_FROZEN_RESIDUAL_BAR").ok().and_then(|v| v.parse().ok()).unwrap_or(FROZEN_MAX_RESIDUAL_AFTER_M)
 }
 
 /// `MAPLOC_LOCAL_AFTER_BOOT=0`: every loss on a resumed map searches the
@@ -875,6 +901,36 @@ fn valley_cross() -> bool {
 }
 /// Refused valleys remembered while lost.
 const VALLEYS_KEPT: usize = 12;
+
+/// After a fall the search's answer must lie where the fall can have put the
+/// body: within the hard-lost radius and heading of the odometry-carried pose,
+/// the best such basin if the winner does not. A fall moves the duck by
+/// decimetres and odometry follows its turning, while a flat of repeated
+/// rectangles offers aliases metres away at residual 0.00: on the replays of
+/// 18 falls the true candidates lay within 0.26 m and 0.06 rad bar one
+/// odometry jump, the 60 false ones all outside (BAM twin, 2026-11-07). A sit
+/// lifts it: the duck may be anywhere, the search is global. A hand is not
+/// looked for: one odometry follows moves the carried pose along, one it does
+/// not follow leaves no trace, and the stand's own sway (0.2 rad) reads as a
+/// push. Carried off without a sit, the duck stays lost until a sit or a restart.
+fn after_fall_near(r: &mut crate::relocalize::RelocalizeResult, now: Pose2, cfg: &MapperConfig) {
+    let near = |p: Pose2| {
+        (p.0 - now.0).hypot(p.1 - now.1) <= cfg.hard_lost_search_radius_m
+            && wrap_pi(p.2 - now.2).abs() <= cfg.hard_lost_search_yaw_rad
+    };
+    if near(r.pose) {
+        return;
+    }
+    let found = r.basins.iter().find(|&&(p, e)| near(p) && e <= cfg.relocalize.max_mean_residual_m);
+    match found {
+        Some(&(p, e)) => {
+            r.pose = p;
+            r.mean_residual_m = e;
+            r.accepted = r.n_beams_used >= cfg.relocalize.min_beams_used;
+        }
+        None => r.accepted = false,
+    }
+}
 
 /// At boot, how far the body must have moved between the window that
 /// nominated a candidate and the one that confirms it. Two windows from
@@ -1008,6 +1064,7 @@ impl Mapper {
             odom_window: Vec::new(),
             was_still: false,
             stand_moved: (0.0, 0.0),
+            last_fix: None,
             still_since: None,
             engaged: false,
             rest: None,
@@ -1025,6 +1082,7 @@ impl Mapper {
             last_search: None,
             hypotheses: Vec::new(),
             after_fall: false,
+            fall_near: false,
             resumed_from_session: false,
             booting: false,
             lost_windows: 0,
@@ -1279,6 +1337,10 @@ impl Mapper {
         // (measured — field test five's second carry).
         if sample.fallen {
             self.after_fall = true;
+            self.fall_near = true;
+        } else if self.fall_near && sample.sitting {
+            self.fall_near = false;
+            notes.push(Note::SatAfterFall);
         }
         if (sample.sitting || sample.fallen) && !self.lost {
             self.arm_suspicion();
@@ -1505,11 +1567,12 @@ impl Mapper {
             }
             if let Some((cand, then, (_, Verdict::Confirmed(pose, resid)))) = judged
             {
-                // At boot, agreement from the spot it was nominated on is
-                // not confirmation: keep it pending — nominated where it
-                // was, so the chord keeps growing — until the body has
-                // moved. A refuted or ambiguous candidate is dropped as
-                // before; the searches below leave a pending one alone.
+                // At boot, agreement from the spot it was
+                // nominated on is not confirmation: keep it pending —
+                // nominated where it was, so the chord keeps growing — until
+                // the body has moved. A refuted or ambiguous candidate is
+                // dropped as before; the searches below leave a pending one
+                // alone.
                 let chord = (now.0 - then.0).hypot(now.1 - then.1);
                 let probe = composite.decimated(self.cfg.relocalize_max_beams);
                 // Only on a map from an earlier run that has never known
@@ -1688,7 +1751,13 @@ impl Mapper {
                 }
                 return;
             }
-            match relocalize_against_grid(&mut grid, &probe, &self.cfg.relocalize) {
+            let searched = relocalize_against_grid(&mut grid, &probe, &self.cfg.relocalize).map(|mut r| {
+                if self.fall_near {
+                    after_fall_near(&mut r, now, &self.cfg);
+                }
+                r
+            });
+            match searched {
                 Some(r) if r.accepted && near_enough(&r) => {
                     // Agreement with the previous search, carried to now.
                     let agreed = match self.last_search.take() {
@@ -1811,6 +1880,7 @@ impl Mapper {
         let prior = (pose.0 - self.stand_moved.0, pose.1 - self.stand_moved.1, pose.2);
         let mut pose = pose;
         let mut correction: Option<Pose2> = None;
+        let tracking = self.tracking_cfg(pose);
         // A rescued window is not corrected by the rescue's match: applied,
         // one of them — a local alias at residual 0.05 — took a replay from
         // 0.06 m to 0.41 m. It is only not called a contradiction; the
@@ -1818,13 +1888,14 @@ impl Mapper {
         if self.cfg.tracking.enabled
             && let Some(grid) = self.stand_grid.as_mut()
             && let Some((delta, before, after, n_used)) =
-                tracking_correction(grid, composite, pose, prior, &self.cfg.tracking)
+                tracking_correction(grid, composite, pose, prior, &tracking)
         {
             pose = compose(pose, delta);
             correction = Some(delta);
             let tracked = self.slam.tracked();
             self.slam.set_tracked(compose(tracked, delta));
             let moved = compose(tracked, delta);
+            self.last_fix = Some((moved.0, moved.1));
             self.stand_moved.0 += moved.0 - tracked.0;
             self.stand_moved.1 += moved.1 - tracked.1;
             if self.cfg.tracking.cut_on_correction_m > 0.0
@@ -1921,15 +1992,17 @@ impl Mapper {
         if !self.cfg.tracking.enabled {
             return;
         }
+        let tracking = self.tracking_cfg(pose);
         let Some(grid) = self.stand_grid.as_mut() else {
             return;
         };
         let Some((delta, before, after, n_used)) =
-            tracking_correction(grid, &composite, pose, pose, &self.cfg.tracking)
+            tracking_correction(grid, &composite, pose, pose, &tracking)
         else {
             return;
         };
         let moved = compose(pose, delta);
+        self.last_fix = Some((moved.0, moved.1));
         self.slam.set_tracked(moved);
         notes.push(Note::TrackingCorrected {
             dx: moved.0 - pose.0,
@@ -2171,6 +2244,7 @@ impl Mapper {
         self.lost_windows = 0;
         self.hard_lost = false;
         self.after_fall = false;
+        self.fall_near = false;
         self.valleys.clear();
         // The boot's global, never-give-up search was for a pose nobody
         // could vouch for. Confirmed, the pose is a pose: a later "lost"
@@ -2305,6 +2379,21 @@ impl Mapper {
     }
     fn frozen(&self) -> bool {
         self.cfg.frozen && !self.lost
+    }
+    /// The tracking's configuration at `pose` on this map: a frozen one has
+    /// its own bar on where a correction ends (see `frozen_residual_bar`),
+    /// once the body has walked `FROZEN_FIX_AFTER_M` from the last correction.
+    /// Before that a window is the same scene seen again, and along a wall
+    /// the scene barely pins, corrections under the wider bar add up: 0.18 m
+    /// walked in a five-minute stand where the inked bar holds it to 0.03
+    /// (`a_long_stand_does_not_walk_the_pose_along_a_wall`).
+    fn tracking_cfg(&self, pose: Pose2) -> TrackingConfig {
+        let mut cfg = self.cfg.tracking;
+        let walked = self.last_fix.is_none_or(|f| (pose.0 - f.0).hypot(pose.1 - f.1) >= FROZEN_FIX_AFTER_M);
+        if self.cfg.frozen && walked {
+            cfg.max_residual_after_m = frozen_residual_bar();
+        }
+        cfg
     }
 
     fn ink(&mut self, pose: Pose2, composite: &Scan) {
@@ -2611,6 +2700,36 @@ mod tests {
     /// breaks the rectangle's remaining 180° symmetry.
     fn room_scan(pose: Pose2) -> Scan {
         scan_of(pose, &[Seg::AtX(0.3, (-1.1, 0.0))])
+    }
+
+    /// Mapped from three stands in the lumpy room, then fallen at the last.
+    fn fallen_in_lumpy_room() -> (Mapper, Vec<Note>, f32) {
+        let mut mapper = Mapper::new(MapperConfig::default(), Slam::new(SlamConfig::default()));
+        let mut notes = Vec::new();
+        let mut t = drive_in(&mut mapper, 0.0, (0.0, 0.0, 0.0), 8.0, &mut notes, lumpy_room_scan);
+        t = drive_in(&mut mapper, t, (0.9, -0.6, -1.2), 8.0, &mut notes, lumpy_room_scan);
+        t = drive_in(&mut mapper, t, (-0.9, 0.4, 2.0), 8.0, &mut notes, lumpy_room_scan);
+        assert!(mapper.tracking());
+        for _ in 0..50 {
+            let sample = MapperSample { odom: (-0.9, 0.4, 2.0), moving: false, sitting: false, fallen: true };
+            mapper.observe(t, sample, &mut notes);
+            t += 0.02;
+        }
+        notes.clear();
+        (mapper, notes, t)
+    }
+
+    /// On its feet at `at`, odometry still saying `odom`.
+    fn stand_after_fall(mapper: &mut Mapper, t0: f32, at: Pose2, odom: Pose2, secs: f32, notes: &mut Vec<Note>) {
+        let (mut t, mut next) = (t0, t0);
+        while t < t0 + secs {
+            mapper.observe(t, MapperSample { odom, moving: false, sitting: false, fallen: false }, notes);
+            if t >= next {
+                mapper.frame(t, lumpy_room_scan(at));
+                next += 1.0 / 15.0;
+            }
+            t += 0.02;
+        }
     }
 
     /// The same room with a shelf along the north wall's east half. The
@@ -3022,6 +3141,22 @@ mod tests {
         assert!(notes.iter().any(|n| matches!(n, Note::Untrusted)));
     }
 
+    /// A frozen map's own bar on where a correction ends: from the start,
+    /// and again once the body has walked from the last correction, not
+    /// while it stands where that left it. A map still inked keeps its bar.
+    #[test]
+    fn a_frozen_map_widens_the_bar_only_once_walked() {
+        let (mut mapper, _, _) = mapped_room();
+        let inked = TrackingConfig::default().max_residual_after_m;
+        let bar = |m: &Mapper, x: f32| m.tracking_cfg((x, 0.0, 0.0)).max_residual_after_m;
+        assert_eq!(bar(&mapper, 0.0), inked);
+        mapper.set_frozen(true);
+        assert_eq!(bar(&mapper, 0.0), FROZEN_MAX_RESIDUAL_AFTER_M);
+        mapper.last_fix = Some((0.0, 0.0));
+        assert_eq!(bar(&mapper, 0.05), inked);
+        assert_eq!(bar(&mapper, FROZEN_FIX_AFTER_M), FROZEN_MAX_RESIDUAL_AFTER_M);
+    }
+
     /// Seated while resting: picked up, maybe. Untrusted.
     #[test]
     fn a_sit_at_rest_untrusts_the_pose() {
@@ -3118,6 +3253,57 @@ mod tests {
             mapper.tracking(),
             "an unmoved robot must confirm and resume"
         );
+    }
+
+    /// A fall drags the body by decimetres: the search finds it from where it
+    /// stands, the legs not needed, for the answer lies beside the carried pose.
+    #[test]
+    fn a_fall_believes_a_search_near_where_it_fell() {
+        let (mut mapper, mut notes, t) = fallen_in_lumpy_room();
+        let here = (-0.45, 0.65, 2.0);
+        stand_after_fall(&mut mapper, t, here, (-0.9, 0.4, 2.0), 84.0, &mut notes);
+        let pose = notes.iter().find_map(|n| match n {
+            Note::Relocalized { pose, .. } => Some(*pose),
+            _ => None,
+        });
+        let pose = pose.expect("the search beside the carried pose must be believed");
+        assert!((pose.0 - here.0).hypot(pose.1 - here.1) < 0.25, "came back at {pose:?}, truth {here:?}");
+    }
+
+    /// Nothing far from the carried pose is believed after a fall, however
+    /// well it fits: a duck on its feet confirmed an alias 2.8 m off, half a
+    /// turn round, and tracked it for 7 minutes (casa_ingombra, BAM +
+    /// backlash, 2026-11-06). The view here is the map's, so the search does
+    /// find it; only the distance from the carried pose refuses it.
+    #[test]
+    fn a_fall_refuses_a_search_far_from_where_it_fell() {
+        let (mut mapper, mut notes, t) = fallen_in_lumpy_room();
+        stand_after_fall(&mut mapper, t, (0.9, -0.6, -1.2), (-0.9, 0.4, 2.0), 84.0, &mut notes);
+        assert!(
+            !notes.iter().any(|n| matches!(n, Note::Relocalized { .. })) && !mapper.tracking(),
+            "believed a search far from where it fell"
+        );
+    }
+
+    /// Sat down after a fall and carried: the sit lifts the fall's limit, and
+    /// the search finds the duck where the carry left it.
+    #[test]
+    fn a_sit_after_a_fall_searches_everywhere_again() {
+        let (mut mapper, mut notes, mut t) = fallen_in_lumpy_room();
+        let odom = (-0.9, 0.4, 2.0);
+        for _ in 0..50 {
+            mapper.observe(t, MapperSample { odom, moving: false, sitting: true, fallen: false }, &mut notes);
+            t += 0.02;
+        }
+        assert!(notes.iter().any(|n| matches!(n, Note::SatAfterFall)));
+        let here = (0.9, -0.6, -1.2);
+        stand_after_fall(&mut mapper, t, here, odom, 84.0, &mut notes);
+        let pose = notes.iter().find_map(|n| match n {
+            Note::Relocalized { pose, .. } => Some(*pose),
+            _ => None,
+        });
+        let pose = pose.expect("a sit must lift the limit of the fall");
+        assert!((pose.0 - here.0).hypot(pose.1 - here.1) < 0.25, "found at {pose:?}, truth {here:?}");
     }
 
     /// A resumed session boots with a suspect pose (the robot may have

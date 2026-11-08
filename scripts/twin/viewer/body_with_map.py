@@ -124,6 +124,11 @@ def run(world, headless: bool) -> None:
         import movers as movers_mod
         movers = movers_mod.Movers(world.model, os.environ["TWIN_MOVERS"])
 
+    touches = None
+    if os.environ.get("TWIN_CONTACTS"):
+        import contacts as contacts_mod
+        touches = contacts_mod.Contacts(world.model, os.environ["TWIN_CONTACTS"])
+
     source = mo.MapSource(ROBOT_SOCKET).start()
     # quack-nav's plan (route, aim, goal, booked drops), asked of quack-navd's
     # own socket (QUACK_NAV_SOCKET, which twin.sh always sets). The old path
@@ -160,6 +165,8 @@ def run(world, headless: bool) -> None:
                 movers.tick(world.data, duck[:2] if duck else None)
             if eye is not None:
                 eye.tick(world.data)
+            if touches is not None:
+                touches.tick(world.data, _truth(world))
             if viewer is not None and not viewer.is_running():
                 break
             next_step += period
@@ -202,6 +209,8 @@ def run(world, headless: bool) -> None:
     except KeyboardInterrupt:
         pass
     finally:
+        if touches is not None:
+            touches.close()
         if viewer is not None:
             viewer.close()
 

@@ -232,4 +232,43 @@ mod tests {
         }
         assert!(ok >= 4, "{ok}/6");
     }
+
+    /// Lost on its feet in a journey (a fall the frames never showed as
+    /// seated, BAM twin 2026-11-06: six minutes on one spot): the duck
+    /// looks around and walks, it does not stand on one view.
+    #[test]
+    fn a_lost_journey_walks_for_its_pose() {
+        let s = generate(3, 0, Some("clutter"));
+        let start = (s.start.0, s.start.1);
+        let mut j = Journey::new(s, Calib::default(), 3);
+        j.budget_s = 400.0;
+        j.body.lock().pose_lost = true;
+        let r = j.run(None);
+        let sim = j.body.lock();
+        assert!(r.reason.contains("could not find its position"), "{r:?}");
+        assert!(dist((sim.x, sim.y), start) > 0.3, "stood on one view: {:?} from {start:?}, {r:?}", (sim.x, sim.y));
+    }
+
+    /// The same lost duck exploring: a tumble the frames never showed as
+    /// seated left the explorer standing on one view for three minutes
+    /// (BAM twin, casa_ingombra, 2026-11-07): it looks around and walks.
+    #[test]
+    fn a_lost_exploration_walks_for_its_pose() {
+        let s = generate(3, 0, Some("clutter"));
+        let start = (s.start.0, s.start.1);
+        let j = Journey::new(s, Calib::default(), 3);
+        let handle = ExploreHandle::new();
+        {
+            let mut sim = j.body.lock();
+            sim.handle = Some(handle.clone());
+            sim.deadline_s = 430.0;
+            sim.pose_lost = true;
+        }
+        let mut job = Job::new(Vec::new(), 400.0, false, j.body.now());
+        let mut body = j.body.clone();
+        let (_, reason) = job.run(&handle, &mut body);
+        let sim = j.body.lock();
+        assert!(reason.contains("could not find its position"), "{reason}");
+        assert!(dist((sim.x, sim.y), start) > 0.3, "stood on one view: {:?} from {start:?}, {reason}", (sim.x, sim.y));
+    }
 }

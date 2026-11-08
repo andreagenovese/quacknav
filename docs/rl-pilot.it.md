@@ -263,7 +263,8 @@ scatola che restringe la porta del soggiorno, le gambe di una sedia in
 cucina, un giocattolo sulla via della camera, nella scena e non nella
 mappa: l'oracolo disegna la verità come la disegnerebbe un mapper
 (`QK_ORACLE_AS_MAPPED`), i bordi veri sul libro (`QK_ORACLE_BOOK`) e la
-posa vera, così ciò che si misura è la navigazione. Le sue tracce sono
+posa vera, così ciò che si misura è la navigazione. Conta ogni caduta (`falls`, `maploc: robot fell` di
+quack-navd) a parte dai viaggi finiti a terra (`ended down`). Le sue tracce sono
 passate per `calibrate.sh` come passeranno quelle della papera. Cosa ha
 insegnato il gemello, trovato nelle sue tracce e ora nel simulatore:
 

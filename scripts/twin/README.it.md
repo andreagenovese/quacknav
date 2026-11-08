@@ -113,6 +113,12 @@ fissa i loro dadi; `scripts/rl/twin_ab.py` imposta da solo `TWIN_MOVERS`
 per una casa così. Il gemello di carta muove gli stessi mover con gli
 stessi numeri (`twin:<casa>` di quack-rl), letti dalla stessa verità.
 
+Cosa tocca la papera: `TWIN_CONTACTS=<file>` (con il viewer o `TWIN_MOVERS`, non
+con il body server semplice) aggiunge una riga JSON per ogni tocco tra una parte
+della papera e qualsiasi cosa della casa tranne il pavimento: la parte, la cosa,
+quando, quanto dura, la forza di picco, la posa vera del tronco, il punto nel
+sistema del tronco (`viewer/contacts.py`). Si legge ogni 20 ms e legge soltanto.
+
 ## Misurare
 
 | script | a cosa risponde |

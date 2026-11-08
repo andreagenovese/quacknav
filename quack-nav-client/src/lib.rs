@@ -72,9 +72,23 @@ pub struct Client {
 
 impl Client {
     pub fn connect(socket: impl AsRef<Path>) -> Result<Self, Error> {
+        Self::connect_with(socket, ANSWER_TIMEOUT)
+    }
+
+    /// As [`Client::connect`], with how long an answer may take: a call that
+    /// queues behind another holding the robot (closing an exploration
+    /// waits for its session to save) needs more than [`ANSWER_TIMEOUT`].
+    pub fn connect_with(socket: impl AsRef<Path>, answer_timeout: Duration) -> Result<Self, Error> {
         let stream = UnixStream::connect(socket)?;
-        stream.set_read_timeout(Some(ANSWER_TIMEOUT))?;
+        stream.set_read_timeout(Some(answer_timeout))?;
+        stream.set_write_timeout(Some(Duration::from_secs(5)))?;
         Ok(Self { reader: BufReader::new(stream.try_clone()?), writer: stream, next_id: 1 })
+    }
+
+    /// How long an answer may take from now on.
+    pub fn set_answer_timeout(&mut self, timeout: Duration) -> Result<(), Error> {
+        self.writer.set_read_timeout(Some(timeout))?;
+        Ok(())
     }
 
     /// One JSON-RPC request and its answer's `result`.

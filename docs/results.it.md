@@ -1448,6 +1448,18 @@ casa_arredata, daemon-v0.17.6 + set v8, due gemelli alla volta
   (tutto, ogni chiamata dal percorso nuovo) 48/48 su entrambi i bracci, 0
   cadute, mediane accoppiate 0,0 e +1,0 s.
 
+  La prova dell'N4 della roadmap (2026-11-03): la corsia della
+  navigazione di quacksat e il bridge di quack-control sono passati su
+  `quack-nav-client`, ciascuno mandando per primo `nav.hello`;
+  quack-control si iscrive agli eventi e chiede lo stato quando ne arriva
+  uno. Su un gemello, quattro viaggi corti sotto ciascuna pagina a turno,
+  il tempo dall'evento `job` done di quack-navd al flusso di eventi della
+  pagina che porta il viaggio fatto: 0,01 s ogni volta con gli eventi (il
+  quack-control del gemello ha salutato un demone v5) contro 1,00, 0,14,
+  0,26 e −0,04 s col polling del main (quello negativo è il polling che
+  legge lo stato done prima dell'osservatore degli eventi, che guarda
+  cinque volte al secondo).
+
 ## Limiti noti
 
 - **Il sensore non vede il pavimento più vicino di 0,4–0,6 m**
@@ -1536,6 +1548,71 @@ casa_arredata, daemon-v0.17.6 + set v8, due gemelli alla volta
   com'è.
 - **L'esplorazione si attarda nei corridoi** (metà di ogni sessione in house2),
   ripassando pavimento conosciuto per chiudere i loop.
+- **Gli A/B dei viaggi contavano solo le cadute che chiudevano un viaggio a
+  terra.** Fino al 2026-11-04 `twin_ab.py` vedeva una caduta solo con il tronco
+  ancora sotto i 7 cm, o con la parola del viaggio stesso, alla fine del
+  viaggio; una papera caduta e rialzata contava zero. Ricontate dai log di
+  quack-navd, da AB18 ad AB28 (12 A/B, 1152 viaggi, tutti arrivati) ci sono 10
+  cadute dove questa pagina non ne riporta: AB18 1, AB21 1, AB23 1, AB24 5, AB27 1,
+  AB28 1; ramo 6, `main` congelato 4; tutte in casa_ingombra, nessuna in
+  casa_arredata. Arrivi e tempi restano validi. Ora `twin_ab.py` riporta
+  `falls` accanto a `ended down`. Il log ne perde qualcuna: il messaggio di
+  caduta di robotd è 32 contro i 30 di quack-navd sugli stessi log.
+- **Su una mappa congelata la correzione del tracking aveva un limite pensato per l'inchiostro.**
+  Un confronto veniva rifiutato oltre 2 cm di residuo dopo la correzione, così
+  correzioni nella direzione giusta andavano perse e la posa si allontanava, fino
+  a 0,54 m con il tracking ancora vero. Dal 2026-11-06 una mappa congelata accetta
+  6 cm una volta che il corpo ha camminato 10 cm dall'ultima correzione
+  (`MAPLOC_FROZEN_RESIDUAL_BAR`); da fermo, e su una mappa ancora in disegno,
+  restano 2 cm. A/B sul gemello contro il commit precedente, senza backlash, stessa
+  mappa per casa, 12 giri: errore oltre 0,2 m dal 4,2 % allo 0,0 % del tempo e
+  massimo da 0,42 a 0,16 m in casa_ingombra, dall'1,0 % allo 0,0 % e da 0,22 a
+  0,18 m in casa_arredata. Arrivi e cadute non si sono mossi: 46/48 con 1 caduta
+  per braccio, 24/24 con nessuna. Rigioco di quelle 24 registrazioni, 2 cm contro
+  6 cm: dal 9,6 % al 7,0 %, meglio in 16 sessioni, peggio in 5, pari in 3. Il
+  rigioco legge più alto dei giri dal vivo. Lo stesso A/B con BAM + backlash, su mappe disegnate senza
+  backlash: arrivi da 28/48 a 42/48 e da 21/24 a 24/24, cadute da 5 a 2 e da 1 a
+  0, errore oltre 0,2 m dal 48 % al 22 % e dal 39 % al 30 %. Il costo, visto una
+  volta: dopo una caduta il braccio nuovo si è rilocalizzato a 2,8 m, girato di
+  circa 180°, e ha seguito quella posa per 7 minuti fino alla fine del giro,
+  perdendo 2 viaggi. La rilocalizzazione non passa da questo limite, ma
+  rigiocando da quel momento il limite di 2 cm dichiara la perdita dopo 370 s e
+  quello di 6 cm non nei 431 s rimasti. Da qui due cambi. Un viaggio
+  che perde la posa per una caduta ora la cerca guardandosi intorno: gira e,
+  dopo un giro completo, fa un breve tratto, invece di aspettare. E dopo una
+  caduta maploc crede a una ricerca solo entro 1 m e 0,6 rad dalla posa che
+  aveva, ripiegando sul bacino più vicino che la ricerca ha trovato lì. Una
+  seduta toglie la regola: una papera fatta sedere e rimessa giù può essere
+  ovunque. Rigiocato su 21 cadute registrate: 13 rilocalizzate, tutte vere,
+  0 false, mediana 50 s. Senza la regola, su 18 di esse: 5 rilocalizzate, 2 delle quali false.
+  Sul gemello, BAM + backlash, contro 6e15068: arrivi da 44/48 a 47/48 e da
+  19/24 a 24/24, cadute da 1 a 2 e da 2 a 0, errore di posa massimo da 5,91 m a
+  0,39 m e da 0,43 m a 0,38 m. Entrambe le cadute del braccio nuovo si sono
+  rilocalizzate sul vero, in 16 s e 75 s. Senza backlash entrambi i bracci
+  48/48 e 24/24 senza cadute. Il limite: una papera spostata dopo una caduta
+  senza farla sedere resta persa fino a una seduta o a un riavvio. L'odometria
+  non distingue quello spostamento dall'oscillazione della stessa papera in
+  piedi, che ha dato 3 falsi sblocchi su 21 cadute. Esplorazione da zero contro main (5f3870b), due giri per
+  braccio, BAM + backlash e senza: pavimento noto per stanza pari entro pochi
+  punti. Ha trovato lo stesso difetto in esplorazione: una caduta che i frame
+  non mostrano mai come seduta lasciava l'esploratore fermo su una sola vista
+  per 3 minuti, poi la sessione falliva, in entrambi i bracci. Ora un
+  esploratore in piedi senza posa si guarda intorno e cammina, come un
+  viaggio; con BAM ha perso la posa per deriva 4 volte e l'ha ritrovata ogni
+  volta in 30–70 s. Resta da quei giri, in entrambi i bracci: una caduta o una
+  perdita verso la fine di una sessione butta via la mappa di tutta la
+  sessione (3 giri-casa su 16), perché una papera persa non salvava. Mentre è persa nulla inchiostra,
+  quindi la mappa è intera e solo la posa è un'ipotesi: una papera persa ora
+  salva la mappa con l'ultima posa che conosceva in piedi, e rifiuta solo se
+  non ne ha conosciuta nessuna da quando la mappa è stata caricata. Un terzo
+  giro di entrambi i bracci contro main: è scattato una volta, dopo una
+  caduta 21 s dopo l'ultima posa nota; quella sessione è contata, e la
+  successiva si è svegliata a 0,00 m e ha finito la casa. Cadute nei tre
+  giri: main 3, ramo 4 su 12 giri-casa ciascuno, nessuna durante la nuova
+  ricerca o il nuovo salvataggio (passi, giri, un passo indietro). Resta: nell'A/B su mappa congelata di
+  casa_ingombra senza backlash entrambi i viaggi falliti sono una caduta da cui la papera non
+  si è rilocalizzata in tempo; la caduta del braccio nuovo è in una buca, con la
+  posa sbagliata di 4 cm; la causa non è stata trovata.
 - **Solo gemello.** Niente di tutto questo ha ancora girato su una papera
   fisica; il passo, il sensore di profondità e il pavimento sono quelli di
   MuJoCo. Con un assistente che gestisce anche la domotica di una casa

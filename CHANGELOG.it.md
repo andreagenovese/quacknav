@@ -15,6 +15,26 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Modificato
 
+- **Dopo una caduta la papera ritrova dove si trova, e una papera persa
+  tiene la sua mappa.** Su un gemello con gli attuatori realistici di
+  Pollen e il gioco negli ingranaggi (BAM), una caduta è finita due volte
+  in una posa falsa creduta per minuti, una volta a 5,9 m. Ora: in piedi
+  senza posa, in viaggio o in esplorazione, la papera si guarda intorno
+  e, dopo un giro completo, fa brevi tratti, invece di restare su una
+  sola vista fino ad arrendersi; dopo una caduta maploc crede a una
+  ricerca solo entro 1 m e 0,6 rad dalla posa che aveva (una seduta lo
+  toglie: la papera può essere stata spostata ovunque); e una papera
+  persa a fine sessione salva la mappa con l'ultima posa che conosceva,
+  invece di buttare la sessione. Su una mappa congelata, una finestra
+  dopo un tratto camminato dall'ultima correzione può correggere la posa
+  con un residuo fino a 6 cm (prima 2 cm). Gemello, BAM + backlash,
+  contro `main` congelato: viaggi 44/48 → 47/48 e 19/24 → 24/24, errore
+  di posa massimo 5,91 m → 0,39 m; senza backlash pari. Esplorazione da
+  zero, tre giri per braccio: pavimento noto per stanza pari, cadute 3
+  contro 4 su 12 giri-casa ciascuno, nessuna durante la nuova ricerca o
+  il nuovo salvataggio. Resta: una papera spostata dopo una caduta senza
+  farla sedere resta persa fino a una seduta o a un riavvio; le cadute
+  BAM nei giri ampi sul posto.
 - **Un buco prenotato da poco segue la correzione della sua posa fatta
   dalla mappa.** Un dislivello prenotato su una posa che la mappa ha
   corretto un attimo dopo restava dove quella posa l'aveva messo —
@@ -145,6 +165,16 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Aggiunto
 
+- **I satelliti sul crate client; N4 fatto.** La corsia della
+  navigazione di quacksat e il bridge di quack-control ora girano su
+  `quack-nav-client` e mandano `nav.hello`, registrando la versione del
+  protocollo; quack-control sente gli eventi e chiede lo stato
+  nell'istante in cui ne arriva uno. Il client ha ora un timeout di
+  risposta del chiamante (`connect_with`), per chiamate che si mettono in
+  coda dietro un'altra. La prova dell'N4 della roadmap, sul gemello: la
+  fine di un viaggio è arrivata alla pagina di controllo 0,01 s dopo che
+  quack-navd l'ha detta, quattro volte su quattro, dove il polling della
+  pagina impiegava 0,14–1,0 s.
 - **Fare, non solo camminare: `nav.act`** (protocollo v5, l'N5 della
   roadmap). La papera esegue una delle skill di `robotd` — le policy di
   Pollen, lette da `robot.skills` a run time, mai una lista scritta qui —

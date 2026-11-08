@@ -10,7 +10,9 @@ bag, basket, box, chair legs, toy) is what the map does not know — the true
 holes' rims on the books (`QK_ORACLE_BOOK`), and `QK_RL_TRACE` recording
 every leg; the pilot arm with `QK_RL_POLICY`. Then `ROUNDS` tours of the truth's goals, each a
 `robot.go_to`, judged on the simulator's trunk: arrived within 0.4 m, the
-time, a fall (the trunk under 7 cm, or the journey's own word).
+time, the falls (`maploc: robot fell` in quack-navd's log: every fall, the
+ones the duck gets up from too) and whether it ended down (`fell`: the trunk
+under 7 cm, or the journey's own word).
 
 An arm may carry knobs of its own (`--knobs ARM:K=V,K=V`): the same
 binary with an experiment on against without it. A house whose truth has
@@ -73,6 +75,15 @@ def say(out, text):
         f.write(text + "\n")
 
 
+def falls_in(path):
+    """The falls quack-navd's log tells of, as run_house.py counts them."""
+    try:
+        with open(path, errors="replace") as f:
+            return f.read().count("maploc: robot fell")
+    except FileNotFoundError:
+        return 0
+
+
 def arm(out, name, house, pilot, rounds, only=None, book=True, main_oracle=False, extra=()):
     d = os.path.join(out, name)
     os.makedirs(os.path.join(d, "traces"), exist_ok=True)
@@ -108,7 +119,10 @@ def arm(out, name, house, pilot, rounds, only=None, book=True, main_oracle=False
         c.close()
         return busy
 
+    falls_seen = 0
+
     def boot():
+        nonlocal falls_seen
         subprocess.run([TWIN, "down"], capture_output=True)
         # The simulator lets its port go a few seconds after it is told
         # to stop: `up` refuses a busy port (a reboot after a fall did).
@@ -116,6 +130,7 @@ def arm(out, name, house, pilot, rounds, only=None, book=True, main_oracle=False
         while port_busy() and time.time() - t < 60:
             time.sleep(1)
         up = subprocess.run([TWIN, "up"], env=env, capture_output=True, text=True)
+        falls_seen = 0  # `up` starts quack-navd's log anew
         say(out, f"[{name}] {up.stdout.strip().splitlines()[0] if up.stdout else up.stderr.strip()[:200]}")
         time.sleep(3)
         subprocess.run([TWIN, "enable"], env=env, capture_output=True)
@@ -149,15 +164,20 @@ def arm(out, name, house, pilot, rounds, only=None, book=True, main_oracle=False
             t = trunk()
             err = math.hypot(t[0] - gx, t[1] - gy)
             down = t[2] < 0.07 or "seated or fallen" in str(e.get("reason"))
+            # Since the last journey's end, so a fall while waiting for the
+            # pose is not lost; a journey that ended down fell at least once.
+            log_falls = falls_in(f"{STATE}/navd.log")
+            falls = max(log_falls - falls_seen, 1 if down else 0)
+            falls_seen = log_falls
             m = re.search(r"arrived at \(([-\d.]+), ([-\d.]+)\)", str(e.get("reason")))
             said = bool(m) and abs(float(m[1]) - gx) < 0.05 and abs(float(m[2]) - gy) < 0.05
             row = {"round": rnd, "goal": goal, "secs": round(time.time() - t0, 1), "state": e.get("state"), "reason": e.get("reason"),
                    "legs": e.get("legs"), "truth": [round(v, 3) for v in t[:3]], "err_m": round(err, 3), "said_arrived": said,
-                   "arrived": said and err <= 0.4, "fell": down}
+                   "arrived": said and err <= 0.4, "fell": down, "falls": falls}
             rows.append(row)
             with open(os.path.join(d, "journeys.jsonl"), "a") as f:
                 f.write(json.dumps(row) + "\n")
-            say(out, f"[{name}] r{rnd} {goal}: {'ARRIVED' if row['arrived'] else 'not arrived'} in {row['secs']:.0f} s, {err:.2f} m off, legs {row['legs']}{' FELL' if down else ''} — {e.get('reason')}")
+            say(out, f"[{name}] r{rnd} {goal}: {'ARRIVED' if row['arrived'] else 'not arrived'} in {row['secs']:.0f} s, {err:.2f} m off, legs {row['legs']}{' FELL' if down else ''}{f' falls {falls}' if falls else ''} — {e.get('reason')}")
             if down:
                 # A fall ends the journey, not the arm: the twin boots
                 # again at home and the tour goes on (a fall is counted).
@@ -195,11 +215,11 @@ def main():
     for a in args.arms.split(","):
         res[a] = arm(args.out, a, args.house, pilot if a.split("+")[0] == "pilot" else None, args.rounds, args.goals.split(",") if args.goals else None, not args.no_book, args.main_oracle, extra.get(a, ()))
     with open(os.path.join(args.out, "summary.md"), "w") as f:
-        f.write(f"# Twin A/B on {args.house}: the stick and the pilot\n\n| arm | journeys | arrived | fell | mean s (arrived) | refused |\n|---|---|---|---|---|---|\n")
+        f.write(f"# Twin A/B on {args.house}: the stick and the pilot\n\n| arm | journeys | arrived | falls | ended down | mean s (arrived) | refused |\n|---|---|---|---|---|---|---|\n")
         for a, rows in res.items():
             done = [r for r in rows if "refused" not in r]
             arr = [r for r in done if r["arrived"]]
-            f.write(f"| {a} | {len(done)} | {len(arr)} | {sum(r['fell'] for r in done)} | {sum(r['secs'] for r in arr) / max(1, len(arr)):.0f} | {len(rows) - len(done)} |\n")
+            f.write(f"| {a} | {len(done)} | {len(arr)} | {sum(r['falls'] for r in done)} | {sum(r['fell'] for r in done)} | {sum(r['secs'] for r in arr) / max(1, len(arr)):.0f} | {len(rows) - len(done)} |\n")
     print(open(os.path.join(args.out, "summary.md")).read())
 
 

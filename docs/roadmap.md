@@ -63,7 +63,7 @@ and a third of a right angle.
 **Done when:** a `robot.move` of a stated length ends within a stated tolerance on the twin, and
 the twin's A/B shows no regression.
 
-### N4 — A service in robotd's style · **in progress**
+### N4 — A service in robotd's style · **done**
 
 A typed, versioned contract for everything quack-nav does, with a `hello` that says which
 version is speaking; events pushed to whoever subscribed — a journey's progress, an arrival,

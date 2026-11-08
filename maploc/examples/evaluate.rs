@@ -332,6 +332,7 @@ fn main() {
                 Note::WindowRescued { .. } => "rescued",
                 Note::SuspectAfterSit => "suspect_sit",
                 Note::SuspectAfterFall => "suspect_fall",
+                Note::SatAfterFall => "sat_after_fall",
                 Note::ResumedUnverified { .. } => "resumed_unverified",
                 Note::RelocalizeCandidate { .. } => "reloc_candidate",
                 Note::LostTracking { .. } => "lost",
@@ -493,6 +494,9 @@ fn main() {
                 }
                 Note::SuspectAfterFall => {
                     println!("[{t:7.1}s] FELL — pose suspect");
+                }
+                Note::SatAfterFall => {
+                    println!("[{t:7.1}s] SAT after the fall — global search");
                 }
                 Note::ResumedUnverified { pose } => {
                     println!(

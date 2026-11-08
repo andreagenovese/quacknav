@@ -1349,6 +1349,17 @@ daemon-v0.17.6 + set v8, two twins at a time (`rl-runs/twin-work/P8/`).
   s; AB28 (all of it, every call through the new path) 48/48 both arms,
   0 falls, paired medians 0.0 and +1.0 s.
 
+  The roadmap's N4 test (2026-11-03): quacksat's navigation lane and
+  quack-control's bridge moved onto `quack-nav-client`, each saying
+  `nav.hello` first; quack-control subscribes to the events and asks for
+  the status when one comes. On one twin, four short journeys under each
+  page in turn, the time from quack-navd's own `job` done event to the
+  page's event stream carrying the journey done: 0.01 s every time with
+  the events (the twin's quack-control said hello to a v5 daemon) against
+  1.00, 0.14, 0.26 and −0.04 s with main's poll (the negative one the poll
+  reading the done state before the events' watcher, which looks five
+  times a second).
+
 ## Known limits
 
 - **The sensor cannot see the floor nearer than 0.4–0.6 m** (2026-10-27):
@@ -1428,6 +1439,64 @@ daemon-v0.17.6 + set v8, two twins at a time (`rl-runs/twin-work/P8/`).
   the band would add about two points: left as it is.
 - **Exploring lingers in corridors** (half of each session in house2), going
   back over known floor to close loops.
+- **The journeys' A/Bs counted only the falls that ended a journey down.**
+  Until 2026-11-04 `twin_ab.py` saw a fall only with the trunk still under
+  7 cm, or the journey's own word, at the journey's end; a duck that fell and
+  got up counted as none. Recounted from quack-navd's logs, AB18 to AB28 (12
+  A/Bs, 1152 journeys, all arrived) hold 10 falls where this page reports none: AB18
+  1, AB21 1, AB23 1, AB24 5, AB27 1, AB28 1; branch 6, frozen `main` 4; all in
+  casa_ingombra, none in casa_arredata. Arrivals and times stand. `twin_ab.py`
+  now reports `falls` beside `ended down`. The log misses a little: robotd's
+  own fall message is 32 against quack-navd's 30 on the same logs.
+- **On a frozen map the tracking's correction had a bar made for ink.** A match
+  was refused above 2 cm of residual after it, so right-way corrections were
+  thrown away and the pose walked off, up to 0.54 m with tracking still true.
+  Since 2026-11-06 a frozen map takes 6 cm once the body has walked 10 cm from
+  the last correction (`MAPLOC_FROZEN_RESIDUAL_BAR`); at rest, and on a map
+  still being inked, 2 cm stands. Twin A/B against the parent, no backlash, same
+  map per house, 12 rounds: error over 0.2 m 4.2 % to 0.0 % of the time and
+  worst 0.42 to 0.16 m in casa_ingombra, 1.0 % to 0.0 % and 0.22 to 0.18 m in
+  casa_arredata. Arrivals and falls did not move: 46/48 with 1 fall each, 24/24
+  with none. Replay of those 24 recordings, 2 cm against 6 cm: 9.6 % to 7.0 %,
+  better in 16 sessions, worse in 5, level in 3. Replay reads higher than the
+  live runs. The same A/B on BAM + backlash, on maps drawn without backlash:
+  arrivals 28/48 to 42/48 and 21/24 to 24/24, falls 5 to 2 and 1 to 0, error
+  over 0.2 m 48 % to 22 % and 39 % to 30 %. Its cost, seen once: after a fall
+  the new arm relocalized 2.8 m off, turned by about 180°, and tracked that
+  for 7 minutes to the round's end, 2 journeys lost. Relocalizing does not go
+  through this bar, but replaying from that moment the 2 cm bar declares lost
+  after 370 s and the 6 cm bar not in the 431 s left. Hence two changes. A
+  journey that lost its pose to a fall now looks round for it, turning and,
+  after a full circle, taking a short leg, instead of waiting. And after a fall
+  maploc believes a search only within 1 m and 0.6 rad of the pose it carried,
+  falling back on the nearest basin the search found there. A sit lifts that
+  rule: a duck sat down and put back may be anywhere. Replayed on 21 recorded
+  falls: 13 relocalized, all true, 0 false, median 50 s. Without the rule, on 18 of them:
+  5 relocalized, 2 of them false. On the twin, BAM + backlash, against
+  6e15068: arrivals 44/48 to 47/48 and 19/24 to 24/24, falls 1 to 2 and 2 to
+  0, worst pose error 5.91 m to 0.39 m and 0.43 m to 0.38 m. Both of the new
+  arm's falls relocalized true, in 16 s and 75 s. Without backlash both arms
+  were 48/48 and 24/24 with no falls. The limit: a duck carried off after a fall
+  without being sat down stays lost until a sit or a restart. Odometry cannot
+  tell that carry from the stand's own sway, which fired 3 false lifts in 21
+  falls. Exploration from nothing against main (5f3870b), two runs per
+  arm, BAM + backlash and without: rooms' known floor level within a few
+  points. It found the same flaw in exploring: a tumble the frames never show
+  as seated left the explorer standing on one view for 3 minutes, then the
+  session failed, in both arms. Now an explorer on its feet without a pose
+  looks round and walks, as a journey does; on BAM it lost its pose to drift
+  4 times and found it again in 30 to 70 s each. Left from those runs, in
+  both arms: a fall or a loss near a session's end throws the whole session's
+  map away (3 of 16 house runs), since a lost duck did not save. Nothing
+  inks while lost, so the map is whole and only the pose is a guess: a lost
+  duck now saves the map with the last pose it knew on its feet, and refuses
+  only when it knew none since the map was loaded. A third run of both arms
+  against main: it fired once, after a fall 21 s from the last known pose; that
+  session counted, and the next one woke 0.00 m off and finished the house.
+  Falls over the three runs: main 3, branch 4 in 12 house runs each, none
+  during the new search or save (steps, turns, a step back). Left: in casa_ingombra's frozen-map A/B without backlash both failed journeys
+  are a fall the duck could not relocalize from in time; the new arm's fall was
+  into a hole, with the pose 4 cm off; its cause was not found.
 - **Twin only.** None of this has run on a physical duck yet; the gait, the
   depth sensor and the floor are MuJoCo's. With an assistant that also runs
   a house's automation (Arkimede), "explore the house" went to the house's

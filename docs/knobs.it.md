@@ -68,6 +68,7 @@ del processo.
 | `QK_WALL_MARGIN_M` | numero (default 0.18) | `quack-nav/src/tools.rs` |  |
 | `MAPLOC_CONFIRM_TRAVEL` | numero (default 0.5) | `maploc/src/mapper.rs` | At boot, how far the body must have moved between the window that nominated a candidate and the one that confirms it. |
 | `MAPLOC_CONTINUOUS` | presente = accesa (qualsiasi valore) | `maploc/examples/replay.rs` |  |
+| `MAPLOC_FROZEN_RESIDUAL_BAR` | numero (default 0.06) | `maploc/src/mapper.rs` | `MAPLOC_FROZEN_RESIDUAL_BAR=<metres>`: a frozen map's bar on the tracking's correction (0.06; 0.02 is the bar of a map still inked, as before 2026-11-06). |
 | `MAPLOC_GRAPH_DEBUG` | presente = accesa (qualsiasi valore) | `maploc/src/pipeline.rs` |  |
 | `MAPLOC_HEAD_LEAD_MS` | numero (default 5) | `quack-nav/src/mapd/mod.rs`, `maploc/src/bench.rs` | `MAPLOC_HEAD_LEAD_MS`, as robotd read it: 5 ms by default — with 0 the standing drift was +0.17/+0.22°/min, with 20 and 40 it turned negative (twin, 2026-09-16). |
 | `MAPLOC_HYP_LEAD` | numero (default 3) | `maploc/src/mapper.rs` | How many hits the leading hypothesis must have over the runner-up before it is nominated. |
@@ -159,6 +160,7 @@ del processo.
 | `TRACK_PRIOR_XY` | numero (default mapper_cfg.tracking.prior_sigma_xy) | `maploc/examples/evaluate.rs` |  |
 | `TRUTH_HOLES` | un valore | `quack-nav/examples/route_on_map.rs` | with `TRUTH_HOLES=<truth.json>` (the twin's truth) also to a true hole, and with `ROUTE_POINTS=1` the route. |
 | `TWIN_CAMERA_BACKWARD` | un valore (script) | `scripts/twin/viewer/body_with_map.py` |  |
+| `TWIN_CONTACTS` | un valore (script) | `scripts/twin/viewer/body_with_map.py` |  |
 | `TWIN_MOVERS` | un valore (script) | `scripts/twin/viewer/body_with_map.py` |  |
 | `TWIN_MOVERS_SEED` | un valore (script) | `scripts/twin/viewer/movers.py` |  |
 | `TWIN_REPO` | un valore (script) | `scripts/rl/twin_ab.py` |  |

@@ -1749,8 +1749,9 @@ fn map_explore(robot: &mut Robot, args: &Value) -> Result<Value, String> {
 /// "Esplorazione completata": the running session stopped (and saved, as
 /// every session is), the map saved again under its name, declared done
 /// with the share it has, and frozen — from here on the duck navigates.
-/// Refused while the duck does not know where it is: the mapper will not
-/// save a map on a guessed pose.
+/// While the duck does not know where it is the mapper saves the map with
+/// the last pose it knew, never a guessed one; lost since the map was
+/// loaded, it knew none, and the save is refused.
 fn map_explore_complete(robot: &mut Robot, args: &Value) -> Result<Value, String> {
     // The live map is the boot's search, not the house: closing it would
     // save six minutes of search over the saved map and freeze them there

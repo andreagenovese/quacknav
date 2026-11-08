@@ -13,6 +13,17 @@
    "doc": "At boot, how far the body must have moved between the window that nominated a candidate and the one that confirms it."
   },
   {
+   "name": "MAPLOC_FROZEN_RESIDUAL_BAR",
+   "group": "MAPLOC",
+   "read_as": "number (default 0.06)",
+   "type": "number",
+   "default": "0.06",
+   "where": [
+    "maploc/src/mapper.rs"
+   ],
+   "doc": "`MAPLOC_FROZEN_RESIDUAL_BAR=<metres>`: a frozen map's bar on the tracking's correction (0.06; 0.02 is the bar of a map still inked, as before 2026-11-06)."
+  },
+  {
    "name": "MAPLOC_GRAPH_DEBUG",
    "group": "MAPLOC",
    "read_as": "set = on (any value)",
