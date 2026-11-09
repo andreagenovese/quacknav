@@ -445,6 +445,16 @@ pub struct MapperConfig {
     /// an unmapped corner stays "searching" forever; with evidence of
     /// displacement the escape never applies.
     pub suspect_give_up_windows: u32,
+    /// Lost, hard or after a fall, and this many windows judged the pose
+    /// odometry carried — and nothing a tracking match from it — wrong:
+    /// the duck was carried. The search near that pose cannot find it and
+    /// the give-up must not resume it, so the search widens to the whole
+    /// map under the boot's rules (several hypotheses, confirmed only
+    /// once the body has walked between them). The twin's kidnaps
+    /// (findme_bench, 2026-11-08): the near search refused the right pose
+    /// at residual 0.02 window after window, the give-up resumed the
+    /// carried one 4.8 m off. 0 disables.
+    pub carried_after_windows: u32,
     /// The pose covariance's motion noise and window weighting (see
     /// [`crate::uncertainty`]).
     pub uncertainty: crate::uncertainty::UncertaintyConfig,
@@ -524,6 +534,7 @@ impl Default for MapperConfig {
             relocalize_agree_m: 0.3,
             relocalize_agree_rad: 0.35,
             suspect_give_up_windows: 10,
+            carried_after_windows: carried_after_windows(),
             uncertainty: crate::uncertainty::UncertaintyConfig::default(),
             settle: SettleConfig::default(),
             rest: RestConfig::default(),
@@ -615,6 +626,10 @@ pub enum Note {
     SuspectAfterFall,
     /// Seated since the fall: the search is global again.
     SatAfterFall,
+    /// The pose odometry carried was refuted window after window (see
+    /// `carried_after_windows`): carried off, the duck searches the whole
+    /// map as at a boot.
+    SearchWidened,
     /// Soft suspicion (sit/fall/resume) expired: nothing could judge the
     /// pose either way for `suspect_give_up_windows` windows, so tracking
     /// resumed at the odometry-carried pose, unverified.
@@ -748,6 +763,9 @@ pub struct Mapper {
     booting: bool,
     /// Windows spent hard-lost (the watchdog's verdict, not a sit/fall).
     lost_windows: u32,
+    /// Lost windows in a row that refuted the carried pose (see
+    /// `carried_after_windows`); one that could not judge it keeps the count.
+    refuted_windows: u32,
     /// Lost by the watchdog's verdict — a contradiction with the map —
     /// as opposed to a sit, a fall or a resume. Only this kind may give
     /// up and resume on odometry: a carried robot's seed, once refuted,
@@ -887,6 +905,13 @@ fn hypothesis_travel_m() -> f32 {
 /// with every window the truth agrees with until a doorway comes into
 /// view, and a lead of one is noise (a wake-up came home 123° wrong that
 /// way, 2026-09-14). `MAPLOC_HYP_LEAD` overrides it.
+/// `MAPLOC_CARRIED_AFTER=n`: the windows that refute the carried pose
+/// before the search widens (see `MapperConfig::carried_after_windows`);
+/// 0 keeps the search near and the give-up, as before 2026-11-09.
+fn carried_after_windows() -> u32 {
+    std::env::var("MAPLOC_CARRIED_AFTER").ok().and_then(|v| v.parse().ok()).unwrap_or(6)
+}
+
 fn hypothesis_lead() -> u32 {
     std::env::var("MAPLOC_HYP_LEAD").ok().and_then(|v| v.parse().ok()).unwrap_or(3)
 }
@@ -1011,6 +1036,7 @@ impl Mapper {
         self.hypotheses.clear();
         self.valleys.clear();
         self.lost_windows = 0;
+        self.refuted_windows = 0;
         self.shadow = None;
         if shadow_enabled()
             && let Some(saved) = self.slam.render()
@@ -1086,6 +1112,7 @@ impl Mapper {
             resumed_from_session: false,
             booting: false,
             lost_windows: 0,
+            refuted_windows: 0,
             hard_lost: false,
             soft_seed: None,
             unjudged: 0,
@@ -1126,6 +1153,7 @@ impl Mapper {
         self.pending_reloc = None;
         self.last_search = None;
         self.hard_lost = false;
+        self.refuted_windows = 0;
     }
 
     pub fn slam(&self) -> &Slam {
@@ -1601,9 +1629,33 @@ impl Mapper {
                 }
             }
 
+            // The carried pose, judged by this window. Refuted window after
+            // window, and nothing a tracking match from it fitting either,
+            // the duck was carried: the search near it cannot find it, the
+            // give-up below must not resume it. The search widens to the
+            // whole map under the boot's rules (see `carried_after_windows`).
+            let refuted = if self.cfg.carried_after_windows > 0 && (self.hard_lost || self.after_fall) && !self.booting {
+                self.carried_pose_refuted(&mut grid, composite, now)
+            } else {
+                Some(false)
+            };
+            match refuted {
+                Some(true) => {
+                    self.refuted_windows += 1;
+                    if self.refuted_windows >= self.cfg.carried_after_windows {
+                        self.fall_near = false;
+                        self.search_afresh();
+                        notes.push(Note::SearchWidened);
+                        return;
+                    }
+                }
+                Some(false) => self.refuted_windows = 0,
+                None => {}
+            }
             // Hard-lost for too long: odometry has carried the pose all
-            // along; resume there rather than keep the map cold.
-            if self.hard_lost && self.cfg.lost_give_up_windows > 0 && !self.after_fall {
+            // along; resume there rather than keep the map cold — unless
+            // this window refutes it.
+            if self.hard_lost && self.cfg.lost_give_up_windows > 0 && !self.after_fall && refuted != Some(true) {
                 self.lost_windows += 1;
                 if self.lost_windows > self.cfg.lost_give_up_windows {
                     let here = self.slam.tracked();
@@ -1849,6 +1901,7 @@ impl Mapper {
                     self.pending_reloc = None;
                     self.last_search = None;
                     self.lost_windows = 0;
+                    self.refuted_windows = 0;
                     self.hard_lost = true;
                     notes.push(Note::LostTracking {
                         mean_residual_m: a.mean_residual_m,
@@ -2242,6 +2295,7 @@ impl Mapper {
         self.pending_reloc = None;
         self.last_search = None;
         self.lost_windows = 0;
+        self.refuted_windows = 0;
         self.hard_lost = false;
         self.after_fall = false;
         self.fall_near = false;
@@ -2340,6 +2394,22 @@ impl Mapper {
             Verdict::Unjudgeable
         };
         (implied, verdict)
+    }
+
+    /// Does this window refute the pose odometry carried while lost —
+    /// `Some(true)` when it does and no pose a tracking match away is
+    /// confirmed instead, `Some(false)` when it does not, `None` when the
+    /// window cannot judge it.
+    fn carried_pose_refuted(&self, grid: &mut OccupancyGrid, composite: &Scan, now: Pose2) -> Option<bool> {
+        match self.check_candidate(grid, composite, now, now, now).1 {
+            Verdict::Refuted => {
+                let near = rescue_match(grid, composite, now)
+                    .is_some_and(|p| matches!(self.check_candidate(grid, composite, p, now, now).1, Verdict::Confirmed(..)));
+                Some(!near)
+            }
+            Verdict::Unjudgeable => None,
+            Verdict::Confirmed(..) | Verdict::Ambiguous => Some(false),
+        }
     }
 
     /// The judge for a pose that is NOT trusted: by endpoints. Along the
@@ -3304,6 +3374,147 @@ mod tests {
         });
         let pose = pose.expect("a sit must lift the limit of the fall");
         assert!((pose.0 - here.0).hypot(pose.1 - here.1) < 0.25, "found at {pose:?}, truth {here:?}");
+    }
+
+    /// The lumpy room with two more pieces of furniture, a sideboard by
+    /// the south-west corner and a cupboard's side off the north wall: in
+    /// the lumpy room alone a pose and its half-turned twin stay level
+    /// however far the duck walks, and the boot's search rightly picks
+    /// neither.
+    fn furnished_room_scan(pose: Pose2) -> Scan {
+        scan_of(
+            pose,
+            &[Seg::AtX(0.3, (-1.1, 0.0)), Seg::AtY(0.6, (0.6, 1.5)), Seg::AtY(-0.3, (-1.5, -0.6)), Seg::AtX(-0.6, (0.5, 1.1))],
+        )
+    }
+
+    /// Mapped from three stands in the room `scan` sees, frozen, standing
+    /// at the last: the navigation's boot, before anything happens to the
+    /// duck.
+    fn localized_in(scan: fn(Pose2) -> Scan) -> (Mapper, Vec<Note>, f32) {
+        let mut mapper = Mapper::new(MapperConfig::default(), Slam::new(SlamConfig::default()));
+        let mut notes = Vec::new();
+        let mut t = drive_in(&mut mapper, 0.0, (0.0, 0.0, 0.0), 8.0, &mut notes, scan);
+        t = drive_in(&mut mapper, t, (0.9, -0.6, -1.2), 8.0, &mut notes, scan);
+        t = drive_in(&mut mapper, t, (-0.9, 0.4, 2.0), 8.0, &mut notes, scan);
+        mapper.set_frozen(true);
+        assert!(mapper.tracking());
+        notes.clear();
+        (mapper, notes, t)
+    }
+
+    /// Where the carry puts the duck in the furnished room: from here the
+    /// windows contradict the pose it was carried from, and the right
+    /// answer lies 0.6 m and a half-turn from it, out of the lost search's
+    /// reach.
+    const CARRIED_TO: Pose2 = (-0.5, 0.8, -1.0);
+    /// A walk from there, as the explorer's search would take it.
+    const CARRIED_LEGS: [Pose2; 5] = [(0.0, 0.0, 0.0), (0.9, -0.6, -1.2), (0.0, 0.0, 2.4), (-0.9, 0.4, 2.0), (0.0, 0.0, -0.8)];
+
+    /// Carried: odometry stays at `odom`, the body is at `at` in the room.
+    /// Then, odometry following, the body walks from `at` through `legs`
+    /// (room frame), standing `stand_s` at each end. The first pose the
+    /// mapper trusts again, if any.
+    #[allow(clippy::too_many_arguments)]
+    fn carried_then_walks(
+        scan: fn(Pose2) -> Scan,
+        mapper: &mut Mapper,
+        mut t: f32,
+        at: Pose2,
+        odom: Pose2,
+        legs: &[Pose2],
+        stand_s: f32,
+        notes: &mut Vec<Note>,
+    ) -> Option<Pose2> {
+        // The room → odometry transform the carry left behind.
+        let to_odom = |p: Pose2| compose(odom, between(at, p));
+        let mut found = None;
+        let mut step = |mapper: &mut Mapper, t: f32, truth: Pose2, moving: bool, frame: bool, notes: &mut Vec<Note>| {
+            mapper.observe(t, MapperSample { odom: to_odom(truth), moving, sitting: false, fallen: false }, notes);
+            if frame {
+                mapper.frame(t, scan(truth));
+            }
+            for n in notes.drain(..) {
+                if let Note::Relocalized { pose, .. } | Note::ResumedUnverified { pose } = n
+                    && found.is_none()
+                {
+                    found = Some(pose);
+                }
+            }
+        };
+        let mut here = at;
+        let mut next = t;
+        for leg in std::iter::once(&at).chain(legs.iter()) {
+            let (from, to) = (here, *leg);
+            let walk_s = 2.0 * (to.0 - from.0).hypot(to.1 - from.1).max(0.25);
+            let t0 = t;
+            while t < t0 + walk_s {
+                let f = ((t - t0) / walk_s).clamp(0.0, 1.0);
+                let p = (from.0 + f * (to.0 - from.0), from.1 + f * (to.1 - from.1), wrap_pi(from.2 + f * wrap_pi(to.2 - from.2)));
+                step(mapper, t, p, true, t >= next, notes);
+                if t >= next {
+                    next += 1.0 / 15.0;
+                }
+                t += 0.02;
+            }
+            let t0 = t;
+            while t < t0 + stand_s {
+                step(mapper, t, to, false, t >= next, notes);
+                if t >= next {
+                    next += 1.0 / 15.0;
+                }
+                t += 0.02;
+            }
+            here = to;
+        }
+        found
+    }
+
+    /// Carried off standing, no sit, no fall: the twin's kidnap
+    /// (findme_bench, 2026-11-08), every scan contradicting the carried
+    /// pose. The watchdog loses it; nothing near fits; the give-up must not
+    /// resume the pose the scans refute — it did, 4.8 m off, tracked for
+    /// minutes. Standing, nothing may be believed.
+    #[test]
+    fn a_carried_duck_does_not_resume_the_pose_the_scans_refute() {
+        // In the lumpy room, from here, the near search's best answer is
+        // the truth at residual 0.02, 2.1 m from the carried pose.
+        let (mut mapper, mut notes, t) = localized_in(lumpy_room_scan);
+        let at = (-1.0, -0.8, -0.3);
+        let found = carried_then_walks(lumpy_room_scan, &mut mapper, t, at, (-0.9, 0.4, 2.0), &[], 120.0, &mut notes);
+        if let Some(p) = found {
+            assert!((p.0 - at.0).hypot(p.1 - at.1) < 0.25, "believed {p:?} standing at {at:?}");
+        }
+    }
+
+    /// ... and walking, it finds where the carry left it.
+    #[test]
+    fn a_carried_duck_finds_itself_walking() {
+        let (mut mapper, mut notes, t) = localized_in(furnished_room_scan);
+        let found = carried_then_walks(furnished_room_scan, &mut mapper, t, CARRIED_TO, (-0.9, 0.4, 2.0), &CARRIED_LEGS, 10.0, &mut notes);
+        let p = found.expect("walking, the carried duck must find itself");
+        assert!(mapper.tracking());
+        let end = CARRIED_LEGS[CARRIED_LEGS.len() - 1];
+        let at = mapper.slam().tracked();
+        assert!((at.0 - end.0).hypot(at.1 - end.1) < 0.25, "found at {p:?}, tracked at {at:?}, truth {end:?}");
+    }
+
+    /// Fallen, then carried off while down: the fall's search keeps near
+    /// where it fell and refuses the truth; the scans refuting the carried
+    /// pose window after window, the search widens, and walking finds it.
+    #[test]
+    fn a_duck_carried_after_a_fall_finds_itself_walking() {
+        let (mut mapper, mut notes, mut t) = localized_in(furnished_room_scan);
+        for _ in 0..50 {
+            mapper.observe(t, MapperSample { odom: (-0.9, 0.4, 2.0), moving: false, sitting: false, fallen: true }, &mut notes);
+            t += 0.02;
+        }
+        notes.clear();
+        carried_then_walks(furnished_room_scan, &mut mapper, t, CARRIED_TO, (-0.9, 0.4, 2.0), &CARRIED_LEGS, 10.0, &mut notes);
+        assert!(mapper.tracking(), "walking, the duck carried after its fall must find itself");
+        let end = CARRIED_LEGS[CARRIED_LEGS.len() - 1];
+        let at = mapper.slam().tracked();
+        assert!((at.0 - end.0).hypot(at.1 - end.1) < 0.25, "tracked at {at:?}, truth {end:?}");
     }
 
     /// A resumed session boots with a suspect pose (the robot may have

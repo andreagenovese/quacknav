@@ -333,6 +333,7 @@ fn main() {
                 Note::SuspectAfterSit => "suspect_sit",
                 Note::SuspectAfterFall => "suspect_fall",
                 Note::SatAfterFall => "sat_after_fall",
+                Note::SearchWidened => "search_widened",
                 Note::ResumedUnverified { .. } => "resumed_unverified",
                 Note::RelocalizeCandidate { .. } => "reloc_candidate",
                 Note::LostTracking { .. } => "lost",
@@ -497,6 +498,9 @@ fn main() {
                 }
                 Note::SatAfterFall => {
                     println!("[{t:7.1}s] SAT after the fall — global search");
+                }
+                Note::SearchWidened => {
+                    println!("[{t:7.1}s] the carried pose refuted window after window — search widened to the whole map");
                 }
                 Note::ResumedUnverified { pose } => {
                     println!(
