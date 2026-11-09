@@ -626,6 +626,8 @@ pub enum Note {
     SuspectAfterFall,
     /// Seated since the fall: the search is global again.
     SatAfterFall,
+    /// Picked up (see `Mapper::set_held`): the duck searches as at a boot.
+    PickedUp,
     /// The pose odometry carried was refuted window after window (see
     /// `carried_after_windows`): carried off, the duck searches the whole
     /// map as at a boot.
@@ -766,6 +768,8 @@ pub struct Mapper {
     /// Lost windows in a row that refuted the carried pose (see
     /// `carried_after_windows`); one that could not judge it keeps the count.
     refuted_windows: u32,
+    /// In a hand, as the host last said (see `set_held`).
+    held: bool,
     /// Lost by the watchdog's verdict — a contradiction with the map —
     /// as opposed to a sit, a fall or a resume. Only this kind may give
     /// up and resume on odometry: a carried robot's seed, once refuted,
@@ -1113,6 +1117,7 @@ impl Mapper {
             booting: false,
             lost_windows: 0,
             refuted_windows: 0,
+            held: false,
             hard_lost: false,
             soft_seed: None,
             unjudged: 0,
@@ -1154,6 +1159,26 @@ impl Mapper {
         self.last_search = None;
         self.hard_lost = false;
         self.refuted_windows = 0;
+    }
+
+    /// The host's word that a hand holds the robot (robotd's pick-up
+    /// detector). A pick-up is a carry for certain where a sit only may be
+    /// one: the soft seed "not moved" still goes first, but the search is
+    /// the boot's — global, several hypotheses, confirmed only once the
+    /// body has walked between them — not a sit's single best answer, which
+    /// in the twin's furnished flat bounced between aliases at residual
+    /// 0.000 and never agreed twice (findme_bench, 2026-11-09). A fall's
+    /// near search is lifted with it.
+    pub fn set_held(&mut self, held: bool, notes: &mut Vec<Note>) {
+        if held && !self.held && !self.booting {
+            if !self.lost {
+                self.arm_suspicion();
+            }
+            self.fall_near = false;
+            self.search_afresh();
+            notes.push(Note::PickedUp);
+        }
+        self.held = held;
     }
 
     pub fn slam(&self) -> &Slam {
@@ -3497,6 +3522,27 @@ mod tests {
         let end = CARRIED_LEGS[CARRIED_LEGS.len() - 1];
         let at = mapper.slam().tracked();
         assert!((at.0 - end.0).hypot(at.1 - end.1) < 0.25, "found at {p:?}, tracked at {at:?}, truth {end:?}");
+    }
+
+    /// Picked up (robotd's detector), carried and set down: the boot's
+    /// search finds it once it walks.
+    #[test]
+    fn a_picked_up_duck_finds_itself_walking() {
+        let (mut mapper, mut notes, mut t) = localized_in(furnished_room_scan);
+        let odom = (-0.9, 0.4, 2.0);
+        mapper.set_held(true, &mut notes);
+        for _ in 0..150 {
+            mapper.observe(t, MapperSample { odom, moving: false, sitting: true, fallen: false }, &mut notes);
+            t += 0.02;
+        }
+        mapper.set_held(false, &mut notes);
+        assert!(notes.iter().any(|n| matches!(n, Note::PickedUp)) && !mapper.tracking());
+        notes.clear();
+        carried_then_walks(furnished_room_scan, &mut mapper, t, CARRIED_TO, odom, &CARRIED_LEGS, 10.0, &mut notes);
+        assert!(mapper.tracking(), "walking, the duck set down must find itself");
+        let end = CARRIED_LEGS[CARRIED_LEGS.len() - 1];
+        let at = mapper.slam().tracked();
+        assert!((at.0 - end.0).hypot(at.1 - end.1) < 0.25, "tracked at {at:?}, truth {end:?}");
     }
 
     /// Fallen, then carried off while down: the fall's search keeps near

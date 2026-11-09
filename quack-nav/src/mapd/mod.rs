@@ -96,6 +96,10 @@ pub struct OdomSample {
     pub sitting: bool,
     /// Fallen over (the safety layer's verdict).
     pub fallen: bool,
+    /// In a hand: robotd's pick-up detector (`safety.picked_up`). Counted as
+    /// seated too (see `feed`); the mapper searches as at a boot (see
+    /// `maploc::Mapper::set_held`).
+    pub held: bool,
 }
 
 enum Event {
@@ -530,6 +534,7 @@ fn worker(
                 // maploc's `RestConfig`): a `go_to` from a rest wakes it.
                 let probe = driving.lock().expect("driving probe poisoned").clone();
                 mapper.set_engaged(probe.is_some_and(|p| p()));
+                mapper.set_held(sample.held, &mut notes);
                 mapper.observe(
                     started.elapsed().as_secs_f32(),
                     MapperSample {
@@ -975,6 +980,7 @@ fn log_note(note: Note) {
         Note::SuspectAfterSit => tracing::info!("maploc: robot sat — pose suspect until a window confirms it"),
         Note::SuspectAfterFall => tracing::info!("maploc: robot fell — pose suspect until a window confirms it"),
         Note::SatAfterFall => tracing::info!("maploc: seated since the fall — the search is global again"),
+        Note::PickedUp => tracing::info!("maploc: picked up — searching the whole map as at a boot once it is set down"),
         Note::SearchWidened => tracing::warn!("maploc: the scans refute the pose it was carried to, window after window — carried off; searching the whole map"),
         Note::ResumedUnverified { pose } => {
             tracing::warn!(
@@ -1433,6 +1439,7 @@ mod tests {
             moving: false,
             sitting: false,
             fallen: false,
+            held: false,
         }
     }
 

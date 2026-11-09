@@ -4,10 +4,14 @@ Does the duck find itself again after a fall or a carry? On the twin, the
 saved map frozen (the navigation's boot), the duck at home; then, trial by
 trial, at the truth's goals in turn:
 
-  carry      standing idle, carried to the goal's spot and turned (the
-             simulator's `kidnap`, the daemon none the wiser);
+  carry      standing idle, carried to the goal's spot and turned: by a
+             hand (the simulator's `carry`: lifted, carried, set down on its
+             feet; robotd's pick-up detector sees it as on the duck), or with
+             `FINDME_CARRY=teleport` moved there in one step (`kidnap`, the
+             daemon none the wiser);
   fall       shoved where it stands until it falls (the simulator's `shove`);
-  fallcarry  shoved, and while down carried to the goal's spot.
+  fallcarry  shoved, and while down carried to the goal's spot, set down
+             as it lay.
 
 Then a go_to the next goal, as a user would ask, and the verdict, on the
 first pose it trusts after it stopped trusting the old one: `right`
@@ -34,6 +38,7 @@ NAV = f"{state}/nav.sock"
 RIGHT_M, RIGHT_RAD = 0.30, math.radians(20)
 HOME_KEYS = ("the map frozen, navigating", "the map is frozen; navigating", "the pose is confirmed on the saved map")
 SHOVE = json.loads(os.environ.get("FINDME_SHOVE", '{"vy": 1.2, "wx": 8.0}'))
+CARRY = os.environ.get("FINDME_CARRY", "hand")
 DOWN_Z = 0.08
 goals = list(truth["goals"].values())
 
@@ -167,7 +172,14 @@ def trial(sim, k, kind, spot, nxt):
     fell = sim.pose()[3] < DOWN_Z
     if kind in ("carry", "fallcarry"):
         x, y, h, _ = sim.pose()
-        sim.op({"op": "kidnap", "dx": sx - x, "dy": sy - y, "dyaw": math.remainder(yaw_to - h, math.tau), "tilt": True})
+        dx, dy, dyaw = sx - x, sy - y, math.remainder(yaw_to - h, math.tau)
+        if CARRY == "teleport":
+            sim.op({"op": "kidnap", "dx": dx, "dy": dy, "dyaw": dyaw, "tilt": True})
+        else:
+            # A walking pace for the hand, and a second each to lift and set down.
+            secs = max(3.0, math.hypot(dx, dy) / 0.5)
+            sim.op({"op": "carry", "dx": dx, "dy": dy, "dyaw": dyaw, "secs": secs, "upright": kind == "carry"})
+            time.sleep(secs + 2.5)
     t0 = time.time()
     time.sleep(10)
     call("robot.go_to", {"x": nxt[0], "y": nxt[1], "max_s": limit_s})
@@ -220,6 +232,10 @@ for kind in kinds:
                 break
         r = trial(sim, k, kind, goals[k % len(goals)], goals[(k + 1) % len(goals)])
         r["falls_log"] = navlog().count("maploc: robot fell")
+        try:
+            r["pickups_log"] = open(f"{state}/robotd.log", errors="ignore").read().count("picked up")
+        except FileNotFoundError:
+            r["pickups_log"] = None
         results.append(r)
         json.dump(results, open(f"{out}/findme.json", "w"), indent=1)
         if not call("robot.map_status").get("tracking"):
