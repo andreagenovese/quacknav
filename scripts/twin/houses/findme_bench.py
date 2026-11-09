@@ -227,10 +227,13 @@ n = int(os.environ.get("FINDME_N", str(len(goals))))
 results, sp, sim = [], None, None
 for kind in kinds:
     for k in range(n):
-        if sp is None:
-            sp = home(); sim = Sim() if sp else None
+        # A boot that does not find itself is retried once, not the end of
+        # every trial of this kind.
+        for _ in range(2):
             if sp is None:
-                break
+                sp = home(); sim = Sim() if sp else None
+        if sp is None:
+            break
         r = trial(sim, k, kind, goals[k % len(goals)], goals[(k + 1) % len(goals)])
         r["falls_log"] = navlog().count("maploc: robot fell")
         try:
