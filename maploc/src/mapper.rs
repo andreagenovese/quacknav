@@ -628,6 +628,10 @@ pub enum Note {
     SatAfterFall,
     /// Picked up (see `Mapper::set_held`): the duck searches as at a boot.
     PickedUp,
+    /// Picked up while still down from a fall (see `Mapper::set_held`):
+    /// the fall's near search goes on, and widens after the carry's count
+    /// of refuting windows rather than the fall's.
+    PickedUpWhileDown,
     /// The pose odometry carried was refuted window after window (see
     /// `carried_after_windows`): carried off, the duck searches the whole
     /// map as at a boot.
@@ -770,6 +774,9 @@ pub struct Mapper {
     refuted_windows: u32,
     /// In a hand, as the host last said (see `set_held`).
     held: bool,
+    /// Picked up while still down from a fall: maybe a hand, maybe the
+    /// stand-up the detector takes for one (see `set_held`).
+    held_while_down: bool,
     /// Lost by the watchdog's verdict — a contradiction with the map —
     /// as opposed to a sit, a fall or a resume. Only this kind may give
     /// up and resume on odometry: a carried robot's seed, once refuted,
@@ -909,6 +916,12 @@ fn hypothesis_travel_m() -> f32 {
 /// falls the near search used to find (8 of 12) went unfound (3 of 12).
 const FALL_PATIENCE: u32 = 4;
 
+/// `MAPLOC_PICKED_UP_DOWN=0`: a pick-up while down from a fall is
+/// believed outright, as one standing (see `Mapper::set_held`).
+fn picked_up_while_down_doubted() -> bool {
+    std::env::var("MAPLOC_PICKED_UP_DOWN").map_or(true, |v| v != "0")
+}
+
 /// `MAPLOC_CARRIED_AFTER=n`: the windows that refute the carried pose
 /// before the search widens (see `MapperConfig::carried_after_windows`);
 /// 0 keeps the search near and the give-up, as before 2026-11-09.
@@ -1027,6 +1040,7 @@ impl Mapper {
     /// inked nothing and never asked (not once in the twin's localize boots
     /// of 2026-10-01) — and never rests.
     fn search_afresh(&mut self) {
+        self.held_while_down = false;
         let mut shadow_cfg = self.cfg.clone();
         if let Some((radius, give_up)) = self.after_boot {
             shadow_cfg.hard_lost_search_radius_m = radius;
@@ -1123,6 +1137,7 @@ impl Mapper {
             lost_windows: 0,
             refuted_windows: 0,
             held: false,
+            held_while_down: false,
             hard_lost: false,
             soft_seed: None,
             unjudged: 0,
@@ -1176,8 +1191,24 @@ impl Mapper {
     /// near search is lifted with it. As for a duck moved while it rested
     /// (see `distrust`) the pose is untrusted: the host's next job finds it
     /// first, walking — a boot's search does not confirm standing.
-    pub fn set_held(&mut self, held: bool, notes: &mut Vec<Note>) {
-        if held && !self.held && !self.booting {
+    ///
+    /// Down from a fall, a pick-up is not believed outright: robotd hands
+    /// the fallen duck back to its policy, whose stand-up attempts read as
+    /// a hand to the detector (the twin, 2026-11-09: "picked up" for a
+    /// second every 15–20 s while it lay, p 0.80–0.81 against 0.91–0.99
+    /// for a hand; two of six falls lost their pose to it). The fall's
+    /// near search goes on, the sit it also reads as does not lift it, and
+    /// six windows refuting the pose — the carry's count, not the fall's
+    /// four times that — widen the search (see `carried_after_windows`):
+    /// a false pick-up costs nothing, a real one a few windows.
+    ///
+    /// `down`: the body is tilted off upright, as the host's gravity says
+    /// — still lying where it fell, though the pose was found again.
+    pub fn set_held(&mut self, held: bool, down: bool, notes: &mut Vec<Note>) {
+        if held && !self.held && !self.booting && (self.after_fall || down) && !self.hard_lost && picked_up_while_down_doubted() {
+            self.held_while_down = true;
+            notes.push(Note::PickedUpWhileDown);
+        } else if held && !self.held && !self.booting {
             self.fall_near = false;
             notes.push(Note::PickedUp);
             self.distrust(notes);
@@ -1395,7 +1426,7 @@ impl Mapper {
         if sample.fallen {
             self.after_fall = true;
             self.fall_near = true;
-        } else if self.fall_near && sample.sitting {
+        } else if self.fall_near && sample.sitting && !(self.held && self.held_while_down) {
             self.fall_near = false;
             notes.push(Note::SatAfterFall);
         }
@@ -1674,7 +1705,7 @@ impl Mapper {
                     // After a fall the near search is usually right and
                     // slow (it confirms standing still): it gets four
                     // times the windows before it is given up on.
-                    let after = if self.after_fall && !self.hard_lost {
+                    let after = if self.after_fall && !self.hard_lost && !self.held_while_down {
                         self.cfg.carried_after_windows.saturating_mul(FALL_PATIENCE)
                     } else {
                         self.cfg.carried_after_windows
@@ -2338,6 +2369,7 @@ impl Mapper {
         self.hard_lost = false;
         self.after_fall = false;
         self.fall_near = false;
+        self.held_while_down = false;
         self.valleys.clear();
         // The boot's global, never-give-up search was for a pose nobody
         // could vouch for. Confirmed, the pose is a pose: a later "lost"
@@ -3546,12 +3578,12 @@ mod tests {
     fn a_picked_up_duck_finds_itself_walking() {
         let (mut mapper, mut notes, mut t) = localized_in(furnished_room_scan);
         let odom = (-0.9, 0.4, 2.0);
-        mapper.set_held(true, &mut notes);
+        mapper.set_held(true, false, &mut notes);
         for _ in 0..150 {
             mapper.observe(t, MapperSample { odom, moving: false, sitting: true, fallen: false }, &mut notes);
             t += 0.02;
         }
-        mapper.set_held(false, &mut notes);
+        mapper.set_held(false, false, &mut notes);
         assert!(notes.iter().any(|n| matches!(n, Note::PickedUp)) && !mapper.tracking() && mapper.untrusted());
         // A job asks: the search runs.
         mapper.set_engaged(true);
@@ -3579,6 +3611,59 @@ mod tests {
         // stands longer at each end before the walk can settle it.
         carried_then_walks(furnished_room_scan, &mut mapper, t, CARRIED_TO, (-0.9, 0.4, 2.0), &CARRIED_LEGS, 30.0, &mut notes);
         assert!(mapper.tracking(), "walking, the duck carried after its fall must find itself");
+        let end = CARRIED_LEGS[CARRIED_LEGS.len() - 1];
+        let at = mapper.slam().tracked();
+        assert!((at.0 - end.0).hypot(at.1 - end.1) < 0.25, "tracked at {at:?}, truth {end:?}");
+    }
+
+    /// Down from a fall, the detector says "picked up" for a second — the
+    /// policy's stand-up, not a hand (the twin, 2026-11-09). The duck has
+    /// not moved: the fall's near search must still find it standing,
+    /// not drop the pose for a boot's search that only a walk can settle.
+    #[test]
+    fn a_pick_up_while_down_from_a_fall_does_not_drop_the_pose() {
+        let (mut mapper, mut notes, mut t) = localized_in(furnished_room_scan);
+        let here = (-0.9, 0.4, 2.0);
+        for _ in 0..50 {
+            mapper.observe(t, MapperSample { odom: here, moving: false, sitting: false, fallen: true }, &mut notes);
+            t += 0.02;
+        }
+        mapper.set_held(true, true, &mut notes);
+        for _ in 0..50 {
+            mapper.observe(t, MapperSample { odom: here, moving: false, sitting: true, fallen: false }, &mut notes);
+            t += 0.02;
+        }
+        mapper.set_held(false, true, &mut notes);
+        assert!(notes.iter().any(|n| matches!(n, Note::PickedUpWhileDown)), "{notes:?}");
+        assert!(!mapper.untrusted(), "a doubted pick-up must not distrust the pose");
+        notes.clear();
+        carried_then_walks(furnished_room_scan, &mut mapper, t, here, here, &[], 60.0, &mut notes);
+        assert!(mapper.tracking(), "not moved, the fallen duck must find itself standing");
+        let at = mapper.slam().tracked();
+        assert!((at.0 - here.0).hypot(at.1 - here.1) < 0.25, "tracked at {at:?}, truth {here:?}");
+    }
+
+    /// ... and a real hand, lifting it while down and setting it down
+    /// elsewhere: the scans refute the near pose, the search widens after
+    /// the carry's count of windows, and walking finds it.
+    #[test]
+    fn a_duck_picked_up_while_down_finds_itself_walking() {
+        let (mut mapper, mut notes, mut t) = localized_in(furnished_room_scan);
+        let odom = (-0.9, 0.4, 2.0);
+        for _ in 0..50 {
+            mapper.observe(t, MapperSample { odom, moving: false, sitting: false, fallen: true }, &mut notes);
+            t += 0.02;
+        }
+        mapper.set_held(true, true, &mut notes);
+        for _ in 0..150 {
+            mapper.observe(t, MapperSample { odom, moving: false, sitting: true, fallen: false }, &mut notes);
+            t += 0.02;
+        }
+        mapper.set_held(false, true, &mut notes);
+        mapper.set_engaged(true);
+        notes.clear();
+        carried_then_walks(furnished_room_scan, &mut mapper, t, CARRIED_TO, odom, &CARRIED_LEGS, 10.0, &mut notes);
+        assert!(mapper.tracking(), "walking, the duck lifted while down must find itself");
         let end = CARRIED_LEGS[CARRIED_LEGS.len() - 1];
         let at = mapper.slam().tracked();
         assert!((at.0 - end.0).hypot(at.1 - end.1) < 0.25, "tracked at {at:?}, truth {end:?}");

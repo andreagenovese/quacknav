@@ -335,6 +335,7 @@ fn main() {
                 Note::SatAfterFall => "sat_after_fall",
                 Note::SearchWidened => "search_widened",
                 Note::PickedUp => "picked_up",
+                Note::PickedUpWhileDown => "picked_up_down",
                 Note::ResumedUnverified { .. } => "resumed_unverified",
                 Note::RelocalizeCandidate { .. } => "reloc_candidate",
                 Note::LostTracking { .. } => "lost",
@@ -502,6 +503,9 @@ fn main() {
                 }
                 Note::PickedUp => {
                     println!("[{t:7.1}s] PICKED UP — searching as at a boot");
+                }
+                Note::PickedUpWhileDown => {
+                    println!("[{t:7.1}s] picked up while down from a fall — doubted; the near search goes on");
                 }
                 Note::SearchWidened => {
                     println!("[{t:7.1}s] the carried pose refuted window after window — search widened to the whole map");

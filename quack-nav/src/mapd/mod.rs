@@ -534,7 +534,9 @@ fn worker(
                 // maploc's `RestConfig`): a `go_to` from a rest wakes it.
                 let probe = driving.lock().expect("driving probe poisoned").clone();
                 mapper.set_engaged(probe.is_some_and(|p| p()));
-                mapper.set_held(sample.held, &mut notes);
+                // Down: tilted more than ~30° off upright (gravity's z
+                // above −0.85): lying where it fell.
+                mapper.set_held(sample.held, sample.gravity[2] > -0.85, &mut notes);
                 mapper.observe(
                     started.elapsed().as_secs_f32(),
                     MapperSample {
@@ -981,6 +983,7 @@ fn log_note(note: Note) {
         Note::SuspectAfterFall => tracing::info!("maploc: robot fell — pose suspect until a window confirms it"),
         Note::SatAfterFall => tracing::info!("maploc: seated since the fall — the search is global again"),
         Note::PickedUp => tracing::info!("maploc: picked up — the pose is untrusted; the next job finds it first, searching the whole map"),
+        Note::PickedUpWhileDown => tracing::info!("maploc: picked up while down from a fall — maybe its own stand-up; the near search goes on, and widens if the scans refute it"),
         Note::SearchWidened => tracing::warn!("maploc: the scans refute the pose it was carried to, window after window — carried off; searching the whole map"),
         Note::ResumedUnverified { pose } => {
             tracing::warn!(
