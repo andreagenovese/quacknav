@@ -536,7 +536,7 @@ fn worker(
                 mapper.set_engaged(probe.is_some_and(|p| p()));
                 // Down: tilted more than ~30° off upright (gravity's z
                 // above −0.85): lying where it fell.
-                mapper.set_held(sample.held, sample.gravity[2] > -0.85, &mut notes);
+                mapper.set_held(sample.held, sample.gravity[2] > -0.85, started.elapsed().as_secs_f32(), &mut notes);
                 mapper.observe(
                     started.elapsed().as_secs_f32(),
                     MapperSample {
