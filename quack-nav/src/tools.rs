@@ -1907,6 +1907,12 @@ fn library_request(path: &str, method: &str, params: Option<Value>) -> anyhow::R
     }
 }
 
+/// `QN_GO_TO_LOST=0`: a `go_to` on a lost (not untrusted) duck is refused,
+/// as before 2026-11-09; by default it finds the pose first.
+fn relocate_when_lost() -> bool {
+    std::env::var("QN_GO_TO_LOST").map_or(true, |v| v != "0")
+}
+
 /// Walk to a known place, or to a point on the map: `robot.go_to`.
 fn go_to(robot: &mut Robot, args: &Value) -> Result<Value, String> {
     if args.get("stop").and_then(Value::as_bool).unwrap_or(false) {
@@ -1935,8 +1941,12 @@ fn go_to(robot: &mut Robot, args: &Value) -> Result<Value, String> {
         Some(o) => o.apply(frame),
         None => frame,
     };
-    // Moved while it rested, maybe anywhere: found first (see `relocate`).
-    let untrusted = frame.untrusted && !frame.seated && !vouched;
+    // Moved while it rested, maybe anywhere, or lost on its feet (after a
+    // fall, a sit, a loss): found first (see `relocate`), not refused —
+    // refused, nobody walked it and it never found itself (findme A/B,
+    // 2026-11-09).
+    let lost = snapshot.trusted_pose().is_none() && relocate_when_lost();
+    let untrusted = (frame.untrusted || lost) && !frame.seated && !vouched;
     if snapshot.trusted_pose().is_none() && !untrusted && !vouched {
         return Err(if frame.seated {
             "the duck is seated or fallen: stand it up first (sit_toggle)".into()

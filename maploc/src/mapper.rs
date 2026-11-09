@@ -904,11 +904,11 @@ fn hypothesis_travel_m() -> f32 {
         .unwrap_or(1.0)
 }
 
-/// How many hits the leading hypothesis must have over the runner-up before
-/// it is nominated. One was not a lead: in a corridor the 180° twin agrees
-/// with every window the truth agrees with until a doorway comes into
-/// view, and a lead of one is noise (a wake-up came home 123° wrong that
-/// way, 2026-09-14). `MAPLOC_HYP_LEAD` overrides it.
+/// How many times `carried_after_windows` a fall's near search gets
+/// before it widens. The twin A/B of 2026-11-09: widened after six, the
+/// falls the near search used to find (8 of 12) went unfound (3 of 12).
+const FALL_PATIENCE: u32 = 4;
+
 /// `MAPLOC_CARRIED_AFTER=n`: the windows that refute the carried pose
 /// before the search widens (see `MapperConfig::carried_after_windows`);
 /// 0 keeps the search near and the give-up, as before 2026-11-09.
@@ -916,6 +916,11 @@ fn carried_after_windows() -> u32 {
     std::env::var("MAPLOC_CARRIED_AFTER").ok().and_then(|v| v.parse().ok()).unwrap_or(6)
 }
 
+/// How many hits the leading hypothesis must have over the runner-up before
+/// it is nominated. One was not a lead: in a corridor the 180° twin agrees
+/// with every window the truth agrees with until a doorway comes into
+/// view, and a lead of one is noise (a wake-up came home 123° wrong that
+/// way, 2026-09-14). `MAPLOC_HYP_LEAD` overrides it.
 fn hypothesis_lead() -> u32 {
     std::env::var("MAPLOC_HYP_LEAD").ok().and_then(|v| v.parse().ok()).unwrap_or(3)
 }
@@ -1666,10 +1671,20 @@ impl Mapper {
             match refuted {
                 Some(true) => {
                     self.refuted_windows += 1;
-                    if self.refuted_windows >= self.cfg.carried_after_windows {
+                    // After a fall the near search is usually right and
+                    // slow (it confirms standing still): it gets four
+                    // times the windows before it is given up on.
+                    let after = if self.after_fall && !self.hard_lost {
+                        self.cfg.carried_after_windows.saturating_mul(FALL_PATIENCE)
+                    } else {
+                        self.cfg.carried_after_windows
+                    };
+                    if self.refuted_windows >= after {
                         self.fall_near = false;
-                        self.search_afresh();
                         notes.push(Note::SearchWidened);
+                        // Untrusted, so the next job walks it to find
+                        // itself first rather than being refused.
+                        self.distrust(notes);
                         return;
                     }
                 }
@@ -3515,6 +3530,8 @@ mod tests {
     #[test]
     fn a_carried_duck_finds_itself_walking() {
         let (mut mapper, mut notes, t) = localized_in(furnished_room_scan);
+        // A job is out (the explorer's search walks it).
+        mapper.set_engaged(true);
         let found = carried_then_walks(furnished_room_scan, &mut mapper, t, CARRIED_TO, (-0.9, 0.4, 2.0), &CARRIED_LEGS, 10.0, &mut notes);
         let p = found.expect("walking, the carried duck must find itself");
         assert!(mapper.tracking());
@@ -3557,7 +3574,10 @@ mod tests {
             t += 0.02;
         }
         notes.clear();
-        carried_then_walks(furnished_room_scan, &mut mapper, t, CARRIED_TO, (-0.9, 0.4, 2.0), &CARRIED_LEGS, 10.0, &mut notes);
+        mapper.set_engaged(true);
+        // The fall's near search is given four times the windows: it
+        // stands longer at each end before the walk can settle it.
+        carried_then_walks(furnished_room_scan, &mut mapper, t, CARRIED_TO, (-0.9, 0.4, 2.0), &CARRIED_LEGS, 30.0, &mut notes);
         assert!(mapper.tracking(), "walking, the duck carried after its fall must find itself");
         let end = CARRIED_LEGS[CARRIED_LEGS.len() - 1];
         let at = mapper.slam().tracked();
