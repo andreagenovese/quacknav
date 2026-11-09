@@ -980,7 +980,7 @@ fn log_note(note: Note) {
         Note::SuspectAfterSit => tracing::info!("maploc: robot sat — pose suspect until a window confirms it"),
         Note::SuspectAfterFall => tracing::info!("maploc: robot fell — pose suspect until a window confirms it"),
         Note::SatAfterFall => tracing::info!("maploc: seated since the fall — the search is global again"),
-        Note::PickedUp => tracing::info!("maploc: picked up — searching the whole map as at a boot once it is set down"),
+        Note::PickedUp => tracing::info!("maploc: picked up — the pose is untrusted; the next job finds it first, searching the whole map"),
         Note::SearchWidened => tracing::warn!("maploc: the scans refute the pose it was carried to, window after window — carried off; searching the whole map"),
         Note::ResumedUnverified { pose } => {
             tracing::warn!(

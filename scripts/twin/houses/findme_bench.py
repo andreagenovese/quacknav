@@ -182,7 +182,8 @@ def trial(sim, k, kind, spot, nxt):
             time.sleep(secs + 2.5)
     t0 = time.time()
     time.sleep(10)
-    call("robot.go_to", {"x": nxt[0], "y": nxt[1], "max_s": limit_s})
+    asked = call("robot.go_to", {"x": nxt[0], "y": nxt[1], "max_s": limit_s})
+    say(f"  go_to answered: {json.dumps(asked)[:300]}")
     verdict, found_s, err, yaw_err, end = "never", None, float("nan"), float("nan"), None
     while time.time() - t0 < limit_s + 30:
         lost = lost_at(t0 + 1)

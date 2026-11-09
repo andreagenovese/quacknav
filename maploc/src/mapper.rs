@@ -1168,15 +1168,14 @@ impl Mapper {
     /// body has walked between them — not a sit's single best answer, which
     /// in the twin's furnished flat bounced between aliases at residual
     /// 0.000 and never agreed twice (findme_bench, 2026-11-09). A fall's
-    /// near search is lifted with it.
+    /// near search is lifted with it. As for a duck moved while it rested
+    /// (see `distrust`) the pose is untrusted: the host's next job finds it
+    /// first, walking — a boot's search does not confirm standing.
     pub fn set_held(&mut self, held: bool, notes: &mut Vec<Note>) {
         if held && !self.held && !self.booting {
-            if !self.lost {
-                self.arm_suspicion();
-            }
             self.fall_near = false;
-            self.search_afresh();
             notes.push(Note::PickedUp);
+            self.distrust(notes);
         }
         self.held = held;
     }
@@ -3536,7 +3535,9 @@ mod tests {
             t += 0.02;
         }
         mapper.set_held(false, &mut notes);
-        assert!(notes.iter().any(|n| matches!(n, Note::PickedUp)) && !mapper.tracking());
+        assert!(notes.iter().any(|n| matches!(n, Note::PickedUp)) && !mapper.tracking() && mapper.untrusted());
+        // A job asks: the search runs.
+        mapper.set_engaged(true);
         notes.clear();
         carried_then_walks(furnished_room_scan, &mut mapper, t, CARRIED_TO, odom, &CARRIED_LEGS, 10.0, &mut notes);
         assert!(mapper.tracking(), "walking, the duck set down must find itself");
