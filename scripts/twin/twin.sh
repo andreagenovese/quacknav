@@ -39,6 +39,8 @@
 #                 and saves it under its name at the end of the session
 #   EXPLORE_S     the budget of the exploring the homecoming starts (720)
 #   BOOT_SEARCH_S how long the homecoming stands to confirm before it searches (240)
+#   NAVD_BIN      the quack-navd to run (default: this tree's target/release),
+#                 a frozen copy so a rebuild cannot reach a running A/B
 #   WIPE          on (default: a fresh map each boot) or off
 #   PICKUP        on (default, as on the duck: robotd's pick-up detector, the
 #                 source tree's model) or off
@@ -59,7 +61,7 @@ detach() { /usr/bin/python3 $HERE/detach.py "$@"; }
 navd() {
   (
     if [ -f $STATE/knobs.env ]; then set -a; . $STATE/knobs.env; set +a; fi
-    detach $STATE/navd.log $REPO/target/release/quack-navd $STATE/quack-nav.toml
+    detach $STATE/navd.log ${NAVD_BIN:-$REPO/target/release/quack-navd} $STATE/quack-nav.toml
   ) > $STATE/navd.pid
   for i in $(seq 1 40); do [ -S $STATE/nav.sock ] && break; sleep 0.25; done
 }
