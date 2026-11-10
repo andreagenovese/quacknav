@@ -632,6 +632,9 @@ pub enum Note {
     /// the fall's near search goes on, and widens after the carry's count
     /// of refuting windows rather than the fall's.
     PickedUpWhileDown,
+    /// Picked up on its feet: believed only once held `HELD_BELIEVED_S`
+    /// (see `Mapper::set_held`).
+    PickedUpDoubted,
     /// The pose odometry carried was refuted window after window (see
     /// `carried_after_windows`): carried off, the duck searches the whole
     /// map as at a boot.
@@ -779,6 +782,9 @@ pub struct Mapper {
     held_while_down: bool,
     /// When the host's "held" last went up (seconds, `set_held`'s clock).
     held_since: f32,
+    /// Picked up on its feet, not yet held `held_believed_s`: a hand or
+    /// the detector's mistake (see `set_held`).
+    held_pending: bool,
     /// Lost by the watchdog's verdict — a contradiction with the map —
     /// as opposed to a sit, a fall or a resume. Only this kind may give
     /// up and resume on odometry: a carried robot's seed, once refuted,
@@ -922,6 +928,13 @@ const FALL_PATIENCE: u32 = 4;
 /// `Mapper::set_held`): the twin, 2026-11-09, the stand-up read as held
 /// for about a second, the shortest hand carry for three.
 const HELD_BELIEVED_S: f32 = 2.0;
+
+/// `MAPLOC_PICKED_UP_HELD_S=<s>`: how long "held" must last before a
+/// pick-up is believed ([`HELD_BELIEVED_S`]); 0 believes one on its feet
+/// at once, as before 2026-11-10.
+fn held_believed_s() -> f32 {
+    std::env::var("MAPLOC_PICKED_UP_HELD_S").ok().and_then(|v| v.parse().ok()).unwrap_or(HELD_BELIEVED_S)
+}
 
 /// `MAPLOC_PICKED_UP_DOWN=0`: a pick-up while down from a fall is
 /// believed outright, as one standing (see `Mapper::set_held`).
@@ -1146,6 +1159,7 @@ impl Mapper {
             held: false,
             held_while_down: false,
             held_since: 0.0,
+            held_pending: false,
             hard_lost: false,
             soft_seed: None,
             unjudged: 0,
@@ -1213,26 +1227,40 @@ impl Mapper {
     /// 2026-11-09: doubted to the end, hand carries from a fall were found
     /// 3 of 12 times against 5 of 12 believed).
     ///
+    /// On its feet too a pick-up is believed only once held
+    /// `HELD_BELIEVED_S`: the twin's exploration A/B of 2026-11-10 saw
+    /// the detector fire for 0.84 s at p 0.94 while the duck walked, and
+    /// 4 of 4 later sessions lost to it, untrusted with nobody to find
+    /// it. A hand carry holds it for seconds.
+    ///
     /// `t`: the host's clock in seconds, as given to `observe`.
     ///
     /// `down`: the body is tilted off upright, as the host's gravity says
     /// — still lying where it fell, though the pose was found again.
     pub fn set_held(&mut self, held: bool, down: bool, t: f32, notes: &mut Vec<Note>) {
+        let doubted = self.held_while_down || self.held_pending;
         if held && !self.held {
             self.held_since = t;
         }
-        if held && self.held && self.held_while_down && t - self.held_since >= HELD_BELIEVED_S {
+        if held && self.held && doubted && t - self.held_since >= held_believed_s() {
             self.held_while_down = false;
+            self.held_pending = false;
             self.fall_near = false;
             notes.push(Note::PickedUp);
             self.distrust(notes);
         } else if held && !self.held && !self.booting && (self.after_fall || down) && !self.hard_lost && picked_up_while_down_doubted() {
             self.held_while_down = true;
             notes.push(Note::PickedUpWhileDown);
+        } else if held && !self.held && !self.booting && held_believed_s() > 0.0 {
+            self.held_pending = true;
+            notes.push(Note::PickedUpDoubted);
         } else if held && !self.held && !self.booting {
             self.fall_near = false;
             notes.push(Note::PickedUp);
             self.distrust(notes);
+        }
+        if !held {
+            self.held_pending = false;
         }
         self.held = held;
     }
@@ -1396,8 +1424,10 @@ impl Mapper {
         let horizon = self.cfg.still.window_s;
         self.odom_window.retain(|&(at, ..)| t_s - at <= horizon);
 
+        // Held, the head looks from a hand: no still window, believed or not.
         let still = !sample.moving
             && !sample.sitting
+            && !self.held
             && !sample.fallen
             && self.odom_window.first().is_some_and(|&(_, fx, fy, fyaw)| {
                 let dx = sample.odom.0 - fx;
@@ -3599,9 +3629,9 @@ mod tests {
     fn a_picked_up_duck_finds_itself_walking() {
         let (mut mapper, mut notes, mut t) = localized_in(furnished_room_scan);
         let odom = (-0.9, 0.4, 2.0);
-        mapper.set_held(true, false, t, &mut notes);
         for _ in 0..150 {
-            mapper.observe(t, MapperSample { odom, moving: false, sitting: true, fallen: false }, &mut notes);
+            mapper.set_held(true, false, t, &mut notes);
+            mapper.observe(t, MapperSample { odom, moving: false, sitting: false, fallen: false }, &mut notes);
             t += 0.02;
         }
         mapper.set_held(false, false, t, &mut notes);
@@ -3614,6 +3644,24 @@ mod tests {
         let end = CARRIED_LEGS[CARRIED_LEGS.len() - 1];
         let at = mapper.slam().tracked();
         assert!((at.0 - end.0).hypot(at.1 - end.1) < 0.25, "tracked at {at:?}, truth {end:?}");
+    }
+
+    /// Walking, the detector says "picked up" for under a second (the
+    /// twin's exploration, 2026-11-10: 0.84 s at p 0.94): no hand, the
+    /// pose kept.
+    #[test]
+    fn a_second_of_held_on_its_feet_keeps_the_pose() {
+        let (mut mapper, mut notes, mut t) = localized_in(furnished_room_scan);
+        let odom = (-0.9, 0.4, 2.0);
+        for _ in 0..45 {
+            mapper.set_held(true, false, t, &mut notes);
+            mapper.observe(t, MapperSample { odom, moving: false, sitting: false, fallen: false }, &mut notes);
+            t += 0.02;
+        }
+        mapper.set_held(false, false, t, &mut notes);
+        assert!(notes.iter().any(|n| matches!(n, Note::PickedUpDoubted)), "{notes:?}");
+        assert!(!notes.iter().any(|n| matches!(n, Note::PickedUp)), "{notes:?}");
+        assert!(mapper.tracking() && !mapper.untrusted(), "a second's false pick-up must keep the pose");
     }
 
     /// Fallen, then carried off while down: the fall's search keeps near
@@ -3651,7 +3699,7 @@ mod tests {
         }
         for _ in 0..50 {
             mapper.set_held(true, true, t, &mut notes);
-            mapper.observe(t, MapperSample { odom: here, moving: false, sitting: true, fallen: false }, &mut notes);
+            mapper.observe(t, MapperSample { odom: here, moving: false, sitting: false, fallen: false }, &mut notes);
             t += 0.02;
         }
         mapper.set_held(false, true, t, &mut notes);
@@ -3677,7 +3725,7 @@ mod tests {
         }
         for _ in 0..150 {
             mapper.set_held(true, true, t, &mut notes);
-            mapper.observe(t, MapperSample { odom, moving: false, sitting: true, fallen: false }, &mut notes);
+            mapper.observe(t, MapperSample { odom, moving: false, sitting: false, fallen: false }, &mut notes);
             t += 0.02;
         }
         mapper.set_held(false, true, t, &mut notes);

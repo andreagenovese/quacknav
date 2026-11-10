@@ -81,8 +81,9 @@ del processo.
 | `MAPLOC_LOOP_DEBUG` | accesa solo con 1 | `maploc/src/loop_closer.rs` | `MAPLOC_LOOP_DEBUG=1`: one line per accepted closure on stderr — the submaps, the correction it asks for, the match's residual and beams, the witnesses' spread — to tell the closures that turn a map wrong. |
 | `MAPLOC_MIRROR_COLS` | accesa solo con 1 | `maploc/examples/evaluate.rs` | MAPLOC_MIRROR_COLS=1 replays every frame with its columns reversed. |
 | `MAPLOC_MULTI_HYP` | accesa salvo 0 | `maploc/src/mapper.rs` | `MAPLOC_MULTI_HYP=0` turns the multi-hypothesis boot search off, for measuring against the single-best agreement it replaces. |
-| `MAPLOC_PICKED_UP` | accesa salvo 0 | `quack-nav/src/mapd/feed.rs` | `MAPLOC_PICKED_UP=0`: a pick-up is not a sit (see the module doc). |
+| `MAPLOC_PICKED_UP` | accesa salvo 0 | `quack-nav/src/mapd/feed.rs` | `MAPLOC_PICKED_UP=0`: a pick-up does not reach the mapper (see the module doc). |
 | `MAPLOC_PICKED_UP_DOWN` | accesa salvo 0 | `maploc/src/mapper.rs` | `MAPLOC_PICKED_UP_DOWN=0`: a pick-up while down from a fall is believed outright, as one standing (see `Mapper::set_held`). |
+| `MAPLOC_PICKED_UP_HELD_S` | numero (default 2.0) | `maploc/src/mapper.rs` | `MAPLOC_PICKED_UP_HELD_S=<s>`: how long "held" must last before a pick-up is believed ([`HELD_BELIEVED_S`]); 0 believes one on its feet at once, as before 2026-11-10. |
 | `MAPLOC_RAW` | presente = accesa (qualsiasi valore) | `maploc/examples/replay.rs` |  |
 | `MAPLOC_REST` | accesa salvo 0 | `maploc/src/mapper.rs` | `MAPLOC_REST=0`: no stand ever rests, as before the rest (2026-10-01). |
 | `MAPLOC_SHADOW` | accesa salvo 0 | `maploc/src/mapper.rs` | `MAPLOC_SHADOW=0`: no shadow map at boot. |

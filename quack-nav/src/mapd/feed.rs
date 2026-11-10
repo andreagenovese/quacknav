@@ -14,12 +14,14 @@
 //!     read as moving and no stop reached the map (the twin, 2026-09-23:
 //!     39 windows in three minutes of exploring). The fork had met that
 //!     once already, with a gamepad idling just off zero.
-//!   - `sitting`: the step label is `sit`, or robotd's pick-up detector says
-//!     a hand holds the robot (`safety.picked_up`, `[pickup]`, on by default
-//!     on the duck): to the mapper a carry is what a sit was, the one sign
-//!     of a carry odometry cannot give — the pose suspect, the search
-//!     global, a fall's near search lifted (findme_bench, 2026-11-09).
-//!     `MAPLOC_PICKED_UP=0` ignores it.
+//!   - `sitting`: the step label is `sit`.
+//!   - `held`: robotd's pick-up detector says a hand holds the robot
+//!     (`safety.picked_up`, `[pickup]`, on by default on the duck), the one
+//!     sign of a carry odometry cannot give; the mapper believes it once
+//!     held two seconds (see `maploc::Mapper::set_held`), for the detector
+//!     also fires for a second while the duck walks or stands up — read as
+//!     a sit, that second made the pose suspect (the twin's exploration,
+//!     2026-11-10). `MAPLOC_PICKED_UP=0` ignores it.
 
 use std::io::{BufRead, BufReader, Write};
 use std::os::unix::net::UnixStream;
@@ -134,8 +136,8 @@ impl Default for Safety {
     }
 }
 
-/// `MAPLOC_PICKED_UP=0`: a pick-up is not a sit (see the module doc).
-fn picked_up_is_a_sit() -> bool {
+/// `MAPLOC_PICKED_UP=0`: a pick-up does not reach the mapper (see the module doc).
+fn picked_up_read() -> bool {
     static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
     *ON.get_or_init(|| std::env::var("MAPLOC_PICKED_UP").map_or(true, |v| v != "0"))
 }
@@ -163,9 +165,9 @@ fn sample(tick: &Tick) -> Option<OdomSample> {
         // velstand stands under "walk": the applied twist says whether it
         // walks (see `quack_duck::gait::walking`); alpha as ever.
         moving: if tick.policy == "walk" { quack_duck::gait::walking("walk", tick.motion.applied) } else { moving(&tick.policy) },
-        sitting: tick.policy == "sit" || (tick.safety.picked_up && picked_up_is_a_sit()),
+        sitting: tick.policy == "sit",
         fallen: tick.safety.fallen,
-        held: tick.safety.picked_up && picked_up_is_a_sit(),
+        held: tick.safety.picked_up && picked_up_read(),
     })
 }
 
@@ -298,10 +300,10 @@ mod tests {
         assert!(!walking("stand", 0.04).moving);
     }
 
-    /// A hand holding the duck (robotd's pick-up detector) is a sit to the
-    /// mapper: the carry it could not feel before (findme_bench, 2026-11-09).
+    /// A hand holding the duck (robotd's pick-up detector) reaches the
+    /// mapper as held, not as a sit: the mapper weighs how long it lasts.
     #[test]
-    fn a_pick_up_is_a_sit() {
+    fn a_pick_up_is_held_not_a_sit() {
         let tick: Tick = serde_json::from_value(serde_json::json!({
             "odom": {"position": [0.5, -0.25, 0.117], "yaw": 0.3},
             "joints": vec![0.0; 15],
@@ -311,7 +313,7 @@ mod tests {
         }))
         .unwrap();
         let s = sample(&tick).expect("a full state");
-        assert!(s.sitting && s.held && !s.moving && !s.fallen);
+        assert!(!s.sitting && s.held && !s.moving && !s.fallen);
     }
 
     #[test]
