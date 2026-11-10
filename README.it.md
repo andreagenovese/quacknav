@@ -207,7 +207,8 @@ breve:
   rimasta in media a 5,5-7,9 cm dalla verità, più o meno quanto da
   sveglia, con meno CPU. Spostata mentre si riposa — una guardia
   contraddetta dalla mappa, una spinta, una seduta, una mano che la
-  solleva (il rilevatore di presa di robotd) — la posa non è più fidata, e
+  solleva (il rilevatore di presa di robotd,
+  tenuta 2 s) — la posa non è più fidata, e
   il prossimo `go_to` cammina e guarda finché non trova dov'è prima di
   partire (portata a 3,3 m in un'altra stanza: trovata in 70 s, arrivata a
   2 cm). Una papera persa dopo una caduta si ritrova allo stesso modo: il

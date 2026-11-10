@@ -21,8 +21,7 @@ carta, mai su una papera fisica; i dettagli sono in
   `scripts/twin/houses/findme_bench.py`, porta la papera, la spinge a
   terra, o la spinge e la porta mentre è a terra, poi la manda alla meta
   dopo. `main` dopo un trasporto teneva quasi sempre una posa sbagliata,
-  e dopo una caduta seguita da un trasporto si ritrovava di rado. Cinque
-  modifiche: portata via, sei finestre che smentiscono la posa portata
+  e dopo una caduta seguita da un trasporto si ritrovava di rado. Sei modifiche: portata via, sei finestre che smentiscono la posa portata
   allargano la ricerca a tutta la mappa invece di riprendere quella posa
   (`MAPLOC_CARRIED_AFTER`); il `picked_up` di robotd vale come un
   trasporto, quindi la posa non è più fidata e il prossimo lavoro la
@@ -33,7 +32,11 @@ carta, mai su una papera fisica; i dettagli sono in
   tra i mobili (`QK_POCKET_ESCAPE`); e a terra dopo una caduta una presa
   in mano resta in dubbio finché non dura 2 s, perché il tentativo di
   rialzarsi della policy ne sembra una per circa un secondo
-  (`MAPLOC_PICKED_UP_DOWN`). Ogni manopola a 0 rimette la regola vecchia.
+  (`MAPLOC_PICKED_UP_DOWN`); anche in piedi una presa in mano è creduta
+  solo se dura 2 s (`MAPLOC_PICKED_UP_HELD_S`, 0 = subito): il rilevatore
+  di robotd scatta per circa un secondo mentre la papera cammina, e in
+  esplorazione la papera ci si perdeva; tenuta in mano non vale più come
+  seduta. Ogni manopola a 0 rimette la regola vecchia.
   A/B appaiato contro lo stesso albero con le manopole spente, due case,
   sei prove per tipo, 450 s ciascuna: cadute 4/12 → 10/12 ritrovate, pose
   sbagliate 3 → 0 (su tre A/B 21/36 → 30/36, sbagliate 3 → 0); portata
@@ -45,7 +48,14 @@ carta, mai su una papera fisica; i dettagli sono in
   mappa dopo un trasporto è lenta (8 trasporti su 12 non ritrovati in
   450 s); a terra, un tentativo di rialzarsi che dura più di 2 s viene
   preso per una mano (2 cadute su 12); un `go_to` chiesto mentre la papera
-  è ancora a terra viene rifiutato, e il bench non lo richiede.
+  è ancora a terra viene rifiutato, e il bench non lo richiede. Con tutte
+  e sei (A/B 7, tre tipi): portata 6/12 → 10/12 ritrovate (sbagliate 1 → 0,
+  non accorte 5 → 0), cadute 7/12 → 9/12 (sbagliate 1 → 1), portata mentre
+  è a terra 2/12 → 8/12 (sbagliate 2 → 0). In esplorazione (due case, BAM,
+  rilevatore acceso, sessioni di 30 minuti) nessuna presa creduta mentre
+  cammina; le prime sessioni chiuse presto ('stuck') seguivano il secondo
+  posto del gemello, non il ramo (posti scambiati: ramo 0 su 4, `main` 2
+  su 4).
 
 - **Dopo una caduta la papera ritrova dove si trova, e una papera persa
   tiene la sua mappa.** Su un gemello con gli attuatori realistici di

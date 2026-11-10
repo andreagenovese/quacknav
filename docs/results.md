@@ -1391,6 +1391,9 @@ daemon-v0.17.6 + set v8, two twins at a time (`rl-runs/twin-work/P8/`).
   | 5 | fallcarry | 1/12 / 3 / 0 | 3/12 / 2 / 0 |
   | 6 (`1056071`) | fall | 4/12 / 3 / 0 | 10/12 / 0 / 0 |
   | 6 | fallcarry | 0/12 / 1 / 3 | 4/12 / 1 / 0 |
+  | 7 (`20ef1e1`) | carry | 6/12 / 1 / 5 | 10/12 / 0 / 0 |
+  | 7 | fall | 7/12 / 1 / 0 | 9/12 / 1 / 0 |
+  | 7 | fallcarry | 2/12 / 2 / 0 | 8/12 / 0 / 0 |
 
   A/B 5 doubted a pick-up while down to the end, and the carries from a
   fall lost to it (3/12 against 5/12): the 2 s rule of A/B 6 believes the
@@ -1403,6 +1406,21 @@ daemon-v0.17.6 + set v8, two twins at a time (`rl-runs/twin-work/P8/`).
   taken for a hand (2 of 12 falls in A/B 6); and the bench asks its
   `go_to` 10 s after the event, refused while the duck is still down
   (2–5 trials an A/B, both arms), without asking again.
+
+  Exploring with the detector on (`FM/ex`, two houses, three 30-minute
+  sessions, against `main` 9a56a6c) the branch at `1056071` lost itself in
+  4 of 4 later sessions with no fall: robotd's detector fires for about a
+  second while the duck walks (0.84 s at p 0.94 in `main`'s own arm), the
+  branch believed it, and the feed passed held as a sit, which armed the
+  suspicion. `20ef1e1` doubts a pick-up on its feet too until held 2 s
+  (`MAPLOC_PICKED_UP_HELD_S`; a hand holds 3 s at p 0.99), takes no still
+  window while held, and no longer reads held as a sit: in `FM/ex2` one
+  pick-up was doubted, none believed, and A/B 7 (above) is the branch's
+  best. In both exploration A/Bs the branch's first session ended early
+  ('stuck', or 'mapped' at 39 %) in 3 of 4 houses against 0 of 4 for
+  `main`, with no loss, pick-up or fall before: with the slots swapped
+  (`FM/ex3a`, `ex3b`) the branch ended 0 of 4 early and `main` 2 of 4 —
+  it follows the twin's second slot, not the branch.
 
 ## Known limits
 

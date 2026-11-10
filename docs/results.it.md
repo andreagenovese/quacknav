@@ -1495,6 +1495,9 @@ casa_arredata, daemon-v0.17.6 + set v8, due gemelli alla volta
   | 5 | fallcarry | 1/12 / 3 / 0 | 3/12 / 2 / 0 |
   | 6 (`1056071`) | fall | 4/12 / 3 / 0 | 10/12 / 0 / 0 |
   | 6 | fallcarry | 0/12 / 1 / 3 | 4/12 / 1 / 0 |
+  | 7 (`20ef1e1`) | carry | 6/12 / 1 / 5 | 10/12 / 0 / 0 |
+  | 7 | fall | 7/12 / 1 / 0 | 9/12 / 1 / 0 |
+  | 7 | fallcarry | 2/12 / 2 / 0 | 8/12 / 0 / 0 |
 
   L'A/B 5 dubitava fino in fondo di una presa a terra, e i trasporti dopo
   una caduta ci perdevano (3/12 contro 5/12): la regola dei 2 s dell'A/B 6
@@ -1508,6 +1511,22 @@ casa_arredata, daemon-v0.17.6 + set v8, due gemelli alla volta
   preso per una mano (2 cadute su 12 nell'A/B 6); e il bench chiede il
   `go_to` 10 s dopo l'evento, rifiutato se la papera è ancora a terra
   (2–5 prove per A/B, in entrambi i bracci), senza richiederlo.
+
+  In esplorazione con il rilevatore acceso (`FM/ex`, due case, tre
+  sessioni da 30 minuti, contro `main` 9a56a6c) il ramo a `1056071` si è
+  perso in 4 sessioni successive su 4 senza cadute: il rilevatore di
+  robotd scatta per circa un secondo mentre la papera cammina (0,84 s a
+  p 0,94 nel braccio di `main` stesso), il ramo ci credeva, e il feed
+  passava la presa come seduta, che armava il sospetto. `20ef1e1` dubita
+  anche di una presa in piedi finché non dura 2 s
+  (`MAPLOC_PICKED_UP_HELD_S`; una mano tiene 3 s a p 0,99), non prende
+  finestre ferme mentre è tenuta, e non legge più la presa come seduta:
+  in `FM/ex2` una presa in dubbio, nessuna creduta, e l'A/B 7 (sopra) è il
+  migliore del ramo. In entrambi gli A/B di esplorazione la prima
+  sessione del ramo finiva presto ('stuck', o 'mapped' al 39 %) in 3 case
+  su 4 contro 0 su 4 di `main`, senza perdite, prese o cadute prima: a
+  posti scambiati (`FM/ex3a`, `ex3b`) il ramo 0 su 4 e `main` 2 su 4 —
+  segue il secondo posto del gemello, non il ramo.
 
 ## Limiti noti
 

@@ -189,7 +189,7 @@ shape of it:
   slides by itself, the pose stayed 5.5-7.9 cm from the truth on average,
   about what staying awake gives, for less CPU. Moved while it rested — a
   watch the map contradicts, a push, a sit, a hand lifting it (robotd's
-  pick-up detector) — the pose is untrusted, and the next `go_to` walks
+  pick-up detector, held 2 s) — the pose is untrusted, and the next `go_to` walks
   and looks until it finds where it is before it sets out (carried 3.3 m
   into another room: found in 70 s, arrived 2 cm off). A duck lost after
   a fall is found the same way: the `go_to` is no longer refused.
