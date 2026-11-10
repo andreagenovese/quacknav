@@ -2,6 +2,17 @@
  "generated_by": "scripts/knobs.py",
  "knobs": [
   {
+   "name": "MAPLOC_CARRIED_AFTER",
+   "group": "MAPLOC",
+   "read_as": "number (default 6)",
+   "type": "number",
+   "default": "6",
+   "where": [
+    "maploc/src/mapper.rs"
+   ],
+   "doc": "`MAPLOC_CARRIED_AFTER=n`: the windows that refute the carried pose before the search widens (see `MapperConfig::carried_after_windows`); 0 keeps the search near and the give-up, as before 2026-11-09."
+  },
+  {
    "name": "MAPLOC_CONFIRM_TRAVEL",
    "group": "MAPLOC",
    "read_as": "number (default 0.5)",
@@ -112,6 +123,28 @@
     "maploc/src/mapper.rs"
    ],
    "doc": "`MAPLOC_MULTI_HYP=0` turns the multi-hypothesis boot search off, for measuring against the single-best agreement it replaces."
+  },
+  {
+   "name": "MAPLOC_PICKED_UP",
+   "group": "MAPLOC",
+   "read_as": "on unless 0",
+   "type": "switch",
+   "default": "1",
+   "where": [
+    "quack-nav/src/mapd/feed.rs"
+   ],
+   "doc": "`MAPLOC_PICKED_UP=0`: a pick-up is not a sit (see the module doc)."
+  },
+  {
+   "name": "MAPLOC_PICKED_UP_DOWN",
+   "group": "MAPLOC",
+   "read_as": "on unless 0",
+   "type": "switch",
+   "default": "1",
+   "where": [
+    "maploc/src/mapper.rs"
+   ],
+   "doc": "`MAPLOC_PICKED_UP_DOWN=0`: a pick-up while down from a fall is believed outright, as one standing (see `Mapper::set_held`)."
   },
   {
    "name": "MAPLOC_REST",
@@ -402,6 +435,17 @@
    "doc": ""
   },
   {
+   "name": "QK_GO_TO_LOST",
+   "group": "QK",
+   "read_as": "on unless 0",
+   "type": "switch",
+   "default": "1",
+   "where": [
+    "quack-nav/src/tools.rs"
+   ],
+   "doc": "`QK_GO_TO_LOST=0`: a `go_to` on a lost (not untrusted) duck is refused, as before 2026-11-09; by default it finds the pose first."
+  },
+  {
    "name": "QK_GUARD_ARC_FULL",
    "group": "QK",
    "read_as": "on only if 1",
@@ -479,6 +523,17 @@
     "quack-nav/src/explore/journey.rs"
    ],
    "doc": "`QK_NO_GUARDS`: every leg, kick and pulse goes through `robot.move`, blind, and the route check is off — the planner alone (the frozen map, the books, the margins) brings the duck home."
+  },
+  {
+   "name": "QK_POCKET_ESCAPE",
+   "group": "QK",
+   "read_as": "on unless 0",
+   "type": "switch",
+   "default": "1",
+   "where": [
+    "quack-nav/src/homecoming/search.rs"
+   ],
+   "doc": "`QK_POCKET_ESCAPE=0`: as before 2026-11-09 — a boxed turn picks the freer side at every look, and a fresh boxed look after a turn toward room is believed over the look that saw the room."
   },
   {
    "name": "QK_PULL_DEVIATION_M",

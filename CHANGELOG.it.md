@@ -15,6 +15,38 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Modificato
 
+- **Dopo una caduta o un trasporto la papera si ritrova.** Sul gemello
+  (BAM + gioco meccanico, il rilevatore di presa di robotd acceso, una
+  mano che porta la papera) un bench nuovo,
+  `scripts/twin/houses/findme_bench.py`, porta la papera, la spinge a
+  terra, o la spinge e la porta mentre è a terra, poi la manda alla meta
+  dopo. `main` dopo un trasporto teneva quasi sempre una posa sbagliata,
+  e dopo una caduta seguita da un trasporto si ritrovava di rado. Cinque
+  modifiche: portata via, sei finestre che smentiscono la posa portata
+  allargano la ricerca a tutta la mappa invece di riprendere quella posa
+  (`MAPLOC_CARRIED_AFTER`); il `picked_up` di robotd vale come un
+  trasporto, quindi la posa non è più fidata e il prossimo lavoro la
+  ritrova prima (`MAPLOC_PICKED_UP`); dopo una caduta la ricerca vicina ha
+  quattro volte quelle finestre, e un `go_to` su una papera persa ritrova
+  prima la posa invece di essere rifiutato (`QK_GO_TO_LOST`); la ricerca
+  che cammina e guarda non cambia più lato a ogni sguardo in una sacca
+  tra i mobili (`QK_POCKET_ESCAPE`); e a terra dopo una caduta una presa
+  in mano resta in dubbio finché non dura 2 s, perché il tentativo di
+  rialzarsi della policy ne sembra una per circa un secondo
+  (`MAPLOC_PICKED_UP_DOWN`). Ogni manopola a 0 rimette la regola vecchia.
+  A/B appaiato contro lo stesso albero con le manopole spente, due case,
+  sei prove per tipo, 450 s ciascuna: cadute 4/12 → 10/12 ritrovate, pose
+  sbagliate 3 → 0 (su tre A/B 21/36 → 30/36, sbagliate 3 → 0); portata
+  mentre è a terra 0/12 → 4/12, sbagliate 1 → 1, non accorte 3 → 0 (su tre
+  A/B 1/36 → 12/36, sbagliate 7 → 4); portata in piedi (un A/B) 1/12 →
+  4/12, sbagliate 7 → 0, non accorte 4 → 0. Bench e scudi a 600 semi
+  uguali a `main` episodio per episodio (non fanno girare il Mapper di
+  maploc). Resta: la ricerca su tutta la
+  mappa dopo un trasporto è lenta (8 trasporti su 12 non ritrovati in
+  450 s); a terra, un tentativo di rialzarsi che dura più di 2 s viene
+  preso per una mano (2 cadute su 12); un `go_to` chiesto mentre la papera
+  è ancora a terra viene rifiutato, e il bench non lo richiede.
+
 - **Dopo una caduta la papera ritrova dove si trova, e una papera persa
   tiene la sua mappa.** Su un gemello con gli attuatori realistici di
   Pollen e il gioco negli ingranaggi (BAM), una caduta è finita due volte

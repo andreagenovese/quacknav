@@ -35,6 +35,7 @@ Every knob needs that restart: the environment is read at the process's start.
 | `QK_GAIT_LEDGER` | on unless 0 | `quack-nav/src/ledger.rs` | `QK_GAIT_LEDGER=0`: the walk's numbers stay the coded priors — nothing learned from the duck's own legs, nothing written beside the map. |
 | `QK_GAP_LANE_HALF_M` | number (default 0.115) | `quack-nav/src/explore/mod.rs` |  |
 | `QK_GAP_MAX_M` | number (default 0.6) | `quack-nav/src/explore/mod.rs` |  |
+| `QK_GO_TO_LOST` | on unless 0 | `quack-nav/src/tools.rs` | `QK_GO_TO_LOST=0`: a `go_to` on a lost (not untrusted) duck is refused, as before 2026-11-09; by default it finds the pose first. |
 | `QK_GUARD_ARC_FULL` | on only if 1 | `quack-duck/src/body.rs` | Turning costs little forward speed: 0.110 m/s at vyaw 0.7 against 0.121 straight, measured on the human drive (2026-09-07). |
 | `QK_INFLATE_M` | number (default 0.12) | `quack-nav/src/frontier.rs` | The inflation the planner runs with: 0.12, a little over the body's half-width, 0.10 (`QK_INFLATE_M`). |
 | `QK_LANE_HALF_M` | number (default 0.16) | `quack-nav/src/explore/mod.rs` |  |
@@ -47,6 +48,7 @@ Every knob needs that restart: the environment is read at the process's start.
 | `QK_ORACLE_HOLES` | a value | `quack-nav/src/oracle.rs` | `QK_ORACLE_HOLES=<truth.json>`: its `holes` (`[x0, x1, y0, y1]`, metres) drawn into that map as wall — the planner keeps off them. |
 | `QK_ORACLE_POSE` | a value | `quack-nav/src/oracle.rs` | `QK_ORACLE_POSE=<host:port>`: the pose the navigation reads is the simulator's trunk, read as `poseerr.py` reads it, at 20 Hz. |
 | `QK_ORACLE_WALLS` | a value | `quack-nav/src/oracle.rs` | `QK_ORACLE_WALLS=<walls.toml>`: the map the navigation plans on is drawn from the truth's wall segments (centimetres, the MuJoCo world frame, as `scripts/twin/houses/*.toml` hold them): every cell inside the house free, … |
+| `QK_POCKET_ESCAPE` | on unless 0 | `quack-nav/src/homecoming/search.rs` | `QK_POCKET_ESCAPE=0`: as before 2026-11-09 — a boxed turn picks the freer side at every look, and a fresh boxed look after a turn toward room is believed over the look that saw the room. |
 | `QK_PULL_DEVIATION_M` | number (default 0.20) | `quack-nav/src/frontier.rs` | A straight run may stray this far from the Dijkstra route it replaces: the staircase is smoothed, the route is not redrawn — a diagonal across the room cut corners and brushed walls Dijkstra had kept away from (the user'… |
 | `QK_PULL_ROUTE` | on unless 0 | `quack-nav/src/frontier.rs` | `QK_PULL_ROUTE=0` leaves Dijkstra's staircase as it is. |
 | `QK_REACH_TO_FLOOR` | on unless 0 | `quack-nav/src/explore/books.rs` | `QK_REACH_TO_FLOOR=0`: the reach behind a rim ignores where the floor comes back (see `record_drops`). |
@@ -64,6 +66,7 @@ Every knob needs that restart: the environment is read at the process's start.
 | `QK_TURN_IN_PLACE` | on unless 0 | `quack-nav/src/explore/gait.rs` | `QK_TURN_IN_PLACE=0` turns the old way (kick, then yaw) everywhere. |
 | `QK_TURN_STOP` | 1 on, 0 off, else the caller's default | `quack-nav/src/explore/gait.rs` | `QK_TURN_STOP=0`: no stop sent at a turn in place's end, as before — the last command left in robotd, which holds it to its deadman (500 ms): at set v8's 65°/s, 33° of turn more. |
 | `QK_WALL_MARGIN_M` | number (default 0.18) | `quack-nav/src/tools.rs` |  |
+| `MAPLOC_CARRIED_AFTER` | number (default 6) | `maploc/src/mapper.rs` | `MAPLOC_CARRIED_AFTER=n`: the windows that refute the carried pose before the search widens (see `MapperConfig::carried_after_windows`); 0 keeps the search near and the give-up, as before 2026-11-09. |
 | `MAPLOC_CONFIRM_TRAVEL` | number (default 0.5) | `maploc/src/mapper.rs` | At boot, how far the body must have moved between the window that nominated a candidate and the one that confirms it. |
 | `MAPLOC_CONTINUOUS` | set = on (any value) | `maploc/examples/replay.rs` |  |
 | `MAPLOC_FROZEN_RESIDUAL_BAR` | number (default 0.06) | `maploc/src/mapper.rs` | `MAPLOC_FROZEN_RESIDUAL_BAR=<metres>`: a frozen map's bar on the tracking's correction (0.06; 0.02 is the bar of a map still inked, as before 2026-11-06). |
@@ -76,6 +79,8 @@ Every knob needs that restart: the environment is read at the process's start.
 | `MAPLOC_LOOP_DEBUG` | on only if 1 | `maploc/src/loop_closer.rs` | `MAPLOC_LOOP_DEBUG=1`: one line per accepted closure on stderr — the submaps, the correction it asks for, the match's residual and beams, the witnesses' spread — to tell the closures that turn a map wrong. |
 | `MAPLOC_MIRROR_COLS` | on only if 1 | `maploc/examples/evaluate.rs` | MAPLOC_MIRROR_COLS=1 replays every frame with its columns reversed. |
 | `MAPLOC_MULTI_HYP` | on unless 0 | `maploc/src/mapper.rs` | `MAPLOC_MULTI_HYP=0` turns the multi-hypothesis boot search off, for measuring against the single-best agreement it replaces. |
+| `MAPLOC_PICKED_UP` | on unless 0 | `quack-nav/src/mapd/feed.rs` | `MAPLOC_PICKED_UP=0`: a pick-up is not a sit (see the module doc). |
+| `MAPLOC_PICKED_UP_DOWN` | on unless 0 | `maploc/src/mapper.rs` | `MAPLOC_PICKED_UP_DOWN=0`: a pick-up while down from a fall is believed outright, as one standing (see `Mapper::set_held`). |
 | `MAPLOC_RAW` | set = on (any value) | `maploc/examples/replay.rs` |  |
 | `MAPLOC_REST` | on unless 0 | `maploc/src/mapper.rs` | `MAPLOC_REST=0`: no stand ever rests, as before the rest (2026-10-01). |
 | `MAPLOC_SHADOW` | on unless 0 | `maploc/src/mapper.rs` | `MAPLOC_SHADOW=0`: no shadow map at boot. |
@@ -101,6 +106,10 @@ Every knob needs that restart: the environment is read at the process's start.
 | `CORR_LOG` | a path, or a value | `maploc/examples/trajectory.rs` | `CORR_LOG=<file>`: every tracking correction a window made, against the truth — which of them moved the pose toward it and which away (casa_arredata, 2026-09-29: the windows pulled the pose 3.5-7 cm north one after the o… |
 | `CUT_ON_CORR` | number (default mapper_cfg.tracking.cut_on_correction_m) | `maploc/examples/evaluate.rs` |  |
 | `DEGEN_LOG` | a path, or a value | `maploc/examples/trajectory.rs` | `DEGEN_LOG=<file>`: every relocalization the search confirmed or the valley test refused, with the pose's error against the truth and the scan's conditioning there — the valley test and the Hessian's eigenvalues, side by… |
+| `FINDME` | a value (script) | `scripts/twin/houses/findme_bench.py` |  |
+| `FINDME_CARRY` | a value (script) | `scripts/twin/houses/findme_bench.py` |  |
+| `FINDME_N` | a value (script) | `scripts/twin/houses/findme_bench.py` |  |
+| `FINDME_SHOVE` | a value (script) | `scripts/twin/houses/findme_bench.py` |  |
 | `FROZEN` | on only if 1 | `maploc/examples/trajectory.rs` | `FROZEN=1`: the map frozen, as quack-navd's rounds run on a house already mapped — nothing inks while the pose tracks. |
 | `HUBER` | number (default slam_cfg.optimizer.huber_delta) | `maploc/examples/evaluate.rs` |  |
 | `LOOP_CAP` | number (default slam_cfg.loops.max_correction_cap_m) | `maploc/examples/evaluate.rs`, `maploc/examples/trajectory.rs` |  |
@@ -133,9 +142,9 @@ Every knob needs that restart: the environment is read at the process's start.
 | `OUT_SESSION` | a path, or a value | `maploc/examples/evaluate.rs` | `OUT_SESSION=<file>`: the map this replay built, saved the way the robot saves one — so a bench run and a live run are scored by the same tools (quacksat's mapquality.py, dump_frame). |
 | `POLICY_DIR` | a value (script) | `scripts/twin/houses/run_house.py` |  |
 | `PORT` | a value (script) | `scripts/rl/twin_ab.py` |  |
-| `POSEERR_DT` | a value (script) | `scripts/twin/houses/poseerr.py` |  |
+| `POSEERR_DT` | a value (script) | `scripts/twin/houses/findme_bench.py`, `scripts/twin/houses/poseerr.py` |  |
 | `PROPTEST_CASES` | number (default 256) | `quack-nav/tests/route_properties.rs` | `PROPTEST_CASES=5000` for a long hunt. |
-| `QN_REPO` | a value (script) | `scripts/twin/houses/run_house.py` |  |
+| `QN_REPO` | a value (script) | `scripts/twin/houses/findme_bench.py`, `scripts/twin/houses/run_house.py` |  |
 | `QUACK_NAV_SOCKET` | a value (script) | `scripts/twin/viewer/body_with_map.py` |  |
 | `REJECT` | number (default slam_cfg.optimizer.reject_sigmas) | `maploc/examples/evaluate.rs` |  |
 | `REJECT_MAX` | number (default slam_cfg.optimizer.reject_max as f32) | `maploc/examples/evaluate.rs` |  |

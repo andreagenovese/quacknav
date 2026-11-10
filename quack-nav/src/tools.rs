@@ -1907,10 +1907,10 @@ fn library_request(path: &str, method: &str, params: Option<Value>) -> anyhow::R
     }
 }
 
-/// `QN_GO_TO_LOST=0`: a `go_to` on a lost (not untrusted) duck is refused,
+/// `QK_GO_TO_LOST=0`: a `go_to` on a lost (not untrusted) duck is refused,
 /// as before 2026-11-09; by default it finds the pose first.
 fn relocate_when_lost() -> bool {
-    std::env::var("QN_GO_TO_LOST").map_or(true, |v| v != "0")
+    std::env::var("QK_GO_TO_LOST").map_or(true, |v| v != "0")
 }
 
 /// Walk to a known place, or to a point on the map: `robot.go_to`.

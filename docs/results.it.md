@@ -1460,6 +1460,55 @@ casa_arredata, daemon-v0.17.6 + set v8, due gemelli alla volta
   legge lo stato done prima dell'osservatore degli eventi, che guarda
   cinque volte al secondo).
 
+- **Dopo una caduta o un trasporto la papera si ritrova** (ramo
+  `findme`, 2026-11-08/10). `scripts/twin/houses/findme_bench.py` su una
+  mappa congelata, BAM + gioco meccanico, il rilevatore di presa di
+  robotd acceso: a ognuna delle sei mete di una casa la papera viene
+  portata da una mano (`carry`), spinta a terra (`fall`), o spinta e
+  portata mentre è a terra (`fallcarry`), poi mandata alla meta dopo; il
+  verdetto è sulla prima posa di cui si fida dopo aver smesso di fidarsi
+  della vecchia (giusta: entro 0,30 m e 20°). Cosa faceva `main`: dopo una
+  perdita del watchdog la ricerca vicina rifiutava la posa giusta e
+  ripiegava su quella portata, a 4,8 m; in casa_ingombra una posa
+  sbagliata si accorda con le finestre quasi quanto quella giusta
+  (residuo 0,10–0,20), quindi la maggior parte dei trasporti passava
+  inosservata; il `picked_up` di robotd era ignorato; e a una papera
+  persa il `go_to` veniva rifiutato, quindi dopo una caduta nessuno la
+  faceva camminare. Il ramo allarga a tutta la mappa una posa portata
+  smentita per sei finestre (24 dopo una caduta), legge una presa in mano
+  come un trasporto, lascia che un `go_to` ritrovi prima una papera
+  persa, tiene il lato della ricerca che cammina e guarda in una sacca
+  tra i mobili (in casa_ingombra cambiava a ogni sguardo), e mette in
+  dubbio una presa mentre la papera è a terra dopo una caduta finché non
+  dura 2 s (robotd ridà la papera caduta alla policy, il cui tentativo di
+  rialzarsi sembra una presa per circa un secondo, p 0,80–0,81 contro
+  0,91–0,99 per una mano). A/B appaiati, i due bracci sullo stesso albero,
+  la base con le manopole spente (`rl-runs/twin-work/FM/ab*`, 450 s a
+  prova):
+
+  | A/B (dev a) | tipo | base giuste / sbagliate / non accorte | dev giuste / sbagliate / non accorte |
+  |---|---|---|---|
+  | 1 (`08e6d9e`) | carry | 1/12 / 7 / 4 | 4/12 / 0 / 0 |
+  | 4 (`4d3bcb2`) | fall | 8/12 / 0 / 0 | 9/12 / 0 / 0 |
+  | 4 | fallcarry | 0/12 / 3 / 0 | 5/12 / 1 / 0 |
+  | 5 (`db29f3a`) | fall | 9/12 / 0 / 0 | 11/12 / 0 / 0 |
+  | 5 | fallcarry | 1/12 / 3 / 0 | 3/12 / 2 / 0 |
+  | 6 (`1056071`) | fall | 4/12 / 3 / 0 | 10/12 / 0 / 0 |
+  | 6 | fallcarry | 0/12 / 1 / 3 | 4/12 / 1 / 0 |
+
+  L'A/B 5 dubitava fino in fondo di una presa a terra, e i trasporti dopo
+  una caduta ci perdevano (3/12 contro 5/12): la regola dei 2 s dell'A/B 6
+  torna a credere alla mano. La base varia molto tra un A/B e l'altro
+  (cadute 4–9 su 12): contano le somme, non una riga. Il bench (60 semi da
+  200000, stick e pilota) e gli scudi (600 semi da 300000) danno gli
+  stessi 840 e 12.600 episodi di `main`, campo per campo: non fanno
+  girare il Mapper. Resta: la ricerca
+  su tutta la mappa dopo un trasporto è lenta (8 trasporti su 12 non
+  ritrovati in 450 s); un tentativo di rialzarsi che dura più di 2 s viene
+  preso per una mano (2 cadute su 12 nell'A/B 6); e il bench chiede il
+  `go_to` 10 s dopo l'evento, rifiutato se la papera è ancora a terra
+  (2–5 prove per A/B, in entrambi i bracci), senza richiederlo.
+
 ## Limiti noti
 
 - **Il sensore non vede il pavimento più vicino di 0,4–0,6 m**

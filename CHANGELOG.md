@@ -13,6 +13,34 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Changed
 
+- **After a fall or a carry the duck finds itself.** On the twin (BAM +
+  backlash, robotd's pick-up detector on, a hand carrying the duck), a
+  new bench, `scripts/twin/houses/findme_bench.py`, carries the duck,
+  shoves it over, or shoves it and carries it while down, then sends it
+  to the next goal. `main` mostly kept a wrong pose after a carry and
+  seldom recovered from a carry after a fall. Five changes:
+  carried off, the scans refuting the carried pose for six windows
+  widen the search to the whole map instead of resuming that pose
+  (`MAPLOC_CARRIED_AFTER`); robotd's `picked_up` is read as a carry, so
+  the pose is untrusted and the next job finds it first
+  (`MAPLOC_PICKED_UP`); after a fall the near search gets four times
+  those windows, and a `go_to` on a lost duck finds the pose first
+  instead of being refused (`QK_GO_TO_LOST`); the walk-and-look search
+  no longer flips side in a furniture pocket (`QK_POCKET_ESCAPE`); and
+  lying after a fall, a pick-up is doubted until held 2 s, since the
+  policy's stand-up reads as one for about a second
+  (`MAPLOC_PICKED_UP_DOWN`). Each knob at 0 restores the old rule.
+  Paired A/B against the same tree with the knobs off, two houses, six
+  trials a kind, 450 s each: falls 4/12 → 10/12 found, wrong poses
+  3 → 0 (over three A/Bs 21/36 → 30/36, wrong 3 → 0); carried while down
+  0/12 → 4/12, wrong 1 → 1, unnoticed 3 → 0 (over three A/Bs 1/36 → 12/36,
+  wrong 7 → 4); carried standing (one A/B) 1/12 → 4/12, wrong 7 → 0,
+  unnoticed 4 → 0. Bench and 600-seed shields the same as `main` to the
+  episode (they do not run maploc's Mapper). Left: the whole-map search after a carry is slow (8 of
+  12 carries not found in 450 s); lying, a stand-up held over 2 s is
+  taken for a hand (2 of 12 falls); a `go_to` asked while the duck is
+  still down is refused, and the bench does not ask again.
+
 - **After a fall the duck finds where it is, and a lost duck keeps its
   map.** On a twin with Pollen's realistic actuators and gear backlash
   (BAM), a fall twice ended in a false pose believed for minutes, once
