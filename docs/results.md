@@ -1360,6 +1360,68 @@ daemon-v0.17.6 + set v8, two twins at a time (`rl-runs/twin-work/P8/`).
   reading the done state before the events' watcher, which looks five
   times a second).
 
+- **After a fall or a carry the duck finds itself** (branch `findme`,
+  2026-11-08/10). `scripts/twin/houses/findme_bench.py` on a frozen map,
+  BAM + backlash, robotd's pick-up detector on: at each of six goals a
+  house the duck is carried by a hand (`carry`), shoved over (`fall`), or
+  shoved and carried while down (`fallcarry`), then sent to the next goal;
+  the verdict is on the first pose it trusts after it stopped trusting
+  the old one (right: within 0.30 m and 20°). What `main` did: after a
+  watchdog loss the near search refused the right pose and gave up on
+  the carried one, 4.8 m off; in casa_ingombra a wrong pose agrees with
+  the windows about as well as the right one (residual 0.10–0.20), so most
+  carries went unnoticed; robotd's `picked_up` was ignored; and a lost
+  duck had its `go_to` refused, so after a fall nobody walked it. The
+  branch widens a refuted carried pose to the whole map after six
+  windows (24 after a fall), reads a pick-up as a carry, lets a `go_to`
+  find a lost duck first, keeps the walk-and-look search's side in a
+  furniture pocket (it flipped at each look in casa_ingombra), and doubts
+  a pick-up while the duck lies after a fall until it is held 2 s
+  (robotd hands the fallen duck back to the policy, whose stand-up reads
+  as held for about a second, p 0.80–0.81 against 0.91–0.99 for a hand).
+  Paired A/Bs, both arms the same tree, the base with the knobs off
+  (`rl-runs/twin-work/FM/ab*`, 450 s a trial):
+
+  | A/B (dev at) | kind | base right / wrong / unnoticed | dev right / wrong / unnoticed |
+  |---|---|---|---|
+  | 1 (`08e6d9e`) | carry | 1/12 / 7 / 4 | 4/12 / 0 / 0 |
+  | 4 (`4d3bcb2`) | fall | 8/12 / 0 / 0 | 9/12 / 0 / 0 |
+  | 4 | fallcarry | 0/12 / 3 / 0 | 5/12 / 1 / 0 |
+  | 5 (`db29f3a`) | fall | 9/12 / 0 / 0 | 11/12 / 0 / 0 |
+  | 5 | fallcarry | 1/12 / 3 / 0 | 3/12 / 2 / 0 |
+  | 6 (`1056071`) | fall | 4/12 / 3 / 0 | 10/12 / 0 / 0 |
+  | 6 | fallcarry | 0/12 / 1 / 3 | 4/12 / 1 / 0 |
+  | 7 (`20ef1e1`) | carry | 6/12 / 1 / 5 | 10/12 / 0 / 0 |
+  | 7 | fall | 7/12 / 1 / 0 | 9/12 / 1 / 0 |
+  | 7 | fallcarry | 2/12 / 2 / 0 | 8/12 / 0 / 0 |
+
+  A/B 5 doubted a pick-up while down to the end, and the carries from a
+  fall lost to it (3/12 against 5/12): the 2 s rule of A/B 6 believes the
+  hand again. The base varies a lot between A/Bs (falls 4–9 of 12): read
+  the sums, not one row. The bench (60 seeds from 200000, stick and
+  pilot) and the shields (600 seeds from 300000) give the same 840 and
+  12,600 episodes as `main`, field for field: they do not run the Mapper.
+  Left: the whole-map search after a carry is
+  slow (8 of 12 carries not found in 450 s); a stand-up held over 2 s is
+  taken for a hand (2 of 12 falls in A/B 6); and the bench asks its
+  `go_to` 10 s after the event, refused while the duck is still down
+  (2–5 trials an A/B, both arms), without asking again.
+
+  Exploring with the detector on (`FM/ex`, two houses, three 30-minute
+  sessions, against `main` 9a56a6c) the branch at `1056071` lost itself in
+  4 of 4 later sessions with no fall: robotd's detector fires for about a
+  second while the duck walks (0.84 s at p 0.94 in `main`'s own arm), the
+  branch believed it, and the feed passed held as a sit, which armed the
+  suspicion. `20ef1e1` doubts a pick-up on its feet too until held 2 s
+  (`MAPLOC_PICKED_UP_HELD_S`; a hand holds 3 s at p 0.99), takes no still
+  window while held, and no longer reads held as a sit: in `FM/ex2` one
+  pick-up was doubted, none believed, and A/B 7 (above) is the branch's
+  best. In both exploration A/Bs the branch's first session ended early
+  ('stuck', or 'mapped' at 39 %) in 3 of 4 houses against 0 of 4 for
+  `main`, with no loss, pick-up or fall before: with the slots swapped
+  (`FM/ex3a`, `ex3b`) the branch ended 0 of 4 early and `main` 2 of 4 —
+  it follows the twin's second slot, not the branch.
+
 ## Known limits
 
 - **The sensor cannot see the floor nearer than 0.4–0.6 m** (2026-10-27):

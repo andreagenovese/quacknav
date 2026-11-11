@@ -333,6 +333,10 @@ fn main() {
                 Note::SuspectAfterSit => "suspect_sit",
                 Note::SuspectAfterFall => "suspect_fall",
                 Note::SatAfterFall => "sat_after_fall",
+                Note::SearchWidened => "search_widened",
+                Note::PickedUp => "picked_up",
+                Note::PickedUpWhileDown => "picked_up_down",
+                Note::PickedUpDoubted => "picked_up_doubted",
                 Note::ResumedUnverified { .. } => "resumed_unverified",
                 Note::RelocalizeCandidate { .. } => "reloc_candidate",
                 Note::LostTracking { .. } => "lost",
@@ -497,6 +501,18 @@ fn main() {
                 }
                 Note::SatAfterFall => {
                     println!("[{t:7.1}s] SAT after the fall — global search");
+                }
+                Note::PickedUp => {
+                    println!("[{t:7.1}s] PICKED UP — searching as at a boot");
+                }
+                Note::PickedUpWhileDown => {
+                    println!("[{t:7.1}s] picked up while down from a fall — doubted; the near search goes on");
+                }
+                Note::PickedUpDoubted => {
+                    println!("[{t:7.1}s] picked up on its feet — doubted until held 2 s");
+                }
+                Note::SearchWidened => {
+                    println!("[{t:7.1}s] the carried pose refuted window after window — search widened to the whole map");
                 }
                 Note::ResumedUnverified { pose } => {
                     println!(

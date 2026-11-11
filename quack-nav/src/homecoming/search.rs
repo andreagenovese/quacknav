@@ -59,6 +59,10 @@ pub(super) fn confirmed_within_or(robot: &Arc<Mutex<Robot>>, seconds: f64, stop:
     let mut boxed_at: Option<(f64, f64)> = None;
     // Turns on the spot in a row that moved nothing (the same look).
     let mut turns_stuck = 0u32;
+    // The room seen along the bearing the last turn on the spot faced:
+    // the look from there is trusted over a fresh one that calls it boxed
+    // (see the boxed arm).
+    let mut turned_toward: Option<f64> = None;
     // The first step is a look: a stand alone, so the head sweeps and the
     // guard has frames along the whole cone before anything walks.
     let mut params = json!({"vx": 0.0, "vyaw": 0.0, "walk_s": 0.0, "stop_s": STAND_S});
@@ -160,6 +164,7 @@ pub(super) fn confirmed_within_or(robot: &Arc<Mutex<Robot>>, seconds: f64, stop:
                 // the right beyond the walking turn's reach, or without
                 // room for its arc, is a turn on the spot first.
                 let leg_s = ((free - 0.25) / 0.12).clamp(1.0, LEG_S);
+                turned_toward = None;
                 if bearing.abs() < 0.25 {
                     turns_stuck = 0;
                     params = json!({"vx": 0.3, "vyaw": 0.0, "walk_s": leg_s, "stop_s": STAND_S});
@@ -194,6 +199,7 @@ pub(super) fn confirmed_within_or(robot: &Arc<Mutex<Robot>>, seconds: f64, stop:
                         _ => 1.0,
                     };
                     turns_stuck = if turned < 0.1 { turns_stuck + 1 } else { 0 };
+                    turned_toward = (turned >= 0.1).then_some(free);
                     if turns_stuck >= 3 && drop_ahead {
                         tracing::info!(turns_stuck, "homecoming: the turn beside a drop ahead moved nothing three times; a step back from it, blind");
                         let _ = blind_move(robot, &json!({"vx": -0.3, "vyaw": 0.5, "duration_s": 1.5}));
@@ -218,6 +224,27 @@ pub(super) fn confirmed_within_or(robot: &Arc<Mutex<Robot>>, seconds: f64, stop:
                 params = json!({"vx": 0.0, "vyaw": 0.0, "walk_s": 0.0, "stop_s": STAND_S});
                 what = "look";
             }
+            Some(Look { left, right, ahead, .. }) if turned_toward.is_some_and(|f| f >= LEG_MIN_FREE_M) && ahead >= LEG_TRUST_MIN_M && pocket_escape() => {
+                // Turned on the spot toward room the last look saw, and
+                // the fresh look from the new heading calls it boxed: the
+                // furniture beside the body hides the gap once the beak
+                // faces it (casa_ingombra, 2026-11-09: "1.02 m free at
+                // 46°", a turn of 47°, then "ahead 0.15" — eleven boxed
+                // looks, the search never left the pocket). The leg goes
+                // where the last look saw room, straight, short; the
+                // step's own guard still refuses it if something is there.
+                let seen = turned_toward.take().unwrap_or(LEG_MIN_FREE_M);
+                tracing::info!(
+                    seen_m = format!("{seen:.2}"),
+                    ahead_m = format!("{ahead:.2}"),
+                    left_m = format!("{left:.2}"),
+                    right_m = format!("{right:.2}"),
+                    "homecoming: the fresh look is boxed in where the last one saw room; that leg it is"
+                );
+                let leg_s = ((seen - 0.25) / 0.12).clamp(1.0, LEG_S);
+                params = json!({"vx": 0.3, "vyaw": 0.0, "walk_s": leg_s, "stop_s": STAND_S});
+                what = "leg seen";
+            }
             Some(Look { left, right, ahead, .. }) => {
                 // Boxed in: a turn on the spot toward the freer side —
                 // about a right angle, so the next look sees new floor —
@@ -225,7 +252,15 @@ pub(super) fn confirmed_within_or(robot: &Arc<Mutex<Robot>>, seconds: f64, stop:
                 // the turn did not free it (wedged on a door post,
                 // look7): a step back, blind, first — onto the trail only.
                 boxed += 1;
-                turn = if left > right { 0.7 } else { -0.7 };
+                turned_toward = None;
+                // The side is chosen once per boxed run, then kept: picked
+                // afresh each look, the freer side flipped with every turn
+                // and the body swung left, right, left, looking at the same
+                // two walls (casa_ingombra, 2026-11-09: eleven boxed looks
+                // in four minutes, never a full circle).
+                if boxed == 1 || !pocket_escape() {
+                    turn = if left > right { 0.7 } else { -0.7 };
+                }
                 tracing::info!(
                     boxed,
                     left_m = format!("{left:.2}"),
@@ -267,6 +302,17 @@ pub(super) fn confirmed_within_or(robot: &Arc<Mutex<Robot>>, seconds: f64, stop:
         }
     }
     false
+}
+
+/// The least room straight ahead for the leg toward room the last look
+/// saw: below it the beak is at the furniture, not beside it.
+const LEG_TRUST_MIN_M: f64 = 0.12;
+
+/// `QK_POCKET_ESCAPE=0`: as before 2026-11-09 — a boxed turn picks the
+/// freer side at every look, and a fresh boxed look after a turn toward
+/// room is believed over the look that saw the room.
+fn pocket_escape() -> bool {
+    std::env::var("QK_POCKET_ESCAPE").map_or(true, |v| v != "0")
 }
 
 /// The stand that closes a still window: the mapper's own floor (four

@@ -39,7 +39,11 @@
 #                 and saves it under its name at the end of the session
 #   EXPLORE_S     the budget of the exploring the homecoming starts (720)
 #   BOOT_SEARCH_S how long the homecoming stands to confirm before it searches (240)
+#   NAVD_BIN      the quack-navd to run (default: this tree's target/release),
+#                 a frozen copy so a rebuild cannot reach a running A/B
 #   WIPE          on (default: a fresh map each boot) or off
+#   PICKUP        on (default, as on the duck: robotd's pick-up detector, the
+#                 source tree's model) or off
 #   SCENE         the MuJoCo scene (default: the apartment). Other scenes may
 #                 include another robot model (scene_walk.xml does, and the duck
 #                 tips over on it); keep robot_allcollisions.xml
@@ -57,7 +61,7 @@ detach() { /usr/bin/python3 $HERE/detach.py "$@"; }
 navd() {
   (
     if [ -f $STATE/knobs.env ]; then set -a; . $STATE/knobs.env; set +a; fi
-    detach $STATE/navd.log $REPO/target/release/quack-navd $STATE/quack-nav.toml
+    detach $STATE/navd.log ${NAVD_BIN:-$REPO/target/release/quack-navd} $STATE/quack-nav.toml
   ) > $STATE/navd.pid
   for i in $(seq 1 40); do [ -S $STATE/nav.sock ] && break; sleep 0.25; done
 }
@@ -105,6 +109,13 @@ accept = false
 [audio]
 enabled = false
 TOML
+  # Pollen's pick-up detector, as on the duck (on by default there): the
+  # release's model from the source tree, for the twin has no release dir.
+  # PICKUP=off leaves it out (robotd then warns it is unavailable).
+  PICKUP_MODEL=$MICRODUCK/duck-control/models/pickup_detector.onnx
+  if [ "${PICKUP:-on}" != off ] && [ -f $PICKUP_MODEL ]; then
+    printf '\n[pickup]\nmodel = "%s"\n' $PICKUP_MODEL >> $STATE/robotd.toml
+  fi
   cat > $STATE/quack-nav.toml <<TOML
 socket = "$STATE/nav.sock"
 robotd_socket = "$SOCK"
