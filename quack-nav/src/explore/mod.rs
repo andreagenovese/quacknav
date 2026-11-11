@@ -2031,7 +2031,7 @@ impl Job {
                 .collect();
             // In a pocket the usual margin says has no way out, plan with
             // the body's own half-width instead.
-            let inflate = if self.stuck >= 2 { SQUEEZE_INFLATE_M } else { inflate_m() };
+            let inflate = if self.stuck >= navigate::POCKET_STUCK { SQUEEZE_INFLATE_M } else { inflate_m() };
             self.strike_drops_under((x, y));
             let walls = self.planner_walls();
             self.walked((x, y), (x, y));

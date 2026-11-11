@@ -28,6 +28,18 @@ pub(super) const FRONTIER_OFF_DROP_M: f64 = 0.20;
 /// the way there (see `Job::travel`).
 pub(super) const FRONTIER_HOLE_SEEN_M: f64 = 0.6;
 
+/// The job's `stuck` from which the exploration is in a pocket: it picks
+/// frontiers at the body's half-width (see the frontier loop), and plans
+/// its way to them the same.
+pub(super) const POCKET_STUCK: u32 = 2;
+
+/// `QK_POCKET_SQUEEZE=0`: as before 2026-11-11 — the exploration plans its
+/// way at the usual margin even in a pocket, where it picks frontiers at
+/// the body's half-width.
+pub(super) fn pocket_squeeze() -> bool {
+    switch("QK_POCKET_SQUEEZE").unwrap_or(true)
+}
+
 /// How long the way to a frontier `route_m` away may take: a minute, and
 /// half a minute a metre (the stick makes 0.1 m/s with its stands), five
 /// minutes at most.
@@ -234,11 +246,25 @@ impl Job {
                     // every step. casa_ingombra's 0.49 m passage beside the
                     // stairwell, its rim booked, closed at the 0.20 m drop
                     // margin of a live map (MuJoCo twin, 2026-10-06).
-                    // Journeys only: the exploration keeps its margins beside
-                    // rims it is still drawing.
+                    // The exploration keeps its margins beside rims it is
+                    // still drawing: in a pocket (the job's `stuck` ≥ 2,
+                    // where it picks frontiers at the body's half-width) it
+                    // plans at that half-width too, the drops at their usual
+                    // margin. Before, the frontier it picked squeezing was
+                    // planned with the usual margin, "no way", refused, one
+                    // after another, and the run ended "stuck" — casa_ingombra's
+                    // study, a basket beside its 0.7 m door leaving 0.4 m,
+                    // and 6 more first sessions on the twin (2026-11-08/10).
                     let planned = path_to_both(&grid, x, y, goal, &walls, inflate_m(), &lanes).or_else(|| {
                         if !journey {
-                            return None;
+                            if self.stuck < POCKET_STUCK || !pocket_squeeze() {
+                                return None;
+                            }
+                            let found = path_to_both(&grid, x, y, goal, &walls, SQUEEZE_INFLATE_M, &lanes);
+                            if found.is_some() {
+                                tracing::info!(at = ?(x, y), "map explore: in a pocket; through at the body's half-width, the drops at their margin");
+                            }
+                            return found;
                         }
                         let tight = self.planner_walls_tight();
                         let found = path_to_both(&grid, x, y, goal, &tight, SQUEEZE_INFLATE_M, &lanes);

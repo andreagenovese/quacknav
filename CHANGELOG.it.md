@@ -15,6 +15,24 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Modificato
 
+- **In esplorazione, una papera in una tasca pianifica l'uscita a mezzo
+  corpo.** Dopo due tentativi falliti l'esploratore sceglie le frontiere a
+  mezzo corpo (0,10 m), ma pianificava la strada per arrivarci con il
+  margine solito (0,12): ogni frontiera tornava "no way on the map", veniva
+  rifiutata, e la corsa finiva "stuck" dopo pochi minuti — tutte le 7 prime
+  sessioni chiuse presto sul gemello dall'8 novembre 2026 (lo studio di
+  casa_ingombra: un cesto accanto alla porta di 0,7 m lascia 0,4 m). In una
+  tasca ora anche la strada è pianificata a mezzo corpo, i dislivelli con il
+  loro margine (`QK_POCKET_SQUEEZE`, 0 = come prima). A/B di esplorazione
+  contro `main`, BAM, casa_ingombra e casa_arredata, prime sessioni da 30
+  minuti, tre giri: `main` chiuso presto 1 volta su 6 (allo stesso modo), il
+  ramo 0 su 6 (una tasca lasciata con dodici passi stretti, 58 % a fine
+  tempo); bench e scudi a 600 semi uguali a `main` episodio per episodio.
+  Gli script degli A/B (`explore_ab.sh`, `final_ab.sh`) ora danno a ogni
+  braccio ciascun gemello a turno, casa per casa (`SLOTS=fixed`,
+  `SLOT_OFFSET`), e `final_ab.sh` tiene il visualizzatore uguale nei due
+  bracci.
+
 - **Dopo una caduta o un trasporto la papera si ritrova.** Sul gemello
   (BAM + gioco meccanico, il rilevatore di presa di robotd acceso, una
   mano che porta la papera) un bench nuovo,

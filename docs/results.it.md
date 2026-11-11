@@ -1528,6 +1528,32 @@ casa_arredata, daemon-v0.17.6 + set v8, due gemelli alla volta
   posti scambiati (`FM/ex3a`, `ex3b`) il ramo 0 su 4 e `main` 2 su 4 —
   segue il secondo posto del gemello, non il ramo.
 
+- **In esplorazione, fuori da una tasca a mezzo corpo** (ramo `unseal`,
+  2026-11-11). Le prime sessioni sul gemello si chiudevano presto ("stuck:
+  frontiers remain but none is reachable", o "mapped" al 39 %) in 7
+  esplorazioni dall'8 novembre 2026, tutte allo stesso modo: chiusa dentro,
+  l'esploratore (il suo `stuck` ≥ 2) sceglieva frontiere a 0,10 m,
+  `Job::travel` le pianificava a 0,12, "no way to … on the map", rifiutate,
+  19 di fila, fine. In casa_ingombra la porta di 0,7 m dello studio ha il
+  cesto accanto, restano 0,4 m. Ora anche la strada è pianificata a 0,10,
+  con `planner_walls()` (i dislivelli con il loro margine). Venivano per lo
+  più dal secondo gemello (/tmp/qb, 5 su 12 contro 0 su 12 in
+  `rl-runs/twin-work/FM/ex*`), ma lo stesso `main` sui due gemelli (`SLOT`,
+  due giri, 2026-11-11) non ne ha chiusa nessuna presto, con la copertura
+  del secondo più bassa in tutte e quattro le coppie (52/54/41/50 % contro
+  59/56/56/58 %), senza trovare niente che distingua i gemelli (robotd a
+  50 Hz su entrambi, socket e file per stato) — per questo gli script
+  degli A/B ora alternano i gemelli. A/B (`rl-runs/twin-work/US`, BAM,
+  rilevatore di presa acceso, tre giri, alternati):
+
+  | | casa_ingombra | casa_arredata |
+  |---|---|---|
+  | `main` | 50 %, mapped presto, 48 % | 51 %, 69 %, 59 % |
+  | `unseal` | 51 %, 51 %, 53 % | 54 %, 58 % (12 passi stretti), 61 % |
+
+  Bench (60 semi da 200000) e scudi (600 semi da 300000): gli stessi 840 e
+  12.600 episodi di `main`.
+
 ## Limiti noti
 
 - **Il sensore non vede il pavimento più vicino di 0,4–0,6 m**

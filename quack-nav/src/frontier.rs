@@ -939,6 +939,31 @@ mod tests {
     }
 
     #[test]
+    fn a_pocket_door_closed_at_the_usual_margin_is_open_at_the_squeeze() {
+        // A study whose door a basket narrows: a wall across a 2 m room,
+        // a gap of GAP cells (0.05 m) in it. The usual margin (0.12) closes
+        // it, the body's half-width (0.10) does not — what the exploration
+        // in a pocket plans with since 2026-11-11 (`QK_POCKET_SQUEEZE`).
+        const GAP: usize = 5;
+        let w = 40;
+        let mut rows: Vec<String> = vec!["#".repeat(w + 2)];
+        for i in 0..40 {
+            if i == 20 {
+                let left = (w - GAP) / 2;
+                rows.push(format!("#{}{}{}#", "#".repeat(left), ".".repeat(GAP), "#".repeat(w - GAP - left)));
+            } else {
+                rows.push(format!("#{}#", ".".repeat(w)));
+            }
+        }
+        rows.push("#".repeat(w + 2));
+        let refs: Vec<&str> = rows.iter().map(String::as_str).collect();
+        let g = room(&refs, 0.05);
+        let (from, to) = ((1.0, 0.5), (1.0, 1.6));
+        assert!(path_to_both(&g, from.0, from.1, to, &[], 0.12, &[]).is_none(), "the usual margin should close a {:.2} m door", GAP as f64 * 0.05);
+        assert!(path_to_both(&g, from.0, from.1, to, &[], SQUEEZE_INFLATE_M, &[]).is_some(), "the squeeze should pass it");
+    }
+
+    #[test]
     fn in_a_wide_room_the_route_keeps_away_from_the_walls() {
         // A 2 m wide, 4 m long hall (cells 0.1 m), start and goal both
         // 0.25 m from the south wall: the shortest line hugs that wall,

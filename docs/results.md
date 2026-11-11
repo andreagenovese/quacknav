@@ -1422,6 +1422,31 @@ daemon-v0.17.6 + set v8, two twins at a time (`rl-runs/twin-work/P8/`).
   (`FM/ex3a`, `ex3b`) the branch ended 0 of 4 early and `main` 2 of 4 —
   it follows the twin's second slot, not the branch.
 
+- **Exploring, out of a pocket at the body's half-width** (branch
+  `unseal`, 2026-11-11). First sessions on the twin ended early
+  ("stuck: frontiers remain but none is reachable", or "mapped" at 39 %) in
+  7 explorations since 2026-11-08, all the same way: sealed in, the
+  explorer (its `stuck` ≥ 2) picked frontiers at 0.10 m, `Job::travel`
+  planned them at 0.12, "no way to … on the map", refused, 19 in a row,
+  done. In casa_ingombra the study's 0.7 m door has the basket beside it,
+  0.4 m left. Now the way is planned at 0.10 too, with `planner_walls()`
+  (drops at their margin). They had come mostly from the second twin
+  (/tmp/qb, 5 of 12 against 0 of 12 in `rl-runs/twin-work/FM/ex*`), but the
+  same `main` on both twins (`SLOT`, two runs, 2026-11-11) ended none
+  early, the second twin's coverage lower in all four pairs (52/54/41/50 %
+  against 59/56/56/58 %), with nothing found to tell the twins apart
+  (robotd at 50 Hz on both, sockets and files per state) — so the A/B
+  scripts now alternate the twins. A/B (`rl-runs/twin-work/US`, BAM,
+  pick-up detector on, three runs, alternating):
+
+  | | casa_ingombra | casa_arredata |
+  |---|---|---|
+  | `main` | 50 %, mapped early, 48 % | 51 %, 69 %, 59 % |
+  | `unseal` | 51 %, 51 %, 53 % | 54 %, 58 % (12 squeezed legs), 61 % |
+
+  Bench (60 seeds from 200000) and shields (600 seeds from 300000): the
+  same 840 and 12,600 episodes as `main`.
+
 ## Known limits
 
 - **The sensor cannot see the floor nearer than 0.4–0.6 m** (2026-10-27):
