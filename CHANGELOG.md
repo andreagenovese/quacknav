@@ -13,6 +13,23 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Changed
 
+- **Exploring, a duck in a pocket plans its way out at the body's
+  half-width.** After two failed tries the explorer picks frontiers at the
+  body's half-width (0.10 m), but planned the way to them at the usual
+  margin (0.12): every frontier came back "no way on the map", was refused,
+  and the run ended "stuck" a few minutes in — all 7 first sessions that
+  ended early on the twin since 2026-11-08 (casa_ingombra's study: a basket
+  beside its 0.7 m door leaves 0.4 m). In a pocket the way is now planned
+  at that half-width too, the drops keeping their margin
+  (`QK_POCKET_SQUEEZE`, 0 = as before). Exploration A/B against `main`,
+  BAM, casa_ingombra and casa_arredata, first sessions of 30 minutes,
+  three runs: `main` ended early 1 of 6 (the same way), the branch 0 of 6
+  (one pocket left by twelve squeezed legs, 58 % at the budget); bench and
+  600-seed shields the same as `main` to the episode. The A/B scripts
+  (`explore_ab.sh`, `final_ab.sh`) now give each arm each twin in turn,
+  house by house (`SLOTS=fixed`, `SLOT_OFFSET`), and `final_ab.sh` runs
+  the viewer the same way in both arms.
+
 - **After a fall or a carry the duck finds itself.** On the twin (BAM +
   backlash, robotd's pick-up detector on, a hand carrying the duck), a
   new bench, `scripts/twin/houses/findme_bench.py`, carries the duck,
