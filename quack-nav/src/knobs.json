@@ -547,6 +547,18 @@
    "doc": "`QK_POCKET_ESCAPE=0`: as before 2026-11-09 — a boxed turn picks the freer side at every look, and a fresh boxed look after a turn toward room is believed over the look that saw the room."
   },
   {
+   "name": "QK_POCKET_SQUEEZE",
+   "group": "QK",
+   "read_as": "1 on, 0 off, else the caller's default",
+   "type": "switch",
+   "default": null,
+   "unset": "the caller's default",
+   "where": [
+    "quack-nav/src/explore/navigate.rs"
+   ],
+   "doc": "`QK_POCKET_SQUEEZE=0`: as before 2026-11-11 — the exploration plans its way at the usual margin even in a pocket, where it picks frontiers at the body's half-width."
+  },
+  {
    "name": "QK_PULL_DEVIATION_M",
    "group": "QK",
    "read_as": "number (default 0.20)",
