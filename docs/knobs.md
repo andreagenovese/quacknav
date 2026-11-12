@@ -84,7 +84,10 @@ Every knob needs that restart: the environment is read at the process's start.
 | `MAPLOC_PICKED_UP_DOWN` | on unless 0 | `maploc/src/mapper.rs` | `MAPLOC_PICKED_UP_DOWN=0`: a pick-up while down from a fall is believed outright, as one standing (see `Mapper::set_held`). |
 | `MAPLOC_PICKED_UP_HELD_S` | number (default 2.0) | `maploc/src/mapper.rs` | `MAPLOC_PICKED_UP_HELD_S=<s>`: how long "held" must last before a pick-up is believed ([`HELD_BELIEVED_S`]); 0 believes one on its feet at once, as before 2026-11-10. |
 | `MAPLOC_RAW` | set = on (any value) | `maploc/examples/replay.rs` |  |
+| `MAPLOC_REPLAY_EVENTS` | a value | `maploc/src/bench.rs` | `MAPLOC_REPLAY_EVENTS=<file>`: what the host told the mapper live and the recording does not hold, replayed at its Unix time — lines "<unix_s> held\|released\|engaged\|idle" (a hand's pick-up as robotd's detector reported i… |
 | `MAPLOC_REST` | on unless 0 | `maploc/src/mapper.rs` | `MAPLOC_REST=0`: no stand ever rests, as before the rest (2026-10-01). |
+| `MAPLOC_SEED_NEAR_M` | number (default 1.0) | `maploc/src/mapper.rs` | The one basin of this window near a refuted shadow seed (`MAPLOC_SEED_NEAR_M`, 1.0 m by default, 0 off; |
+| `MAPLOC_SEED_NEAR_UNIQUE` | on only if 1 | `maploc/src/mapper.rs` | At boot the seed is the pose the session ended at, and a duck switched on in another room that looks the same agrees with it in one window: the agreement has to be unique before it is believed. |
 | `MAPLOC_SHADOW` | on unless 0 | `maploc/src/mapper.rs` | `MAPLOC_SHADOW=0`: no shadow map at boot. |
 | `MAPLOC_SHADOW_ASKS` | number (default 2) | `maploc/src/mapper.rs` | `MAPLOC_SHADOW_EVERY_S` and `MAPLOC_SHADOW_ASKS` override them. |
 | `MAPLOC_SHADOW_EVERY_S` | number (default 30.0) | `maploc/src/mapper.rs` | How often the shadow asks, how many answers in a row must agree, and what an answer must be (the homecoming's adoption rule, see quack-nav's `HomecomingConfig`, measured on 27 replayed wakes: 626 of 655 right answers pas… |

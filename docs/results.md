@@ -1447,6 +1447,52 @@ daemon-v0.17.6 + set v8, two twins at a time (`rl-runs/twin-work/P8/`).
   Bench (60 seeds from 200000) and shields (600 seeds from 300000): the
   same 840 and 12,600 episodes as `main`.
 
+- **A refuted shadow seed looked for near where it fell** (branch
+  `seednear`, 2026-11-12). The long tails of the search after a carry
+  (`findme_bench.py`, 450 s a trial) were not a blind search: replaying
+  the twin's runs through maploc's bench with the host's events
+  (`MAPLOC_REPLAY_EVENTS`), the shadow's fit was right, but the seed it
+  gives — the fit composed with the odometry since the shadow began —
+  had drifted on the twin, a window refuted it, and the next agreement
+  waited for two or four more answers, 30 s apart. Now a refuted seed is
+  looked for once in the refuting window's basins within 1 m and 0.6 rad
+  (`MAPLOC_SEED_NEAR_M`); one basin alone is the new seed, still
+  confirmed by two windows and the valley test. Without waiving the
+  one-window uniqueness test the change did almost nothing: in
+  casa_arredata, whose rooms look alike, it refused poses 0.1 m from the
+  truth four windows in a row; the shadow's fit vouches instead.
+  Replayed, 56 carries from 10 runs (`SL`, `SC`, two houses): never found
+  9 → 4, wrong 0 → 0; 12 apartment wakes the same. A/B on the twin
+  (`rl-runs/twin-work/SN/ab1`, BAM + backlash, pick-up detector on, base
+  `MAPLOC_SEED_NEAR_M=0`, 4 trials a kind):
+
+  | house, kind | base right / wrong / never / down | dev right / wrong / never / down |
+  |---|---|---|
+  | casa_arredata, carry | 4/4 / 0 / 0 / 0, median 262 s | 4/4 / 0 / 0 / 0, median 186 s |
+  | casa_arredata, fall | 3/4 / 1 / 0 / 0 | 2/4 / 1 / 1 / 0 |
+  | casa_arredata, fallcarry | 0/4 / 0 / 3 / 1 | 3/4 / 0 / 0 / 1 |
+  | casa_ingombra, carry | 4/4 / 0 / 0 / 0, median 188 s | 4/4 / 0 / 0 / 0, median 158 s |
+  | casa_ingombra, fall | 2/4 / 1 / 0 / 1 | 3/4 / 0 / 0 / 1 |
+  | casa_ingombra, fallcarry | 1/4 / 0 / 2 / 1 | 2/4 / 0 / 1 / 1 |
+
+  Four relocalizations went through the new seed, all right (0.03–0.16
+  m against the truth); every wrong one in both arms (0.5–1.1 m) came
+  from the ordinary window path along a corridor or from a pose resumed
+  unverified. Bench (60 seeds from 200000) and shields (600 seeds from
+  300000): the same 840 and 12,600 episodes as `main`, field for field.
+  Tried on the way and not kept (branch `fastfind`): legs of up to 5 s
+  where a look saw room (no gain), a walk straight toward free space
+  (worse in replay), the first panorama in thirds (about 10 s, within
+  the noise).
+
+  Exploring from nothing (`SN/ex`, BAM + backlash, pick-up detector on,
+  three 30-minute sessions, against `main` 9960a29): coverage casa_arredata
+  59/61/63 % (`main`) against 59/61/62 %, casa_ingombra 52/66/67 %
+  against 60/61/63 %; no session ended early; the new seed never fired
+  (nothing carried) and the branch trusted no pose more than 0.3 m from
+  the truth (`main` one, resumed unverified, 2.2 m); one fall in the
+  branch's last casa_ingombra session, none in `main`'s.
+
 ## Known limits
 
 - **The sensor cannot see the floor nearer than 0.4–0.6 m** (2026-10-27):
