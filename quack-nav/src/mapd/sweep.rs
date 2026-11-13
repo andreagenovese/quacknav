@@ -149,6 +149,7 @@ pub fn spawn(host: Host, body: SharedBody, robotd_socket: String) {
                     head_pitch: 0.0,
                     head_yaw: yaw,
                     head_roll: 0.0,
+                    alpha: None,
                 });
                 if let Some(control) = lane.as_mut()
                     && control.notify(&head).is_err()

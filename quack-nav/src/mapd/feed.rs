@@ -244,7 +244,7 @@ fn tof_lane(path: &str, host: &Host, said: &mut bool) -> anyhow::Result<()> {
         &mut writer,
         &proto::Request::call(
             proto::Id::Number(1),
-            &proto::Call::Hello(proto::HelloParams { api_version: proto::API_VERSION }),
+            &proto::Call::Hello(proto::HelloParams { api_version: proto::API_VERSION, client: None }),
         ),
     )?;
     send(&mut writer, &proto::Request::call(proto::Id::Number(2), &proto::Call::TofStream))?;

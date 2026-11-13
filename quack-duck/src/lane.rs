@@ -161,6 +161,7 @@ mod tests {
             movement: proto::MoveState {
                 requested: [0.0; 3],
                 applied: [0.0; 3],
+                source: None,
                 limited_by: vec!["deadman".to_string()],
             },
             head: [0.0; 4],
@@ -187,6 +188,11 @@ mod tests {
             skeleton: Vec::new(),
             velocities: Vec::new(),
             currents_ma: Vec::new(),
+            impact_guard: Vec::new(),
+            laser: None,
+            soccer: None,
+            autonomous: false,
+            hearing: None,
         }
     }
 

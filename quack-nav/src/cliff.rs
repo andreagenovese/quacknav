@@ -418,7 +418,7 @@ pub fn analyze(
         .project(&ranges, body.head, &posture)
         .into_iter()
         .filter_map(|zone| match zone {
-            Zone::Hit { point, range } => Some(Obstacle {
+            Zone::Hit { point, range, .. } => Some(Obstacle {
                 bearing: point[1].atan2(point[0]),
                 range_m: range,
                 trunk_m: horizontal_from_trunk(point, body.gravity),
