@@ -143,6 +143,10 @@ The design is ADR 0008.
 
 ## The crates
 
+The architecture at a glance — the layers, the two flows, integration examples
+(shell, Python, Rust, an LLM agent): [docs/architecture/architecture.md](docs/architecture/architecture.md),
+also as a [PDF](docs/architecture/architecture.pdf).
+
 - **`quack-duck`** — robotd's lane (a JSON-RPC client over its unix
   socket), the gait's limits, the body's own commands. A client of the
   duck, nothing more; the satellite uses it too.

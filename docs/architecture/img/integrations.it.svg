@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" width="1000" height="560" role="img" aria-label="Integrazioni di quack-nav">
+<style>
+.t{font-family:'DM Sans',Helvetica,Arial,sans-serif}
+.h{font-family:Anton,Impact,'Arial Narrow Bold',sans-serif;letter-spacing:.6px}
+.m{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+</style>
+<rect width="1000" height="560" rx="28" fill="#faf8f2"/>
+<text x="40" y="56" class="h" font-size="30" fill="#101018">3 · CHI CI PARLA</text>
+<text x="40" y="84" class="t" font-size="15" fill="#3a3a48">un solo socket, lo stesso catalogo di strumenti per tutti: la papera non dipende da nessun agente</text>
+<g stroke="#101018" stroke-width="3" stroke-dasharray="2 7" stroke-linecap="round">
+<path d="M500 320 L190 170"/><path d="M500 320 L810 170"/><path d="M500 320 L160 440"/><path d="M500 320 L840 440"/><path d="M500 320 L500 500"/>
+</g>
+<circle cx="500" cy="320" r="104" fill="#101018"/>
+<circle cx="500" cy="320" r="104" fill="none" stroke="#FFD23F" stroke-width="6"/>
+<text x="500" y="312" text-anchor="middle" class="h" font-size="28" fill="#FFD23F">QUACK-NAVD</text>
+<text x="500" y="338" text-anchor="middle" class="m" font-size="13" fill="#faf8f2">/run/quack-nav/nav.sock</text>
+<text x="500" y="358" text-anchor="middle" class="t" font-size="12" fill="#c9c4b6">gruppo robot · 0660</text>
+<g class="t">
+<rect x="40" y="112" width="300" height="104" rx="18" fill="#FFD23F"/>
+<text x="62" y="144" class="h" font-size="18" fill="#101018">VOCE · QUACKSAT</text>
+<text x="62" y="168" font-size="13" fill="#101018">«portami in cucina» → robot.go_to</text>
+<text x="62" y="188" font-size="13" fill="#101018">«questa è la cucina» → remember_place</text>
+<text x="62" y="206" font-size="12" fill="#3a3a48">la voce non naviga: inoltra</text>
+<rect x="660" y="112" width="300" height="104" rx="18" fill="#FF7A2F"/>
+<text x="682" y="144" class="h" font-size="18" fill="#101018">AGENTE / LLM</text>
+<text x="682" y="168" font-size="13" fill="#101018">nav.catalog → strumenti JSON Schema</text>
+<text x="682" y="188" font-size="13" fill="#101018">→ tool use, MCP, function calling</text>
+<text x="682" y="206" font-size="12" fill="#3a3a48">l'LLM sceglie la meta, non il passo</text>
+<rect x="40" y="390" width="270" height="104" rx="18" fill="#2FF0E6"/>
+<text x="62" y="422" class="h" font-size="18" fill="#101018">QUACK-CONTROL</text>
+<text x="62" y="446" font-size="13" fill="#101018">mappa dal vivo nel browser,</text>
+<text x="62" y="466" font-size="13" fill="#101018">eventi, lease, posti col click</text>
+<text x="62" y="484" font-size="12" fill="#3a3a48">la pagina di controllo, repo a parte</text>
+<rect x="690" y="390" width="270" height="104" rx="18" fill="#9D87E8"/>
+<text x="712" y="422" class="h" font-size="18" fill="#101018">SERVIZI · SCRIPT</text>
+<text x="712" y="446" font-size="13" fill="#101018">coda di lavori, abilità di robotd</text>
+<text x="712" y="466" font-size="13" fill="#101018">(calcio, raccogli) con nav.act</text>
+<text x="712" y="484" font-size="12" fill="#3a3a48">Rust, Python, shell, un ponte ROS</text>
+<rect x="390" y="452" width="220" height="80" rx="18" fill="#101018"/>
+<text x="500" y="482" text-anchor="middle" class="h" font-size="17" fill="#FF2FA8">TERMINALE</text>
+<text x="500" y="506" text-anchor="middle" class="m" font-size="12" fill="#faf8f2">printf '…' | nc -U</text>
+</g>
+</svg>

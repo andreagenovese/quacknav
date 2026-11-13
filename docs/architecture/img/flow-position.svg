@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 520" width="1000" height="520" role="img" aria-label="Flow: where am I">
+<style>
+.t{font-family:'DM Sans',Helvetica,Arial,sans-serif}
+.h{font-family:Anton,Impact,'Arial Narrow Bold',sans-serif;letter-spacing:.6px}
+.m{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+</style>
+<defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#101018"/></marker></defs>
+<rect width="1000" height="520" rx="28" fill="#faf8f2"/>
+<text x="40" y="56" class="h" font-size="30" fill="#101018">1 · WHERE AM I</text>
+<text x="40" y="84" class="t" font-size="15" fill="#3a3a48">from perception to pose, and what happens when the duck is lost</text>
+<!-- row -->
+<g class="t">
+<rect x="40" y="118" width="170" height="120" rx="18" fill="#101018"/>
+<text x="125" y="150" text-anchor="middle" class="h" font-size="17" fill="#FFD23F">SENSORS</text>
+<text x="125" y="176" text-anchor="middle" font-size="13" fill="#faf8f2">odometry (robotd)</text>
+<text x="125" y="196" text-anchor="middle" font-size="13" fill="#faf8f2">ToF 8×8 (tofd)</text>
+<text x="125" y="216" text-anchor="middle" font-size="13" fill="#faf8f2">the head scanning</text>
+<rect x="250" y="118" width="170" height="120" rx="18" fill="#101018"/>
+<text x="335" y="150" text-anchor="middle" class="h" font-size="17" fill="#FFD23F">SCAN MATCHER</text>
+<text x="335" y="178" text-anchor="middle" font-size="13" fill="#faf8f2">every scan</text>
+<text x="335" y="198" text-anchor="middle" font-size="13" fill="#faf8f2">aligned to the</text>
+<text x="335" y="218" text-anchor="middle" font-size="13" fill="#faf8f2">current submap</text>
+<rect x="460" y="118" width="170" height="120" rx="18" fill="#101018"/>
+<text x="545" y="150" text-anchor="middle" class="h" font-size="17" fill="#FFD23F">POSE GRAPH</text>
+<text x="545" y="178" text-anchor="middle" font-size="13" fill="#faf8f2">submaps linked,</text>
+<text x="545" y="198" text-anchor="middle" font-size="13" fill="#faf8f2">loops closed</text>
+<text x="545" y="218" text-anchor="middle" font-size="13" fill="#faf8f2">in one graph</text>
+<rect x="670" y="118" width="290" height="120" rx="18" fill="#FFD23F"/>
+<text x="815" y="150" text-anchor="middle" class="h" font-size="17" fill="#101018">STILL WINDOWS</text>
+<text x="815" y="178" text-anchor="middle" font-size="13" fill="#101018">at every stop, a window of scans</text>
+<text x="815" y="198" text-anchor="middle" font-size="13" fill="#101018">judged against the saved map:</text>
+<text x="815" y="218" text-anchor="middle" font-size="13" fill="#101018" font-weight="700">does it agree?</text>
+</g>
+<g stroke="#101018" stroke-width="3" fill="none" marker-end="url(#a)">
+<path d="M210 178 H246"/><path d="M420 178 H456"/><path d="M630 178 H666"/>
+</g>
+<!-- yes branch -->
+<path d="M900 238 V300" stroke="#101018" stroke-width="3" fill="none" marker-end="url(#a)"/>
+<text x="912" y="276" class="t" font-size="14" font-weight="700" fill="#101018">yes</text>
+<rect x="760" y="304" width="200" height="86" rx="18" fill="#2FF0E6"/>
+<text x="860" y="338" text-anchor="middle" class="h" font-size="17" fill="#101018">POSE TRUSTED</text>
+<text x="860" y="362" text-anchor="middle" class="m" font-size="12" fill="#101018">pose event</text>
+<text x="860" y="380" text-anchor="middle" class="t" font-size="12" fill="#101018">jobs may start</text>
+<!-- no branch -->
+<path d="M730 238 V300" stroke="#101018" stroke-width="3" fill="none" marker-end="url(#a)"/>
+<text x="652" y="276" class="t" font-size="14" font-weight="700" fill="#101018">no, again and again</text>
+<rect x="40" y="304" width="700" height="186" rx="18" fill="#101018"/>
+<text x="64" y="340" class="h" font-size="19" fill="#FF2FA8">LOST · THE SEARCH</text>
+<text x="292" y="339" class="t" font-size="13" fill="#c9c4b6">also after a pick-up (robotd) or a fall</text>
+<g class="t" font-size="13">
+<rect x="64" y="356" width="206" height="96" rx="12" fill="#2b2b3c"/>
+<text x="80" y="380" font-weight="700" fill="#FF2FA8">global basins</text>
+<text x="80" y="402" fill="#faf8f2">every window searched</text>
+<text x="80" y="420" fill="#faf8f2">over the whole map</text>
+<text x="80" y="438" fill="#faf8f2">or near the last pose</text>
+<rect x="282" y="356" width="206" height="96" rx="12" fill="#2b2b3c"/>
+<text x="298" y="380" font-weight="700" fill="#FF2FA8">shadow map</text>
+<text x="298" y="402" fill="#faf8f2">the map of the walk</text>
+<text x="298" y="420" fill="#faf8f2">since boot, fitted</text>
+<text x="298" y="438" fill="#faf8f2">every 30 s → a seed</text>
+<rect x="500" y="356" width="216" height="96" rx="12" fill="#2b2b3c"/>
+<text x="516" y="380" font-weight="700" fill="#FF2FA8">near seed</text>
+<text x="516" y="402" fill="#faf8f2">seed refuted? look for</text>
+<text x="516" y="420" fill="#faf8f2">one single basin</text>
+<text x="516" y="438" fill="#faf8f2">within 1 m</text>
+<text x="64" y="476" fill="#c9c4b6">meanwhile the duck walks and looks: short legs toward free floor, panoramas when still</text>
+</g>
+<!-- confirm back -->
+<path d="M740 452 H748" stroke="#101018" stroke-width="3" fill="none" marker-end="url(#a)"/><path d="M865 420 V396" stroke="#101018" stroke-width="3" fill="none" marker-end="url(#a)"/>
+<rect x="752" y="420" width="226" height="64" rx="14" fill="#faf8f2" stroke="#101018" stroke-width="2"/>
+<text x="865" y="446" text-anchor="middle" class="t" font-size="13" font-weight="700" fill="#101018">two windows agree</text>
+<text x="865" y="466" text-anchor="middle" class="t" font-size="12" fill="#3a3a48">+ the corridor test</text>
+</svg>

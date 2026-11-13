@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 520" width="1000" height="520" role="img" aria-label="Flusso: dove sono">
+<style>
+.t{font-family:'DM Sans',Helvetica,Arial,sans-serif}
+.h{font-family:Anton,Impact,'Arial Narrow Bold',sans-serif;letter-spacing:.6px}
+.m{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+</style>
+<defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#101018"/></marker></defs>
+<rect width="1000" height="520" rx="28" fill="#faf8f2"/>
+<text x="40" y="56" class="h" font-size="30" fill="#101018">1 · DOVE SONO</text>
+<text x="40" y="84" class="t" font-size="15" fill="#3a3a48">dalla percezione alla posizione, e cosa succede quando la papera si perde</text>
+<!-- row -->
+<g class="t">
+<rect x="40" y="118" width="170" height="120" rx="18" fill="#101018"/>
+<text x="125" y="150" text-anchor="middle" class="h" font-size="17" fill="#FFD23F">SENSORI</text>
+<text x="125" y="176" text-anchor="middle" font-size="13" fill="#faf8f2">odometria (robotd)</text>
+<text x="125" y="196" text-anchor="middle" font-size="13" fill="#faf8f2">ToF 8×8 (tofd)</text>
+<text x="125" y="216" text-anchor="middle" font-size="13" fill="#faf8f2">testa che scandisce</text>
+<rect x="250" y="118" width="170" height="120" rx="18" fill="#101018"/>
+<text x="335" y="150" text-anchor="middle" class="h" font-size="17" fill="#FFD23F">SCAN MATCHER</text>
+<text x="335" y="178" text-anchor="middle" font-size="13" fill="#faf8f2">ogni scansione</text>
+<text x="335" y="198" text-anchor="middle" font-size="13" fill="#faf8f2">allineata alla</text>
+<text x="335" y="218" text-anchor="middle" font-size="13" fill="#faf8f2">submap corrente</text>
+<rect x="460" y="118" width="170" height="120" rx="18" fill="#101018"/>
+<text x="545" y="150" text-anchor="middle" class="h" font-size="17" fill="#FFD23F">POSE GRAPH</text>
+<text x="545" y="178" text-anchor="middle" font-size="13" fill="#faf8f2">submap legate,</text>
+<text x="545" y="198" text-anchor="middle" font-size="13" fill="#faf8f2">i giri chiusi</text>
+<text x="545" y="218" text-anchor="middle" font-size="13" fill="#faf8f2">(loop closure)</text>
+<rect x="670" y="118" width="290" height="120" rx="18" fill="#FFD23F"/>
+<text x="815" y="150" text-anchor="middle" class="h" font-size="17" fill="#101018">FINESTRE DA FERMO</text>
+<text x="815" y="178" text-anchor="middle" font-size="13" fill="#101018">ogni sosta, una finestra di scansioni</text>
+<text x="815" y="198" text-anchor="middle" font-size="13" fill="#101018">giudicata contro la mappa salvata:</text>
+<text x="815" y="218" text-anchor="middle" font-size="13" fill="#101018" font-weight="700">concorda?</text>
+</g>
+<g stroke="#101018" stroke-width="3" fill="none" marker-end="url(#a)">
+<path d="M210 178 H246"/><path d="M420 178 H456"/><path d="M630 178 H666"/>
+</g>
+<!-- yes branch -->
+<path d="M900 238 V300" stroke="#101018" stroke-width="3" fill="none" marker-end="url(#a)"/>
+<text x="912" y="276" class="t" font-size="14" font-weight="700" fill="#101018">sì</text>
+<rect x="760" y="304" width="200" height="86" rx="18" fill="#2FF0E6"/>
+<text x="860" y="338" text-anchor="middle" class="h" font-size="17" fill="#101018">POSIZIONE CERTA</text>
+<text x="860" y="362" text-anchor="middle" class="m" font-size="12" fill="#101018">evento pose</text>
+<text x="860" y="380" text-anchor="middle" class="t" font-size="12" fill="#101018">i lavori possono partire</text>
+<!-- no branch -->
+<path d="M730 238 V300" stroke="#101018" stroke-width="3" fill="none" marker-end="url(#a)"/>
+<text x="652" y="276" class="t" font-size="14" font-weight="700" fill="#101018">no, più volte</text>
+<rect x="40" y="304" width="700" height="186" rx="18" fill="#101018"/>
+<text x="64" y="340" class="h" font-size="19" fill="#FF2FA8">PERSA · LA RICERCA</text>
+<text x="292" y="339" class="t" font-size="13" fill="#c9c4b6">anche dopo una presa in mano (robotd) o una caduta</text>
+<g class="t" font-size="13">
+<rect x="64" y="356" width="206" height="96" rx="12" fill="#2b2b3c"/>
+<text x="80" y="380" font-weight="700" fill="#FF2FA8">bacini globali</text>
+<text x="80" y="402" fill="#faf8f2">ogni finestra cercata</text>
+<text x="80" y="420" fill="#faf8f2">su tutta la mappa</text>
+<text x="80" y="438" fill="#faf8f2">o vicino all'ultima</text>
+<rect x="282" y="356" width="206" height="96" rx="12" fill="#2b2b3c"/>
+<text x="298" y="380" font-weight="700" fill="#FF2FA8">mappa ombra</text>
+<text x="298" y="402" fill="#faf8f2">la mappa del cammino</text>
+<text x="298" y="420" fill="#faf8f2">dall'avvio, confrontata</text>
+<text x="298" y="438" fill="#faf8f2">ogni 30 s → una semina</text>
+<rect x="500" y="356" width="216" height="96" rx="12" fill="#2b2b3c"/>
+<text x="516" y="380" font-weight="700" fill="#FF2FA8">semina vicina</text>
+<text x="516" y="402" fill="#faf8f2">semina respinta? cerca</text>
+<text x="516" y="420" fill="#faf8f2">entro 1 m un solo</text>
+<text x="516" y="438" fill="#faf8f2">bacino compatibile</text>
+<text x="64" y="476" fill="#c9c4b6">intanto la papera cammina e guarda: passi brevi verso lo spazio libero, panorami da ferma</text>
+</g>
+<!-- confirm back -->
+<path d="M740 452 H748" stroke="#101018" stroke-width="3" fill="none" marker-end="url(#a)"/><path d="M865 420 V396" stroke="#101018" stroke-width="3" fill="none" marker-end="url(#a)"/>
+<rect x="752" y="420" width="226" height="64" rx="14" fill="#faf8f2" stroke="#101018" stroke-width="2"/>
+<text x="865" y="446" text-anchor="middle" class="t" font-size="13" font-weight="700" fill="#101018">due finestre concordi</text>
+<text x="865" y="466" text-anchor="middle" class="t" font-size="12" fill="#3a3a48">+ il test dei corridoi</text>
+</svg>

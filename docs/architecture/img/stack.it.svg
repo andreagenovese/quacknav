@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 990" width="1000" height="990" role="img" aria-label="Architettura di quack-nav">
+<style>
+.t{font-family:'DM Sans',Helvetica,Arial,sans-serif}
+.h{font-family:Anton,Impact,'Arial Narrow Bold',sans-serif;letter-spacing:.6px}
+.m{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+</style>
+<rect width="1000" height="990" rx="28" fill="#faf8f2"/>
+<!-- clients -->
+<text x="40" y="52" class="h" font-size="22" fill="#101018">CHI LA USA</text>
+<g class="t" font-size="16" font-weight="600">
+  <rect x="40" y="70" width="210" height="50" rx="25" fill="#FFD23F"/><text x="145" y="101" text-anchor="middle" fill="#101018">Voce · quacksat</text>
+  <rect x="270" y="70" width="210" height="50" rx="25" fill="#FF7A2F"/><text x="375" y="101" text-anchor="middle" fill="#101018">Agente / LLM</text>
+  <rect x="500" y="70" width="230" height="50" rx="25" fill="#2FF0E6"/><text x="615" y="101" text-anchor="middle" fill="#101018">quack-control (browser)</text>
+  <rect x="750" y="70" width="210" height="50" rx="25" fill="#9D87E8"/><text x="855" y="101" text-anchor="middle" fill="#101018">Script · servizi</text>
+</g>
+<g stroke="#101018" stroke-width="3" fill="none"><path d="M145 120 V150 H855 V120 M375 120 V150 M615 120 V150 M500 150 V178"/></g>
+<path d="M490 172 L500 186 L510 172 Z" fill="#101018"/>
+<rect x="555" y="160" width="400" height="26" rx="13" fill="#101018"/>
+<text x="755" y="178" text-anchor="middle" class="m" font-size="13" fill="#faf8f2">nav.sock · JSON-RPC 2.0 · NDJSON</text>
+<!-- daemon container -->
+<rect x="30" y="196" width="940" height="600" rx="26" fill="#101018"/>
+<text x="56" y="232" class="h" font-size="26" fill="#faf8f2">QUACK-NAVD</text>
+<text x="262" y="231" class="t" font-size="14" fill="#c9c4b6">un demone, un binario, accanto a robotd</text>
+<!-- layer: servizio -->
+<g>
+<rect x="50" y="248" width="900" height="80" rx="16" fill="#1c1c28"/>
+<rect x="50" y="248" width="150" height="80" rx="16" fill="#2FF0E6"/>
+<text x="125" y="284" text-anchor="middle" class="h" font-size="18" fill="#101018">SERVIZIO</text>
+<text x="125" y="306" text-anchor="middle" class="t" font-size="12" fill="#101018">protocollo v1–v5</text>
+<g class="m" font-size="13" fill="#faf8f2">
+<rect x="216" y="262" width="96" height="24" rx="12" fill="#2b2b3c"/><text x="264" y="279" text-anchor="middle">nav.hello</text>
+<rect x="320" y="262" width="110" height="24" rx="12" fill="#2b2b3c"/><text x="375" y="279" text-anchor="middle">nav.catalog</text>
+<rect x="438" y="262" width="92" height="24" rx="12" fill="#2b2b3c"/><text x="484" y="279" text-anchor="middle">nav.call</text>
+<rect x="538" y="262" width="128" height="24" rx="12" fill="#2b2b3c"/><text x="602" y="279" text-anchor="middle">nav.subscribe</text>
+<rect x="674" y="262" width="100" height="24" rx="12" fill="#2b2b3c"/><text x="724" y="279" text-anchor="middle">nav.claim</text>
+<rect x="782" y="262" width="90" height="24" rx="12" fill="#2b2b3c"/><text x="827" y="279" text-anchor="middle">nav.jobs</text>
+<rect x="216" y="294" width="86" height="24" rx="12" fill="#2b2b3c"/><text x="259" y="311" text-anchor="middle">nav.act</text>
+<rect x="310" y="294" width="100" height="24" rx="12" fill="#2b2b3c"/><text x="360" y="311" text-anchor="middle">nav.knobs</text>
+</g>
+<text x="424" y="311" class="t" font-size="13" fill="#c9c4b6">15 strumenti robot.* · eventi job, pose, fall · lease · coda · abilità</text>
+</g>
+<!-- layer: lavori -->
+<g>
+<rect x="50" y="340" width="900" height="96" rx="16" fill="#1c1c28"/>
+<rect x="50" y="340" width="150" height="96" rx="16" fill="#FF7A2F"/>
+<text x="125" y="384" text-anchor="middle" class="h" font-size="18" fill="#101018">LAVORI</text>
+<text x="125" y="406" text-anchor="middle" class="t" font-size="12" fill="#101018">cosa fa la papera</text>
+<g class="t">
+<rect x="216" y="354" width="136" height="68" rx="12" fill="#2b2b3c"/><text x="284" y="380" text-anchor="middle" class="m" font-size="13" fill="#FF7A2F">explore/</text><text x="284" y="402" text-anchor="middle" font-size="13" fill="#faf8f2">esplora da sola</text>
+<rect x="362" y="354" width="136" height="68" rx="12" fill="#2b2b3c"/><text x="430" y="380" text-anchor="middle" class="m" font-size="13" fill="#FF7A2F">go_to</text><text x="430" y="402" text-anchor="middle" font-size="13" fill="#faf8f2">viaggio su mappa</text>
+<rect x="508" y="354" width="136" height="68" rx="12" fill="#2b2b3c"/><text x="576" y="380" text-anchor="middle" class="m" font-size="13" fill="#FF7A2F">relocate</text><text x="576" y="402" text-anchor="middle" font-size="13" fill="#faf8f2">prima ritrovati</text>
+<rect x="654" y="354" width="136" height="68" rx="12" fill="#2b2b3c"/><text x="722" y="380" text-anchor="middle" class="m" font-size="13" fill="#FF7A2F">homecoming/</text><text x="722" y="402" text-anchor="middle" font-size="13" fill="#faf8f2">il risveglio</text>
+<rect x="800" y="354" width="136" height="68" rx="12" fill="#2b2b3c"/><text x="868" y="380" text-anchor="middle" class="m" font-size="13" fill="#FF7A2F">rlnav/</text><text x="868" y="402" text-anchor="middle" font-size="13" fill="#faf8f2">pilota neurale</text>
+</g>
+</g>
+<!-- layer: sicurezza -->
+<g>
+<rect x="50" y="448" width="900" height="72" rx="16" fill="#1c1c28"/>
+<rect x="50" y="448" width="150" height="72" rx="16" fill="#FF2FA8"/>
+<text x="125" y="480" text-anchor="middle" class="h" font-size="18" fill="#101018">SICUREZZA</text>
+<text x="125" y="502" text-anchor="middle" class="t" font-size="12" fill="#101018">ogni passo, sempre</text>
+<g class="t" font-size="13" fill="#faf8f2">
+<rect x="216" y="462" width="170" height="44" rx="12" fill="#2b2b3c"/><text x="301" y="481" text-anchor="middle"><tspan class="m" fill="#FF2FA8">cliff</tspan></text><text x="301" y="498" text-anchor="middle">dislivelli dal sensore</text>
+<rect x="396" y="462" width="170" height="44" rx="12" fill="#2b2b3c"/><text x="481" y="481" text-anchor="middle"><tspan class="m" fill="#FF2FA8">look-down</tspan></text><text x="481" y="498" text-anchor="middle">guarda il pavimento</text>
+<rect x="576" y="462" width="170" height="44" rx="12" fill="#2b2b3c"/><text x="661" y="481" text-anchor="middle"><tspan class="m" fill="#FF2FA8">passage</tspan></text><text x="661" y="498" text-anchor="middle">passaggi stretti</text>
+<rect x="756" y="462" width="180" height="44" rx="12" fill="#2b2b3c"/><text x="846" y="481" text-anchor="middle"><tspan class="m" fill="#FF2FA8">ledger</tspan></text><text x="846" y="498" text-anchor="middle">il passo appreso</text>
+</g>
+</g>
+<!-- layer: mappa -->
+<g>
+<rect x="50" y="532" width="900" height="176" rx="16" fill="#1c1c28"/>
+<rect x="50" y="532" width="150" height="176" rx="16" fill="#FFD23F"/>
+<text x="125" y="610" text-anchor="middle" class="h" font-size="18" fill="#101018">MAPPA</text>
+<text x="125" y="632" text-anchor="middle" class="t" font-size="12" fill="#101018">dove sono</text>
+<rect x="216" y="546" width="190" height="148" rx="12" fill="#2b2b3c"/>
+<text x="232" y="572" class="m" font-size="14" fill="#FFD23F">mapd/</text>
+<g class="t" font-size="13" fill="#faf8f2">
+<text x="232" y="598">feed: odometria + ToF</text>
+<text x="232" y="620">sweep: la testa scandisce</text>
+<text x="232" y="642">server: robot.map*</text>
+<text x="232" y="672" fill="#c9c4b6">places: nomi → (x, y)</text>
+</g>
+<rect x="420" y="546" width="516" height="148" rx="12" fill="#faf8f2"/>
+<rect x="420" y="546" width="516" height="34" rx="12" fill="#9D87E8"/><rect x="420" y="566" width="516" height="14" fill="#9D87E8"/>
+<text x="438" y="570" class="h" font-size="17" fill="#101018">MAPLOC</text>
+<text x="520" y="569" class="t" font-size="12" fill="#101018">SLAM, dalla PR 127 di Pollen, estesa</text>
+<g class="t" font-size="13" fill="#101018">
+<text x="438" y="604">• scan matcher · submap</text>
+<text x="438" y="626">• pose graph · loop closure</text>
+<text x="438" y="648">• relocalize · MCL</text>
+<text x="438" y="670">• band 2.5D · A*</text>
+<text x="680" y="604">• mapper: finestre, watchdog</text>
+<text x="680" y="626">• mappa ombra del cammino</text>
+<text x="680" y="648">• semina vicina (nuova)</text>
+<text x="680" y="670">• sessione su disco</text>
+</g>
+</g>
+<!-- layer: corpo -->
+<g>
+<rect x="50" y="720" width="900" height="60" rx="16" fill="#1c1c28"/>
+<rect x="50" y="720" width="150" height="60" rx="16" fill="#9D87E8"/>
+<text x="125" y="757" text-anchor="middle" class="h" font-size="18" fill="#101018">CORPO</text>
+<text x="216" y="746" class="m" font-size="14" fill="#9D87E8">quack-duck</text>
+<text x="216" y="766" class="t" font-size="13" fill="#faf8f2">il «lane» verso robotd · limiti del passo · ogni mossa finisce con uno zero · linea 0.16 / 0.17</text>
+</g>
+<!-- bottom -->
+<g stroke="#101018" stroke-width="3"><path d="M300 796 V840 M700 796 V840"/></g>
+<path d="M290 832 L300 846 L310 832 Z M690 832 L700 846 L710 832 Z" fill="#101018"/>
+<text x="312" y="824" class="m" font-size="12" fill="#101018">robotd.sock</text>
+<text x="712" y="824" class="m" font-size="12" fill="#101018">tofd.sock</text>
+<rect x="110" y="850" width="380" height="96" rx="18" fill="#faf8f2" stroke="#101018" stroke-width="3"/>
+<text x="300" y="884" text-anchor="middle" class="h" font-size="20" fill="#101018">ROBOTD DI POLLEN</text>
+<text x="300" y="908" text-anchor="middle" class="t" font-size="13" fill="#101018">rilasciato, non modificato</text>
+<text x="300" y="930" text-anchor="middle" class="t" font-size="13" fill="#3a3a48">gambe · testa · IMU · prese in mano · abilità</text>
+<rect x="510" y="850" width="380" height="96" rx="18" fill="#faf8f2" stroke="#101018" stroke-width="3"/>
+<text x="700" y="884" text-anchor="middle" class="h" font-size="20" fill="#101018">TOFD</text>
+<text x="700" y="908" text-anchor="middle" class="t" font-size="13" fill="#101018">il sensore di profondità</text>
+<text x="700" y="930" text-anchor="middle" class="t" font-size="13" fill="#3a3a48">ToF 8×8 sulla testa</text>
+</svg>
