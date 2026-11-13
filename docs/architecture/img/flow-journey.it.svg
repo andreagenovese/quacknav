@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" width="1000" height="560" role="img" aria-label="Flusso: vai là">
+<style>
+.t{font-family:'DM Sans',Helvetica,Arial,sans-serif}
+.h{font-family:Anton,Impact,'Arial Narrow Bold',sans-serif;letter-spacing:.6px}
+.m{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+</style>
+<defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#101018"/></marker></defs>
+<rect width="1000" height="560" rx="28" fill="#faf8f2"/>
+<text x="40" y="56" class="h" font-size="30" fill="#101018">2 · VAI LÀ</text>
+<text x="40" y="84" class="t" font-size="15" fill="#3a3a48">da una frase a una papera che arriva, passo dopo passo</text>
+<!-- request -->
+<rect x="40" y="112" width="920" height="54" rx="27" fill="#101018"/>
+<text x="66" y="145" class="m" font-size="15" fill="#FF7A2F">nav.call</text>
+<text x="150" y="145" class="m" font-size="15" fill="#faf8f2">{"name": "robot.go_to", "args": {"place": "cucina"}}</text>
+<text x="934" y="145" text-anchor="end" class="t" font-size="13" fill="#c9c4b6">«portami in cucina»</text>
+<path d="M140 166 V196" stroke="#101018" stroke-width="3" marker-end="url(#a)"/>
+<!-- steps row 1 -->
+<g class="t">
+<rect x="40" y="200" width="200" height="110" rx="18" fill="#FFD23F"/>
+<text x="140" y="232" text-anchor="middle" class="h" font-size="17" fill="#101018">1 · PLACES</text>
+<text x="140" y="258" text-anchor="middle" font-size="13" fill="#101018">«cucina» → (−2,9 ; 1,9)</text>
+<text x="140" y="278" text-anchor="middle" font-size="13" fill="#101018">i posti insegnati con</text>
+<text x="140" y="296" text-anchor="middle" class="m" font-size="12" fill="#101018">remember_place</text>
+<rect x="280" y="200" width="200" height="110" rx="18" fill="#FF2FA8"/>
+<text x="380" y="232" text-anchor="middle" class="h" font-size="17" fill="#101018">2 · MI FIDO?</text>
+<text x="380" y="258" text-anchor="middle" font-size="13" fill="#101018">se la posizione non è</text>
+<text x="380" y="278" text-anchor="middle" font-size="13" fill="#101018">certa: cammina e guarda</text>
+<text x="380" y="298" text-anchor="middle" font-size="13" fill="#101018">finché si ritrova</text>
+<rect x="520" y="200" width="200" height="110" rx="18" fill="#2FF0E6"/>
+<text x="620" y="232" text-anchor="middle" class="h" font-size="17" fill="#101018">3 · A*</text>
+<text x="620" y="258" text-anchor="middle" font-size="13" fill="#101018">il percorso sulla mappa</text>
+<text x="620" y="278" text-anchor="middle" font-size="13" fill="#101018">dei costi, lontano dai</text>
+<text x="620" y="298" text-anchor="middle" font-size="13" fill="#101018">muri e dai dislivelli</text>
+<rect x="760" y="200" width="200" height="110" rx="18" fill="#9D87E8"/>
+<text x="860" y="232" text-anchor="middle" class="h" font-size="17" fill="#101018">4 · UN PASSO</text>
+<text x="860" y="258" text-anchor="middle" font-size="13" fill="#101018">scelto dalle regole</text>
+<text x="860" y="278" text-anchor="middle" font-size="13" fill="#101018">o dal pilota neurale</text>
+<text x="860" y="298" text-anchor="middle" font-size="13" fill="#101018">(opzionale, ONNX)</text>
+</g>
+<g stroke="#101018" stroke-width="3" fill="none" marker-end="url(#a)"><path d="M240 255 H276"/><path d="M480 255 H516"/><path d="M720 255 H756"/><path d="M860 310 V356"/></g>
+<!-- row 2 -->
+<g class="t">
+<rect x="620" y="360" width="340" height="120" rx="18" fill="#101018"/>
+<text x="790" y="392" text-anchor="middle" class="h" font-size="17" fill="#FF2FA8">5 · LE GUARDIE</text>
+<text x="790" y="418" text-anchor="middle" font-size="13" fill="#faf8f2">cliff: c'è pavimento dove vado?</text>
+<text x="790" y="438" text-anchor="middle" font-size="13" fill="#faf8f2">look-down: guardo giù prima di un ignoto</text>
+<text x="790" y="458" text-anchor="middle" font-size="13" fill="#faf8f2">bordo dei buchi segnati: tengo il margine</text>
+<rect x="280" y="360" width="300" height="120" rx="18" fill="#101018"/>
+<text x="430" y="392" text-anchor="middle" class="h" font-size="17" fill="#9D87E8">6 · IL CORPO</text>
+<text x="430" y="418" text-anchor="middle" class="m" font-size="12" fill="#faf8f2">robot.move · robot.look</text>
+<text x="430" y="440" text-anchor="middle" font-size="13" fill="#faf8f2">via quack-duck a robotd;</text>
+<text x="430" y="460" text-anchor="middle" font-size="13" fill="#faf8f2">ogni mossa finisce con uno zero</text>
+<rect x="40" y="360" width="200" height="120" rx="18" fill="#FFD23F"/>
+<text x="140" y="392" text-anchor="middle" class="h" font-size="17" fill="#101018">ARRIVATA?</text>
+<text x="140" y="418" text-anchor="middle" font-size="13" fill="#101018">no: torna al passo 4</text>
+<text x="140" y="440" text-anchor="middle" font-size="13" fill="#101018">sì: evento</text>
+<text x="140" y="460" text-anchor="middle" class="m" font-size="12" fill="#101018">job · state: done</text>
+</g>
+<g stroke="#101018" stroke-width="3" fill="none" marker-end="url(#a)"><path d="M620 420 H584"/><path d="M280 420 H244"/></g>
+<path d="M140 480 V520 H990 V255 H964" stroke="#101018" stroke-width="2" stroke-dasharray="6 6" fill="none" marker-end="url(#a)"/>
+<text x="500" y="512" text-anchor="middle" class="t" font-size="13" fill="#3a3a48">un altro passo, finché non arriva · una guardia può fermarla in ogni momento</text>
+</svg>

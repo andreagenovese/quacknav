@@ -156,6 +156,10 @@ Il progetto è l'ADR 0008.
 
 ## I crate
 
+L'architettura in breve — gli strati, i due flussi, esempi di integrazione
+(shell, Python, Rust, un agente LLM): [docs/architecture/architecture.it.md](docs/architecture/architecture.it.md),
+anche in [PDF](docs/architecture/architecture.it.pdf).
+
 - **`quack-duck`** — la lane di robotd (un client JSON-RPC sul suo
   socket unix), i limiti della gait, i comandi del corpo. Un client
   della papera, niente di più; lo usa anche il satellite.
