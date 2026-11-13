@@ -1603,6 +1603,36 @@ casa_arredata, daemon-v0.17.6 + set v8, due gemelli alla volta
   senza verifica, a 2,2 m); una caduta nell'ultima sessione del ramo in
   casa_ingombra, nessuna in quelle di `main`.
 
+- **Accanto alla papera autonoma di Pollen** (ramo `autod-coexist`,
+  2026-11-13). Il daemon 0.21 di Pollen porta `autod`, che gira per casa
+  da solo quando `robot.autonomous` è acceso e cede solo al gamepad.
+  quack-navd ora si presenta a robotd (`hello {client: "quack-navd"}`),
+  legge l'interruttore e chi guida dallo stream di stato, e prima di uno
+  strumento che muove spegne `autod` (`QK_AUTONOMY=pause`, il default;
+  anche `refuse` e `ignore`), riaccendendolo 30 s dopo il lavoro
+  (`QK_AUTONOMY_RESUME_S`) se a spegnerlo eravamo stati noi. Dal vivo sul
+  gemello con daemon 0.21.1 e set di policy v10, `autod` acceso e in
+  giro: `robot.map_explore` l'ha fermato, robotd segnava `move.source` =
+  `quack-navd`, e 30 s dopo l'esplorazione `autod` era di nuovo acceso e
+  in giro; nessuna caduta. Non provati dal vivo: il modo refuse, il
+  ritorno a casa che aspetta mentre `autod` gira, lo sweep della testa
+  che si fa da parte.
+
+  Sullo stack di sempre (daemon 0.17.6, set v8, BAM + gioco, rilevatore
+  di prese acceso), dove robotd non riporta mai l'interruttore, contro
+  `main` 3a3e5f2 (`rl-runs/twin-work/AC`): banco (60 semi da 200000) e
+  scudi (600 semi da 300000) gli stessi 840 e 12.600 episodi, campo per
+  campo; viaggi sul gemello, 4 giri per casa:
+
+  | casa | `main` arrivati, cadute (a terra), s medi | ramo arrivati, cadute (a terra), s medi |
+  |---|---|---|
+  | casa_ingombra | 23/24, 2 (1), 114 | 24/24, 3 (0), 113 |
+  | casa_arredata | 24/24, 0, 94 | 24/24, 1 (0), 94 |
+
+  Lì i percorsi del codice sono gli stessi (nessuna riga di autonomia nei
+  log del ramo), quindi le cadute sono il rumore del gemello; ogni caduta
+  del ramo è stata recuperata e il viaggio è arrivato.
+
 ## Limiti noti
 
 - **Il sensore non vede il pavimento più vicino di 0,4–0,6 m**

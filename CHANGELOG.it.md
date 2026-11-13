@@ -250,6 +250,19 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Aggiunto
 
+- **Accanto alla papera autonoma di Pollen (`autod` del daemon 0.21).**
+  quack-navd si presenta a robotd, osserva `robot.autonomous` e
+  `move.source`, e prima di uno strumento che muove la papera spegne
+  `autod`, riaccendendolo a lavoro finito quando niente di nostro l'ha
+  mossa da 30 s (`QK_AUTONOMY` = `pause` | `refuse` | `ignore`,
+  `QK_AUTONOMY_RESUME_S`). Mentre `autod` gira, il ritorno a casa aspetta,
+  lo sweep della testa si fa da parte e `robot.map_status` lo dice.
+  duck-ipc-proto e kinematics seguono daemon-v0.21.1 (API 61, solo
+  aggiunte per noi). Un robotd prima della 0.21 non riporta mai
+  l'interruttore: lì non cambia niente (banco, scudi e viaggi sul gemello
+  come `main`). Dal vivo sul gemello 0.21.1: messo in pausa da
+  un'esplorazione, riacceso 30 s dopo, nessuna caduta.
+
 - **I satelliti sul crate client; N4 fatto.** La corsia della
   navigazione di quacksat e il bridge di quack-control ora girano su
   `quack-nav-client` e mandano `nav.hello`, registrando la versione del

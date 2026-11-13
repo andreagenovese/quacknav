@@ -451,6 +451,21 @@ forgets it on request; `robot.map_status` carries it as `gait`;
 ([docs/control-contract.md](docs/control-contract.md), the module
 `quack-nav/src/ledger.rs`).
 
+**Beside Pollen's duck on its own.** From daemon 0.21 the duck can live
+on its own (`autod`: it wanders, naps, chases a laser dot, plays with the
+ball; switched on by `robotctl autonomous on` or an `autonomous_mode`
+tag). robotd arbitrates nothing, and `autod` yields only to the pad, so a
+job of ours would fight it step by step. quack-navd names itself on every
+lane (`hello {client: "quack-navd"}`, API v60) and watches the switch:
+a tool that moves the duck switches `autod` off first, and it is switched
+back on once no job runs and nothing of ours moved the duck for 30 s
+(`QK_AUTONOMY_RESUME_S`, as `autod` waits for an idle pad).
+`QK_AUTONOMY=refuse` refuses moving tools instead, `ignore` drives beside
+it. While the duck is on its own the homecoming waits and the map's head
+sweep only follows a job of ours; `robot.map_status`'s hint says so. A
+robotd before 0.21 never reports the switch, and nothing changes there
+(the module `quack-nav/src/autonomy.rs`).
+
 ### The walk
 
 quack-nav needs to know which walking policy robotd runs,

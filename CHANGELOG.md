@@ -227,6 +227,18 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Added
 
+- **Beside Pollen's duck on its own (daemon 0.21's `autod`).** quack-navd
+  names itself to robotd, watches `robot.autonomous` and `move.source`,
+  and before a tool that moves the duck switches `autod` off, switching it
+  back on once the job is over and nothing of ours moved the duck for 30
+  s (`QK_AUTONOMY` = `pause` | `refuse` | `ignore`,
+  `QK_AUTONOMY_RESUME_S`). While `autod` runs, the homecoming waits, the
+  head sweep stands aside and `robot.map_status` says so. duck-ipc-proto
+  and kinematics follow daemon-v0.21.1 (API 61, additive for us). A
+  robotd before 0.21 never reports the switch: nothing changes there
+  (bench, shields and twin journeys as `main`). Live on the 0.21.1 twin:
+  paused by an exploration, back on 30 s after, no fall.
+
 - **The satellites on the client crate; N4 done.** quacksat's
   navigation lane and quack-control's bridge now run on
   `quack-nav-client` and say `nav.hello`, logging the protocol version;

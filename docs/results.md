@@ -1493,6 +1493,35 @@ daemon-v0.17.6 + set v8, two twins at a time (`rl-runs/twin-work/P8/`).
   the truth (`main` one, resumed unverified, 2.2 m); one fall in the
   branch's last casa_ingombra session, none in `main`'s.
 
+- **Beside Pollen's duck on its own** (branch `autod-coexist`,
+  2026-11-13). Pollen's daemon 0.21 brings `autod`, which walks the
+  house by itself when `robot.autonomous` is on and yields only to the
+  pad. quack-navd now names itself to robotd (`hello {client:
+  "quack-navd"}`), reads the switch and the driver from the state stream,
+  and before a moving tool switches `autod` off (`QK_AUTONOMY=pause`, the
+  default; `refuse` and `ignore` too), switching it back on 30 s after
+  the job (`QK_AUTONOMY_RESUME_S`) if it was ours to switch. Live on the
+  twin with daemon 0.21.1 and policy set v10, `autod` on and wandering:
+  `robot.map_explore` stopped it, robotd showed `move.source` =
+  `quack-navd`, and 30 s after the exploration `autod` was back on and
+  wandering; no fall. Not tried live: the refuse mode, the homecoming
+  waiting while `autod` runs, the head sweep standing aside.
+
+  On the usual stack (daemon 0.17.6, set v8, BAM + backlash, pick-up
+  detector on), where robotd never reports the switch, against `main`
+  3a3e5f2 (`rl-runs/twin-work/AC`): bench (60 seeds from 200000) and
+  shields (600 seeds from 300000) the same 840 and 12,600 episodes,
+  field for field; twin journeys, 4 tours a house:
+
+  | house | `main` arrived, falls (down), mean s | branch arrived, falls (down), mean s |
+  |---|---|---|
+  | casa_ingombra | 23/24, 2 (1), 114 | 24/24, 3 (0), 113 |
+  | casa_arredata | 24/24, 0, 94 | 24/24, 1 (0), 94 |
+
+  The code paths are the same there (no autonomy line in the branch's
+  logs), so the falls are the twin's noise; every fall in the branch's
+  arm was recovered and the journey arrived.
+
 ## Known limits
 
 - **The sensor cannot see the floor nearer than 0.4–0.6 m** (2026-10-27):

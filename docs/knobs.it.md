@@ -19,6 +19,8 @@ del processo.
 |---|---|---|---|
 | `QK_ALIGN_KICK` | 1 accesa, 0 spenta, altrimenti quella del modo | `quack-nav/src/explore/mode.rs` |  |
 | `QK_ANCHOR_DROP_M` | numero (default 1.0) | `quack-nav/src/explore/mod.rs` | Not beside a drop: a revisit there turns the duck round in the mouth of the passage it is entering. |
+| `QK_AUTONOMY` | one of refuse, ignore, else the default | `quack-nav/src/autonomy.rs` | So this daemon names itself (`hello {client: "quack-navd"}`, see `quack_duck::lane::set_client`), watches the switch and the driver on the state stream, and before a tool that moves the duck does what `QK_AUTONOMY` says: |
+| `QK_AUTONOMY_RESUME_S` | numero (default 30.0) | `quack-nav/src/autonomy.rs` | `pause` (default): switch the duck on its own off (`robot.autonomous {active: false}`, which stops it where it stands), run the job, and switch it back on once nothing of ours has moved the duck for `QK_AUTONOMY_RESUME_S… |
 | `QK_BACK_NO_STEP_M` | numero (default 0.30) | `quack-nav/src/explore/gait.rs` | No blind step back at all with a booked drop this close to the body, whatever its bearing, on the trail or not (`QK_BACK_NO_STEP_M`). |
 | `QK_BACK_REORIENT` | accesa salvo 0 | `quack-nav/src/explore/gait.rs` | `QK_BACK_REORIENT=0`: after the step back, head for the most open floor and walk a leg there, as before. |
 | `QK_BACK_S` | numero (default 1.5) | `quack-nav/src/explore/gait.rs` | The step back: this gait needs about a second to start moving at all, so a shorter one moves nothing (measured); and no more often than this. |
