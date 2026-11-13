@@ -46,6 +46,9 @@ fn main() -> anyhow::Result<()> {
     // The mapper, when this daemon hosts it (`[maploc]`): the released robotd
     // publishes what it needs, and the rest of the navigation reads the map
     // on the socket it serves, in robotd's own dialect.
+    // Every lane to robotd says who it is (`hello {client}`, API v60): the
+    // duck on its own (`autod`) and a pad see whose twist it is.
+    quack_duck::lane::set_client("quack-navd");
     let mapper = config.maploc.enabled.then(|| {
         quack_nav::mapd::spawn(&config.maploc, &config.robotd_socket, &config.map.tof_socket)
     });
@@ -69,6 +72,13 @@ fn main() -> anyhow::Result<()> {
         // head (see `Body::look_down`).
         let lent = explore.clone();
         host.set_head_lent(move || lent.head_lent());
+    }
+    // Pollen's duck on its own (`autod`, daemon 0.21): a job asked for
+    // pauses it, nothing of ours starts by itself while it runs (see
+    // `quack_nav::autonomy`).
+    {
+        let busy = explore.clone();
+        quack_nav::autonomy::spawn(&config.robotd_socket, move || busy.busy());
     }
     let shutdown = Shutdown { mapper: mapper.clone(), explore, sockets: vec![config.maploc.socket.clone(), config.socket.clone()] };
     if mapper.is_some() {
@@ -181,6 +191,12 @@ impl Daemon {
         if let quack_nav::lease::Verdict::Held { holder, left_s } = verdict {
             return Err((code::LEASED, format!("{holder} holds the duck (for {left_s:.0} s more, or until it lets go): `{name}` is refused; a stop is not")));
         }
+        if quack_nav::lease::MOVING.contains(&name)
+            && !quack_nav::lease::is_stop(name, args)
+            && let Some(a) = quack_nav::autonomy::global()
+        {
+            a.before_moving(name).map_err(|e| (code::TOOL_ERROR, e))?;
+        }
         quack_nav::tools::before_the_lock(&self.shutdown.explore, name, args);
         let mut robot = self.robot.lock().expect("robot poisoned");
         quack_nav::tools::execute(name, args, &mut robot).map_err(|e| (code::TOOL_ERROR, e))
@@ -234,6 +250,9 @@ impl Daemon {
     fn act(self: &Arc<Self>, conn: u64, p: quack_nav_proto::ActParams) -> Result<Value, (i64, String)> {
         use quack_nav_proto::code;
         let skills = self.skills().map_err(|e| (code::TOOL_ERROR, e))?;
+        if let Some(a) = quack_nav::autonomy::global() {
+            a.before_moving("robot.act").map_err(|e| (code::TOOL_ERROR, e))?;
+        }
         if !skills.iter().any(|(n, _)| *n == p.skill) {
             return Err((code::INVALID_PARAMS, format!("no skill `{}` on this duck (it has: {})", p.skill, skills.iter().map(|(n, _)| n.as_str()).collect::<Vec<_>>().join(", "))));
         }

@@ -87,7 +87,10 @@ pub fn spawn(host: Host, body: SharedBody, robotd_socket: String) {
                 // ... and for a rest's watch: one sweep every two minutes,
                 // the window that judges the resting pose (maploc's
                 // `RestConfig`).
-                let wanted = host.driving() || host.searching() || host.watching();
+                // While the duck is on its own (Pollen's `autod`), its
+                // brain moves the head for its own surveys: ours only for a
+                // job of ours.
+                let wanted = host.driving() || ((host.searching() || host.watching()) && !crate::autonomy::on_its_own());
                 // The navigation holds the head itself for a moment (a look
                 // at the floor ahead, `ExploreHandle::lend_head`): not
                 // somebody else's pose, no nudging, nothing written, nothing

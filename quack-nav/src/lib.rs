@@ -35,6 +35,7 @@
 //! (2026-09-22), and the voice satellite reaches it over a socket.
 
 pub mod act;
+pub mod autonomy;
 pub mod cliff;
 pub mod config;
 pub mod events;
