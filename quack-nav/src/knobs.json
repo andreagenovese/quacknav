@@ -158,6 +158,17 @@
    "doc": "`MAPLOC_PICKED_UP_HELD_S=<s>`: how long \"held\" must last before a pick-up is believed ([`HELD_BELIEVED_S`]); 0 believes one on its feet at once, as before 2026-11-10."
   },
   {
+   "name": "MAPLOC_REPLAY_EVENTS",
+   "group": "MAPLOC",
+   "read_as": "a value",
+   "type": "text",
+   "default": null,
+   "where": [
+    "maploc/src/bench.rs"
+   ],
+   "doc": "`MAPLOC_REPLAY_EVENTS=<file>`: what the host told the mapper live and the recording does not hold, replayed at its Unix time — lines \"<unix_s> held|released|engaged|idle\" (a hand's pick-up as robotd's detector reported i…"
+  },
+  {
    "name": "MAPLOC_REST",
    "group": "MAPLOC",
    "read_as": "on unless 0",
@@ -167,6 +178,28 @@
     "maploc/src/mapper.rs"
    ],
    "doc": "`MAPLOC_REST=0`: no stand ever rests, as before the rest (2026-10-01)."
+  },
+  {
+   "name": "MAPLOC_SEED_NEAR_M",
+   "group": "MAPLOC",
+   "read_as": "number (default 1.0)",
+   "type": "number",
+   "default": "1.0",
+   "where": [
+    "maploc/src/mapper.rs"
+   ],
+   "doc": "The one basin of this window near a refuted shadow seed (`MAPLOC_SEED_NEAR_M`, 1.0 m by default, 0 off;"
+  },
+  {
+   "name": "MAPLOC_SEED_NEAR_UNIQUE",
+   "group": "MAPLOC",
+   "read_as": "on only if 1",
+   "type": "switch",
+   "default": "0",
+   "where": [
+    "maploc/src/mapper.rs"
+   ],
+   "doc": "At boot the seed is the pose the session ended at, and a duck switched on in another room that looks the same agrees with it in one window: the agreement has to be unique before it is believed."
   },
   {
    "name": "MAPLOC_SHADOW",

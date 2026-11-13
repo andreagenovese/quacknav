@@ -1554,6 +1554,55 @@ casa_arredata, daemon-v0.17.6 + set v8, due gemelli alla volta
   Bench (60 semi da 200000) e scudi (600 semi da 300000): gli stessi 840 e
   12.600 episodi di `main`.
 
+- **Una semina dell'ombra respinta si cerca vicino a dove è caduta**
+  (ramo `seednear`, 2026-11-12). Le code lunghe della ricerca dopo un
+  trasporto (`findme_bench.py`, 450 s a prova) non erano una ricerca
+  cieca: rigiocando le corse del gemello nel bench di maploc con gli
+  eventi dell'host (`MAPLOC_REPLAY_EVENTS`), l'aggancio dell'ombra era
+  giusto, ma la semina che ne viene — l'aggancio composto con
+  l'odometria dall'inizio dell'ombra — sul gemello era derivata, una
+  finestra la respingeva, e l'accordo seguente aspettava altre due o
+  quattro risposte, a 30 s l'una dall'altra. Ora una semina respinta si
+  cerca, una volta, fra i bacini della finestra che l'ha respinta entro
+  1 m e 0,6 rad (`MAPLOC_SEED_NEAR_M`); un solo bacino è la nuova
+  semina, sempre confermata da due finestre e dal test della valle.
+  Senza togliere il test di unicità della singola finestra la modifica
+  non faceva quasi nulla: in casa_arredata, con stanze che si somigliano,
+  respingeva pose a 0,1 m dalla verità per quattro finestre di fila;
+  garantisce invece l'aggancio dell'ombra. In replica, 56 trasporti da
+  10 corse (`SL`, `SC`, due case): mai ritrovata 9 → 4, sbagliate 0 → 0;
+  12 risvegli nell'appartamento uguali. A/B sul gemello
+  (`rl-runs/twin-work/SN/ab1`, BAM + gioco, rilevatore di prese acceso,
+  base `MAPLOC_SEED_NEAR_M=0`, 4 prove per tipo):
+
+  | casa, tipo | base giuste / sbagliate / mai / a terra | dev giuste / sbagliate / mai / a terra |
+  |---|---|---|
+  | casa_arredata, trasporto | 4/4 / 0 / 0 / 0, mediana 262 s | 4/4 / 0 / 0 / 0, mediana 186 s |
+  | casa_arredata, caduta | 3/4 / 1 / 0 / 0 | 2/4 / 1 / 1 / 0 |
+  | casa_arredata, caduta e trasporto | 0/4 / 0 / 3 / 1 | 3/4 / 0 / 0 / 1 |
+  | casa_ingombra, trasporto | 4/4 / 0 / 0 / 0, mediana 188 s | 4/4 / 0 / 0 / 0, mediana 158 s |
+  | casa_ingombra, caduta | 2/4 / 1 / 0 / 1 | 3/4 / 0 / 0 / 1 |
+  | casa_ingombra, caduta e trasporto | 1/4 / 0 / 2 / 1 | 2/4 / 0 / 1 / 1 |
+
+  Quattro rilocalizzazioni sono passate dalla nuova semina, tutte giuste
+  (0,03–0,16 m dalla verità); tutte quelle sbagliate in entrambi i
+  bracci (0,5–1,1 m) sono venute dal solito percorso delle finestre lungo
+  un corridoio o da una posa ripresa senza verifica. Bench (60 semi da
+  200000) e scudi (600 semi da 300000): gli stessi 840 e 12.600 episodi
+  di `main`, campo per campo. Provate lungo la strada e non tenute (ramo
+  `fastfind`): gambe fino a 5 s dove uno sguardo vedeva spazio (nessun
+  guadagno), una camminata diritta verso lo spazio libero (peggio in
+  replica), il primo panorama in terzi (circa 10 s, dentro il rumore).
+
+  Esplorazione da zero (`SN/ex`, BAM + gioco, rilevatore di prese
+  acceso, tre sessioni da 30 minuti, contro `main` 9960a29): copertura
+  casa_arredata 59/61/63 % (`main`) contro 59/61/62 %, casa_ingombra
+  52/66/67 % contro 60/61/63 %; nessuna sessione chiusa presto; la nuova
+  semina non è mai scattata (nessun trasporto) e il ramo non si è fidato
+  di nessuna posa a più di 0,3 m dalla verità (`main` di una, ripresa
+  senza verifica, a 2,2 m); una caduta nell'ultima sessione del ramo in
+  casa_ingombra, nessuna in quelle di `main`.
+
 ## Limiti noti
 
 - **Il sensore non vede il pavimento più vicino di 0,4–0,6 m**

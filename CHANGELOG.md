@@ -13,6 +13,28 @@ physical duck; the details are in [docs/results.md](docs/results.md) and
 
 ### Changed
 
+- **After a carry, a lost duck looks for itself near where its walk put
+  it.** The shadow map (the map walked since boot) fits the saved map
+  every 30 s, and once its fits agree it seeds the windows with a pose
+  carried there by the odometry since; on the twin that odometry drifts,
+  and a window refuted the seed again and again while the shadow's fit
+  was right — the long tails of the search after a carry. A refuted
+  seed is now looked for once in the refuting window's own basins within
+  1 m and 0.6 rad of it; one basin alone (two that differ, nothing) is
+  the new seed, and two windows must still confirm it, the valley test
+  still applying; the one-window uniqueness test is waived for it, the
+  shadow's fit vouching (`MAPLOC_SEED_NEAR_M`, 0 = as before;
+  `MAPLOC_SEED_NEAR_UNIQUE=1` asks the window's test too). Replayed, 56
+  carries from 10 twin runs: never found 9 → 4, wrong 0 → 0. Twin A/B,
+  BAM + backlash, carry/fall/fallcarry, 4 each, two houses, base with
+  the knob at 0: right 14 → 18 of 24, wrong 2 → 1, never 5 → 2; the four
+  relocalizations through the new seed were all right (0.03–0.16 m), the
+  wrong ones in both arms came from the usual window path. Bench and
+  600-seed shields the same as `main` to the episode; exploring from
+  nothing, coverage as `main`'s and no wrong pose trusted. `MAPLOC_REPLAY_EVENTS`
+  lets maploc's bench replay what the host told the mapper (pick-ups,
+  jobs).
+
 - **Exploring, a duck in a pocket plans its way out at the body's
   half-width.** After two failed tries the explorer picks frontiers at the
   body's half-width (0.10 m), but planned the way to them at the usual

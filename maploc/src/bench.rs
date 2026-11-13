@@ -131,8 +131,38 @@ pub fn replay_loading(
             mapper.frame(t, scan);
         }
     };
+    // `MAPLOC_REPLAY_EVENTS=<file>`: what the host told the mapper live
+    // and the recording does not hold, replayed at its Unix time — lines
+    // "<unix_s> held|released|engaged|idle" (a hand's pick-up as robotd's
+    // detector reported it, a job driving the body or none), so a carry's
+    // search can be replayed offline.
+    let mut events: std::collections::VecDeque<(f64, String)> = std::env::var("MAPLOC_REPLAY_EVENTS")
+        .ok()
+        .and_then(|p| std::fs::read_to_string(p).ok())
+        .map(|text| {
+            let mut v: Vec<(f64, String)> = text
+                .lines()
+                .filter_map(|l| {
+                    let mut it = l.split_whitespace();
+                    Some((it.next()?.parse().ok()?, it.next()?.to_string()))
+                })
+                .collect();
+            v.sort_by(|a, b| a.0.total_cmp(&b.0));
+            v.into()
+        })
+        .unwrap_or_default();
     for record in records {
         let t = record.ts_us() as f32 / 1e6;
+        while events.front().is_some_and(|(at, _)| *at <= epoch_s + f64::from(t)) {
+            let (_, what) = events.pop_front().expect("front seen");
+            match what.as_str() {
+                "held" => mapper.set_held(true, false, t, &mut notes),
+                "released" => mapper.set_held(false, false, t, &mut notes),
+                "engaged" => mapper.set_engaged(true),
+                "idle" => mapper.set_engaged(false),
+                _ => {}
+            }
+        }
         if t > max_t_s {
             break;
         }

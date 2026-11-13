@@ -15,6 +15,31 @@ carta, mai su una papera fisica; i dettagli sono in
 
 ### Modificato
 
+- **Dopo un trasporto, una papera persa si cerca vicino a dove l'ha
+  messa il suo cammino.** La mappa ombra (la mappa camminata dall'avvio)
+  si confronta con quella salvata ogni 30 s, e quando i confronti
+  concordano semina le finestre con una posa portata lì dall'odometria
+  successiva; sul gemello quell'odometria deriva, e una finestra
+  respingeva la semina più e più volte mentre l'aggancio dell'ombra era
+  giusto — le code lunghe della ricerca dopo un trasporto. Una semina
+  respinta ora si cerca, una volta, fra i bacini della finestra che l'ha
+  respinta, entro 1 m e 0,6 rad; un solo bacino (due diversi, niente) è
+  la nuova semina, e due finestre devono comunque confermarla, con il
+  test della valle; il test di unicità della singola finestra non vale
+  per lei, garantisce l'aggancio dell'ombra (`MAPLOC_SEED_NEAR_M`, 0 =
+  come prima; `MAPLOC_SEED_NEAR_UNIQUE=1` chiede anche il test della
+  finestra). In replica, 56 trasporti da 10 corse sul gemello: mai
+  ritrovata 9 → 4, sbagliate 0 → 0. A/B sul gemello, BAM + gioco,
+  trasporto/caduta/caduta e trasporto, 4 ciascuno, due case, base con il
+  parametro a 0: giuste 14 → 18 su 24, sbagliate 2 → 1, mai 5 → 2; le
+  quattro rilocalizzazioni passate dalla nuova semina tutte giuste
+  (0,03–0,16 m), quelle sbagliate in entrambi i bracci dal solito
+  percorso delle finestre. Bench e scudi a 600 semi uguali a `main`
+  episodio per episodio; in esplorazione da zero, copertura come quella
+  di `main` e nessuna posa sbagliata creduta. `MAPLOC_REPLAY_EVENTS` permette al bench di
+  maploc di rigiocare ciò che l'host ha detto al mapper (prese in mano,
+  lavori).
+
 - **In esplorazione, una papera in una tasca pianifica l'uscita a mezzo
   corpo.** Dopo due tentativi falliti l'esploratore sceglie le frontiere a
   mezzo corpo (0,10 m), ma pianificava la strada per arrivarci con il

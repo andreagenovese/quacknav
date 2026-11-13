@@ -807,6 +807,9 @@ pub struct Mapper {
     /// The soft seed came from the shadow's fit: its uniqueness is the
     /// fit's, over the whole walk, and the one-window gates are not asked.
     seed_from_map: bool,
+    /// The soft seed came from this window's basins near a refuted shadow
+    /// seed (`seed_near`).
+    seed_near_shadow: bool,
     /// The map as it stood when the current stand began — what the
     /// watchdog judges the stand's windows against. Judging against the
     /// LIVE map lets a kidnapped stand vouch for itself: its first window
@@ -1166,6 +1169,7 @@ impl Mapper {
             seed_agreed: 0,
             shadow: None,
             seed_from_map: false,
+            seed_near_shadow: false,
             stand_grid: None,
             roll: WindowAccumulator::new(rolling),
             roll_at: 0.0,
@@ -1346,6 +1350,38 @@ impl Mapper {
     /// on across the flat — because a candidate needs only a second window
     /// to *agree* with it, and in a house of repeated rectangles an alias
     /// agrees with itself as readily as the truth does.
+    /// The one basin of this window near a refuted shadow seed
+    /// (`MAPLOC_SEED_NEAR_M`, 1.0 m by default, 0 off; within 0.6 rad),
+    /// at an accepted residual; none when two or more distinct basins
+    /// are near — the window cannot tell which the shadow meant.
+    fn seed_near(&self, grid: &mut OccupancyGrid, composite: &Scan, seed: Pose2) -> Option<Pose2> {
+        let radius = std::env::var("MAPLOC_SEED_NEAR_M").ok().and_then(|v| v.parse::<f32>().ok()).unwrap_or(1.0);
+        if radius <= 0.0 {
+            return None;
+        }
+        let probe = composite.decimated(self.cfg.relocalize_max_beams);
+        let r = relocalize_against_grid(grid, &probe, &self.cfg.relocalize)?;
+        if r.n_beams_used < self.cfg.relocalize.min_beams_used {
+            return None;
+        }
+        let near: Vec<Pose2> = r
+            .basins
+            .iter()
+            .filter(|(p, e)| {
+                *e <= self.cfg.relocalize.max_mean_residual_m
+                    && (p.0 - seed.0).hypot(p.1 - seed.1) <= radius
+                    && wrap_pi(p.2 - seed.2).abs() <= 0.6
+            })
+            .map(|(p, _)| *p)
+            .collect();
+        let first = *near.first()?;
+        let distinct = near.iter().any(|p| (p.0 - first.0).hypot(p.1 - first.1) > 0.25 || wrap_pi(p.2 - first.2).abs() > 0.3);
+        if std::env::var_os("RELOC_DEBUG").is_some() {
+            eprintln!("    seed near ({:.2},{:.2}): {} basins near, distinct {distinct}", seed.0, seed.1, near.len());
+        }
+        (!distinct).then_some(first)
+    }
+
     fn unique_at(&self, grid: &mut OccupancyGrid, composite: &Scan, pose: Pose2) -> Option<bool> {
         let wd = self.cfg.watchdog;
         let judged = self
@@ -1598,6 +1634,7 @@ impl Mapper {
             // wall), and the head sweep only decorrelates the second
             // window from the first if we wait for it.
             if let Some((cand, then)) = self.soft_seed.take() {
+                let near_shadow = std::mem::take(&mut self.seed_near_shadow);
                 let judged = self.check_candidate(&mut grid, composite, cand, then, now);
                 if std::env::var_os("RELOC_DEBUG").is_some() {
                     let v = match &judged.1 {
@@ -1615,7 +1652,16 @@ impl Mapper {
                         // at, and a duck switched on in another room that
                         // looks the same agrees with it in one window: the
                         // agreement has to be unique before it is believed.
+                        // A seed found near the shadow's: the shadow's fit, two agreeing
+                        // answers after half a metre walked, is the uniqueness
+                        // the window alone cannot give in a house of repeated
+                        // rooms (the window's test refused right seeds 0.1 m
+                        // off four windows running, casa_arredata replays,
+                        // 2026-11-12); the valley test below still applies.
+                        // `MAPLOC_SEED_NEAR_UNIQUE=1` asks the window's test too.
+                        let shadow_vouches = near_shadow && !std::env::var("MAPLOC_SEED_NEAR_UNIQUE").is_ok_and(|v| v == "1");
                         let unique = self.seed_from_map
+                            || shadow_vouches
                             || !self.resumed_from_session
                             || self.unique_at(&mut grid, composite, pose) == Some(true);
                         // The valley test is not asked of the shadow's seed
@@ -1636,18 +1682,33 @@ impl Mapper {
                             return;
                         }
                         self.soft_seed = Some((implied, now));
+                        self.seed_near_shadow = near_shadow;
                         notes.push(Note::RelocalizeCandidate {
                             pose,
                             mean_residual_m: resid,
                         });
                         return;
                     }
-                    (_, Verdict::Refuted) => {
+                    (implied, Verdict::Refuted) => {
                         // Evidence of displacement: suspicion hardens, the
                         // give-up escape is off the table.
                         self.seed_agreed = 0;
                         if std::mem::take(&mut self.seed_from_map) {
                             notes.push(Note::ShadowSeedRefuted);
+                            // The shadow's fit is usually right while the
+                            // odometry that carries its seed to now has
+                            // drifted 0.5–2.8 m over a long walk (twin
+                            // replays, 2026-11-12): this window's own
+                            // basins near the seed, one only, become a
+                            // seed of the windows' kind — two windows to
+                            // agree, the uniqueness and valley tests asked
+                            // as of any other seed, not the shadow's
+                            // exemption.
+                            if let Some(p) = self.seed_near(&mut grid, composite, implied) {
+                                notes.push(Note::ShadowSeed { pose: p });
+                                self.soft_seed = Some((p, now));
+                                self.seed_near_shadow = true;
+                            }
                         }
                     }
                     (implied, Verdict::Ambiguous) => {
@@ -1656,6 +1717,7 @@ impl Mapper {
                         // map DID judge.
                         self.seed_agreed = 0;
                         self.soft_seed = Some((implied, now));
+                        self.seed_near_shadow = near_shadow;
                     }
                     (implied, Verdict::Unjudgeable) => {
                         self.seed_agreed = 0;
@@ -1671,6 +1733,7 @@ impl Mapper {
                             return;
                         }
                         self.soft_seed = Some((implied, now));
+                        self.seed_near_shadow = near_shadow;
                     }
                 }
             }
