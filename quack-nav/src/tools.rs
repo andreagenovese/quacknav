@@ -429,7 +429,10 @@ fn map_status(places: &mut Places) -> Result<Value, String> {
     let own = places.explore.self_started().map(|why| {
         format!("the duck is moving on its own: {why}. robot.go_to with stop=true stops it, and it does not start again on its own until a job is asked for")
     });
-    let hint = if frame.seated {
+    let on_its_own = crate::autonomy::global().and_then(|a| a.hint());
+    let hint = if let Some(own) = on_its_own.as_deref() {
+        own
+    } else if frame.seated {
         "the duck is seated or fallen: stand it up before mapping (nothing is mapped from the floor)"
     } else if let Some(own) = own.as_deref() {
         own

@@ -476,6 +476,23 @@ dimentica a richiesta; `robot.map_status` lo porta come `gait`;
 ([docs/control-contract.it.md](docs/control-contract.it.md), il modulo
 `quack-nav/src/ledger.rs`).
 
+**Accanto alla papera autonoma di Pollen.** Dalla 0.21 la papera può
+vivere da sola (`autod`: gira per casa, sonnecchia, insegue il puntino di
+un laser, gioca a palla; si accende con `robotctl autonomous on` o con un
+tag `autonomous_mode`). robotd non fa da arbitro, e `autod` cede solo al
+gamepad, quindi un nostro lavoro lo combatterebbe passo dopo passo.
+quack-navd si presenta per nome su ogni connessione (`hello {client:
+"quack-navd"}`, API v60) e osserva l'interruttore: uno strumento che
+muove la papera prima spegne `autod`, e lo riaccende quando non gira
+nessun lavoro e niente di nostro ha mosso la papera da 30 s
+(`QK_AUTONOMY_RESUME_S`, come `autod` aspetta un gamepad fermo).
+`QK_AUTONOMY=refuse` invece rifiuta gli strumenti che muovono, `ignore`
+guida accanto a lui. Mentre la papera è autonoma il risveglio aspetta e
+lo sweep della testa della mappa segue solo un nostro lavoro; il
+suggerimento di `robot.map_status` lo dice. Un robotd prima della 0.21
+non riporta mai l'interruttore, e lì non cambia niente (il modulo
+`quack-nav/src/autonomy.rs`).
+
 ### La camminata
 
 quack-nav deve sapere quale policy di camminata usa

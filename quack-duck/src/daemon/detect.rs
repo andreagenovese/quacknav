@@ -16,7 +16,7 @@ pub const AUTO_WAIT: Duration = Duration::from_secs(30);
 /// does not say.
 pub fn ask(robotd_socket: &str) -> Option<String> {
     let mut control = Control::connect(robotd_socket).ok()?;
-    let call = proto::Call::Hello(proto::HelloParams { api_version: proto::API_VERSION });
+    let call = proto::Call::Hello(proto::HelloParams { api_version: proto::API_VERSION, client: None });
     let hello: proto::HelloResult = control.request(&call).ok()?.result_as().ok()?;
     hello.daemon_version.map(|v| v.to_string())
 }

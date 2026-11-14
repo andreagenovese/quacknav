@@ -34,6 +34,16 @@ fn write_line(writer: &mut impl Write, message: &impl serde::Serialize) -> std::
     writer.flush()
 }
 
+/// The name this process gives robotd on every lane it opens (`hello
+/// {client}`, API v60), so `robot.state.move.source` says whose twist it is.
+/// Unset (the satellite, which does not drive), no hello is sent.
+static CLIENT: std::sync::OnceLock<&'static str> = std::sync::OnceLock::new();
+
+/// Name this process to robotd, once, before the first lane opens.
+pub fn set_client(name: &'static str) {
+    let _ = CLIENT.set(name);
+}
+
 /// The request lane: discrete intents and queries. Never subscribed, so
 /// every incoming line is a response to something we asked.
 pub struct Control {
@@ -46,11 +56,18 @@ impl Control {
     pub fn connect(path: &str) -> anyhow::Result<Self> {
         let stream = connect(path).with_context(|| format!("connecting to robotd at {path}"))?;
         stream.set_read_timeout(Some(REQUEST_TIMEOUT))?;
-        Ok(Self {
+        let mut control = Self {
             reader: BufReader::new(stream.try_clone()?),
             writer: stream,
             next_id: 1,
-        })
+        };
+        if let Some(name) = CLIENT.get() {
+            // A robotd before v60 refuses the member (INVALID_PARAMS): the
+            // lane works the same, unnamed.
+            let hello = proto::Call::Hello(proto::HelloParams { api_version: proto::API_VERSION, client: Some(name.to_string()) });
+            let _ = control.request(&hello);
+        }
+        Ok(control)
     }
 
     /// Send a continuous intent: no id, no reply, nothing to wait for.
@@ -161,6 +178,7 @@ mod tests {
             movement: proto::MoveState {
                 requested: [0.0; 3],
                 applied: [0.0; 3],
+                source: None,
                 limited_by: vec!["deadman".to_string()],
             },
             head: [0.0; 4],
@@ -187,6 +205,11 @@ mod tests {
             skeleton: Vec::new(),
             velocities: Vec::new(),
             currents_ma: Vec::new(),
+            impact_guard: Vec::new(),
+            laser: None,
+            soccer: None,
+            autonomous: false,
+            hearing: None,
         }
     }
 

@@ -80,7 +80,7 @@ pub const WHY_RESUME: &str = "exploring on from where the last session stopped";
 fn search(robot: &Arc<Mutex<Robot>>, seconds: f64, why: &str) -> bool {
     let explore = robot.lock().expect("robot poisoned").places.explore.clone();
     explore.search_began(why);
-    let found = search::confirmed_within_or(robot, seconds, &|| explore.held());
+    let found = search::confirmed_within_or(robot, seconds, &|| explore.held() || crate::autonomy::on_its_own());
     explore.search_ended(found);
     found
 }
@@ -91,6 +91,11 @@ fn held(robot: &Arc<Mutex<Robot>>) -> bool {
     let held = robot.lock().expect("robot poisoned").places.explore.held();
     if held {
         tracing::warn!("homecoming: {}", crate::explore::STOPPED_BY_USER);
+    } else if crate::autonomy::on_its_own() {
+        // Pollen's duck on its own drives now; the homecoming's walks
+        // would fight it step by step (see `crate::autonomy`).
+        tracing::warn!("homecoming: the duck is on its own (Pollen's autonomous mode); the homecoming stands aside");
+        return true;
     }
     held
 }
@@ -129,6 +134,14 @@ fn run(robot: &Arc<Mutex<Robot>>, cfg: &HomecomingConfig) {
     // robot has to be switched on and standing before any of this means
     // anything; nothing here can be asked before then.
     std::thread::sleep(Duration::from_secs_f64(cfg.start_delay_s.max(1.0)));
+    // Woken with the duck on its own (Pollen's `autod`): it walks, not us.
+    // The homecoming waits until it is switched off.
+    if crate::autonomy::on_its_own() {
+        tracing::info!("homecoming: the duck is on its own (Pollen's autonomous mode); waiting until it is switched off");
+        while crate::autonomy::on_its_own() {
+            std::thread::sleep(Duration::from_secs(2));
+        }
+    }
 
     let library = match call(robot, "robot.map_list", &json!({})) {
         Ok(answer) => answer

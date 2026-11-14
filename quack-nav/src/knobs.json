@@ -280,6 +280,28 @@
    "doc": "Not beside a drop: a revisit there turns the duck round in the mouth of the passage it is entering."
   },
   {
+   "name": "QK_AUTONOMY",
+   "group": "QK",
+   "read_as": "one of refuse, ignore, else the default",
+   "type": "text",
+   "default": null,
+   "where": [
+    "quack-nav/src/autonomy.rs"
+   ],
+   "doc": "So this daemon names itself (`hello {client: \"quack-navd\"}`, see `quack_duck::lane::set_client`), watches the switch and the driver on the state stream, and before a tool that moves the duck does what `QK_AUTONOMY` says:"
+  },
+  {
+   "name": "QK_AUTONOMY_RESUME_S",
+   "group": "QK",
+   "read_as": "number (default 30.0)",
+   "type": "number",
+   "default": "30.0",
+   "where": [
+    "quack-nav/src/autonomy.rs"
+   ],
+   "doc": "`pause` (default): switch the duck on its own off (`robot.autonomous {active: false}`, which stops it where it stands), run the job, and switch it back on once nothing of ours has moved the duck for `QK_AUTONOMY_RESUME_S…"
+  },
+  {
    "name": "QK_BACK_NO_STEP_M",
    "group": "QK",
    "read_as": "number (default 0.30)",
